@@ -19,6 +19,7 @@ billy.Plan.create(
     frequency=billing.Frequency.MONTHLY,
     interval=3
 )
+```
 
 #### Plan Frequency
 

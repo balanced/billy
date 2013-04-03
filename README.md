@@ -16,7 +16,7 @@ billy.Plan.create(
     amount=100,
     description='the goat - silver',
     trial_period=None,
-    frequency=billing.Frequency.MONTHLY,
+    frequency=billy.Frequency.MONTHLY,
     interval=3
 )
 ```

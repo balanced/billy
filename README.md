@@ -24,7 +24,7 @@ billy.Plan.create(
 #### Plan Frequency
 
 ```python
-billy.Frequency(object):
+Frequency(object):
    YEARLY = 'yearly'
    MONTHLY = 'monthly'
    WEEKLY = 'weekly'

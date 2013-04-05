@@ -25,7 +25,7 @@ Given a `timer`, we subscribe to this timer with a `scheduler`, and that
 
 All `tasks` are wrapped with a `scheduler`, which control the `tasks`
 scheduling and exposes information such as when the time of next run
-is scheduled, as well as if it's retryable. A `scheduler` may schedule
+is scheduled, as well as if a `task` is retryable. A `scheduler` may schedule
 other `tasks`.
 
 All `tasks` are audited and generate events, which are called

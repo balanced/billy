@@ -26,6 +26,19 @@ This task controls its scheduling and exposes information such as when
 the time of next run is scheduled, as well as if it's retryable. Tasks
 may schedule other tasks.
 
+All tasks are audited and generate events, which are called
+AuditEvents. These AuditEvents are essentially line-items for an
+AuditFeed. AuditFeeds are generated for a particular `frequency`,
+more commonly known as `invoices`. `Invoices` are essentially the sum
+of all `AuditEvent`s, or operations, that have happened for a
+particular `task` during its scheduled period of execution.
+
+Here are some common tasks:
+
+`ChargeTask` - Invokes a method that does some calculation dynamically to charge an account for a computed price.
+`FixedChargeTask` - What's commonly known as a plan, is a `ChargeTask` with a FIXED price.
+`PayoutTask` - Invokes a method that does some calculation dynamically to issue a bank payout to an account for a computed amount.
+`FixedPayoutTask` - What's commonly known as payroll, is a `PayoutTask` with a FIXED price.
 
 ## Glossary
 

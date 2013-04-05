@@ -7,6 +7,7 @@ Billy - The Open Source Recurring Billing System, powered by Balanced
 Since Balanced is a dual-sided payments platform, `Billy` must support:
 
   - credit card charges
+  - bank payments
   - bank deposits
 
 These operations should be scheduled at an arbitrary frequency. Some
@@ -37,9 +38,9 @@ execution.
 
 Here are some common tasks:
 
-- `ChargeTask` - Invokes a method that does some calculation dynamically to charge an account for a computed price.
+- `DebitTask` - Invokes a method that does some calculation dynamically to charge an account for a computed price.
 
-- `FixedChargeTask` - What's commonly known as a plan, is a `ChargeTask` with a FIXED price.
+- `FixedDebitTask` - What's commonly known as a plan, is a `DebitTask` with a FIXED price.
 
 - `PayoutTask` - Invokes a method that does some calculation dynamically to issue a bank payout to an account for a computed amount.
 

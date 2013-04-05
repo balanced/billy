@@ -35,10 +35,13 @@ particular `task` during its scheduled period of execution.
 
 Here are some common tasks:
 
-`ChargeTask` - Invokes a method that does some calculation dynamically to charge an account for a computed price.
-`FixedChargeTask` - What's commonly known as a plan, is a `ChargeTask` with a FIXED price.
-`PayoutTask` - Invokes a method that does some calculation dynamically to issue a bank payout to an account for a computed amount.
-`FixedPayoutTask` - What's commonly known as payroll, is a `PayoutTask` with a FIXED price.
+- `ChargeTask` - Invokes a method that does some calculation dynamically to charge an account for a computed price.
+
+- `FixedChargeTask` - What's commonly known as a plan, is a `ChargeTask` with a FIXED price.
+
+- `PayoutTask` - Invokes a method that does some calculation dynamically to issue a bank payout to an account for a computed amount.
+
+- `FixedPayoutTask` - What's commonly known as payroll, is a `PayoutTask` with a FIXED price.
 
 ## Glossary
 

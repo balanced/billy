@@ -2,7 +2,6 @@
 
 Billy - The Open Source Recurring Billing System, powered by Balanced
 
-
 ## Proposal for Billy
 
 Since Balanced is a dual-sided payments platform, `Billy` must support:
@@ -13,17 +12,6 @@ Since Balanced is a dual-sided payments platform, `Billy` must support:
 These operations should be scheduled at an arbitrary frequency. Some
 customers might want a recurring payout schedule for 7 days and a
 recurring charge plan that's monthly.
-
-In this case, we will define `frequency` as:
-
-    frequency = `PERIOD_OF_TIME` * `f(x)`
-
-`f(x)` can be considered an identity function, which we will call the
-`INTERVAL`.
-
-Through substitution:
-
-    frequency = `PERIOD_OF_TIME` * `INTERVAL`
 
 `Billy` must be flexible enough to support scheduling changes, where
 appropriate business logic is executed.
@@ -38,6 +26,19 @@ This task controls its scheduling and exposes information such as when
 the time of next run is scheduled, as well as if it's retryable. Tasks
 may schedule other tasks.
 
+
+## Glossary
+
+`frequency`:
+
+  frequency = `PERIOD_OF_TIME` * `f(x)`
+
+  `f(x)` can be considered an identity function, which we will call the
+  `INTERVAL`.
+
+  Through substitution:
+
+  frequency = `PERIOD_OF_TIME` * `INTERVAL`
 
 ### Plans
 

@@ -19,19 +19,21 @@ appropriate business logic is executed.
 This essentially boils down to a scheduling problem, that will
 have a large number of business rules on transition.
 
-Given a scheduler, we configure it with a task that contains
-scheduling details.
+Given a `timer`, we subscribe to this timer with a `scheduler`, and that
+`scheduler` contains a `task`.
 
-This task controls its scheduling and exposes information such as when
-the time of next run is scheduled, as well as if it's retryable. Tasks
-may schedule other tasks.
+All `tasks` are wrapped with a `scheduler`, which control the `tasks`
+scheduling and exposes information such as when the time of next run
+is scheduled, as well as if it's retryable. A `scheduler` may schedule
+other `tasks`.
 
-All tasks are audited and generate events, which are called
-AuditEvents. These AuditEvents are essentially line-items for an
-AuditFeed. AuditFeeds are generated for a particular `frequency`,
-more commonly known as `invoices`. `Invoices` are essentially the sum
-of all `AuditEvent`s, or operations, that have happened for a
-particular `task` during its scheduled period of execution.
+All `tasks` are audited and generate events, which are called
+`AuditEvents`. These `AuditEvents` are essentially line-items for an
+`AuditFeed`. `AuditFeeds` are generated for a scheduler, or its
+`frequency` execution, and are more commonly known as `invoices`. `Invoices`
+are essentially the sum of all `AuditEvents`, or operations, that have
+happened for a particular `task` during its scheduled period of
+execution.
 
 Here are some common tasks:
 

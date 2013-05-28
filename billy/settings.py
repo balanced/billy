@@ -2,6 +2,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import sessionmaker
+
+
 DB_SETTINGS = {
     'driver': 'postgresql',
     'host': 'localhost',

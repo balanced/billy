@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 
-class TestPlatform(TestCase):
+class TestDB(TestCase):
 
     def test_sqlachemy(self):
         import sqlalchemy

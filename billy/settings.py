@@ -16,7 +16,7 @@ POSTGRES_URL = URL(DB_SETTINGS['driver'], username=DB_SETTINGS['user'],
                    password=DB_SETTINGS['password'], port=DB_SETTINGS['port'],
                    database=DB_SETTINGS['db_name'])
 DB_ENGINE = create_engine(POSTGRES_URL, echo=True)
-DB_SESSION = sessionmaker(bind=DB_ENGINE)
+query_tool = sessionmaker(bind=DB_ENGINE)
 
 
 #PROVIDER SETTINGS

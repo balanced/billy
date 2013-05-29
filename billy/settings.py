@@ -19,3 +19,4 @@ POSTGRES_URL = URL(DB_SETTINGS['driver'], username=DB_SETTINGS['user'], host= DB
 DB_ENGINE = create_engine(POSTGRES_URL)
 Session = sessionmaker(bind=DB_ENGINE)
 query_tool = Session()
+

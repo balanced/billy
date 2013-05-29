@@ -1,5 +1,5 @@
 from unittest import TestCase
-from billy.plans.utils import Intervals, create_plan, delete_plan, list_plans, update_plan, retrieve_plan, NotFoundError, AlreadyExistsError
+from billy.plans.utils import Intervals, create_plan, delete_plan, list_plans, update_plan, retrieve_plan
 from billy.errors import NotFoundError, BadIntervalError, AlreadyExistsError
 from dateutil.relativedelta import relativedelta
 from datetime import datetime, timedelta
@@ -7,11 +7,11 @@ from pytz import UTC
 from billy.settings import query_tool
 from billy.plans.models import Plan
 
-
 class TestPlans(TestCase):
     
     def setUp(self):
         self.marketplace = 'test_my_marketplace'
+        query_tool.query(Plan).filter(Plan.marketplace == self.marketplace).delete()
     
     def test_intervals(self):
         self.assertEqual(Intervals.DAY, relativedelta(days=1))
@@ -85,4 +85,4 @@ class TestPlans(TestCase):
     def tearDown(self):
         query_tool.query(Plan).filter(Plan.marketplace == self.marketplace).delete()
         self.assertFalse(list_plans(self.marketplace))
-        #TODO-me: Figure out why the last row isn't tearing down...
+        #TODO-me: Figure out why the last row isn't tearing down...SWITCH TO TRANSACTIONAL

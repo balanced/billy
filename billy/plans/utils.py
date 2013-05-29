@@ -81,7 +81,6 @@ def update_plan(plan_id, marketplace, new_name):
     else:
         exists.name = new_name
         exists.updated_at = datetime.now(UTC)
-        print exists.marketplace
         query_tool.commit()
         return exists
 
@@ -99,10 +98,10 @@ def list_plans(marketplace):
 def delete_plan(plan_id, marketplace):
     """
     This method deletes a plan. Plans are not deleted from the database, but are instead marked as inactive so no new
-    users can be added. Everyone currently on the plan
+    users can be added. Everyone currently on the plan is maintained on the plan.
     :param plan_id: the unique plan_id
     :param marketplace: the plans marketplace/group
-    :returns: the new Plan object
+    :returns: the deleted Plan object
     :raise NotFoundError:  if plan not found.
     """
     exists = query_tool.query(Plan).filter(and_(Plan.plan_id == plan_id, Plan.marketplace == marketplace)).first()

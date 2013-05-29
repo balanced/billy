@@ -1,13 +1,14 @@
-from billy.models.base import Base
+from billy.models.base import Base, JSONDict
 from sqlalchemy import Column, String, Integer, Boolean, DateTime
 from pytz import UTC
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
+
 class Plan(Base):
     __tablename__ = 'plans'
 
-    id = Column(String, primary_key=True, unique=True)
+    plan_id = Column(String, primary_key=True, unique=True)
     marketplace = Column(String)
     name = Column(String)
     price_cents = Column(Integer)
@@ -15,37 +16,37 @@ class Plan(Base):
     created_at = Column(DateTime, default=datetime.now(tz=UTC))
     deleted_at = Column(DateTime)
     updated_at = Column(DateTime)
-    trial_interval = Column(Integer)
-    years = Column(Integer)
-    months = Column(Integer)
-    weeks = Column(Integer)
-    days = Column(Integer)
-    hours = Column(Integer)
-    minutes = Column(Integer)
+    trial_interval = Column(JSONDict)
+    plan_interval = Column(JSONDict)
 
 
-    def __init__(self, id, marketplace, name, price_cents, interval, trial_days):
-        self.id = id
+    def __init__(self, id, marketplace, name, price_cents, plan_interval, trial_interval):
+        self.plan_id = id
         self.name = name
         self.price_cents = price_cents
-        if not isinstance(interval, relativedelta):
-            raise TypeError("interval must be a relativedelta type.")
+        if not isinstance(plan_interval, relativedelta):
+            raise TypeError("plan_interval must be a relativedelta type.")
         else:
-            self.from_relativedelta(interval)
-        self.trial_days = trial_days
+            self.plan_interval = self.from_relativedelta(plan_interval)
+        if not isinstance(trial_interval, relativedelta):
+            raise TypeError("trial_interval must be a relativedelta type.")
+        else:
+            self.trial_days = self.from_relativedelta(trial_interval)
         self.marketplace = marketplace
 
-    def from_relativedelta(self, delta):
-        self.years = delta.years
-        self.months = delta.months
-        self.weeks = delta.weeks
-        self.days = delta.days
-        self.hours = delta.hours
-        self.minutes = delta.minutes
+    def from_relativedelta(self, inter):
+        return {
+            'years': inter.years,
+            'months': inter.months,
+            'weeks': inter.weeks,
+            'days': inter.days,
+            'hours': inter.hours,
+            'minutes': inter.minutes
+        }
 
-    def to_relativedelta(self):
-        return relativedelta(years=self.years, months=self.months,
-                             weeks=self.weeks, days=self.days, hours=self.hours,
-                             minutes=self.minutes)
+    def to_relativedelta(self, param):
+        return relativedelta(years=param['years'], months=param['months'],
+                             weeks=param['weeks'], days=param['days'], hours=param['hours'],
+                             minutes=param['minutes'])
 
 

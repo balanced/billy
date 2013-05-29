@@ -1,12 +1,12 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import TypeDecorator, VARCHAR
-import json
+import ujson
 
 Base = declarative_base()
 
 
 
-class JSONEncodedDict(TypeDecorator):
+class JSONDict(TypeDecorator):
     """A json type to store intevals in.
 
     Usage::
@@ -19,11 +19,11 @@ class JSONEncodedDict(TypeDecorator):
 
     def process_bind_param(self, value, dialect):
         if value is not None:
-            value = json.dumps(value)
+            value = ujson.dumps(value)
 
         return value
 
     def process_result_value(self, value, dialect):
         if value is not None:
-            value = json.loads(value)
+            value = ujson.loads(value)
         return value

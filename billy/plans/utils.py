@@ -8,7 +8,7 @@ from datetime import datetime
 class Intervals(object):
     """
     A class to represent and create relativedelta objects which will be used
-    to define the plan intervals.
+    to define the plan intervals. Plan intervals MUST be defined using this class.
     """
     DAY = relativedelta(days=1)
     WEEK = relativedelta(weeks=1)
@@ -25,10 +25,20 @@ class Intervals(object):
                              hours=hours, minutes=minutes)
 
 
-def create_plan(id, name, price_cents, interval, trial_days):
-    exists = query_tool(Plan).get(id)
+def create_plan(id, marketplace, name, price_cents, interval, trial_days):
+    """
+    Creates a plan that users can be assigned to.
+    :param id: A unique id for the plan
+    :param marketplace: a group the user should be placed in (matches balanced payments marketplaces)
+    :param name: A display name for the plan
+    :param price_cents: Price in cents of the plan per interval. $1.00 = 100
+    :param interval: A Interval class that defines how frequently the charge the plan
+    :param trial :
+    :return: :raise:
+    """
+    exists = query_tool(Plan).filter(Plan.id == id, Plan.marketplace == marketplace)
     if not exists:
-        new_plan = Plan(id, name, price_cents, interval, trial_days)
+        new_plan = Plan(id, marketplace, name, price_cents, interval, trial_days)
         query_tool.add(new_plan)
         query_tool.commit()
         return True
@@ -36,12 +46,13 @@ def create_plan(id, name, price_cents, interval, trial_days):
         raise ValueError('Plan already exists. Use different id')
 
 
-def update_plan(id, new_name):
+def update_plan(id, marketplace, new_name):
     """
     Updates ONLY the plan name. By design the only updateable field is the name.
     To change other params create a new plan.
+
     """
-    exists = query_tool(Plan).get(id)
+    exists = query_tool(Plan).filter(id).first()
     if not exists:
         raise ValueError('Plan not found. Use different id')
 
@@ -51,16 +62,16 @@ def update_plan(id, new_name):
         query_tool.commit()
 
 
-def list_plans():
+def list_plans(marketplace):
     """
     Returns a list of plans currently in the database
     """
-    results = query_tool(Plan).all()
+    results = query_tool(Plan).filter(marketplace == marketplace).all()
     return results
 
 
-def delete_plan(id):
-    exists = query_tool(Plan).get(id)
+def delete_plan(id, marketplace):
+    exists = query_tool(Plan).filter(id == id, marketplace == marketplace).first()
     if not exists:
         raise ValueError('Plan not found. Use different id')
     else:

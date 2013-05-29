@@ -11,3 +11,8 @@ class TestPlans(TestCase):
         self.assertEqual(Intervals.THREE_MONTHS, relativedelta(months=3))
         self.assertEqual(Intervals.MONTH, relativedelta(months=1))
         self.assertEqual(Intervals.TWO_WEEKS, relativedelta(weeks=2))
+
+
+    def test_create_plan(self):
+        pass
+

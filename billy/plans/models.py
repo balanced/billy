@@ -8,13 +8,14 @@ class Plan(Base):
     __tablename__ = 'plans'
 
     id = Column(String, primary_key=True, unique=True)
+    marketplace = Column(String)
     name = Column(String)
     price_cents = Column(Integer)
     active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.now(tz=UTC))
     deleted_at = Column(DateTime)
     updated_at = Column(DateTime)
-    trial_days = Column(Integer)
+    trial_interval = Column(Integer)
     years = Column(Integer)
     months = Column(Integer)
     weeks = Column(Integer)
@@ -23,7 +24,7 @@ class Plan(Base):
     minutes = Column(Integer)
 
 
-    def __init__(self, id, name, price_cents, interval, trial_days):
+    def __init__(self, id, marketplace, name, price_cents, interval, trial_days):
         self.id = id
         self.name = name
         self.price_cents = price_cents
@@ -32,6 +33,7 @@ class Plan(Base):
         else:
             self.from_relativedelta(interval)
         self.trial_days = trial_days
+        self.marketplace = marketplace
 
     def from_relativedelta(self, delta):
         self.years = delta.years
@@ -45,3 +47,5 @@ class Plan(Base):
         return relativedelta(years=self.years, months=self.months,
                              weeks=self.weeks, days=self.days, hours=self.hours,
                              minutes=self.minutes)
+
+

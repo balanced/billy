@@ -50,16 +50,21 @@ def create_plan(plan_id, marketplace, name, price_cents, plan_interval, trial_in
         raise AlreadyExistsError('Plan already exists. Check plan_id and marketplace')
 
 
-def retrieve_plan(plan_id, marketplace):
+def retrieve_plan(plan_id, marketplace, active_only=False):
     """
     This method retrieves a single plan.
     :param plan_id: the unique plan_id
     :param marketplace: the plans marketplace/group
+    :param active_only: if true only returns active plans
     :raise NotFoundError:  if plan not found.
     """
-    exists = query_tool.query(Plan).filter(and_(Plan.plan_id == plan_id, Plan.marketplace == marketplace)).first()
+    if active_only:
+        and_filter = and_(Plan.plan_id == plan_id, Plan.marketplace == marketplace, Plan.active == True)
+    else:
+        and_filter = and_(Plan.plan_id == plan_id, Plan.marketplace == marketplace)
+    exists = query_tool.query(Plan).filter(and_filter).first()
     if not exists:
-        raise NotFoundError('Plan not found. Check plan_id and marketplace')
+        raise NotFoundError('Active Plan not found. Check plan_id and marketplace')
     return exists
 
 
@@ -83,6 +88,7 @@ def update_plan(plan_id, marketplace, new_name):
 
 
 def list_plans(marketplace):
+    #Todo active only
     """
     Returns a list of plans currently in the database
     :param marketplace: The group/marketplace id/uri

@@ -18,9 +18,10 @@ class AlreadyExistsError(Exception):
     """
     pass
 
-class InactiveObjectError(Exception):
+
+class ValidationError(Exception):
     """
-    Raised when an object (like plan or coupon) is being applied
-    that is inactive
+    Raised if the parameter passed could not be validated.
     """
     pass
+

@@ -79,7 +79,7 @@ class TestPlans(TestCase):
                     Intervals.WEEK, Intervals.DAY)
         list_of_plans = list_plans(self.marketplace)
         self.assertEqual(len(list_of_plans), 2)
-
+    #Todo test active only
 
     def tearDown(self):
         query_tool.query(Plan).filter(Plan.marketplace == self.marketplace).delete()

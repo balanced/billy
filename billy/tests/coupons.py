@@ -70,6 +70,10 @@ class TestCoupons(TestCase):
         create_coupon("test_coupon_6", self.marketplace, "Test Coupon 6", 20, 10, self.next_week, 15, 5)
         list_of_plans = list_coupons(self.marketplace)
         self.assertEqual(len(list_of_plans), 2)
+    #Todo TEST ACITVE ONLY
+    #Todo test coupon limit/count
+    #Todo Test coupon expiring
+    #Todo test incr/decr max_redeem below times_used should max it inactive or active
 
     def tearDown(self):
         query_tool.query(Coupon).filter(Coupon.marketplace == self.marketplace).delete()

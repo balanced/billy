@@ -29,17 +29,22 @@ def create_coupon(coupon_id, marketplace, name, price_off_cents, percent_off_int
         raise AlreadyExistsError('Coupon already exists. Check coupon_id and marketplace')
 
 
-def retrieve_coupon(coupon_id, marketplace):
+def retrieve_coupon(coupon_id, marketplace, active_only=False):
     """
     This method retrieves a single coupon.
     :param coupon_id: the unique coupon_id
     :param marketplace: the coupon marketplace/group
+    :param active_only: only returns active coupons
     :returns: Single coupon
     :raise NotFoundError:  if coupon not found.
     """
-    exists = query_tool.query(Coupon).filter(and_(Coupon.coupon_id == coupon_id, Coupon.marketplace == marketplace)).first()
+    if active_only:
+        and_filter = and_(Coupon.coupon_id == coupon_id, Coupon.marketplace == marketplace, Coupon.active == True)
+    else:
+        and_filter = and_(Coupon.coupon_id == coupon_id, Coupon.marketplace == marketplace)
+    exists = query_tool.query(Coupon).filter(and_filter).first()
     if not exists:
-        raise NotFoundError('Coupon not found. Check coupon_id and marketplace')
+        raise NotFoundError('Active Coupon not found. Check coupon_id and marketplace')
     return exists
 
 
@@ -56,6 +61,7 @@ def update_coupon(coupon_id, marketplace, new_name=None, new_max_redeem=None, ne
     :raise NotFoundError:  if coupon not found.
     :returns: New coupon object
     """
+    #Todo update active if max_redeem below/above times_used
     exists = query_tool.query(Coupon).filter(and_(Coupon.coupon_id == coupon_id, Coupon.marketplace == marketplace)).first()
     if not exists:
         raise NotFoundError('Coupon not found. Use different id/marketplace')
@@ -91,6 +97,7 @@ def delete_coupon(coupon_id, marketplace):
     return exists
 
 def list_coupons(marketplace):
+    #Todo active only
     """
     Returns a list of coupons currently in the database
     :param marketplace: The group/marketplace id/uri

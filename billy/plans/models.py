@@ -1,10 +1,12 @@
 from billy.models.base import Base, JSONDict
 from sqlalchemy import Column, String, Integer, Boolean, DateTime
 from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.orm import relationship
 from pytz import UTC
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from billy.errors import BadIntervalError
+from billy.customer.models import Customers
 
 
 class Plan(Base):
@@ -20,6 +22,8 @@ class Plan(Base):
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     trial_interval = Column(JSONDict)
     plan_interval = Column(JSONDict)
+    customers = relationship(Customers.__name__, backref='plan')
+
     __table_args__ = (UniqueConstraint('plan_id', 'marketplace', name='planid_marketplace'),
     )
 

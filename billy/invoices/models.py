@@ -15,10 +15,14 @@ class Invoice(Base):
     relevant_coupon = Column(Integer, ForeignKey('coupons.coupon_id'))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     start_date = Column(DateTime(timezone=UTC))
-    trial_until = Column(DateTime(timezone=UTC))
     end_date = Column(DateTime(timezone=UTC))
     due_on = Column(DateTime(timezone=UTC))
-    amount_due = Column(DECIMAL)
+    amount_base = Column(DECIMAL)
+    amount_after_coupon = Column(DECIMAL)
+    amount_paid = Column(DECIMAL)
+    remaining_balance = Column(DECIMAL)
+
+
 
 
 

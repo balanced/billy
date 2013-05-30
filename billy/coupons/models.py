@@ -1,8 +1,10 @@
 from billy.models.base import Base
 from sqlalchemy import Column, String, Integer, Boolean, DateTime
 from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.orm import relationship
 from pytz import UTC
 from datetime import datetime
+from billy.customer.models import Customers
 
 
 class Coupon(Base):
@@ -20,6 +22,7 @@ class Coupon(Base):
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     deleted_at = Column(DateTime(timezone=UTC))
+    customers = relationship(Customers.__name__, backref='coupon')
     __table_args__ = (UniqueConstraint('coupon_id', 'marketplace', name='couponid_marketplace'),
     )
 

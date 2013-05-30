@@ -24,7 +24,7 @@ class TestPlans(TestCase):
     def test_create_and_retrieve(self):
         #Create the plan
         plan_id = 'test_my_plan_1'
-        new_plan = create_plan(plan_id, self.marketplace, 'Test Plan', 1000,
+        create_plan(plan_id, self.marketplace, 'Test Plan', 1000,
                                Intervals.WEEK, Intervals.DAY)
         #Retrieve the plan:
         result = retrieve_plan(plan_id, self.marketplace)
@@ -49,15 +49,14 @@ class TestPlans(TestCase):
 
     def test_update_plan(self):
          plan_id = 'test_my_plan_3'
-         plan_name_orig = 'Test Plan'
-         plan_name_new = 'New plan name'
-         create_plan(plan_id, self.marketplace, plan_name_orig, 1000,
+         plan_name = ('Test Plan','New plan name')
+         create_plan(plan_id, self.marketplace, plan_name[0], 1000,
                                Intervals.WEEK, Intervals.DAY)
          new_plan = retrieve_plan(plan_id, self.marketplace)
-         self.assertEqual(new_plan.name, plan_name_orig)
-         update_plan(plan_id, self.marketplace, plan_name_new)
+         self.assertEqual(new_plan.name, plan_name[0])
+         update_plan(plan_id, self.marketplace, plan_name[1])
          changed_plan = retrieve_plan(plan_id, self.marketplace)
-         self.assertEqual(changed_plan.name, plan_name_new)
+         self.assertEqual(changed_plan.name, plan_name[1])
 
 
     def test_delete_plan(self):
@@ -70,16 +69,16 @@ class TestPlans(TestCase):
         deleted_plan = retrieve_plan(plan_id, self.marketplace)
         self.assertEqual(deleted_plan.active, False)
         self.assertLess(deleted_plan.deleted_at - datetime.now(UTC), timedelta(seconds=30))
-        self.assertRaises(NotFoundError, delete_plan, 'test_my_plan_5', self.marketplace)
+        self.assertRaises(NotFoundError, delete_plan, 'test_coupon_DNE', self.marketplace)
 
 
     def test_list_plans(self):
+        create_plan('test_my_plan_5', self.marketplace, 'Test Plan 5', 5000,
+                    Intervals.WEEK, Intervals.DAY)
         create_plan('test_my_plan_6', self.marketplace, 'Test Plan 6', 5000,
                     Intervals.WEEK, Intervals.DAY)
-        create_plan('test_my_plan_7', self.marketplace, 'Test Plan 7', 5000,
-                    Intervals.WEEK, Intervals.DAY)
         list_of_plans = list_plans(self.marketplace)
-        self.assertGreater(len(list_of_plans), 1)
+        self.assertEqual(len(list_of_plans), 2)
 
 
     def tearDown(self):

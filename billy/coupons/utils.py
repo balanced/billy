@@ -29,7 +29,7 @@ def create_coupon(coupon_id, marketplace, name, price_off_cents, percent_off_int
         raise AlreadyExistsError('Coupon already exists. Check coupon_id and marketplace')
 
 
-def retrieve_plan(coupon_id, marketplace):
+def retrieve_coupon(coupon_id, marketplace):
     """
     This method retrieves a single coupon.
     :param coupon_id: the unique coupon_id
@@ -92,3 +92,12 @@ def delete_coupon(coupon_id, marketplace):
         exists.deleted_at = datetime.now(UTC)
         query_tool.commit()
         return exists
+
+def list_coupons(marketplace):
+    """
+    Returns a list of coupons currently in the database
+    :param marketplace: The group/marketplace id/uri
+    :returns: A list of Coupon objects
+    """
+    results = query_tool.query(Coupon).filter(Coupon.marketplace == marketplace).all()
+    return results

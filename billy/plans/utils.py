@@ -76,7 +76,7 @@ def update_plan(plan_id, marketplace, new_name):
     """
     exists = query_tool.query(Plan).filter(and_(Plan.plan_id == plan_id, Plan.marketplace == marketplace)).first()
     if not exists:
-        raise NotFoundError('Plan not found. Use different id')
+        raise NotFoundError('Plan not found. Try different id')
 
     else:
         exists.name = new_name

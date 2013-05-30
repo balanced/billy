@@ -60,8 +60,7 @@ def retrieve_plan(plan_id, marketplace):
     exists = query_tool.query(Plan).filter(and_(Plan.plan_id == plan_id, Plan.marketplace == marketplace)).first()
     if not exists:
         raise NotFoundError('Plan not found. Check plan_id and marketplace')
-    else:
-        return exists
+    return exists
 
 
 def update_plan(plan_id, marketplace, new_name):
@@ -77,12 +76,10 @@ def update_plan(plan_id, marketplace, new_name):
     exists = query_tool.query(Plan).filter(and_(Plan.plan_id == plan_id, Plan.marketplace == marketplace)).first()
     if not exists:
         raise NotFoundError('Plan not found. Try different id')
-
-    else:
-        exists.name = new_name
-        exists.updated_at = datetime.now(UTC)
-        query_tool.commit()
-        return exists
+    exists.name = new_name
+    exists.updated_at = datetime.now(UTC)
+    query_tool.commit()
+    return exists
 
 
 def list_plans(marketplace):
@@ -107,10 +104,9 @@ def delete_plan(plan_id, marketplace):
     exists = query_tool.query(Plan).filter(and_(Plan.plan_id == plan_id, Plan.marketplace == marketplace)).first()
     if not exists:
         raise NotFoundError('Plan not found. Use different id')
-    else:
-        exists.active = False
-        exists.updated_at = datetime.now(UTC)
-        exists.deleted_at = datetime.now(UTC)
-        query_tool.commit()
-        return exists
+    exists.active = False
+    exists.updated_at = datetime.now(UTC)
+    exists.deleted_at = datetime.now(UTC)
+    query_tool.commit()
+    return exists
 

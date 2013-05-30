@@ -4,7 +4,8 @@ from sqlalchemy import and_
 from billy.errors import NotFoundError, AlreadyExistsError, InactiveObjectError
 from datetime import datetime
 from pytz import UTC
-from coupons import retrieve_coupon
+from billy.coupons.utils import retrieve_coupon
+from billy.plans.utils import retrieve_plan
 
 def create_customer(customer_id, marketplace):
     """
@@ -34,8 +35,7 @@ def retrieve_customer(customer_id, marketplace):
     exists = query_tool.query(Customer).filter(and_(Customer.customer_id == customer_id, Customer.marketplace == marketplace)).first()
     if not exists:
         raise NotFoundError('Customer not found. Check plan_id and marketplace')
-    else:
-        return exists
+    return exists
 
 def list_all_customers(marketplace):
     """
@@ -57,15 +57,14 @@ def apply_coupon_to_customer(customer_id, marketplace, coupon_id):
     exists = query_tool.query(Customer).filter(and_(Customer.customer_id == customer_id, Customer.marketplace == marketplace)).first()
     if not exists:
         raise NotFoundError('Customer not found. Try different id')
+    coupon_obj = retrieve_coupon(coupon_id, marketplace) #Raises NotFoundError if not found
+    if coupon_obj.active:
+        exists.current_coupon = coupon_id
+        exists.updated_at = datetime.now(UTC)
+        query_tool.commit()
+        return exists
     else:
-        coupon_obj = retrieve_coupon(coupon_id, marketplace) #Raises NotFoundError if not found
-        if coupon_obj.active:
-            exists.current_coupon = coupon_id
-            exists.updated_at = datetime.now(UTC)
-            query_tool.commit()
-            return exists
-        else:
-            raise InactiveObjectError("The Coupon is currently inactive and cant be applied.")
+        raise InactiveObjectError("The Coupon is currently inactive and cant be applied.")
 
 def remove_customer_coupon(customer_id, marketplace):
     """
@@ -80,14 +79,17 @@ def remove_customer_coupon(customer_id, marketplace):
         raise NotFoundError('Customer not found. Try different id')
     if not exists.current_coupon:
         return exists
-    else:
-        exists.current_coupon = None
-        exists.updated_at = datetime.now(UTC)
-        query_tool.commit()
-        return exists
+    exists.current_coupon = None
+    exists.updated_at = datetime.now(UTC)
+    query_tool.commit()
+    return exists
 
 
 def change_customer_plan(customer_id, marketplace, plan_id):
+    exists = query_tool.query(Customer).filter(and_(Customer.customer_id == customer_id, Customer.marketplace == marketplace)).first()
+    if not exists:
+        raise NotFoundError('Customer not found. Try different id')
+
     #create an invoice
     #prorate previous plan/close invoice
     #send off task

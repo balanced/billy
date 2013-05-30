@@ -40,8 +40,7 @@ def retrieve_coupon(coupon_id, marketplace):
     exists = query_tool.query(Coupon).filter(and_(Coupon.coupon_id == coupon_id, Coupon.marketplace == marketplace)).first()
     if not exists:
         raise NotFoundError('Coupon not found. Check coupon_id and marketplace')
-    else:
-        return exists
+    return exists
 
 
 def update_coupon(coupon_id, marketplace, new_name=None, new_max_redeem=None, new_expire=None, new_repeating=None):
@@ -60,7 +59,6 @@ def update_coupon(coupon_id, marketplace, new_name=None, new_max_redeem=None, ne
     exists = query_tool.query(Coupon).filter(and_(Coupon.coupon_id == coupon_id, Coupon.marketplace == marketplace)).first()
     if not exists:
         raise NotFoundError('Coupon not found. Use different id/marketplace')
-
     else:
         if new_name:
             exists.name = new_name
@@ -86,12 +84,11 @@ def delete_coupon(coupon_id, marketplace):
     exists = query_tool.query(Coupon).filter(and_(Coupon.coupon_id == coupon_id, Coupon.marketplace == marketplace)).first()
     if not exists:
         raise NotFoundError('Coupon not found. Try a different id')
-    else:
-        exists.active = False
-        exists.updated_at = datetime.now(UTC)
-        exists.deleted_at = datetime.now(UTC)
-        query_tool.commit()
-        return exists
+    exists.active = False
+    exists.updated_at = datetime.now(UTC)
+    exists.deleted_at = datetime.now(UTC)
+    query_tool.commit()
+    return exists
 
 def list_coupons(marketplace):
     """

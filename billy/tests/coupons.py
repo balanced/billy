@@ -34,7 +34,7 @@ class TestCoupons(TestCase):
                           self.next_day, 11, 5)
         self.assertRaises(NotFoundError, retrieve_coupon,'test_my_coupon_DNE', self.marketplace)
 
-    def test_update_plan(self):
+    def test_update_coupon(self):
         coupon_id = 'test_my_coupon_3'
         name = ('old name', 'new name')
         expire = (self.next_week, self.next_day)
@@ -53,7 +53,7 @@ class TestCoupons(TestCase):
         self.assertEqual(updated_coupon.repeating, repeating[1])
         self.assertEqual(updated_coupon.expire, expire[1])
 
-    def test_delete_plan(self):
+    def test_delete_coupon(self):
         coupon_id = 'test_my_coupon_4'
         marketplace = self.marketplace
         create_coupon(coupon_id, self.marketplace, "Test Coupon", 200, 5, self.next_week, 10, -1)
@@ -65,7 +65,7 @@ class TestCoupons(TestCase):
         self.assertLess(deleted_plan.deleted_at - datetime.now(UTC), timedelta(seconds=30))
         self.assertRaises(NotFoundError, delete_coupon, 'test_coupon_DNE', self.marketplace)
 
-    def test_list_plans(self):
+    def test_list_coupon(self):
         create_coupon("test_coupon_5", self.marketplace, "Test Coupon 5", 200, 5, self.next_week, 10, -1)
         create_coupon("test_coupon_6", self.marketplace, "Test Coupon 6", 20, 10, self.next_week, 15, 5)
         list_of_plans = list_coupons(self.marketplace)

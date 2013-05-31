@@ -22,7 +22,7 @@ class Plan(Base):
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     trial_interval = Column(JSONDict)
     plan_interval = Column(JSONDict)
-    customers = relationship(Customers.__name__, backref='plan')
+    customers = relationship(Customers.__name__, backref='plans')
 
     __table_args__ = (UniqueConstraint('plan_id', 'marketplace', name='planid_marketplace'),
     )

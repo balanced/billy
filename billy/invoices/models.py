@@ -1,11 +1,11 @@
 from billy.models.base import Base
-from sqlalchemy import Column, String, Integer, Boolean, DateTime
-from sqlalchemy.types import DECIMAL
-from sqlalchemy.schema import UniqueConstraint, ForeignKey
+from sqlalchemy import Column, String, Integer, DateTime
+from sqlalchemy.schema import ForeignKey
+
 from pytz import UTC
 from datetime import datetime
 
-class Invoice(Base):
+class Invoices(Base):
     __tablename__ = 'invoices'
 
     invoice_id = Column(Integer, primary_key=True)
@@ -14,22 +14,26 @@ class Invoice(Base):
     relevant_plan = Column(String, ForeignKey('plans.plan_id'))
     relevant_coupon = Column(Integer, ForeignKey('coupons.coupon_id'))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
-    start_date = Column(DateTime(timezone=UTC))
-    end_date = Column(DateTime(timezone=UTC))
-    due_on = Column(DateTime(timezone=UTC))
-    amount_base = Column(DECIMAL)
-    amount_after_coupon = Column(DECIMAL)
-    amount_paid = Column(DECIMAL)
-    remaining_balance = Column(DECIMAL)
+    start_dt = Column(DateTime(timezone=UTC))
+    end_dt = Column(DateTime(timezone=UTC))
+    due_dt = Column(DateTime(timezone=UTC))
+    amount_base_cents = Column(Integer)
+    amount_after_coupon_cents = Column(Integer)
+    amount_paid_cents = Column(Integer)
+    remaining_balance_cents = Column(Integer)
 
 
 
 
-
-
-
-    def __init__(self, id, marketplace, plan_id, coupon_id):
+    def __init__(self, customer_id, marketplace, relevant_plan, relevant_coupon, start_dt, end_dt, due_dt,
+                 amount_base_cents, amount_after_coupon_cents, amount_paid_cents, remaining_balance_cents ):
         self.customer_id = id
         self.marketplace = marketplace
-        self.plan_id = plan_id
-        self.coupon_id = coupon_id
+        self.relevant_plan = relevant_plan
+        self.relevant_coupon = relevant_coupon
+        self.start_dt = start_dt
+        self.end_dt = end_dt
+        self.amount_base_cents = amount_base_cents
+        self.amount_after_coupon_cents = amount_after_coupon_cents
+        self.amount_paid_cents = amount_paid_cents
+        self.remaining_balance_cents = remaining_balance_cents

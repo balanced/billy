@@ -28,11 +28,11 @@ class Payout(Base):
     )
 
 
-    def __init__(self, id, marketplace, name, price_cents, payout_interval,
-                 ):
+    def __init__(self, id, marketplace, name, payout_amount_cents,
+                 payout_interval):
         self.payout_id = id
         self.name = name
-        self.price_cents = price_cents
+        self.payout_amount_cents = payout_amount_cents
         if not isinstance(payout_interval, relativedelta):
             raise BadIntervalError(
                 "payout_interval must be a relativedelta type.")

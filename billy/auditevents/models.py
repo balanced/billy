@@ -8,7 +8,7 @@ from sqlalchemy import event
 from utils import string_attr
 
 
-class AuditMixin(Base):
+class AuditEvents(Base):
     __tablename__ = 'auditevents'
 
     event_id = Column(String, primary_key=True)
@@ -27,7 +27,7 @@ class AuditMixin(Base):
 
     @staticmethod
     def process_listener(entity, event_type):
-        new_audit = AuditMixin()
+        new_audit = AuditEvents()
         new_audit.sql_event = event_type
         new_audit.coupon_id = string_attr(entity, 'coupon_id')
         new_audit.invoice_id = string_attr(entity, 'invoice_id')
@@ -42,21 +42,21 @@ class AuditMixin(Base):
 
     @staticmethod
     def insert_listener(mapper, connection, target):
-        AuditMixin.process_listener(target, 'INSERT')
+        AuditEvents.process_listener(target, 'INSERT')
 
     @staticmethod
     def delete_listener(mapper, connection, target):
-        AuditMixin.process_listener(target, 'DELETE')
+        AuditEvents.process_listener(target, 'DELETE')
 
     @staticmethod
     def update_listener(mapper, connection, target):
-        AuditMixin.process_listener(target, 'UPDATE')
+        AuditEvents.process_listener(target, 'UPDATE')
 
 
 #initite listeners
-event.listen(mapper, 'after_delete', AuditMixin.delete_listener)
-event.listen(mapper, 'after_insert', AuditMixin.insert_listener)
-event.listen(mapper, 'after_update', AuditMixin.update_listener)
+event.listen(mapper, 'after_delete', AuditEvents.delete_listener)
+event.listen(mapper, 'after_insert', AuditEvents.insert_listener)
+event.listen(mapper, 'after_update', AuditEvents.update_listener)
 
 
 

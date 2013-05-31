@@ -111,6 +111,13 @@ def remove_customer_coupon(customer_id, marketplace):
 
 
 def change_customer_plan(customer_id, marketplace, plan_id):
+    """
+    #Todo
+    :param customer_id:
+    :param marketplace:
+    :param plan_id:
+    :raise:
+    """
     customer_obj = query_tool.query(Customers).filter(
         and_(Customers.customer_id == customer_id,
              Customers.marketplace == marketplace)).first()
@@ -171,7 +178,7 @@ def cancel_customer_plan(customer_id, marketplace, at_period_end=True):
         prorate_last_invoice(customer_id, marketplace)
         customer.current_plan = None
         customer.plan = None
-    query_tool.commt()
+    query_tool.commit()
     return customer
 
 
@@ -207,20 +214,67 @@ def prorate_last_invoice(customer_id, marketplace):
 
 
 def change_customer_payout(customer_id, marketplace, payout_id,
-                           first_now=False):
+                           first_now=False, cancel_scheduled=False):
+    """
+    Changes a customer payout schedule
+    :param customer_id: A unique id/uri for the customer
+    :param marketplace: a group/marketplace id/uri the user should be placed
+    :param payout_id: the id of the payout to asscociate with the account
+    :param first_now: Whether to do the first payout immediately now or to
+    schedule the first one in the future (now + interval)
+    :param cancel_scheduled: Whether to cancel the next payout already
+    scheduled with the old payout.
+    :raise NotFoundError: if customer or payout are not found.
+    :returns: The customer object.
+    """
     customer_obj = query_tool.query(Customers).filter(
         and_(Customers.customer_id == customer_id,
              Customers.marketplace == marketplace)).first()
     if not customer_obj:
         raise NotFoundError('Customer not found. Try different id')
     payout_obj = retrieve_payout(payout_id, marketplace, active_only=True)
+    now = datetime.now(UTC)
     first_charge = datetime.now(UTC)
     payout_amount = payout_obj.payout_amount_cents
     if not first_now:
         first_charge += payout_obj.to_relativedelta(payout_obj.payout_interval)
+    if cancel_scheduled:
+        query_tool.query(PayoutInvoice).filter(and_(PayoutInvoice.customer_id
+                                                    == customer_id,
+                                                    PayoutInvoice.marketplace
+                                                    == marketplace,
+                                                    PayoutInvoice.payout_date
+                                                    > now))
     invoice = PayoutInvoice(customer_id, marketplace, payout_obj.payout_id,
-                            first_charge, payout_amount, 0,
-                            payout_amount)
+                            first_charge, payout_amount, 0, payout_amount)
+    customer_obj.current_payout = payout_obj.payout_id
     query_tool.add(invoice)
     #todo fire off task
     query_tool.commit()
+    return customer_obj
+
+
+def cancel_customer_payout(customer_id, marketplace, cancel_scheduled=False):
+    """
+    Cancels a customer payout
+    :param customer_id: A unique id/uri for the customer
+    :param marketplace: a group/marketplace id/uri the user should be placed
+    schedule the first one in the future (now + interval)
+    :param cancel_scheduled: Whether to cancel the next payout already
+    scheduled with the old payout.
+    :raise NotFoundError: if customer or payout are not found.
+    :returns: The customer object
+    """
+    now = datetime.now(UTC)
+    customer = retrieve_customer(customer_id, marketplace)
+    if cancel_scheduled:
+        query_tool.query(PayoutInvoice).filter(and_(PayoutInvoice.customer_id
+                                                    == customer_id,
+                                                    PayoutInvoice.marketplace
+                                                    == marketplace,
+                                                    PayoutInvoice.payout_date
+                                                    > now))
+
+    customer.current_payout = None
+    query_tool.commit()
+    return customer

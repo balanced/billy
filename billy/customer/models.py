@@ -15,8 +15,8 @@ class Customers(Base):
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     periods_on_plan = Column(Integer)
-    coupon_use = Column(JSONDict)
-    plan_use = Column(JSONDict)
+    coupon_use = Column(JSONDict, default={})
+    plan_use = Column(JSONDict, default={})
 
     __table_args__ = (UniqueConstraint('customer_id', 'marketplace', name='customerid_marketplace'),
     )

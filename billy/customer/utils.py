@@ -6,6 +6,8 @@ from datetime import datetime
 from pytz import UTC
 from billy.coupons.utils import retrieve_coupon
 from billy.plans.utils import retrieve_plan
+from billy.invoices.models import Invoices
+from decimal import Decimal
 
 def create_customer(customer_id, marketplace):
     """
@@ -90,13 +92,40 @@ def change_customer_plan(customer_id, marketplace, plan_id):
     if not customer_obj:
         raise NotFoundError('Customer not found. Try different id')
     plan_obj = retrieve_plan(plan_id, marketplace, active_only=True)
+    current_coupon = customer_obj.coupon
+    start_date = datetime.now(UTC)
+    due_on = datetime.now(UTC)
+    coupon_use_count = customer_obj.coupon_use.get(current_coupon.coupon_id, 0)
+    use_coupon = True if current_coupon.repeating == -1 or coupon_use_count <= current_coupon.repeating else False
+    can_trial = True if customer_obj.plan_use.get(plan_obj.plan_id, 0) == 0 else False
+    end_date = start_date + plan_obj.to_relativedelta(plan_obj.plan_interval)
+    trial_interval = plan_obj.to_relativedelta(plan_obj.trial_interval)
+    if can_trial:
+        end_date += trial_interval
+        due_on += trial_interval
+    amount_base = plan_obj.price_cents
+    amount_after_coupon = amount_base
+    amount_paid = 0
+    balance = amount_after_coupon - amount_paid
+    coupon_id = current_coupon.coupon_id if current_coupon else None
+    if use_coupon and current_coupon:
+        dollars_off = current_coupon.price_off_cents
+        percent_off = current_coupon.percent_off_int
+        amount_after_coupon -= dollars_off #BOTH CENTS, safe
+        amount_after_coupon -= int(amount_after_coupon * Decimal(percent_off)/Decimal(100))
+    invoice = Invoices(customer_id, marketplace, plan_id, coupon_id, start_date, end_date, due_on, amount_base,
+                       amount_after_coupon, amount_paid, balance)
+    query_tool.add(invoice)
+    customer_obj.coupon_use[coupon_id] += 1
+    exists = query_tool.query(Invoices).filter(and_(Invoices.customer_id == customer_id, Invoices.marketplace == marketplace, Invoices.end_dt > start_date)).first()
+    if exists:
+        time_total = Decimal((exists.end_dt - exists.due_dt).total_seconds())
+        time_used = Decimal((exists.end_dt - start_date).total_seconds())
+        percent_used = time_unused/time_total
+        new_base = exists.amount_base_cents * per
 
-    #Retrieve customer's coupon
-    #create an invoice
-        #start_date = today
-        #end_date = today + trial if first time + interval
-        #due on = start_date + trial if first time
-        #Fire off task to do on
+        exists.end_dt = start_date
+        exists.pri
     #prorate previous plan/close invoice
         #set previous invoice end_date to now
         #change amount due to negative if already paid
@@ -104,7 +133,8 @@ def change_customer_plan(customer_id, marketplace, plan_id):
 
 
     #send off task for due_on and sum the invoices that the balance isn't zero
-    pass
+    query_tool.commit()
+
 
 def cancel_customer_plan():
     #at period end/now

@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 from pytz import UTC
 from datetime import datetime
 from billy.customer.models import Customers
+from billy.invoices.models import Invoices
 
 
 class Coupon(Base):
@@ -22,7 +23,7 @@ class Coupon(Base):
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     deleted_at = Column(DateTime(timezone=UTC))
-    customers = relationship(Customers.__name__, backref='coupon')
+    customers = relationship(Customers.__name__, backref='coupons')
     __table_args__ = (UniqueConstraint('coupon_id', 'marketplace', name='couponid_marketplace'),
     )
 

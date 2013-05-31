@@ -1,13 +1,1 @@
-Subscribe customers to your service:
-Subscriptions can have an arbitrary length: A year, a month, 90 days ...
-You can request payments upfront or after the billable period is over.
-Offer standarized subscription Plans for self-service sign ups.
-Offer special deals on a per-customer basis.
-Invoice your customers automatically and send receipts once they pay.
-Notify customers about due dates.
-Restrict access to debtors, and let them back in once they pay their debt.
-Let customers upgrade or downgrade to another plan. Prorating and reimbursing in case there were any upfront payments.
-Offer a trial period before you require people to become paying customers.
-Charge for setup fees on the first invoice.
-Give a signup-discount for a customer's first invoice.
-Offer redeemable code that when redeemed enable customers to signup for special pricing and/or credit bonus money in their account.
+#Todo add event attribute to the various models

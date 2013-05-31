@@ -8,6 +8,7 @@ from billy.coupons.utils import retrieve_coupon
 from billy.plans.utils import retrieve_plan
 from billy.invoices.models import Invoices
 from decimal import Decimal
+from dateutil.relativedelta import relativedelta
 
 def create_customer(customer_id, marketplace):
     """
@@ -117,26 +118,51 @@ def change_customer_plan(customer_id, marketplace, plan_id):
                        amount_after_coupon, amount_paid, balance)
     query_tool.add(invoice)
     customer_obj.coupon_use[coupon_id] += 1
-    exists = query_tool.query(Invoices).filter(and_(Invoices.customer_id == customer_id, Invoices.marketplace == marketplace, Invoices.end_dt > start_date)).first()
-    if exists:
-        time_total = Decimal((exists.end_dt - exists.due_dt).total_seconds())
-        time_used = Decimal((exists.end_dt - start_date).total_seconds())
-        percent_used = time_unused/time_total
-        new_base = exists.amount_base_cents * per
-
-        exists.end_dt = start_date
-        exists.pri
-    #prorate previous plan/close invoice
-        #set previous invoice end_date to now
-        #change amount due to negative if already paid
-
-
-
-    #send off task for due_on and sum the invoices that the balance isn't zero
+    customer_obj.current_plan = plan_obj.plan_id
+    prorate_last_invoice(customer_id, marketplace)
     query_tool.commit()
+    #Todo send off task for due_on and sum the invoices that the balance isn't zero
 
 
-def cancel_customer_plan():
-    #at period end/now
-    #close previous invoice, handle balance
-    pass
+
+def cancel_customer_plan(customer_id, marketplace, at_period_end=True):
+    """
+    Cancels a customers subscription. You can either do it immediately or
+    at the end of the period.
+    :param customer_id: A unique id/uri for the customer
+    :param marketplace: a group/marketplace id/uri the user should be placed in (matches balanced payments marketplaces)
+    :param at_period_end: Whether to cancel now or wait till the user
+    :returns: New customer object.
+    """
+    customer = retrieve_customer(customer_id, marketplace)
+    if at_period_end:
+       #Todo schedule task that removes the plan at the end of the period, make sure happens before renewal
+       pass
+    else:
+        prorate_last_invoice(customer_id, marketplace)
+        customer.current_plan = None
+        customer.plan = None
+    query_tool.commt()
+    return customer
+
+
+def prorate_last_invoice(customer_id, marketplace):
+    """
+    Prorates the last invoice when changing a users plan. Only use when changing a users plan.
+    :param customer_id: A unique id/uri for the customer
+    :param marketplace: a group/marketplace id/uri the user should be placed in (matches balanced payments marketplaces)
+    """
+    right_now = datetime.now(UTC)
+    last_invoice = query_tool.query(Invoices).filter(and_(Invoices.customer_id == customer_id, Invoices.marketplace == marketplace, Invoices.end_dt > start_date)).first()
+    if last_invoice:
+        time_total = Decimal((last_invoice.end_dt - last_invoice.due_dt).total_seconds())
+        time_used = Decimal((last_invoice.start_dt - right_now).total_seconds())
+        percent_used = time_used/time_total
+        new_base_amount = last_invoice.amount_base_cents * percent_used
+        new_coupon_amount = last_invoice.amount_after_coupon_cents * percent_used
+        new_balance = last_invoice.amount_after_coupon_cents - last_invoice.amount_paid_cents
+        last_invoice.amount_base_cents = new_base_amount
+        last_invoice.amount_after_coupon_cents = new_coupon_amount
+        last_invoice.remaining_balance_cents = new_balance
+        last_invoice.end_dt = right_now - relativedelta(seconds=30) #Extra safety for find query
+    query_tool.flush()

@@ -1,25 +1,31 @@
+class BillySerivceError(Exception):
+    """
+    All billy errors extend from here.
+    """
+    pass
 
-class NotFoundError(Exception):
+
+class NotFoundError(BillySerivceError):
     """
     Raised when object requested is not found.
     """
     pass
 
-class BadIntervalError(Exception):
+class BadIntervalError(BillySerivceError):
     """
     Raised when interval is not of relativedelta type
     """
     pass
 
 
-class AlreadyExistsError(Exception):
+class AlreadyExistsError(BillySerivceError):
     """
     Raised when the insertion already exists and can't be done.
     """
     pass
 
 
-class ValidationError(Exception):
+class ValidationError(BillySerivceError):
     """
     Raised if the parameter passed could not be validated.
     """

@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship
 from pytz import UTC
 from datetime import datetime
 from billy.customer.models import Customers
-from billy.invoices.models import Invoices
+from billy.invoices.models import ChargeInvoice
 
 
 class Coupon(Base):
@@ -19,16 +19,19 @@ class Coupon(Base):
     expire = Column(DateTime(timezone=UTC))
     times_used = Column(Integer)
     max_redeem = Column(Integer) #Count different users who can redeeem it
-    repeating = Column(Integer) # -1 = Forever, int = Number of invoices  per user
+    repeating = Column(
+        Integer) # -1 = Forever, int = Number of invoices  per user
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     deleted_at = Column(DateTime(timezone=UTC))
-    customers = relationship(Customers.__name__, backref='coupons')
-    __table_args__ = (UniqueConstraint('coupon_id', 'marketplace', name='couponid_marketplace'),
+    customers = relationship(Customers, backref='coupons')
+    __table_args__ = (
+    UniqueConstraint('coupon_id', 'marketplace', name='couponid_marketplace'),
     )
 
 
-    def __init__(self, id, marketplace, name, percent_off_cents, percent_off_int, expire, max_redeem, repeating):
+    def __init__(self, id, marketplace, name, percent_off_cents,
+                 percent_off_int, expire, max_redeem, repeating):
         self.coupon_id = id
         self.marketplace = marketplace
         self.name = name

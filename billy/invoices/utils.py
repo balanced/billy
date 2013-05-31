@@ -1,4 +1,4 @@
-from billy.invoices.models import Invoices
+from billy.invoices.models import ChargeInvoice
 
 #TODO!
 def create_invoice():

@@ -9,42 +9,35 @@ from billy.errors import BadIntervalError
 from billy.customer.models import Customers
 
 
-class Plan(Base):
-    __tablename__ = 'plans'
+class Payout(Base):
+    __tablename__ = 'payouts'
 
-    plan_id = Column(String, primary_key=True)
+    payout_id = Column(String, primary_key=True)
     marketplace = Column(String)
     name = Column(String)
-    price_cents = Column(Integer)
-
+    payout_amount_cents = Column(Integer)
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     deleted_at = Column(DateTime(timezone=UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
-    trial_interval = Column(JSONDict)
-    plan_interval = Column(JSONDict)
-    customers = relationship(Customers.__name__, backref='plans')
+    payout_interval = Column(JSONDict)
+    customers = relationship(Customers.__name__, backref='payouts')
 
     __table_args__ = (
-    UniqueConstraint('plan_id', 'marketplace', name='planid_marketplace'),
+    UniqueConstraint('payout_id', 'marketplace', name='payoutid_marketplace'),
     )
 
 
-    def __init__(self, id, marketplace, name, price_cents, plan_interval,
-                 trial_interval):
-        self.plan_id = id
+    def __init__(self, id, marketplace, name, price_cents, payout_interval,
+                 ):
+        self.payout_id = id
         self.name = name
         self.price_cents = price_cents
-        if not isinstance(plan_interval, relativedelta):
+        if not isinstance(payout_interval, relativedelta):
             raise BadIntervalError(
-                "plan_interval must be a relativedelta type.")
+                "payout_interval must be a relativedelta type.")
         else:
-            self.plan_interval = self.from_relativedelta(plan_interval)
-        if not isinstance(trial_interval, relativedelta):
-            raise BadIntervalError(
-                "trial_interval must be a relativedelta type.")
-        else:
-            self.trial_interval = self.from_relativedelta(trial_interval)
+            self.payout_interval = self.from_relativedelta(payout_interval)
         self.marketplace = marketplace
 
     def from_relativedelta(self, inter):

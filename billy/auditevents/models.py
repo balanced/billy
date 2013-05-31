@@ -5,7 +5,6 @@ from datetime import datetime
 from sqlalchemy.schema import ForeignKey
 
 
-
 class AuditEvents(Base):
     __tablename__ = 'auditevents'
 
@@ -16,7 +15,10 @@ class AuditEvents(Base):
     coupon_id = Column(String, ForeignKey('coupons.coupon_id'))
     invoice_id = Column(String, ForeignKey('invoices.invoice_id'))
     event = Column(String)
-    created_at = created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
+
+    created_at = created_at = Column(DateTime(timezone=UTC),
+                                     default=datetime.now(UTC))
+
 
 
 

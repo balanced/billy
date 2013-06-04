@@ -1,6 +1,5 @@
 from dateutil.relativedelta import relativedelta
 from models import Plan
-from billy.settings import query_tool
 from pytz import UTC
 from datetime import datetime
 from billy.errors import NotFoundError, AlreadyExistsError

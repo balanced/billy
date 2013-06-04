@@ -1,26 +1,24 @@
-from unittest import TestCase
-from billy.coupons.utils import create_coupon, delete_coupon, update_coupon, retrieve_coupon, list_coupons
+from tests import BalancedTransactionalTestCase
 from billy.errors import NotFoundError, AlreadyExistsError
 from pytz import UTC
 from datetime import datetime, timedelta
-from billy.settings import query_tool
 from billy.coupons.models import Coupon
 
 
-class TestCoupons(TestCase):
+class TestCoupons(BalancedTransactionalTestCase):
 
     def setUp(self):
+        super(TestCoupons, self).setUp()
         self.marketplace = 'test_my_marketplace'
         self.next_week = datetime.now(UTC) + timedelta(days=7)
         self.next_day = datetime.now(UTC) + timedelta(days=1)
-        query_tool.query(Coupon).filter(Coupon.marketplace == self.marketplace).delete()
 
 
     def test_create_and_retrieve(self):
         coupon_id = "test_my_coupon_1"
-        create_coupon(coupon_id, self.marketplace, "Test Coupon", 200, 5, 10,
-                      -1, self.next_week)
-        result = retrieve_coupon(coupon_id, self.marketplace)
+        Coupon.create_coupon(coupon_id, self.marketplace, "Test Coupon", 200,
+                            5, 10, -1, self.next_week)
+        result = Coupon.retrieve_coupon(coupon_id, self.marketplace)
         #check params
         self.assertEqual(result.coupon_id, coupon_id)
         self.assertEqual(result.marketplace, self.marketplace)
@@ -31,12 +29,14 @@ class TestCoupons(TestCase):
         self.assertEqual(result.max_redeem, 10)
         self.assertEqual(result.repeating, -1)
         #Try creating duplicate
-        self.assertRaises(AlreadyExistsError,create_coupon, coupon_id, self.marketplace, "Test Coupon 2", 300, 6,
+        self.assertRaises(AlreadyExistsError,Coupon.create_coupon, coupon_id,
+                          self.marketplace, "Test Coupon 2", 300, 6,
                           self.next_day, 11, 5)
-        self.assertRaises(NotFoundError, retrieve_coupon,'test_my_coupon_DNE', self.marketplace)
+        self.assertRaises(NotFoundError, Coupon.retrieve_coupon,
+                          'test_my_coupon_DNE', self.marketplace)
         #create coupon, no expire:
-        create_coupon('test_coupon_7', self.marketplace, "Test Coupon", 200,
-                      5, 10, -1)
+        Coupon.create_coupon('test_coupon_7', self.marketplace, "Test Coupon",
+                          200, 5, 10, -1)
 
     def test_update_coupon(self):
         coupon_id = 'test_my_coupon_3'
@@ -83,8 +83,3 @@ class TestCoupons(TestCase):
     #Todo test coupon limit/count
     #Todo Test coupon expiring
     #Todo test incr/decr max_redeem below times_used should max it inactive or active
-
-    def tearDown(self):
-        query_tool.query(Coupon).filter(Coupon.marketplace == self.marketplace).delete()
-        self.assertFalse(list_coupons(self.marketplace))
-        #TODO-me: Figure out why the last row isn't tearing down...SWITCH TO TRANSACTIONAL

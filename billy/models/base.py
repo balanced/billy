@@ -6,6 +6,7 @@ from billy.settings import Session
 
 Base = declarative_base()
 Base.query = Session.query_property()
+Base.session = Session
 
 
 class JSONDict(TypeDecorator):

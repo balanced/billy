@@ -40,10 +40,6 @@ class BalancedTransactionalTestCase(unittest.TestCase):
             isolation_level='SERIALIZABLE'
         )
 
-    @classmethod
-    def setUpClass(cls):
-        super(BalancedTransactionalTestCase, cls).setUpClass()
-
     def setUp(self):
         super(BalancedTransactionalTestCase, self).setUp()
 
@@ -51,7 +47,6 @@ class BalancedTransactionalTestCase(unittest.TestCase):
         self._db_transaction = self._db_connection.begin()
 
         Session.configure(bind=self._db_connection)
-        print "HERE!"
         # HACK: this is done solely to set up signals for model test cases --
         # alternatives are welcome
         self.session = Base.session = Session
@@ -66,16 +61,9 @@ class BalancedTransactionalTestCase(unittest.TestCase):
                         db_transaction=self._db_transaction,
                         db_connection=self._db_connection)
 
-        # request context
-
-    def tearDown(self):
-        super(BalancedTransactionalTestCase, self).tearDown()
-
-
 
 def _transactional_db_reset(db_session, db_transaction, db_connection):
     # roll it back
-
     db_session.rollback()
     # expunge the entire session
     db_session.expunge_all()

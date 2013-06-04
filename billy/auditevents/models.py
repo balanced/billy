@@ -2,7 +2,6 @@ from billy.models.base import Base
 from sqlalchemy import Column, String, DateTime
 from pytz import UTC
 from datetime import datetime
-from billy.settings import query_tool
 from sqlalchemy.orm import mapper
 from sqlalchemy import event
 from utils import string_attr

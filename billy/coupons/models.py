@@ -4,7 +4,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import relationship
 from pytz import UTC
 from datetime import datetime
-from billy.customer.models import Customers
+from billy.customer.models import Customer
 
 
 class Coupon(Base):
@@ -23,14 +23,15 @@ class Coupon(Base):
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     deleted_at = Column(DateTime(timezone=UTC))
-    #customers = relationship(Customers, backref='coupons')
+    count_redeemed = Column(Integer)
+    customers = relationship(Customer, backref='coupon')
     __table_args__ = (
     UniqueConstraint('coupon_id', 'marketplace', name='couponid_marketplace'),
     )
 
 
     def __init__(self, id, marketplace, name, percent_off_cents,
-                 percent_off_int, expire, max_redeem, repeating):
+                 percent_off_int, max_redeem, repeating, expire=None):
         self.coupon_id = id
         self.marketplace = marketplace
         self.name = name
@@ -41,3 +42,7 @@ class Coupon(Base):
         self.max_redeem = max_redeem
         self.repeating = repeating
 
+    @property
+    def count_redeemed(self):
+        return Customer.query.filter(Customer.current_coupon == self
+        .coupon_id).count()

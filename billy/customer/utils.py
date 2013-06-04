@@ -1,7 +1,7 @@
-from models import Customers
+from models import Customer
 from billy.settings import query_tool
 from sqlalchemy import and_
-from billy.errors import NotFoundError, AlreadyExistsError
+from billy.errors import NotFoundError, AlreadyExistsError, LimitReachedError
 from datetime import datetime
 from pytz import UTC
 from billy.coupons.utils import retrieve_coupon
@@ -21,11 +21,11 @@ def create_customer(customer_id, marketplace):
     :return: Customer Object if success or raises error if not
     :raise AlreadyExistsError: if customer already exists
     """
-    exists = query_tool.query(Customers).filter(
-        and_(Customers.customer_id == customer_id,
-             Customers.marketplace == marketplace)).first()
+    exists = Customer.query.filter(
+        and_(Customer.customer_id == customer_id,
+             Customer.marketplace == marketplace)).first()
     if not exists:
-        new_customer = Customers(customer_id, marketplace)
+        new_customer = Customer(customer_id, marketplace)
         query_tool.add(new_customer)
         query_tool.commit()
         return new_customer
@@ -44,22 +44,22 @@ def retrieve_customer(customer_id, marketplace):
     :raise NotFoundError:  if plan not found.
     """
     #TODO: Retrieve FKeys with it
-    exists = query_tool.query(Customers).filter(
-        and_(Customers.customer_id == customer_id,
-             Customers.marketplace == marketplace)).first()
+    exists = query_tool.query(Customer).filter(
+        and_(Customer.customer_id == customer_id,
+             Customer.marketplace == marketplace)).first()
     if not exists:
         raise NotFoundError('Customer not found. Check plan_id and marketplace')
     return exists
 
 
-def list_all_customers(marketplace):
+def list_customers(marketplace):
     """
     Returns a list of customers currently in the database
     :param marketplace: The group/marketplace id/uri
     :returns: A list of Customer objects
     """
-    results = query_tool.query(Customers).filter(
-        Customers.marketplace == marketplace).all()
+    results = query_tool.query(Customer).filter(
+        Customer.marketplace == marketplace).all()
     return results
 
 
@@ -73,14 +73,17 @@ def apply_coupon_to_customer(customer_id, marketplace, coupon_id):
     :raise NotFoundError: If customer not found
     """
     #Todo Increase use count disable if greater
-    exists = query_tool.query(Customers).filter(
-        and_(Customers.customer_id == customer_id,
-             Customers.marketplace == marketplace)).first()
+    exists = query_tool.query(Customer).filter(
+        and_(Customer.customer_id == customer_id,
+             Customer.marketplace == marketplace)).first()
     if not exists:
         raise NotFoundError('Customer not found. Try different id')
     coupon_obj = retrieve_coupon(coupon_id, marketplace,
                                  active_only=True) #Raises NotFoundError if
                                  # not found
+    if coupon_obj.max_redeem != -1 and coupon_obj.count_redeemed > \
+                                   coupon_obj.max_redeem:
+        raise LimitReachedError("Coupon redemtions exceeded max_redeem.")
     exists.current_coupon = coupon_id
     exists.updated_at = datetime.now(UTC)
     query_tool.commit()
@@ -97,9 +100,9 @@ def remove_customer_coupon(customer_id, marketplace):
     :raise NotFoundError: If customer not found
     """
     #Todo reduce redeem count disable if less
-    exists = query_tool.query(Customers).filter(
-        and_(Customers.customer_id == customer_id,
-             Customers.marketplace == marketplace)).first()
+    exists = query_tool.query(Customer).filter(
+        and_(Customer.customer_id == customer_id,
+             Customer.marketplace == marketplace)).first()
     if not exists:
         raise NotFoundError('Customer not found. Try different id')
     if not exists.current_coupon:
@@ -118,9 +121,9 @@ def change_customer_plan(customer_id, marketplace, plan_id):
     :param plan_id:
     :raise:
     """
-    customer_obj = query_tool.query(Customers).filter(
-        and_(Customers.customer_id == customer_id,
-             Customers.marketplace == marketplace)).first()
+    customer_obj = query_tool.query(Customer).filter(
+        and_(Customer.customer_id == customer_id,
+             Customer.marketplace == marketplace)).first()
     if not customer_obj:
         raise NotFoundError('Customer not found. Try different id')
     plan_obj = retrieve_plan(plan_id, marketplace, active_only=True)
@@ -227,9 +230,9 @@ def change_customer_payout(customer_id, marketplace, payout_id,
     :raise NotFoundError: if customer or payout are not found.
     :returns: The customer object.
     """
-    customer_obj = query_tool.query(Customers).filter(
-        and_(Customers.customer_id == customer_id,
-             Customers.marketplace == marketplace)).first()
+    customer_obj = query_tool.query(Customer).filter(
+        and_(Customer.customer_id == customer_id,
+             Customer.marketplace == marketplace)).first()
     if not customer_obj:
         raise NotFoundError('Customer not found. Try different id')
     payout_obj = retrieve_payout(payout_id, marketplace, active_only=True)

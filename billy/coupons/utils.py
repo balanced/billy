@@ -1,11 +1,11 @@
 from billy.errors import NotFoundError, AlreadyExistsError
 from billy.coupons.models import Coupon
-from billy.settings import query_tool
 from sqlalchemy import and_
 from datetime import datetime
 from pytz import UTC
 
-def create_coupon(coupon_id, marketplace, name, price_off_cents, percent_off_int, expire, max_redeem, repeating):
+def create_coupon(coupon_id, marketplace, name, price_off_cents,
+                  percent_off_int, max_redeem, repeating, expire=None):
     """
     Creates a coupon that can be later applied to a customer.
     :param coupon_id: A unique id for the coupon
@@ -14,14 +14,16 @@ def create_coupon(coupon_id, marketplace, name, price_off_cents, percent_off_int
     :param price_off_cents: In CENTS the $ amount off on each invoice. $1.00 == 100
     :param percent_off_int: The percent to reduce off each invoice. 25% == 25
     :param expire: Datetime in which after the coupon will no longer work
-    :param max_redeem: The number of unique users that can redeem this coupon
+    :param max_redeem: The number of unique users that can redeem this
+    coupon, -1 for unlimited
     :param repeating: The maximum number of invoices it applies to. -1 for all/forver
     :return: The new coupon object
     :raise AlreadyExistsError: If the coupon already exists
     """
     exists = query_tool.query(Coupon).filter(and_(Coupon.coupon_id == coupon_id, Coupon.marketplace == marketplace)).first()
     if not exists:
-        new_coupon = Coupon(coupon_id, marketplace, name, price_off_cents, percent_off_int, expire, max_redeem, repeating)
+        new_coupon = Coupon(coupon_id, marketplace, name, price_off_cents,
+                            percent_off_int, max_redeem, repeating, expire)
         query_tool.add(new_coupon)
         query_tool.commit()
         return new_coupon
@@ -105,3 +107,6 @@ def list_coupons(marketplace):
     """
     results = query_tool.query(Coupon).filter(Coupon.marketplace == marketplace).all()
     return results
+
+
+#Todo change user coupon count

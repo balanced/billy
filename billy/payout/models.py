@@ -6,7 +6,7 @@ from pytz import UTC
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from billy.errors import BadIntervalError
-from billy.customer.models import Customers
+from billy.customer.models import Customer
 
 
 class Payout(Base):
@@ -21,8 +21,8 @@ class Payout(Base):
     deleted_at = Column(DateTime(timezone=UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_interval = Column(JSONDict)
-    customers = relationship(Customers.__name__, backref='payouts')
-
+    customers = relationship(Customer.__name__, backref='payouts')
+    #Payout by percentage
     __table_args__ = (
     UniqueConstraint('payout_id', 'marketplace', name='payoutid_marketplace'),
     )

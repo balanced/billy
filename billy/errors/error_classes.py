@@ -31,3 +31,10 @@ class ValidationError(BillySerivceError):
     """
     pass
 
+
+class LimitReachedError(Exception):
+    """
+    Raised when a predefined limit is reached, e.g. coupon max_redeem
+    """
+    pass
+

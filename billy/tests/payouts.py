@@ -49,7 +49,7 @@ class TestPayouts(TestCase):
         self.assertRaises(BadIntervalError,
                           create_payout, 'test_my_payout_2', self.marketplace,
                           'Test Payout2', 1000, 'week')
-        #Retrieve notexisting payout:
+        #Retrieve not existing payout:
         self.assertRaises(NotFoundError, retrieve_payout, 'test_my_payout_DNE',
                           self.marketplace)
 

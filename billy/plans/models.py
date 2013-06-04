@@ -6,7 +6,7 @@ from pytz import UTC
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from billy.errors import BadIntervalError
-from billy.customer.models import Customers
+from billy.customer.models import Customer
 
 
 class Plan(Base):
@@ -23,8 +23,8 @@ class Plan(Base):
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     trial_interval = Column(JSONDict)
     plan_interval = Column(JSONDict)
-    customers = relationship(Customers.__name__, backref='plans')
-
+    customers = relationship(Customer.__name__, backref='plans')
+    #Todo end of period
     __table_args__ = (
     UniqueConstraint('plan_id', 'marketplace', name='planid_marketplace'),
     )

@@ -12,10 +12,10 @@ class ChargeInvoice(Base):
     __tablename__ = 'charge_invoices'
 
     invoice_id = Column(Integer, primary_key=True)
-    customer_id = Column(String, ForeignKey('customer.customer_id'))
+    customer_id = Column(String, ForeignKey('customers.customer_id'))
     marketplace = Column(String)
     relevant_plan = Column(String, ForeignKey('plans.plan_id'))
-    relevant_coupon = Column(Integer, ForeignKey('coupons.coupon_id'))
+    relevant_coupon = Column(String, ForeignKey('coupons.coupon_id'))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     start_dt = Column(DateTime(timezone=UTC))
     end_dt = Column(DateTime(timezone=UTC))
@@ -47,7 +47,7 @@ class PayoutInvoice(Base):
     __tablename__ = 'payout_invoices'
 
     invoice_id = Column(Integer, primary_key=True)
-    customer_id = Column(String, ForeignKey('customer.customer_id'))
+    customer_id = Column(String, ForeignKey('customers.customer_id'))
     marketplace = Column(String)
     relevant_payout = Column(String, ForeignKey('plans.plan_id'))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))

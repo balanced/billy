@@ -18,7 +18,8 @@ class TestCoupons(TestCase):
 
     def test_create_and_retrieve(self):
         coupon_id = "test_my_coupon_1"
-        create_coupon(coupon_id, self.marketplace, "Test Coupon", 200, 5, self.next_week, 10, -1)
+        create_coupon(coupon_id, self.marketplace, "Test Coupon", 200, 5, 10,
+                      -1, self.next_week)
         result = retrieve_coupon(coupon_id, self.marketplace)
         #check params
         self.assertEqual(result.coupon_id, coupon_id)
@@ -33,6 +34,9 @@ class TestCoupons(TestCase):
         self.assertRaises(AlreadyExistsError,create_coupon, coupon_id, self.marketplace, "Test Coupon 2", 300, 6,
                           self.next_day, 11, 5)
         self.assertRaises(NotFoundError, retrieve_coupon,'test_my_coupon_DNE', self.marketplace)
+        #create coupon, no expire:
+        create_coupon('test_coupon_7', self.marketplace, "Test Coupon", 200,
+                      5, 10, -1)
 
     def test_update_coupon(self):
         coupon_id = 'test_my_coupon_3'
@@ -40,7 +44,8 @@ class TestCoupons(TestCase):
         expire = (self.next_week, self.next_day)
         max_redeem = (10, 4)
         repeating = (-1, 1)
-        create_coupon(coupon_id, self.marketplace, name[0], 200, 5, expire[0], max_redeem[0], repeating[0])
+        create_coupon(coupon_id, self.marketplace, name[0], 200, 5,
+                      max_redeem[0], repeating[0], expire[0])
         current_coupon = retrieve_coupon(coupon_id, self.marketplace)
         self.assertEqual(current_coupon.name, name[0])
         self.assertEqual(current_coupon.max_redeem, max_redeem[0])
@@ -56,18 +61,22 @@ class TestCoupons(TestCase):
     def test_delete_coupon(self):
         coupon_id = 'test_my_coupon_4'
         marketplace = self.marketplace
-        create_coupon(coupon_id, self.marketplace, "Test Coupon", 200, 5, self.next_week, 10, -1)
+        create_coupon(coupon_id, self.marketplace, "Test Coupon", 200, 5, 10,
+                      -1, self.next_week)
         current_coupon = retrieve_coupon(coupon_id, marketplace)
         self.assertEqual(current_coupon.active, True)
         delete_coupon(coupon_id, marketplace)
         deleted_plan = retrieve_coupon(coupon_id, self.marketplace)
         self.assertEqual(deleted_plan.active, False)
         self.assertLess(deleted_plan.deleted_at - datetime.now(UTC), timedelta(seconds=30))
-        self.assertRaises(NotFoundError, delete_coupon, 'test_coupon_DNE', self.marketplace)
+        self.assertRaises(NotFoundError, delete_coupon, 'test_coupon_DNE',
+                          self.marketplace)
 
     def test_list_coupon(self):
-        create_coupon("test_coupon_5", self.marketplace, "Test Coupon 5", 200, 5, self.next_week, 10, -1)
-        create_coupon("test_coupon_6", self.marketplace, "Test Coupon 6", 20, 10, self.next_week, 15, 5)
+        create_coupon("test_coupon_5", self.marketplace, "Test Coupon 5", 200,
+                      5, 10, -1, self.next_week)
+        create_coupon("test_coupon_6", self.marketplace, "Test Coupon 6", 20,
+                      10, 15, 5, self.next_week)
         list_of_plans = list_coupons(self.marketplace)
         self.assertEqual(len(list_of_plans), 2)
     #Todo TEST ACITVE ONLY

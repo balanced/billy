@@ -1,4 +1,4 @@
-from billy.models.base import Base
+from billy.models.base import Base, Session
 from sqlalchemy import Column, String, DateTime
 from pytz import UTC
 from datetime import datetime
@@ -36,8 +36,8 @@ class AuditEvents(Base):
         new_audit.customer_id = string_attr(entity, 'customer_id')
         new_audit.payout_id = string_attr(entity, 'payout_id')
         new_audit.event = string_attr(entity, 'event')
-        query_tool.add(new_audit)
-        query_tool.commit()
+        Session.add(new_audit)
+        Session.commit()
 
     @staticmethod
     def insert_listener(mapper, connection, target):

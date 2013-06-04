@@ -1,9 +1,14 @@
 from billy.models.base import Base, JSONDict
 from sqlalchemy import Column, String, Integer, Boolean, DateTime
 from sqlalchemy.schema import UniqueConstraint, ForeignKey
+from sqlalchemy import and_
 from pytz import UTC
 from datetime import datetime
-
+from billy.errors import AlreadyExistsError, NotFoundError, LimitReachedError
+from billy.coupons.models import Coupon
+from billy.invoices.models import ChargeInvoice, PayoutInvoice
+import decimal
+from dateutil.relativedelta import relativedelta
 
 class Customer(Base):
     __tablename__ = 'customers'
@@ -29,7 +34,7 @@ class Customer(Base):
         self.marketplace = marketplace
 
 
-    @classmethod
+    @staticmethod
     def create_customer(customer_id, marketplace):
         """
         Creates a customer for the marketplace.
@@ -44,12 +49,14 @@ class Customer(Base):
                  Customer.marketplace == marketplace)).first()
         if not exists:
             new_customer = Customer(customer_id, marketplace)
-            query_tool.add(new_customer)
-            query_tool.commit()
+            Customer.session.add(new_customer)
+            Customer.session.commit()
             return new_customer
         else:
             raise AlreadyExistsError(
                 'Customer already exists. Check customer_id and marketplace')
+
+    @staticmethod
     def retrieve_customer(customer_id, marketplace):
         """
         This method retrieves a single plan.
@@ -60,52 +67,72 @@ class Customer(Base):
         :raise NotFoundError:  if plan not found.
         """
         #TODO: Retrieve FKeys with it
-        exists = query_tool.query(Customer).filter(
+        exists = Customer.query.filter(
             and_(Customer.customer_id == customer_id,
                  Customer.marketplace == marketplace)).first()
         if not exists:
             raise NotFoundError('Customer not found. Check plan_id and marketplace')
         return exists
 
-
+    @staticmethod
     def list_customers(marketplace):
         """
         Returns a list of customers currently in the database
         :param marketplace: The group/marketplace id/uri
         :returns: A list of Customer objects
         """
-        results = query_tool.query(Customer).filter(
+        results = Customer.query.filter(
             Customer.marketplace == marketplace).all()
         return results
 
+    def apply_coupon(self, coupon_id):
+        """
+        Adds a coupon to the user.
+        :param coupon_id:
+        :return: Self
+        :raise: LimitReachedError if coupon max redeemed.
+        """
+        coupon_obj = Coupon.retrieve_coupon(coupon_id, self.marketplace,
+                                     active_only=True) #Raises NotFoundError if
+        # not found
+        if coupon_obj.max_redeem != -1 and coupon_obj.count_redeemed > \
+                coupon_obj.max_redeem:
+            raise LimitReachedError("Coupon redemtions exceeded max_redeem.")
+        self.current_coupon = coupon_id
+        self.updated_at = datetime.now(UTC)
+        self.session.commit()
+        return self
 
+    @staticmethod
     def apply_coupon_to_customer(customer_id, marketplace, coupon_id):
         """
-        Removes coupon associated with customer
+        Static version of apply_coupon
         :param customer_id: A unique id/uri for the customer
         :param marketplace: a group/marketplace id/uri the user should be placed
         in (matches balanced payments marketplaces)
         :return: The new Customer object
         :raise NotFoundError: If customer not found
         """
-        #Todo Increase use count disable if greater
-        exists = query_tool.query(Customer).filter(
+        exists = Customer.query.filter(
             and_(Customer.customer_id == customer_id,
                  Customer.marketplace == marketplace)).first()
         if not exists:
             raise NotFoundError('Customer not found. Try different id')
-        coupon_obj = retrieve_coupon(coupon_id, marketplace,
-                                     active_only=True) #Raises NotFoundError if
-        # not found
-        if coupon_obj.max_redeem != -1 and coupon_obj.count_redeemed > \
-                coupon_obj.max_redeem:
-            raise LimitReachedError("Coupon redemtions exceeded max_redeem.")
-        exists.current_coupon = coupon_id
-        exists.updated_at = datetime.now(UTC)
-        query_tool.commit()
-        return exists
+        return exists.apply_coupon(coupon_id)
 
+    def remove_coupon(self):
+        """
+        Removes the coupon.
 
+        """
+        if not self.current_coupon:
+            return self
+        self.current_coupon = None
+        self.updated_at = datetime.now(UTC)
+        self.session.commit()
+        return self
+
+    @staticmethod
     def remove_customer_coupon(customer_id, marketplace):
         """
         Removes coupon associated with customer
@@ -115,41 +142,26 @@ class Customer(Base):
         :return: The new Customer object
         :raise NotFoundError: If customer not found
         """
-        #Todo reduce redeem count disable if less
-        exists = query_tool.query(Customer).filter(
+        exists = Customer.query.filter(
             and_(Customer.customer_id == customer_id,
                  Customer.marketplace == marketplace)).first()
         if not exists:
             raise NotFoundError('Customer not found. Try different id')
-        if not exists.current_coupon:
-            return exists
-        exists.current_coupon = None
-        exists.updated_at = datetime.now(UTC)
-        query_tool.commit()
-        return exists
 
-
-    def change_customer_plan(customer_id, marketplace, plan_id):
+    def change_plan(self, plan_id):
         """
-        #Todo
-        :param customer_id:
-        :param marketplace:
-        :param plan_id:
-        :raise:
+        Changes the plan associated with this customer
+        :param plan_id: ID of plan to put user in.
+        :return: self
         """
-        customer_obj = query_tool.query(Customer).filter(
-            and_(Customer.customer_id == customer_id,
-                 Customer.marketplace == marketplace)).first()
-        if not customer_obj:
-            raise NotFoundError('Customer not found. Try different id')
-        plan_obj = retrieve_plan(plan_id, marketplace, active_only=True)
-        current_coupon = customer_obj.coupon
+        plan_obj = retrieve_plan(plan_id, self.marketplace, active_only=True)
+        current_coupon = self.coupon
         start_date = datetime.now(UTC)
         due_on = datetime.now(UTC)
-        coupon_use_count = customer_obj.coupon_use.get(current_coupon.coupon_id, 0)
+        coupon_use_count = self.coupon_use.get(current_coupon.coupon_id, 0)
         use_coupon = True if current_coupon.repeating == -1 or coupon_use_count \
                              <= current_coupon.repeating else False
-        can_trial = True if customer_obj.plan_use.get(plan_obj.plan_id,
+        can_trial = True if self.plan_use.get(plan_obj.plan_id,
                                                       0) == 0 else False
         end_date = start_date + plan_obj.to_relativedelta(plan_obj.plan_interval)
         trial_interval = plan_obj.to_relativedelta(plan_obj.trial_interval)
@@ -170,14 +182,46 @@ class Customer(Base):
         invoice = ChargeInvoice(customer_id, marketplace, plan_id, coupon_id, start_date,
                                 end_date, due_on, amount_base,
                                 amount_after_coupon, amount_paid, balance)
-        query_tool.add(invoice)
-        customer_obj.coupon_use[coupon_id] += 1
-        customer_obj.current_plan = plan_obj.plan_id
-        prorate_last_invoice(customer_id, marketplace)
-        query_tool.commit()
+        self.session.add(invoice)
+        self.coupon_use[coupon_id] += 1
+        self.current_plan = plan_obj.plan_id
+        self.prorate_last_invoice(self.customer_id, self.marketplace)
+        self.session.commit()
+        return self
+
+    @staticmethod
+    def change_customer_plan(customer_id, marketplace, plan_id):
+        """
+        Static method version of change_plan
+        :param customer_id: A unique id/uri for the customer
+        :param marketplace: a group/marketplace id/uri the user should be placed
+        :param plan_id: The plan id to assocaite customer with
+        :raise:
+        """
+        customer_obj = Customer.query.filter(
+            and_(Customer.customer_id == customer_id,
+                 Customer.marketplace == marketplace)).first()
+        if not customer_obj:
+            raise NotFoundError('Customer not found. Try different id')
+        customer_obj.change_plan(plan_id)
         #Todo send off task for due_on and sum the invoices that the balance
 
 
+    def cancel_plan(self, at_period_end=True):
+           """
+           Cancels the customers subscription. You can either do it immediately
+           or at the end of the period.
+            in (matches balanced payments marketplaces)
+           :param at_period_end: Whether to cancel now or wait till the user
+           :returns: New customer object.
+           """
+           self.prorate_last_invoice(self.customer_id, self.marketplace)
+           self.current_plan = None
+           self.plan = None
+           self.session.commit()
+           return self
+
+    @staticmethod
     def cancel_customer_plan(customer_id, marketplace, at_period_end=True):
         """
         Cancels a customers subscription. You can either do it immediately or
@@ -194,13 +238,9 @@ class Customer(Base):
             # make sure happens before renewal
             pass
         else:
-            prorate_last_invoice(customer_id, marketplace)
-            customer.current_plan = None
-            customer.plan = None
-        query_tool.commit()
-        return customer
+            return customer.cancel_plan(at_period_end)
 
-
+    @staticmethod
     def prorate_last_invoice(customer_id, marketplace):
         """
         Prorates the last invoice when changing a users plan. Only use when
@@ -229,9 +269,10 @@ class Customer(Base):
             last_invoice.remaining_balance_cents = new_balance
             last_invoice.end_dt = right_now - relativedelta(
                 seconds=30) #Extra safety for find query
-        query_tool.flush()
+        self.session.flush()
 
-
+    #Todo.. non static
+    @staticmethod
     def change_customer_payout(customer_id, marketplace, payout_id,
                                first_now=False, cancel_scheduled=False):
         """
@@ -272,7 +313,8 @@ class Customer(Base):
         query_tool.commit()
         return customer_obj
 
-
+    #Todo non static
+    @staticmethod
     def cancel_customer_payout(customer_id, marketplace, cancel_scheduled=False):
         """
         Cancels a customer payout
@@ -287,13 +329,18 @@ class Customer(Base):
         now = datetime.now(UTC)
         customer = retrieve_customer(customer_id, marketplace)
         if cancel_scheduled:
-            query_tool.query(PayoutInvoice).filter(and_(PayoutInvoice.customer_id
-                                                        == customer_id,
-                                                        PayoutInvoice.marketplace
-                                                        == marketplace,
-                                                        PayoutInvoice.payout_date
-                                                        > now))
+            PayoutInvoice.query.filter(and_(PayoutInvoice.customer_id
+                                                    == customer_id,
+                                                    PayoutInvoice.marketplace
+                                                    == marketplace,
+                                                    PayoutInvoice.payout_date
+                                                    > now))
 
         customer.current_payout = None
-        query_tool.commit()
+        Customer.session.commit()
         return customer
+
+
+    def change_plan_qty(self):
+        #Todo
+        pass

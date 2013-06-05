@@ -8,6 +8,7 @@ from billy.errors import AlreadyExistsError, NotFoundError, LimitReachedError
 from billy.coupons.models import Coupon
 from billy.plans.models import Plan
 from billy.invoices.models import PlanInvoice, PayoutInvoice
+from billy.payout.models import Payout
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 
@@ -16,7 +17,6 @@ class Customer(Base):
 
     customer_id = Column(String, primary_key=True)
     marketplace = Column(String)
-    current_payout = Column(String, ForeignKey('payouts.payout_id'))
     current_coupon = Column(String, ForeignKey('coupons.coupon_id'))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
@@ -325,12 +325,12 @@ class Customer(Base):
         now = datetime.now(UTC)
         customer = cls.retrieve_customer(customer_id, marketplace)
         if cancel_scheduled:
-            PayoutInvoice.query.filter(and_(PayoutInvoice.customer_id
+            PayoutInvoice.query.filter(PayoutInvoice.customer_id
                                                     == customer_id,
                                                     PayoutInvoice.marketplace
                                                     == marketplace,
                                                     PayoutInvoice.payout_date
-                                                    > now))
+                                                    > now)
 
         customer.current_payout = None
         Customer.session.commit()

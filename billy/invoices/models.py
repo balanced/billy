@@ -90,11 +90,19 @@ class PayoutInvoice(Base):
     balance_to_keep_cents = Column(Integer)
     balance_at_exec = Column(Integer)
     amount_payed_out = Column(Integer)
-    remaining_balance_cents = Column(Integer)
-    active = Column(Boolean)
+    completed = Column(Boolean, default=False)
+    active = Column(Boolean, default=True)
 
-
-    def create_invoice(self, customer_id, marketpalce, relevent_payout,
-                       payout_date, balanced_to_keep_cents, balance_at_exec, ):
-        pass
-        #Todo
+    @classmethod
+    def create_invoice(cls, customer_id, marketpalce, relevant_payout,
+                       payout_date, balanced_to_keep_cents, balance_at_exec,
+                       amount_payed_out):
+        new_invoice = cls(
+            customer_id = customer_id,
+            marketpalce = marketpalce,
+            relevant_payout = relevant_payout,
+            payout_date = payout_date,
+            balanced_to_keep_cents = balanced_to_keep_cents,
+            balance_at_exec = balance_at_exec,
+            amount_payed_out = amount_payed_out,
+        )

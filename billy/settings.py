@@ -3,7 +3,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import sessionmaker, scoped_session
 from transactions.provider.balanced_payments import BalancedProvider
-import sys
 
 
 DB_SETTINGS = {

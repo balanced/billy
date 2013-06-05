@@ -54,8 +54,8 @@ class PlanInvoice(Base):
                  start_dt, end_dt, due_dt,
                  amount_base_cents, amount_after_coupon_cents,
                  amount_paid_cents, remaining_balance_cents, quantity,
-                 charge_at_period_end ):
-        new_invoice = PlanInvoice(
+                 charge_at_period_end):
+        new_invoice = cls(
             customer_id = customer_id,
             marketplace = marketplace,
             relevant_plan = relevant_plan,
@@ -69,14 +69,12 @@ class PlanInvoice(Base):
             remaining_balance_cents = remaining_balance_cents,
             quantity = quantity,
             charge_at_period_end = charge_at_period_end
-
-
             )
         cls.session.add(new_invoice)
 
 
     def list_invoices(self):
-        #tood
+        #todo
         pass
 
 
@@ -89,17 +87,14 @@ class PayoutInvoice(Base):
     relevant_payout = Column(String, ForeignKey('plans.plan_id'))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_date = Column(DateTime(timezone=UTC))
-    payout_amount = Column(Integer)
+    balance_to_keep_cents = Column(Integer)
+    balance_at_exec = Column(Integer)
     amount_payed_out = Column(Integer)
     remaining_balance_cents = Column(Integer)
+    active = Column(Boolean)
 
 
-    def __init__(self, customer_id, marketplace, relevant_payout, payout_date,
-                 payout_amount, amount_payed_out, remaining_balance_cents):
-        self.customer_id = customer_id
-        self.marketplace = marketplace
-        self.payout_date = payout_date
-        self.relevant_payout = relevant_payout
-        self.payout_amount = payout_amount
-        self.amount_payed_out = amount_payed_out
-        self.remaining_balance_cents = remaining_balance_cents
+    def create_invoice(self, customer_id, marketpalce, relevent_payout,
+                       payout_date, balanced_to_keep_cents, balance_at_exec, ):
+        pass
+        #Todo

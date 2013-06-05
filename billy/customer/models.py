@@ -177,7 +177,7 @@ class Customer(Base):
         if charge_at_period_end:
             due_on = end_date
         if quantity < 1:
-            raise ValueError("Quanity must be greater than 1")
+            raise ValueError("Quantity must be greater than 1")
         amount_base = plan_obj.price_cents * Decimal(quantity)
         amount_after_coupon = amount_base
         amount_paid = 0
@@ -204,7 +204,8 @@ class Customer(Base):
         Cancels the customers subscription. You can either do it immediately
         or at the end of the period.
          in (matches balanced payments marketplaces)
-        :param at_period_end: Whether to cancel now or wait till the user
+        :param cancel_at_period_end: Whether to cancel now or wait till the
+        it has to renew.
         :returns: New customer object.
         """
         if cancel_at_period_end:
@@ -224,6 +225,7 @@ class Customer(Base):
         """
         Cancels a customers subscription. You can either do it immediately or
         at the end of the period.
+        :type customer_id: object
         :param customer_id: A unique id/uri for the customer
         :param marketplace: a group/marketplace id/uri the user should be placed
         in (matches balanced payments marketplaces)

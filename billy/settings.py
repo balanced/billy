@@ -2,27 +2,18 @@
 from sqlalchemy import create_engine
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import sessionmaker, scoped_session
+from transactions.provider.balanced_payments import BalancedProvider
 import sys
 
-#DB SETTINGS
-if 'test' in sys.argv:
-    DB_SETTINGS = {
-        'driver': 'postgresql',
-        'host': 'localhost',
-        'port': 5432,
-        'user': 'test',
-        'password': 'test',
-        'db_name': 'billy',
-        }
-else:
-    DB_SETTINGS = {
-        'driver': 'postgresql',
-        'host': 'localhost',
-        'port': 5432,
-        'user': 'test',
-        'password': 'test',
-        'db_name': 'billy',
-        }
+
+DB_SETTINGS = {
+    'driver': 'postgresql',
+    'host': 'localhost',
+    'port': 5432,
+    'user': 'test',
+    'password': 'test',
+    'db_name': 'billy',
+    }
 
 DB_URL = URL(DB_SETTINGS['driver'], username=DB_SETTINGS['user'],
         host= DB_SETTINGS['host'],
@@ -31,4 +22,6 @@ DB_URL = URL(DB_SETTINGS['driver'], username=DB_SETTINGS['user'],
 
 DB_ENGINE = create_engine(DB_URL)
 Session = scoped_session(sessionmaker(bind=DB_ENGINE))
+
+TRANSACTION_PROVIDER_CLASS = BalancedProvider
 

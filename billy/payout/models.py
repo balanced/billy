@@ -18,6 +18,7 @@ class Payout(Base):
     marketplace = Column(String)
     name = Column(String)
     payout_amount_cents = Column(Integer)
+    payout_percent = Column(Integer)
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     deleted_at = Column(DateTime(timezone=UTC))
@@ -47,7 +48,7 @@ class Payout(Base):
 
     @classmethod
     def create_payout(cls, payout_id, marketplace, name, payout_amount_cents,
-                      payout_interval):
+                      payout_percent, payout_interval):
         """
         Creates a payout that users can be assigned to.
         :param payout_id: A unique id/uri for the payout
@@ -58,6 +59,8 @@ class Payout(Base):
         .00 = 100
         :param payout_interval: A Interval class that defines how frequently the
         make the payout
+        :param payout_percent: A percent of the balance to payout (this happens
+        after the dollar amount is made).
         :return: Payout Object if success or raises error if not
         :raise AlreadyExistsError: if payout already exists
         :raise TypeError: if intervals are not relativedelta (Interval class)
@@ -66,11 +69,13 @@ class Payout(Base):
             cls.payout_id == payout_id, cls.marketplace == marketplace) \
             .first()
         if not exists:
-            new_payout = Payout(
+            new_payout = cls(
                 payout_id = payout_id,
-                marketplace = marketplace, name,
-                                payout_amount_cents,
-                                payout_interval)
+                marketplace = marketplace,
+                name = name,
+
+                payout_amount_cents =  payout_amount_cents,
+                payout_interval = payout_interval)
             cls.session.add(new_payout)
             cls.session.commit()
             return new_payout
@@ -87,11 +92,11 @@ class Payout(Base):
         :param active_only: if true only returns active payouts
         :raise NotFoundError:  if payout not found.
         """
-        query = Payout.filter(Payout.payout_id == payout_id,
-                              Payout.marketplace == marketplace)
+        query = Payout.filter(cls.payout_id == payout_id,
+                              cls.marketplace == marketplace)
         if active_only:
 
-            query.filter(Payout.active == True)
+            query.filter(cls.active == True)
         exists = query_tool.query(Payout).filter(and_filter).first()
         if not exists:
             raise NotFoundError(

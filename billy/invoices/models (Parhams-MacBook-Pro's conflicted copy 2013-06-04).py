@@ -14,6 +14,7 @@ class PlanInvoice(Base):
     invoice_id = Column(Integer, primary_key=True)
     customer_id = Column(String, ForeignKey('customers.customer_id'))
     marketplace = Column(String)
+    relevant_sub = Column(String, ForeignKey('plan_sub.sub_id'))
     relevant_plan = Column(String, ForeignKey('plans.plan_id'))
     relevant_coupon = Column(String, ForeignKey('coupons.coupon_id'))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
@@ -25,22 +26,27 @@ class PlanInvoice(Base):
     amount_paid_cents = Column(Integer)
     remaining_balance_cents = Column(Integer)
 
-
-    def __init__(self, customer_id, marketplace, relevant_plan, relevant_coupon,
+    @classmethod
+    def create_invoice(cls, customer_id, marketplace, relevant_sub,
+                 relevant_coupon,
                  start_dt, end_dt, due_dt,
                  amount_base_cents, amount_after_coupon_cents,
                  amount_paid_cents, remaining_balance_cents ):
-        self.customer_id = customer_id
-        self.marketplace = marketplace
-        self.relevant_plan = relevant_plan
-        self.relevant_coupon = relevant_coupon
-        self.start_dt = start_dt
-        self.due_dt = due_dt
-        self.end_dt = end_dt
-        self.amount_base_cents = amount_base_cents
-        self.amount_after_coupon_cents = amount_after_coupon_cents
-        self.amount_paid_cents = amount_paid_cents
-        self.remaining_balance_cents = remaining_balance_cents
+        new_invoice = cls()
+        new_invoice.customer_id = customer_id
+        new_invoice.marketplace = marketplace
+        new_invoice.relevant_sub = relevant_sub
+        new_invoice.relevant_coupon = relevant_coupon
+        new_invoice.start_dt = start_dt
+        new_invoice.due_dt = due_dt
+        new_invoice.end_dt = end_dt
+        new_invoice.amount_base_cents = amount_base_cents
+        new_invoice.amount_after_coupon_cents = amount_after_coupon_cents
+        new_invoice.amount_paid_cents = amount_paid_cents
+        new_invoice.remaining_balance_cents = remaining_balance_cents
+        cls.session.add(new_invoice)
+        cls.session.commit()
+        return new_invoice
 
 
 class PayoutInvoice(Base):

@@ -254,7 +254,7 @@ class PlanSubscription(Base):
         #Todo close old customer object
         try:
             sub_obj = cls.retrieve_subscription(customer_id, marketplace,
-                                                sub, active_only=True)
+                                                plan_id, active_only=True)
             sub_obj.active = False
             sub_obj.inactivated_on = datetime.now(UTC)
         except NotFoundError:

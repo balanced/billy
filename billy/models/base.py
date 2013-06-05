@@ -2,9 +2,11 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import TypeDecorator, VARCHAR
 import ujson
 from billy.errors import ValidationError
+from billy.settings import Session
 
 Base = declarative_base()
-
+Base.query = Session.query_property()
+Base.session = Session
 
 
 class JSONDict(TypeDecorator):

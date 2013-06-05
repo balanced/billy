@@ -294,17 +294,19 @@ class Customer(Base):
                                      "payout with the same payout id. Cancel "
                                      "that first to continue.")
         except:
-            pass #We want this...
+            pass
 
         now = datetime.now(UTC)
         first_charge = datetime.now(UTC)
         balance_to_keep_cents = payout_obj.balance_to_keep_cents
         if not first_now:
             first_charge += payout_obj.to_relativedelta(payout_obj.payout_interval)
-        invoice = PayoutInvoice(customer_id, marketplace, payout_obj.payout_id,
-                                first_charge, payout_amount, 0, payout_amount)
+        invoice = PayoutInvoice.create_invoice(customer_id, marketplace,
+                                               payout_obj.payout_id,
+                                               first_charge,
+                                               balance_to_keep_cents,
+                                               )
         cls.session.add(invoice)
-        #todo fire off task
         cls.session.commit()
         return customer_obj
 

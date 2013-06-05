@@ -106,10 +106,11 @@ class PayoutInvoice(Base):
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_date = Column(DateTime(timezone=UTC))
     balance_to_keep_cents = Column(Integer)
-    balance_at_exec = Column(Integer)
     amount_payed_out = Column(Integer)
     completed = Column(Boolean, default=False)
     active = Column(Boolean, default=True)
+    #Todo: make sure yo update this field...
+    balance_at_exec = Column(Integer)
 
     __table_args__ = (UniqueConstraint('customer_id', 'marketplace',
                                        'relevant_payout',
@@ -117,16 +118,13 @@ class PayoutInvoice(Base):
 
     @classmethod
     def create_invoice(cls, customer_id, marketpalce, relevant_payout,
-                       payout_date, balanced_to_keep_cents, balance_at_exec,
-                       amount_payed_out):
+                       payout_date, balanced_to_keep_cents):
         new_invoice = cls(
             customer_id = customer_id,
             marketpalce = marketpalce,
             relevant_payout = relevant_payout,
             payout_date = payout_date,
             balanced_to_keep_cents = balanced_to_keep_cents,
-            balance_at_exec = balance_at_exec,
-            amount_payed_out = amount_payed_out,
         )
 
     @classmethod

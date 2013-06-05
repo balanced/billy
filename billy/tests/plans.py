@@ -1,11 +1,14 @@
 from unittest import TestCase
-from billy.plans.utils import Intervals, create_plan, delete_plan, list_plans, update_plan, retrieve_plan
-from billy.errors import NotFoundError, BadIntervalError, AlreadyExistsError
-from dateutil.relativedelta import relativedelta
 from datetime import datetime, timedelta
+
+from dateutil.relativedelta import relativedelta
 from pytz import UTC
+
+from utils.plans import Intervals, create_plan, delete_plan, list_plans, update_plan, retrieve_plan
+from billy.errors import NotFoundError, BadIntervalError, AlreadyExistsError
 from billy.settings import query_tool
-from billy.plans.models import Plan
+from utils.plans import Plan
+
 
 class TestPlans(TestCase):
     

@@ -1,16 +1,14 @@
+import sys
 from billy.settings import DB_ENGINE
-from billy.plans.models import Plan
-from billy.coupons.models import Coupon
-
-table_classes = [Plan, Coupon]
+from billy.models.base import Base
+from billy.invoices.models import PlanInvoice, PayoutInvoice
 
 
-def delete_and_replace():
-    for each in table_classes:
-        each.__table__.drop(DB_ENGINE)
+def delete_and_replace_tables():
+    assert('test' in sys.argv)
+    for table in Base.metadata.sorted_tables:
+         table.delete()
     create_if_notexists()
 
 def create_if_notexists():
-    for each in table_classes:
-        each.__table__.create(DB_ENGINE, checkfirst=True)
-
+    Base.metadata.create_all(DB_ENGINE)

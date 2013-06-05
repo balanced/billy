@@ -148,7 +148,7 @@ class Customer(Base):
             raise NotFoundError('Customer not found. Try different id')
 
     @classmethod
-    def change_customer_plan(cls, customer_id, marketplace, plan_id,
+    def add_plan_customer(cls, customer_id, marketplace, plan_id,
                     quantity = 1, charge_at_period_end=False):
         """
         Changes a customer's plan
@@ -268,8 +268,8 @@ class Customer(Base):
 
     #Todo.. non static
     @classmethod
-    def change_customer_payout(cls, customer_id, marketplace, payout_id,
-                               first_now=False, cancel_scheduled=False):
+    def add_payout_customer(cls, customer_id, marketplace, payout_id,
+                               first_now=False):
         """
         Changes a customer payout schedule
         :param customer_id: A unique id/uri for the customer
@@ -277,32 +277,32 @@ class Customer(Base):
         :param payout_id: the id of the payout to asscociate with the account
         :param first_now: Whether to do the first payout immediately now or to
         schedule the first one in the future (now + interval)
-        :param cancel_scheduled: Whether to cancel the next payout already
-        scheduled with the old payout.
         :raise NotFoundError: if customer or payout are not found.
         :returns: The customer object.
         """
-        customer_obj = cls.query.filter(
-            and_(cls.customer_id == customer_id,
-                 cls.marketplace == marketplace)).first()
+        customer_obj = cls.query.filter(cls.customer_id == customer_id,
+                 cls.marketplace == marketplace).first()
         if not customer_obj:
             raise NotFoundError('Customer not found. Try different id')
-        payout_obj = retrieve_payout(payout_id, marketplace, active_only=True)
+        payout_obj = Payout.retrieve_payout(payout_id, marketplace,
+                                       active_only=True)
+        try:
+            PayoutInvoice.retrieve_invoice(customer_id, marketplace,
+                                           payout_obj.payout_id,
+                                           active_only=True)
+            raise AlreadyExistsError("The customer already has a active "
+                                     "payout with the same payout id. Cancel "
+                                     "that first to continue.")
+        except:
+            pass #We want this...
+
         now = datetime.now(UTC)
         first_charge = datetime.now(UTC)
-        payout_amount = payout_obj.payout_amount_cents
+        balance_to_keep_cents = payout_obj.balance_to_keep_cents
         if not first_now:
             first_charge += payout_obj.to_relativedelta(payout_obj.payout_interval)
-        if cancel_scheduled:
-            PayoutInvoice.query.filter(and_(PayoutInvoice.customer_id
-                                                        == customer_id,
-                                                        PayoutInvoice.marketplace
-                                                        == marketplace,
-                                                        PayoutInvoice.payout_date
-                                                        > now))
         invoice = PayoutInvoice(customer_id, marketplace, payout_obj.payout_id,
                                 first_charge, payout_amount, 0, payout_amount)
-        customer_obj.current_payout = payout_obj.payout_id
         cls.session.add(invoice)
         #todo fire off task
         cls.session.commit()

@@ -72,10 +72,28 @@ class PlanInvoice(Base):
             )
         cls.session.add(new_invoice)
 
+    @classmethod
+    def retrieve_invoice(cls, customer_id, marketplace, relevant_plan = None,
+                         active_only = False):
+        query = cls.query.filter(cls.customer_id == customer_id,
+                                 cls.marketplace == marketplace)
+        if relevant_plan:
+            query.filter(cls.relevant_plan == relevant_plan)
+        if active_only:
+            query.filter(cls.active == True)
+        return query.first()
 
-    def list_invoices(self):
-        #todo
-        pass
+    @classmethod
+    def list_invoices(cls, market_place, relevant_plan=None, customer_id = None,
+                      active_only=False):
+        query = cls.query.filter(cls.marketplace == market_place)
+        if customer_id:
+            query.filter(cls.customer_id == customer_id)
+        if active_only:
+            query.filter(cls.active == True)
+        if relevant_plan:
+            query.filter(cls.relevant_plan == relevant_plan)
+        return query.first()
 
 
 class PayoutInvoice(Base):
@@ -93,6 +111,10 @@ class PayoutInvoice(Base):
     completed = Column(Boolean, default=False)
     active = Column(Boolean, default=True)
 
+    __table_args__ = (UniqueConstraint('customer_id', 'marketplace',
+                                       'relevant_payout',
+                                       name='payout_invoice_unique'))
+
     @classmethod
     def create_invoice(cls, customer_id, marketpalce, relevant_payout,
                        payout_date, balanced_to_keep_cents, balance_at_exec,
@@ -106,3 +128,27 @@ class PayoutInvoice(Base):
             balance_at_exec = balance_at_exec,
             amount_payed_out = amount_payed_out,
         )
+
+    @classmethod
+    def retrieve_invoice(cls, customer_id, marketplace, relevant_payout = None,
+                        active_only = False):
+        query = cls.query.filter(cls.customer_id == customer_id,
+                                 cls.marketplace == marketplace)
+        if relevant_payout:
+            query.filter(cls.relevant_payout == relevant_payout)
+        if active_only:
+            query.filter(cls.active == True)
+        return query.first()
+
+
+    @classmethod
+    def list_invoices(cls, market_place, relevant_payout=None,
+                      customer_id = None, active_only=False):
+        query = cls.query.filter(cls.marketplace == market_place)
+        if customer_id:
+            query.filter(cls.customer_id == customer_id)
+        if active_only:
+            query.filter(cls.active == True)
+        if relevant_payout:
+            query.filter(cls.payout_id == relevant_payout)
+        return query.first()

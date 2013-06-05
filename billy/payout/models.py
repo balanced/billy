@@ -26,8 +26,7 @@ class Payout(Base):
     customers = relationship(Customer.__name__, backref='payouts')
     #Payout by percentage
     __table_args__ = (
-    UniqueConstraint('payout_id', 'marketplace', name='payoutid_marketplace'),
-    )
+    UniqueConstraint('payout_id', 'marketplace', name='payoutid_marketplace'))
 
 
     def from_relativedelta(self, inter):

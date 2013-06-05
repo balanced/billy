@@ -1,17 +1,17 @@
-from billy.models.base import Base, JSONDict
+from datetime import datetime
+
 from sqlalchemy import Column, String, Integer, Boolean, DateTime
-from sqlalchemy.schema import UniqueConstraint, ForeignKey
+from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import relationship
 from pytz import UTC
-from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from sqlalchemy import and_
+
+from billy.models.base import Base, JSONDict
 from billy.errors import BadIntervalError
-from billy.customer.models import Customer
+from utils.plans.customers import Customer
 from billy.invoices.models import PlanInvoice
 from billy.errors import NotFoundError, AlreadyExistsError
-from sqlalchemy import and_
-from decimal import Decimal
-
 
 
 class Plan(Base):

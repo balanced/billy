@@ -1,16 +1,19 @@
-from billy.models.base import Base, JSONDict
-from sqlalchemy import Column, String, Integer, Boolean, DateTime
+from datetime import datetime
+from decimal import Decimal
+
+from sqlalchemy import Column, String, DateTime
 from sqlalchemy.schema import UniqueConstraint, ForeignKey
 from sqlalchemy import and_
 from pytz import UTC
-from datetime import datetime
-from billy.errors import AlreadyExistsError, NotFoundError, LimitReachedError
-from billy.coupons.models import Coupon
-from billy.plans.models import Plan
-from billy.invoices.models import PlanInvoice, PayoutInvoice
-from billy.payout.models import Payout
-from decimal import Decimal
 from dateutil.relativedelta import relativedelta
+
+from billy.models.base import Base, JSONDict
+from billy.errors import AlreadyExistsError, NotFoundError, LimitReachedError
+from billy.models.coupons import Coupon
+from utils.plans import Intervals
+from billy.models.invoices import PlanInvoice, PayoutInvoice
+from billy.models.payouts import Payout
+
 
 class Customer(Base):
     __tablename__ = 'customers'
@@ -27,12 +30,6 @@ class Customer(Base):
     __table_args__ = (UniqueConstraint('customer_id', 'marketplace', name='customerid_marketplace'),
     )
 
-
-    def __init__(self, id, marketplace):
-        self.customer_id = id
-        self.marketplace = marketplace
-
-
     @classmethod
     def create_customer(cls, customer_id, marketplace):
         """
@@ -43,11 +40,11 @@ class Customer(Base):
         :return: Customer Object if success or raises error if not
         :raise AlreadyExistsError: if customer already exists
         """
-        exists = cls.query.filter(
-            and_(cls.customer_id == customer_id,
-                 cls.marketplace == marketplace)).first()
+        exists = cls.query.filter(cls.customer_id == customer_id,
+                 cls.marketplace == marketplace).first()
         if not exists:
-            new_customer = Customer(customer_id, marketplace)
+            new_customer = cls(cls.customer_id == customer_id,
+                               cls.marketplace == marketplace)
             cls.session.add(new_customer)
             cls.session.commit()
             return new_customer

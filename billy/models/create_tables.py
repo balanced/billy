@@ -1,12 +1,7 @@
 import sys
 from billy.settings import DB_ENGINE
 from billy.models.base import Base
-from billy.coupons.models import Coupon
-from billy.plans.models import Plan
-from billy.customer.models import Customer
 from billy.invoices.models import PlanInvoice, PayoutInvoice
-from billy.payout.models import Payout
-from billy.auditevents.models import AuditEvents
 
 
 def delete_and_replace_tables():

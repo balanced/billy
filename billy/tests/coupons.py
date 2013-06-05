@@ -1,8 +1,10 @@
+from datetime import datetime, timedelta
+
+from pytz import UTC
+
 from tests import BalancedTransactionalTestCase
 from billy.errors import NotFoundError, AlreadyExistsError
-from pytz import UTC
-from datetime import datetime, timedelta
-from billy.coupons.models import Coupon
+from plans.coupons import Coupon
 
 
 class TestCoupons(BalancedTransactionalTestCase):

@@ -1,14 +1,13 @@
-from billy.models.base import Base, JSONDict
+from datetime import datetime
 from sqlalchemy import Column, String, Integer, Boolean, DateTime
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import relationship
 from pytz import UTC
-from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from billy.errors import BadIntervalError
-from billy.customer.models import Customer
-from billy.errors import NotFoundError, AlreadyExistsError
 
+from billy.models.base import Base, JSONDict
+from billy.models.customers import Customer
+from billy.errors import NotFoundError, AlreadyExistsError
 
 
 class Payout(Base):

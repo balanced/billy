@@ -1,13 +1,13 @@
-from billy.models.base import Base, Session
+from billy.models.base import Base
 from sqlalchemy import Column, String, DateTime
 from pytz import UTC
 from datetime import datetime
 from sqlalchemy.orm import mapper
 from sqlalchemy import event
-from utils import string_attr
+from utils.auditevents import string_attr
 
 
-class AuditEvents(Base):
+class AuditEvent(Base):
     __tablename__ = 'auditevents'
 
     event_id = Column(String, primary_key=True)
@@ -24,9 +24,9 @@ class AuditEvents(Base):
                                      default=datetime.now(UTC))
 
 
-    @staticmethod
-    def process_listener(entity, event_type):
-        new_audit = AuditEvents()
+    @classmethod
+    def process_listener(cls, entity, event_type):
+        new_audit = cls()
         new_audit.sql_event = event_type
         new_audit.coupon_id = string_attr(entity, 'coupon_id')
         new_audit.invoice_id = string_attr(entity, 'invoice_id')
@@ -35,27 +35,28 @@ class AuditEvents(Base):
         new_audit.marketplace_id = string_attr(entity, 'marketplace_id')
         new_audit.customer_id = string_attr(entity, 'customer_id')
         new_audit.payout_id = string_attr(entity, 'payout_id')
+        #Todo add events everwhere...
         new_audit.event = string_attr(entity, 'event')
-        Session.add(new_audit)
-        Session.commit()
+        cls.session.add(new_audit)
+        cls.session.commit()
 
     @staticmethod
     def insert_listener(mapper, connection, target):
-        AuditEvents.process_listener(target, 'INSERT')
+        AuditEvent.process_listener(target, 'INSERT')
 
     @staticmethod
     def delete_listener(mapper, connection, target):
-        AuditEvents.process_listener(target, 'DELETE')
+        AuditEvent.process_listener(target, 'DELETE')
 
     @staticmethod
     def update_listener(mapper, connection, target):
-        AuditEvents.process_listener(target, 'UPDATE')
+        AuditEvent.process_listener(target, 'UPDATE')
 
 
 #initite listeners
-event.listen(mapper, 'after_delete', AuditEvents.delete_listener)
-event.listen(mapper, 'after_insert', AuditEvents.insert_listener)
-event.listen(mapper, 'after_update', AuditEvents.update_listener)
+event.listen(mapper, 'after_delete', AuditEvent.delete_listener)
+event.listen(mapper, 'after_insert', AuditEvent.insert_listener)
+event.listen(mapper, 'after_update', AuditEvent.update_listener)
 
 
 

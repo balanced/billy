@@ -1,13 +1,15 @@
 from unittest import TestCase
-from billy.plans.utils import Intervals
+from datetime import datetime, timedelta
+
+from dateutil.relativedelta import relativedelta
+from pytz import UTC
+
+from utils.plans import Intervals
 from billy.payout.utils import create_payout, list_payouts, update_payout, \
     retrieve_payout, delete_payout
 from billy.errors import NotFoundError, BadIntervalError, AlreadyExistsError
-from dateutil.relativedelta import relativedelta
-from datetime import datetime, timedelta
-from pytz import UTC
 from billy.settings import query_tool
-from billy.payout.models import Payout
+from plans.payouts import Payout
 
 
 class TestPayouts(TestCase):

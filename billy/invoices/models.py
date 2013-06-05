@@ -1,7 +1,7 @@
 from billy.models.base import Base
-from sqlalchemy import Column, String, Integer, DateTime
-from sqlalchemy.schema import ForeignKey
-
+from billy.errors import NotFoundError
+from sqlalchemy import Column, String, Integer, DateTime, Boolean
+from sqlalchemy.schema import ForeignKey, UniqueConstraint
 from pytz import UTC
 from datetime import datetime
 
@@ -24,23 +24,60 @@ class PlanInvoice(Base):
     amount_after_coupon_cents = Column(Integer)
     amount_paid_cents = Column(Integer)
     remaining_balance_cents = Column(Integer)
+    quantity = Column(Integer)
+    charge_at_period_end = Column(Boolean)
+    active = Column(Boolean, default=True)
 
 
-    def __init__(self, customer_id, marketplace, relevant_plan, relevant_coupon,
+    __table_args__ = (UniqueConstraint('customer_id', 'marketplace',
+                                       'relevant_plan',
+                      name='plan_invoice_unique'),
+    )
+
+    @classmethod
+    def retrieve_invoice(cls, customer_id, marketplace, relevant_plan = None,
+                         active_only = False):
+        query =cls.query.filter(cls.customer_id == customer_id,
+                         cls.marketplace == marketplace)
+        if relevant_plan:
+            query.filter(cls.relevant_plan == relevant_plan)
+        if active_only:
+            query.filter(cls.active == True)
+        exists = query.first()
+        if not exists:
+            raise NotFoundError('The invoice was not found. Check params.')
+        return exists
+
+    @classmethod
+    def create_invoice(cls, customer_id, marketplace, relevant_plan,
+                 relevant_coupon,
                  start_dt, end_dt, due_dt,
                  amount_base_cents, amount_after_coupon_cents,
-                 amount_paid_cents, remaining_balance_cents ):
-        self.customer_id = customer_id
-        self.marketplace = marketplace
-        self.relevant_plan = relevant_plan
-        self.relevant_coupon = relevant_coupon
-        self.start_dt = start_dt
-        self.due_dt = due_dt
-        self.end_dt = end_dt
-        self.amount_base_cents = amount_base_cents
-        self.amount_after_coupon_cents = amount_after_coupon_cents
-        self.amount_paid_cents = amount_paid_cents
-        self.remaining_balance_cents = remaining_balance_cents
+                 amount_paid_cents, remaining_balance_cents, quantity,
+                 charge_at_period_end ):
+        new_invoice = PlanInvoice(
+            customer_id = customer_id,
+            marketplace = marketplace,
+            relevant_plan = relevant_plan,
+            relevant_coupon = relevant_coupon,
+            start_dt = start_dt,
+            end_dt = end_dt,
+            due_dt = due_dt,
+            amount_base_cents = amount_base_cents,
+            amount_after_coupon_cents = amount_after_coupon_cents,
+            amount_paid_cents = amount_paid_cents,
+            remaining_balance_cents = remaining_balance_cents,
+            quantity = quantity,
+            charge_at_period_end = charge_at_period_end
+
+
+            )
+        cls.session.add(new_invoice)
+
+
+    def list_invoices(self):
+        #tood
+        pass
 
 
 class PayoutInvoice(Base):

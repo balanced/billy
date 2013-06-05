@@ -1,1 +1,2 @@
 #Todo add event attribute to the various models
+#Todo Remove and_ from everywhere... shit just works

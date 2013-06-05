@@ -102,18 +102,17 @@ class Plan(Base):
         :param active_only: if true only returns active plans
         :raise NotFoundError:  if plan not found.
         """
+        query = cls.query.filter(and_(cls.plan_id == plan_id,
+                                       cls.marketplace == marketplace))
         if active_only:
-            and_filter = and_(cls.plan_id == plan_id,
-                              cls.marketplace == marketplace,
-                              cls.active == True)
-        else:
-            and_filter = and_(cls.plan_id == plan_id,
-                              cls.marketplace == marketplace)
-        exists = cls.query.filter(and_filter).first()
+            query.filter(cls.active == True)
+        exists = query.first()
         if not exists:
             raise NotFoundError('Active Plan not found. Check plan_id and marketplace')
         return exists
     #Todo model methods
+
+
     @classmethod
     def update_plan(cls, plan_id, marketplace, new_name):
         """
@@ -165,170 +164,4 @@ class Plan(Base):
         exists.deleted_at = datetime.now(UTC)
         cls.session.commit()
         return exists
-
-
-class PlanSubscription(Base):
-
-    __tablename__ = 'plan_sub'
-
-    sub_id = Column(String, primary_key=True)
-    marketplace = Column(String)
-    customer_id = Column(String, ForeignKey('customers.customer_id'))
-    plan_id = Column(String,  ForeignKey('plans.plan_id'))
-    created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
-    cycle_start = Column(DateTime(timezone=UTC))
-    charge_at_period_end = Column(Boolean)
-    active = Column(Boolean, default=True)
-    inactivated_on = Column(DateTime(timezone=UTC))
-    quantity = Column(Integer)
-
-
-    @classmethod
-    def retrieve_subscription(cls, customer_id, marketplace, plan_id,
-                              active_only = True):
-        if active_only:
-            and_param = and_(cls.customer_id == customer_id,
-                             cls.marketplace == marketplace,
-                             cls.plan_id == plan_id, cls.active == True)
-        else:
-            and_param = and_(cls.customer_id == customer_id,
-                             cls.marketplace == marketplace,
-                             cls.plan_id == plan_id)
-        exists = cls.query.filter(and_param).first()
-        if not exists:
-            raise NotFoundError("The plan you requested was not found.")
-        return exists
-
-    @classmethod
-    def change_subscription(cls, customer_id, marketplace, plan_id,
-                             quantity, charge_at_period_end=False):
-        """
-        Changes a customer's plan
-        :param customer_id: A unique id/uri for the customer
-        :param marketplace: a group/marketplace id/uri the user should be placed
-        :param plan_id: The plan id to assocaite customer with
-        :raise:
-        """
-        customer_obj = Customer.retrieve_customer(customer_id, marketplace)
-        plan_obj = Plan.retrieve_plan(plan_id, marketplace, active_only=True)
-        current_coupon = customer_obj.coupon
-        start_date = datetime.now(UTC)
-        due_on = datetime.now(UTC)
-        coupon_use_count = customer_obj.coupon_use.get(current_coupon
-                                                        .coupon_id, 0)
-        use_coupon = True if current_coupon.repeating == -1 or coupon_use_count \
-                             <= current_coupon.repeating else False
-        can_trial = True if customer_obj.plan_use.get(plan_obj.plan_id,
-                                              0) == 0 else False
-        end_date = start_date + plan_obj.to_relativedelta(plan_obj.plan_interval)
-        trial_interval = plan_obj.to_relativedelta(plan_obj.trial_interval)
-        if can_trial:
-            end_date += trial_interval
-            due_on += trial_interval
-        if quantity < 1:
-            raise ValueError("Quanity must be greater than 1")
-        amount_base = plan_obj.price_cents * Decimal(quantity)
-        amount_after_coupon = amount_base
-        amount_paid = 0
-        balance = amount_after_coupon - amount_paid
-        coupon_id = current_coupon.coupon_id if current_coupon else None
-        if use_coupon and current_coupon:
-            dollars_off = current_coupon.price_off_cents
-            percent_off = current_coupon.percent_off_int
-            amount_after_coupon -= dollars_off #BOTH CENTS, safe
-            amount_after_coupon -= int(
-                amount_after_coupon * Decimal(percent_off) / Decimal(100))
-
-        PlanInvoice.create_invoice(customer_id, marketplace, plan_id, coupon_id,
-                                    start_date, end_date, due_on, amount_base,
-                                    amount_after_coupon, amount_paid, balance)
-        new_sub = PlanSubscription()
-        new_sub.plan_id = plan_id
-        new_sub.marketplace = marketplace
-        new_sub.customer_id = customer_id
-        new_sub.cycle_start = start_date
-        new_sub.charge_at_period_end = charge_at_period_end
-        cls.session.add(new_sub)
-        customer_obj.coupon_use[coupon_id] += 1
-        cls.prorate_last_invoice(customer_obj.customer_id, marketplace, plan_id)
-        #Todo close old customer object
-        try:
-            sub_obj = cls.retrieve_subscription(customer_id, marketplace,
-                                                sub, active_only=True)
-            sub_obj.active = False
-            sub_obj.inactivated_on = datetime.now(UTC)
-        except NotFoundError:
-            pass
-        cls.session.commit()
-        #Todo send off task for due_on and sum the invoices that the balance
-
-        return customer_obj
-
-
-
-    def cancel_subscription(self):
-        """
-        Cancels the customers subscription. You can either do it immediately
-        or at the end of the period.
-         in (matches balanced payments marketplaces)
-        :param at_period_end: Whether to cancel now or wait till the user
-        :returns: New customer object.
-        """
-        self.prorate_last_invoice(self.customer_id, self.marketplace)
-        self.current_plan = None
-        self.plan = None
-        self.session.commit()
-        return self
-
-    @classmethod
-    def cancel_customer_plan(cls, customer_id, marketplace,
-                             cancel_at_period_end=True):
-        """
-        Cancels a customers subscription. You can either do it immediately or
-        at the end of the period.
-        :param customer_id: A unique id/uri for the customer
-        :param marketplace: a group/marketplace id/uri the user should be placed
-        in (matches balanced payments marketplaces)
-        :param cancel_at_period_end: Whether to cancel now or wait till the user
-        :returns: New customer object.
-        """
-        sub_obj = cls.retrieve_customer(customer_id, marketplace)
-        if cancel_at_period_end:
-            #Todo schedule task that removes the plan at the end of the period,
-            # make sure happens before renewal
-            pass
-        else:
-            return cls.cancel_plan(cancel_at_period_end)
-
-    @classmethod
-    def prorate_last_invoice(cls, customer_id, marketplace, plan_id):
-        """
-        Prorates the last invoice when changing a users plan. Only use when
-        changing a users plan.
-        :param customer_id: A unique id/uri for the customer
-        :param marketplace: a group/marketplace id/uri the user should be placed
-        in (matches balanced payments marketplaces)
-        """
-        right_now = datetime.now(UTC)
-        last_invoice = PlanInvoice.query.filter(
-            and_(PlanInvoice.customer_id == customer_id,
-                 PlanInvoice.marketplace == marketplace,
-                 PlanInvoice.end_dt > right_now)).first()
-        if last_invoice:
-            time_total = Decimal(
-                (last_invoice.end_dt - last_invoice.due_dt).total_seconds())
-            time_used = Decimal((last_invoice.start_dt - right_now).total_seconds())
-            percent_used = time_used / time_total
-            new_base_amount = last_invoice.amount_base_cents * percent_used
-            new_coupon_amount = last_invoice.amount_after_coupon_cents * \
-                                percent_used
-            new_balance = last_invoice.amount_after_coupon_cents - last_invoice \
-                .amount_paid_cents
-            last_invoice.amount_base_cents = new_base_amount
-            last_invoice.amount_after_coupon_cents = new_coupon_amount
-            last_invoice.remaining_balance_cents = new_balance
-            last_invoice.end_dt = right_now - relativedelta(
-                seconds=30) #Extra safety for find query
-        cls.session.flush()
-
 

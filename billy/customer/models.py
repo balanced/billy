@@ -295,8 +295,6 @@ class Customer(Base):
                                      "that first to continue.")
         except:
             pass
-
-        now = datetime.now(UTC)
         first_charge = datetime.now(UTC)
         balance_to_keep_cents = payout_obj.balance_to_keep_cents
         if not first_now:
@@ -312,7 +310,7 @@ class Customer(Base):
 
     #Todo non static
     @classmethod
-    def cancel_customer_payout(cls, customer_id, marketplace,
+    def cancel_customer_payout(cls, customer_id, marketplace, payout_id,
                                cancel_scheduled=False):
         """
         Cancels a customer payout
@@ -326,14 +324,12 @@ class Customer(Base):
         """
         now = datetime.now(UTC)
         customer = cls.retrieve_customer(customer_id, marketplace)
+        current_payout_invoice = PayoutInvoice.retrieve_invoice(customer_id,
+                                                        marketplace,
+                                                        payout_id,
+                                                        active_only=True)
+        current_payout_invoice.active = False
         if cancel_scheduled:
-            PayoutInvoice.query.filter(PayoutInvoice.customer_id
-                                                    == customer_id,
-                                                    PayoutInvoice.marketplace
-                                                    == marketplace,
-                                                    PayoutInvoice.payout_date
-                                                    > now)
-
-        customer.current_payout = None
-        Customer.session.commit()
+            current_payout_invoice.completed = True
+        cls.session.commit()
         return customer

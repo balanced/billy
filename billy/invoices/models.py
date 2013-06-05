@@ -129,13 +129,15 @@ class PayoutInvoice(Base):
 
     @classmethod
     def retrieve_invoice(cls, customer_id, marketplace, relevant_payout = None,
-                        active_only = False):
+                        active_only = False, only_incomplete=False):
         query = cls.query.filter(cls.customer_id == customer_id,
                                  cls.marketplace == marketplace)
         if relevant_payout:
             query.filter(cls.relevant_payout == relevant_payout)
         if active_only:
             query.filter(cls.active == True)
+        if only_incomplete:
+            query.filter(cls.completed == False)
         return query.first()
 
 

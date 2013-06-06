@@ -8,11 +8,11 @@ from pytz import UTC
 from dateutil.relativedelta import relativedelta
 
 from billy.models.base import Base, JSONDict
-from billy.errors import AlreadyExistsError, NotFoundError, LimitReachedError
 from billy.models.coupons import Coupon
-from utils.plans import Intervals
 from billy.models.invoices import PlanInvoice, PayoutInvoice
 from billy.models.payouts import Payout
+from billy.errors import AlreadyExistsError, NotFoundError, LimitReachedError
+from utils.plans import Intervals
 
 
 class Customer(Base):

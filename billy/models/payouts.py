@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from sqlalchemy import Column, String, Integer, Boolean, DateTime
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import relationship

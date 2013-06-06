@@ -1,2 +1,7 @@
 #Todo add event attribute to the various models
 #Todo Remove and_ from everywhere... shit just works
+#Todo import structures as per:
+https://github.com/pnegahdar/billy/commit/e6965c7da4efadd84f613c78fe9c4bdf3efbc3ec#billy-customer-models-py-P12
+#Todo Pep8 everything
+#Todo remove inits throughout
+#Todo GUID instead of id, shorten the keyname too...

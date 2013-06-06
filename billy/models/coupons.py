@@ -1,59 +1,47 @@
 from datetime import datetime
 
-from sqlalchemy import and_
-from sqlalchemy import Column, String, Integer, Boolean, DateTime
+from sqlalchemy import ForeignKey
+from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import relationship
 from pytz import UTC
 
 from billy.models.base import Base
 from billy.models.customers import Customer
+from billy.utils.models import uuid_factory
 from billy.errors import NotFoundError, AlreadyExistsError
 
 
 class Coupon(Base):
     __tablename__ = 'coupons'
 
-    coupon_id = Column(String, primary_key=True)
-    name = Column(String)
-    marketplace = Column(String)
+    guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
+    external_id = Column(Unicode)
+    name = Column(Unicode)
+    group_id = Column(Unicode, ForeignKey('groups.id'))
     price_off_cents = Column(Integer)
     percent_off_int = Column(Integer)
     expire = Column(DateTime(timezone=UTC))
-    times_used = Column(Integer)
-    max_redeem = Column(Integer) #Count different users who can redeeem it
-    repeating = Column(
-        Integer) # -1 = Forever, int = Number of invoices  per user
+    max_redeem = Column(Integer)
+    repeating = Column(Integer)
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     deleted_at = Column(DateTime(timezone=UTC))
     count_redeemed = Column(Integer)
     customers = relationship(Customer, backref='coupon')
     __table_args__ = (
-        UniqueConstraint('coupon_id', 'marketplace',
-                         name='couponid_marketplace'),
+        UniqueConstraint('external_id', 'group_Id',
+                         name='couponid_group'),
     )
 
 
-    def __init__(self, id, marketplace, name, percent_off_cents,
-                 percent_off_int, max_redeem, repeating, expire=None):
-        self.coupon_id = id
-        self.marketplace = marketplace
-        self.name = name
-        self.price_off_cents = percent_off_cents
-        self.percent_off_int = percent_off_int
-        self.expire = expire
-        self.times_used = 0
-        self.max_redeem = max_redeem
-        self.repeating = repeating
-
-    @staticmethod
-    def create_coupon(coupon_id, marketplace, name, price_off_cents,
+    @classmethod
+    def create_coupon(cls, external_id, group_id, name, price_off_cents,
                       percent_off_int, max_redeem, repeating, expire=None):
         """
         Creates a coupon that can be later applied to a customer.
-        :param coupon_id: A unique id for the coupon
-        :param marketplace: The marketplace/group uri/id this coupon is
+        :param external_id: A unique id for the coupon
+        :param group_id: The group uri/id this coupon is
         associated with
         :param name: A display name for the coupon
         :param price_off_cents: In CENTS the $ amount off on each invoice. $1
@@ -69,40 +57,45 @@ class Coupon(Base):
         :raise AlreadyExistsError: If the coupon already exists
         """
 
-        exists = Coupon.query.filter(and_(Coupon.coupon_id == coupon_id,
-                                          Coupon.marketplace == marketplace))\
-            .first()
+        exists = cls.query.filter(Coupon.external_id == external_id,
+                                  cls.group_id == group_id).first()
         if not exists:
-            new_coupon = Coupon(coupon_id, marketplace, name, price_off_cents,
-                                percent_off_int, max_redeem, repeating, expire)
+            new_coupon = Coupon(
+                external_id=external_id,
+                group_id=group_id,
+                name=name,
+                price_off_cents=price_off_cents,
+                percent_off_int=percent_off_int,
+                max_redeem=max_redeem,
+                repeating=repeating,
+                expire=expire)
             Coupon.session.add(new_coupon)
             Coupon.session.commit()
             return new_coupon
         else:
             raise AlreadyExistsError(
-                'Coupon already exists. Check coupon_id and marketplace')
+                'Coupon already exists. Check external_id and group_id')
 
-    @staticmethod
-    def retrieve_coupon(coupon_id, marketplace, active_only=False):
+    @classmethod
+    def retrieve_coupon(cls, external_id, group_id, active_only=False):
         """
         This method retrieves a single coupon.
-        :param coupon_id: the unique coupon_id
-        :param marketplace: the coupon marketplace/group
+        :param external_id: the unique external_id
+        :param group_id: the group/marketplace to associate with
         :param active_only: only returns active coupons
         :returns: Single coupon
         :raise NotFoundError:  if coupon not found.
         """
+        query = cls.filter(cls.external_id == external_id,
+                           cls.group_id == group_id)
+
         if active_only:
-            and_filter = and_(Coupon.coupon_id == coupon_id,
-                              Coupon.marketplace == marketplace,
-                              Coupon.active == True)
-        else:
-            and_filter = and_(Coupon.coupon_id == coupon_id,
-                              Coupon.marketplace == marketplace)
-        exists = Coupon.query.filter(and_filter).first()
+            query.filter(cls.active == True)
+
+        exists = query.first()
         if not exists:
             raise NotFoundError(
-                'Active Coupon not found. Check coupon_id and marketplace')
+                'Active Coupon not found. Check external_id and group_id')
         return exists
 
     def update(self, new_name=None,
@@ -130,21 +123,19 @@ class Coupon(Base):
         self.updated_at = datetime.now(UTC)
         self.session.commit()
 
-    @staticmethod
-    def update_coupon(coupon_id, marketplace, new_name=None,
+    @classmethod
+    def update_coupon(cls, external_id, group_id, new_name=None,
                       new_max_redeem=None, new_expire=None, new_repeating=None):
         """
         Static version of update
         """
-        #Todo update active if max_redeem below/above times_used
-        exists = Coupon.query.filter(and_(Coupon.coupon_id == coupon_id,
-                                          Coupon.marketplace == marketplace)) \
-            .first()
+        exists = cls.query.filter(cls.external_id == external_id,
+                                  cls.group_id == group_id).first()
         if not exists:
             raise NotFoundError(
                 'Coupon not found. Use different id/marketplace')
-        return exists.update(new_name=None, new_max_redeem=None,
-                             new_expire=None, new_repeating=None)
+        return exists.update(new_name=new_name, new_max_redeem=new_max_redeem,
+                             new_expire=new_expire, new_repeating=new_repeating)
 
     def delete(self):
         """
@@ -159,33 +150,33 @@ class Coupon(Base):
         self.session.commit()
         return self
 
-    @staticmethod
-    def delete_coupon(cls, coupon_id, marketplace):
+    @classmethod
+    def delete_coupon(cls, external_id, group_id):
         """
         Static version of delete method.
-        :param coupon_id: the unique coupon_id
-        :param marketplace: the plans marketplace/group
+        :param external_id: the unique external_id
+        :param group_id: the plans group/marketplace
         :returns: the deleted Coupon object
         :raise NotFoundError:  if coupon not found.
         """
-        exists = cls.query.filter(and_(Coupon.coupon_id == coupon_id,
-                                       Coupon.marketplace == marketplace)) \
-            .first()
+        exists = cls.query.filter(cls.external_id == external_id,
+                                  cls.group_id == group_id).first()
         if not exists:
             raise NotFoundError('Coupon not found. Try a different id')
         return exists.delete()
 
 
     @classmethod
-    def list_coupons(cls, marketplace):
-        #Todo active only
+    def list_coupons(cls, group_id, active_only=False):
         """
         Returns a list of coupons currently in the database
-        :param marketplace: The group/marketplace id/uri
+        :param group_id: The group/marketplace id/uri
         :returns: A list of Coupon objects
         """
-        results = cls.query.filter(Coupon.marketplace == marketplace).all()
-        return results
+        query = cls.query.filter(cls.group_id == group_id)
+        if active_only:
+            query.filter(cls.active == True)
+        return query.all()
 
 
     @property
@@ -194,4 +185,4 @@ class Coupon(Base):
         The number of unique customers that are using the coupon
         """
         return Customer.query.filter(Customer.current_coupon == self
-        .coupon_id).count()
+        .external_id).count()

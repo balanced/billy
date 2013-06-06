@@ -1,4 +1,4 @@
-from auditevents import AuditEvent
+from audit_events import AuditEvent
 from coupons import Coupon
 from customers import Customer
 from invoices import PlanInvoice, PayoutInvoice

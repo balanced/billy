@@ -17,7 +17,7 @@ class Plan(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PL'))
     external_id = Column(Unicode)
-    group_id = Column(Unicode, ForeignKey('groups.id'))
+    group_id = Column(Unicode, ForeignKey('groups.guid'))
     name = Column(Unicode)
     price_cents = Column(Integer)
     active = Column(Boolean, default=True)
@@ -154,7 +154,7 @@ class Plan(Base):
         if not exists:
             raise NotFoundError('Plan not found. Use different id')
         exists.active = False
-        exists.updataed_at = datetime.now(UTC)
+        exists.updated_at = datetime.now(UTC)
         exists.deleted_at = datetime.now(UTC)
         cls.session.commit()
         return exists

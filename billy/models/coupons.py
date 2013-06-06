@@ -18,7 +18,7 @@ class Coupon(Base):
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     external_id = Column(Unicode)
     name = Column(Unicode)
-    group_id = Column(Unicode, ForeignKey('groups.id'))
+    group_id = Column(Unicode, ForeignKey('groups.guid'))
     price_off_cents = Column(Integer)
     percent_off_int = Column(Integer)
     expire_at = Column(DateTime(timezone=UTC))

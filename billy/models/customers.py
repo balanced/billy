@@ -20,7 +20,7 @@ class Customer(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     external_id = Column(Unicode, primary_key=True)
-    group_id = Column(Unicode, ForeignKey('groups.id'))
+    group_id = Column(Unicode, ForeignKey('groups.guid'))
     current_coupon = Column(Unicode, ForeignKey('coupons.coupon_id'))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
@@ -365,22 +365,30 @@ class Customer(Base):
         return can
 
     @property
-    def current_debt(self):
-        """
-        Returns the total outstanding debt for the customer
-        """
+    def plan_invoices_due(self):
         now = datetime.now(UTC)
         results = PlanInvoice.filter(
             PlanInvoice.customer_id == self.external_id,
             PlanInvoice.group_id == self.group_id,
             PlanInvoice.remaining_balance_cents > 0,
             PlanInvoice.due_dt < now,
-        ).all()
+            ).all()
+        return results
+
+    def sum_plan_debt(self, plan_invoices_due):
         total_overdue = 0
-        for invoice in results:
+        for invoice in plan_invoices_due:
             rem_bal = invoice.remaining_balance_cents
             total_overdue += rem_bal if rem_bal else 0
         return total_overdue
+
+
+    @property
+    def current_debt(self):
+        """
+        Returns the total outstanding debt for the customer
+        """
+        return self.sum_plan_debt(self.plan_invoices_due)
 
     def is_debtor(self, limit_cents):
         """
@@ -394,3 +402,10 @@ class Customer(Base):
             return True
         else:
             return False
+
+
+    def clear_plan_debt(self):
+        plan_invoices_due = self.plan_invoices_due
+        sum_debt = self.sum_plan_debt(plan_invoices_due)
+        #todo
+        pass

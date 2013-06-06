@@ -13,7 +13,7 @@ class AuditEvent(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     customer_id = Column(String)
-    group_id = Column(String, ForeignKey('groups.id'))
+    group_id = Column(String, ForeignKey('groups.guid'))
     model_name = Column(String)
     plan_id = Column(String)
     payout_id = Column(String)

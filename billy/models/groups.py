@@ -9,7 +9,7 @@ from models import *
 class Group(Base):
     __tablename__ = 'groups'
 
-    uid = Column(Unicode, primary_key=True)
+    guid = Column(Unicode, primary_key=True)
     coupons = relationship(AuditEvent.__name__, backref='group')
     customers = relationship(Customer.__name__, backref='group')
     plan_invoices = relationship(PlanInvoice.__name__, backref='group')

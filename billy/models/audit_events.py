@@ -2,7 +2,7 @@ from pytz import UTC
 from datetime import datetime
 from sqlalchemy.orm import mapper
 from sqlalchemy import event, ForeignKey
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String, DateTime, Unicode
 
 from billy.models.base import Base
 from utils.audit_events import string_attr
@@ -11,7 +11,7 @@ from utils.audit_events import string_attr
 class AuditEvent(Base):
     __tablename__ = 'auditevents'
 
-    event_id = Column(String, primary_key=True)
+    guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     customer_id = Column(String)
     group_id = Column(String, ForeignKey('groups.id'))
     model_name = Column(String)

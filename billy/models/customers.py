@@ -330,3 +330,6 @@ class Customer(Base):
             current_payout_invoice.completed = True
         cls.session.commit()
         return customer
+
+
+    #Todo get user's active subscriptions

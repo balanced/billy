@@ -21,13 +21,12 @@ class Coupon(Base):
     group_id = Column(Unicode, ForeignKey('groups.id'))
     price_off_cents = Column(Integer)
     percent_off_int = Column(Integer)
-    expire = Column(DateTime(timezone=UTC))
+    expire_at = Column(DateTime(timezone=UTC))
     max_redeem = Column(Integer)
     repeating = Column(Integer)
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     deleted_at = Column(DateTime(timezone=UTC))
-    count_redeemed = Column(Integer)
     customers = relationship(Customer, backref='coupon')
     __table_args__ = (
         UniqueConstraint('external_id', 'group_Id',
@@ -37,7 +36,7 @@ class Coupon(Base):
 
     @classmethod
     def create_coupon(cls, external_id, group_id, name, price_off_cents,
-                      percent_off_int, max_redeem, repeating, expire=None):
+                      percent_off_int, max_redeem, repeating, expire_at=None):
         """
         Creates a coupon that can be later applied to a customer.
         :param external_id: A unique id for the coupon
@@ -48,7 +47,7 @@ class Coupon(Base):
         .00 == 100
         :param percent_off_int: The percent to reduce off each invoice. 25%
         == 25
-        :param expire: Datetime in which after the coupon will no longer work
+        :param expire_at: Datetime in which after the coupon will no longer work
         :param max_redeem: The number of unique users that can redeem this
         coupon, -1 for unlimited
         :param repeating: The maximum number of invoices it applies to. -1
@@ -57,10 +56,10 @@ class Coupon(Base):
         :raise AlreadyExistsError: If the coupon already exists
         """
 
-        exists = cls.query.filter(Coupon.external_id == external_id,
+        exists = cls.query.filter(cls.external_id == external_id,
                                   cls.group_id == group_id).first()
         if not exists:
-            new_coupon = Coupon(
+            new_coupon = cls(
                 external_id=external_id,
                 group_id=group_id,
                 name=name,
@@ -68,9 +67,9 @@ class Coupon(Base):
                 percent_off_int=percent_off_int,
                 max_redeem=max_redeem,
                 repeating=repeating,
-                expire=expire)
-            Coupon.session.add(new_coupon)
-            Coupon.session.commit()
+                expire_at=expire_at)
+            cls.session.add(new_coupon)
+            cls.session.commit()
             return new_coupon
         else:
             raise AlreadyExistsError(
@@ -99,13 +98,13 @@ class Coupon(Base):
         return exists
 
     def update(self, new_name=None,
-               new_max_redeem=None, new_expire=None, new_repeating=None):
+               new_max_redeem=None, new_expire_at=None, new_repeating=None):
         """
         Updates the coupon with new information provided.
         :param new_name: A display name for the coupon
         :param new_max_redeem: The number of unique users that can redeem
         this coupon
-        :param new_expire: Datetime in which after the coupon will no longer
+        :param new_expire_at: Datetime in which after the coupon will no longer
         work
         :param new_repeating: The maximum number of invoices it applies to.
         -1 for all/forever
@@ -116,8 +115,8 @@ class Coupon(Base):
             self.name = new_name
         if new_max_redeem:
             self.max_redeem = new_max_redeem
-        if new_expire:
-            self.expire = new_expire
+        if new_expire_at:
+            self.expire_at = new_expire_at
         if new_repeating:
             self.repeating = new_repeating
         self.updated_at = datetime.now(UTC)
@@ -125,7 +124,8 @@ class Coupon(Base):
 
     @classmethod
     def update_coupon(cls, external_id, group_id, new_name=None,
-                      new_max_redeem=None, new_expire=None, new_repeating=None):
+                      new_max_redeem=None, new_expire_at=None,
+                      new_repeating=None):
         """
         Static version of update
         """
@@ -135,7 +135,7 @@ class Coupon(Base):
             raise NotFoundError(
                 'Coupon not found. Use different id/marketplace')
         return exists.update(new_name=new_name, new_max_redeem=new_max_redeem,
-                             new_expire=new_expire, new_repeating=new_repeating)
+                             new_expire_at=new_expire_at, new_repeating=new_repeating)
 
     def delete(self):
         """

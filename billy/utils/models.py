@@ -39,3 +39,11 @@ def uuid_factory(prefix=None):
         return the_uuid
 
     return generate_uuid
+
+
+
+class STATUS(object):
+
+    PENDING = 'PENDING'
+    COMPLETE = 'COMPLETE'
+    ERROR = 'ERROR'

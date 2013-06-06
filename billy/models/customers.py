@@ -405,7 +405,14 @@ class Customer(Base):
 
 
     def clear_plan_debt(self):
+        transaction = Transaction.create(self.due_invoices)
+        transaction.execute()
         plan_invoices_due = self.plan_invoices_due
         sum_debt = self.sum_plan_debt(plan_invoices_due)
+        trans_id = #MAKE TRANSCATION
+        for each in plan_invoices_due:
+            each.cleared_by = trans_id
+
+
         #todo
         pass

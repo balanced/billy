@@ -5,6 +5,7 @@ from pytz import UTC
 
 from billy.models.base import Base
 from billy.utils.models import uuid_factory
+from billy.settings import TRANSACTION_PROVIDER_CLASS
 
 
 class Transaction(Base):
@@ -13,17 +14,21 @@ class Transaction(Base):
     customer_id = Column(Unicode, ForeignKey('customers.external_id'))
     created_at = Column(DateTime(timezone=UTC))
     amount_cents = Column(Integer)
+    status = Column(Integer)
+
+    charge_callable = NotImplementedError
 
     @classmethod
-    def create(cls, external_id, group_id, customer_id, amount_cents):
-        new_transaciton = cls(
+    def create(cls, group_id, customer_id, amount_cents):
+        new_transaction = cls(
             external_id=external_id,
             group_id=group_id,
             customer_id=customer_id,
             amount_cents=amount_cents,
         )
-        cls.session.add(new_transaciton)
-        cls.session.commit()
+        cls.session.add(new_transaction)
+        cls.session.flush()
+
 
 
     @classmethod
@@ -39,10 +44,14 @@ class Transaction(Base):
 class PaymentTransaction(Transaction):
     __tablename__ = 'payout_transactions'
 
+    charge_callable = TRANSACTION_PROVIDER_CLASS.make_payout
+
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PAT'))
 
 
 class PayoutTransaction(Transaction):
     __tablename__ = 'payout_transactions'
+
+    charge_callabe = TRANSACTION_PROVIDER_CLASS.create_charge
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POT'))

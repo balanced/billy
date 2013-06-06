@@ -11,6 +11,11 @@ class Group(Base):
 
     uid = Column(Unicode, primary_key=True)
     coupons = relationship(AuditEvent.__name__, backref='group')
+    customers = relationship(Customer.__name__, backref='group')
+    plan_invoices = relationship(PlanInvoice.__name__, backref='group')
+    payout_invoices = relationship(PayoutInvoice.__name__, backref='group')
+
+
 
 
     @classmethod

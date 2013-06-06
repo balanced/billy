@@ -12,7 +12,6 @@ from billy.models.plans import Plan
 from billy.models.invoices import PlanInvoice, PayoutInvoice
 from billy.models.payouts import Payout
 from billy.errors import AlreadyExistsError, NotFoundError, LimitReachedError
-from billy.utils.plans import Intervals
 from billy.utils.models import uuid_factory
 
 

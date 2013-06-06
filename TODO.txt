@@ -6,3 +6,4 @@ https://github.com/pnegahdar/billy/commit/e6965c7da4efadd84f613c78fe9c4bdf3efbc3
 #Todo remove inits throughout
 #Todo GUID instead of id, shorten the keyname too...
 #Todo find strategy to convert commits to flush
+#Todo Convert try/except blocks to constraints

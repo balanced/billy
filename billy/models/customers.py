@@ -1,84 +1,85 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, Unicode, DateTime
 from sqlalchemy.schema import UniqueConstraint, ForeignKey
-from sqlalchemy import and_
 from pytz import UTC
 from dateutil.relativedelta import relativedelta
 
 from billy.models.base import Base, JSONDict
 from billy.models.coupons import Coupon
+from billy.models.plans import Plan
 from billy.models.invoices import PlanInvoice, PayoutInvoice
 from billy.models.payouts import Payout
 from billy.errors import AlreadyExistsError, NotFoundError, LimitReachedError
-from utils.plans import Intervals
+from billy.utils.plans import Intervals
+from billy.utils.models import uuid_factory
 
 
 class Customer(Base):
     __tablename__ = 'customers'
 
-    customer_id = Column(String, primary_key=True)
-    marketplace = Column(String)
-    current_coupon = Column(String, ForeignKey('coupons.coupon_id'))
+    guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
+    external_id = Column(Unicode, primary_key=True)
+    group_id = Column(Unicode, ForeignKey('groups.id'))
+    current_coupon = Column(Unicode, ForeignKey('coupons.coupon_id'))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     coupon_use = Column(JSONDict, default={})
-    #Todo remove this:
-    plan_use = Column(JSONDict, default={})
 
-    __table_args__ = (UniqueConstraint('customer_id', 'marketplace', name='customerid_marketplace'),
+    __table_args__ = (UniqueConstraint('external_id', 'group_id',
+                                       name='customerid_group'),
     )
 
     @classmethod
-    def create_customer(cls, customer_id, marketplace):
+    def create_customer(cls, external_id, group_id):
         """
-        Creates a customer for the marketplace.
-        :param customer_id: A unique id/uri for the customer
-        :param marketplace: a group/marketplace id/uri the user should be placed
-        in (matches balanced payments marketplaces)
+        Creates a customer for the group_id.
+        :param external_id: A unique id/uri for the customer
+        :param group_id: a group/group_id id/uri the user should be placed
+        in (matches balanced payments group_id)
         :return: Customer Object if success or raises error if not
         :raise AlreadyExistsError: if customer already exists
         """
-        exists = cls.query.filter(cls.customer_id == customer_id,
-                 cls.marketplace == marketplace).first()
+        exists = cls.query.filter(cls.external_id == external_id,
+                                  cls.group_id == group_id).first()
         if not exists:
-            new_customer = cls(cls.customer_id == customer_id,
-                               cls.marketplace == marketplace)
+            new_customer = cls(cls.external_id == external_id,
+                               cls.group_id == group_id)
             cls.session.add(new_customer)
             cls.session.commit()
             return new_customer
         else:
             raise AlreadyExistsError(
-                'Customer already exists. Check customer_id and marketplace')
+                'Customer already exists. Check external_id and group_id')
 
     @classmethod
-    def retrieve_customer(cls, customer_id, marketplace):
+    def retrieve_customer(cls, external_id, group_id):
         """
         This method retrieves a single plan.
-        :param customer_id: A unique id/uri for the customer
-        :param marketplace: a group/marketplace id/uri the user should be placed
-        in (matches balanced payments marketplaces)
+        :param external_id: A unique id/uri for the customer
+        :param group_id: a group id/uri the user should be placed
+        in (matches balanced payments group_id)
         :return: Customer Object if success or raises error if not
         :raise NotFoundError:  if plan not found.
         """
-        #TODO: Retrieve FKeys with it
         exists = cls.query.filter(
-            and_(cls.customer_id == customer_id,
-                 cls.marketplace == marketplace)).first()
+            cls.external_id == external_id,
+            cls.group_id == group_id).first()
         if not exists:
-            raise NotFoundError('Customer not found. Check plan_id and marketplace')
+            raise NotFoundError(
+                'Customer not found. Check plan_id and group_id')
         return exists
 
     @classmethod
-    def list_customers(cls, marketplace):
+    def list_customers(cls, group_id):
         """
         Returns a list of customers currently in the database
-        :param marketplace: The group/marketplace id/uri
+        :param group_id: The group id/uri
         :returns: A list of Customer objects
         """
         results = cls.query.filter(
-            cls.marketplace == marketplace).all()
+            cls.group_id == group_id).all()
         return results
 
     def apply_coupon(self, coupon_id):
@@ -88,8 +89,9 @@ class Customer(Base):
         :return: Self
         :raise: LimitReachedError if coupon max redeemed.
         """
-        coupon_obj = Coupon.retrieve_coupon(coupon_id, self.marketplace,
-                                     active_only=True) #Raises NotFoundError if
+        coupon_obj = Coupon.retrieve_coupon(coupon_id, self.group_id,
+                                            active_only=True) #Raises
+        # NotFoundError if
         # not found
         if coupon_obj.max_redeem != -1 and coupon_obj.count_redeemed > \
                 coupon_obj.max_redeem:
@@ -100,18 +102,18 @@ class Customer(Base):
         return self
 
     @classmethod
-    def apply_coupon_to_customer(cls, customer_id, marketplace, coupon_id):
+    def apply_coupon_to_customer(cls, external_id, group_id, coupon_id):
         """
         Static version of apply_coupon
-        :param customer_id: A unique id/uri for the customer
-        :param marketplace: a group/marketplace id/uri the user should be placed
-        in (matches balanced payments marketplaces)
+        :param external_id: A unique id/uri for the customer
+        :param group_id: a group id/uri the user should be placed
+        in (matches balanced payments groups)
         :return: The new Customer object
         :raise NotFoundError: If customer not found
         """
         exists = cls.query.filter(
-            and_(cls.customer_id == customer_id,
-                 cls.marketplace == marketplace)).first()
+            cls.external_id == external_id,
+            cls.group_id == group_id).first()
         if not exists:
             raise NotFoundError('Customer not found. Try different id')
         return exists.apply_coupon(coupon_id)
@@ -129,33 +131,33 @@ class Customer(Base):
         return self
 
     @classmethod
-    def remove_customer_coupon(cls, customer_id, marketplace):
+    def remove_customer_coupon(cls, external_id, group_id):
         """
         Removes coupon associated with customer
-        :param customer_id: A unique id/uri for the customer
-        :param marketplace: a group/marketplace id/uri the user should be placed
-        in (matches balanced payments marketplaces)
+        :param external_id: A unique id/uri for the customer
+        :param group_id: a group id/uri the user should be placed
+        in (matches balanced payments group_id)
         :return: The new Customer object
         :raise NotFoundError: If customer not found
         """
         exists = cls.query.filter(
-            and_(cls.customer_id == customer_id,
-                 cls.marketplace == marketplace)).first()
+            cls.external_id == external_id,
+            cls.group_id == group_id).first()
         if not exists:
             raise NotFoundError('Customer not found. Try different id')
 
     @classmethod
-    def add_plan_customer(cls, customer_id, marketplace, plan_id,
-                    quantity = 1, charge_at_period_end=False):
+    def add_plan_customer(cls, external_id, group_id, plan_id,
+                          quantity=1, charge_at_period_end=False):
         """
         Changes a customer's plan
-        :param customer_id: A unique id/uri for the customer
-        :param marketplace: a group/marketplace id/uri the user should be placed
+        :param external_id: A unique id/uri for the customer
+        :param group_id: a group/group_id id/uri the user should be placed
         :param plan_id: The plan id to assocaite customer with
         :raise:
         """
-        customer_obj = cls.retrieve_customer(customer_id, marketplace)
-        plan_obj = Plan.retrieve_plan(plan_id, marketplace, active_only=True)
+        customer_obj = cls.retrieve_customer(external_id, group_id)
+        plan_obj = Plan.retrieve_plan(plan_id, group_id, active_only=True)
         current_coupon = customer_obj.coupon
         start_date = datetime.now(UTC)
         due_on = datetime.now(UTC)
@@ -166,7 +168,8 @@ class Customer(Base):
                              <= current_coupon.repeating else False
         can_trial = True if customer_obj.plan_use.get(plan_obj.plan_id,
                                                       0) == 0 else False
-        end_date = start_date + plan_obj.to_relativedelta(plan_obj.plan_interval)
+        end_date = start_date + plan_obj.to_relativedelta(
+            plan_obj.plan_interval)
         trial_interval = plan_obj.to_relativedelta(plan_obj.trial_interval)
         if can_trial:
             end_date += trial_interval
@@ -186,12 +189,12 @@ class Customer(Base):
             amount_after_coupon -= int(
                 amount_after_coupon * Decimal(percent_off) / Decimal(100))
         balance = amount_after_coupon
-        PlanInvoice.create_invoice(customer_id, marketplace, plan_id, coupon_id,
+        PlanInvoice.create_invoice(external_id, group_id, plan_id, coupon_id,
                                    start_date, end_date, due_on, amount_base,
                                    amount_after_coupon, amount_paid, balance,
                                    quantity, charge_at_period_end)
         customer_obj.coupon_use[coupon_id] += 1
-        cls.prorate_last_invoice(customer_obj.customer_id, marketplace, plan_id)
+        cls.prorate_last_invoice(customer_obj.external_id, group_id, plan_id)
         cls.session.commit()
         return customer_obj
 
@@ -200,60 +203,60 @@ class Customer(Base):
         """
         Cancels the customers subscription. You can either do it immediately
         or at the end of the period.
-         in (matches balanced payments marketplaces)
+         in (matches balanced payments groups)
         :param cancel_at_period_end: Whether to cancel now or wait till the
         it has to renew.
         :returns: New customer object.
         """
         if cancel_at_period_end:
-            result = PlanInvoice.retrieve_invoice(self.customer_id,
-                                                self.marketplace,
-                                                plan_id, active_only=True)
+            result = PlanInvoice.retrieve_invoice(self.external_id,
+                                                  self.group_id,
+                                                  plan_id, active_only=True)
             result.active = False
             self.session.commit()
         else:
-            self.prorate_last_invoice(self.customer_id, self.marketplace,
+            self.prorate_last_invoice(self.external_id, self.group_id,
                                       plan_id)
         return True
 
     @classmethod
-    def cancel_customer_plan(cls, customer_id, marketplace,
+    def cancel_customer_plan(cls, external_id, group_id,
                              cancel_at_period_end=True):
         """
         Cancels a customers subscription. You can either do it immediately or
         at the end of the period.
-        :type customer_id: object
-        :param customer_id: A unique id/uri for the customer
-        :param marketplace: a group/marketplace id/uri the user should be placed
-        in (matches balanced payments marketplaces)
+        :param external_id: A unique id/uri for the customer
+        :param group_id: a group id/uri the user should be placed
+        in (matches balanced payments groups)
         :param cancel_at_period_end: Whether to cancel now or wait till the user
         :returns: New customer object.
         """
-        cust_obj = cls.retrieve_customer(customer_id, marketplace)
+        cust_obj = cls.retrieve_customer(external_id, group_id)
         return cust_obj.cancel_plan(cancel_at_period_end, cancel_at_period_end)
 
     @classmethod
-    def prorate_last_invoice(cls, customer_id, marketplace, plan_id):
+    def prorate_last_invoice(cls, external_id, group_id, plan_id):
         """
         Prorates the last invoice when changing a users plan. Only use when
         changing a users plan.
-        :param customer_id: A unique id/uri for the customer
-        :param marketplace: a group/marketplace id/uri the user should be placed
-        in (matches balanced payments marketplaces)
+        :param external_id: A unique id/uri for the customer
+        :param group_id: a group id/uri the user should be placed
+        in (matches balanced payments groups)
         """
         right_now = datetime.now(UTC)
-        last_invoice = PlanInvoice.retrieve_invoice(customer_id, marketplace,
-                                              plan_id, active_only=True)
+        last_invoice = PlanInvoice.retrieve_invoice(external_id, group_id,
+                                                    plan_id, active_only=True)
         if last_invoice:
             time_total = Decimal(
                 (last_invoice.end_dt - last_invoice.due_dt).total_seconds())
-            time_used = Decimal((last_invoice.start_dt - right_now).total_seconds())
+            time_used = Decimal(
+                (last_invoice.start_dt - right_now).total_seconds())
             percent_used = time_used / time_total
             new_base_amount = last_invoice.amount_base_cents * percent_used
             new_coupon_amount = last_invoice.amount_after_coupon_cents * \
                                 percent_used
-            new_balance = last_invoice.amount_after_coupon_cents - last_invoice \
-                .amount_paid_cents
+            new_balance = last_invoice.amount_after_coupon_cents - \
+                          last_invoice.amount_paid_cents
             last_invoice.amount_base_cents = new_base_amount
             last_invoice.amount_after_coupon_cents = new_coupon_amount
             last_invoice.remaining_balance_cents = new_balance
@@ -263,28 +266,11 @@ class Customer(Base):
         cls.session.commit()
 
 
-    #Todo.. non static
-    @classmethod
-    def add_payout_customer(cls, customer_id, marketplace, payout_id,
-                               first_now=False):
-        """
-        Changes a customer payout schedule
-        :param customer_id: A unique id/uri for the customer
-        :param marketplace: a group/marketplace id/uri the user should be placed
-        :param payout_id: the id of the payout to asscociate with the account
-        :param first_now: Whether to do the first payout immediately now or to
-        schedule the first one in the future (now + interval)
-        :raise NotFoundError: if customer or payout are not found.
-        :returns: The customer object.
-        """
-        customer_obj = cls.query.filter(cls.customer_id == customer_id,
-                 cls.marketplace == marketplace).first()
-        if not customer_obj:
-            raise NotFoundError('Customer not found. Try different id')
-        payout_obj = Payout.retrieve_payout(payout_id, marketplace,
-                                       active_only=True)
+    def add_payout(self, group_id, payout_id, first_now=False):
+        payout_obj = Payout.retrieve_payout(payout_id, group_id,
+                                            active_only=True)
         try:
-            PayoutInvoice.retrieve_invoice(customer_id, marketplace,
+            PayoutInvoice.retrieve_invoice(self.external_id, group_id,
                                            payout_obj.payout_id,
                                            active_only=True)
             raise AlreadyExistsError("The customer already has a active "
@@ -295,24 +281,57 @@ class Customer(Base):
         first_charge = datetime.now(UTC)
         balance_to_keep_cents = payout_obj.balance_to_keep_cents
         if not first_now:
-            first_charge += payout_obj.to_relativedelta(payout_obj.payout_interval)
-        invoice = PayoutInvoice.create_invoice(customer_id, marketplace,
+            first_charge += payout_obj.to_relativedelta(
+                payout_obj.payout_interval)
+        invoice = PayoutInvoice.create_invoice(self.external_id, group_id,
                                                payout_obj.payout_id,
                                                first_charge,
                                                balance_to_keep_cents,
-                                               )
-        cls.session.add(invoice)
-        cls.session.commit()
-        return customer_obj
+        )
+        self.session.add(invoice)
+        self.session.commit()
+        return self
 
-    #Todo non static
+
     @classmethod
-    def cancel_customer_payout(cls, customer_id, marketplace, payout_id,
+    def add_payout_customer(cls, external_id, group_id, payout_id,
+                            first_now=False):
+        """
+        Changes a customer payout schedule
+        :param external_id: A unique id/uri for the customer
+        :param group_id: a group id/uri the user should be placed
+        :param payout_id: the id of the payout to asscociate with the account
+        :param first_now: Whether to do the first payout immediately now or to
+        schedule the first one in the future (now + interval)
+        :raise NotFoundError: if customer or payout are not found.
+        :returns: The customer object.
+        """
+        customer_obj = cls.query.filter(cls.external_id == external_id,
+                                        cls.group_id == group_id).first()
+        if not customer_obj:
+            raise NotFoundError('Customer not found. Try different id')
+        return customer_obj.add_payout(group_id, payout_id, first_now)
+
+
+    def cancel_payout(self, payout_id, cancel_scheduled=False):
+        current_payout_invoice = PayoutInvoice.retrieve_invoice(
+            self.external_id,
+            self.group_id,
+            payout_id,
+            active_only=True)
+        current_payout_invoice.active = False
+        if cancel_scheduled:
+            current_payout_invoice.completed = True
+        self.session.commit()
+        return self
+
+    @classmethod
+    def cancel_customer_payout(cls, external_id, group_id, payout_id,
                                cancel_scheduled=False):
         """
         Cancels a customer payout
-        :param customer_id: A unique id/uri for the customer
-        :param marketplace: a group/marketplace id/uri the user should be placed
+        :param external_id: A unique id/uri for the customer
+        :param group_id: a group id/uri the user should be placed
         schedule the first one in the future (now + interval)
         :param cancel_scheduled: Whether to cancel the next payout already
         scheduled with the old payout.
@@ -320,16 +339,11 @@ class Customer(Base):
         :returns: The customer object
         """
         now = datetime.now(UTC)
-        customer = cls.retrieve_customer(customer_id, marketplace)
-        current_payout_invoice = PayoutInvoice.retrieve_invoice(customer_id,
-                                                        marketplace,
-                                                        payout_id,
-                                                        active_only=True)
-        current_payout_invoice.active = False
-        if cancel_scheduled:
-            current_payout_invoice.completed = True
-        cls.session.commit()
-        return customer
+        customer = cls.retrieve_customer(external_id, group_id)
+        return customer.cancel_payout(payout_id, cancel_scheduled)
+
 
 
     #Todo get user's active subscriptions
+
+    #Todo plan trial use

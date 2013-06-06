@@ -21,6 +21,7 @@ class PlanInvoice(Base):
     start_dt = Column(DateTime(timezone=UTC))
     end_dt = Column(DateTime(timezone=UTC))
     due_dt = Column(DateTime(timezone=UTC))
+    includes_trial = Column(Boolean)
     amount_base_cents = Column(Integer)
     amount_after_coupon_cents = Column(Integer)
     amount_paid_cents = Column(Integer)
@@ -55,7 +56,7 @@ class PlanInvoice(Base):
                        start_dt, end_dt, due_dt,
                        amount_base_cents, amount_after_coupon_cents,
                        amount_paid_cents, remaining_balance_cents, quantity,
-                       charge_at_period_end):
+                       charge_at_period_end, includes_trial = False):
         new_invoice = cls(
             customer_id=customer_id,
             group_id=group_id,
@@ -69,7 +70,8 @@ class PlanInvoice(Base):
             amount_paid_cents=amount_paid_cents,
             remaining_balance_cents=remaining_balance_cents,
             quantity=quantity,
-            charge_at_period_end=charge_at_period_end
+            charge_at_period_end=charge_at_period_end,
+            includes_trial = includes_trial,
         )
         cls.session.add(new_invoice)
 

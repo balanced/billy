@@ -135,7 +135,8 @@ class Coupon(Base):
             raise NotFoundError(
                 'Coupon not found. Use different id/marketplace')
         return exists.update(new_name=new_name, new_max_redeem=new_max_redeem,
-                             new_expire_at=new_expire_at, new_repeating=new_repeating)
+                             new_expire_at=new_expire_at,
+                             new_repeating=new_repeating)
 
     def delete(self):
         """

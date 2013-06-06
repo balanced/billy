@@ -166,8 +166,7 @@ class Customer(Base):
         use_coupon = True if current_coupon.repeating == -1 or \
                              coupon_use_count \
                              <= current_coupon.repeating else False
-        can_trial = True if customer_obj.plan_use.get(plan_obj.plan_id,
-                                                      0) == 0 else False
+        can_trial = customer_obj.can_trial()
         end_date = start_date + plan_obj.to_relativedelta(
             plan_obj.plan_interval)
         trial_interval = plan_obj.to_relativedelta(plan_obj.trial_interval)
@@ -192,7 +191,8 @@ class Customer(Base):
         PlanInvoice.create_invoice(external_id, group_id, plan_id, coupon_id,
                                    start_date, end_date, due_on, amount_base,
                                    amount_after_coupon, amount_paid, balance,
-                                   quantity, charge_at_period_end)
+                                   quantity, charge_at_period_end,
+                                   includes_trial=can_trial)
         customer_obj.coupon_use[coupon_id] += 1
         cls.prorate_last_invoice(customer_obj.external_id, group_id, plan_id)
         cls.session.commit()
@@ -342,8 +342,58 @@ class Customer(Base):
         customer = cls.retrieve_customer(external_id, group_id)
         return customer.cancel_payout(payout_id, cancel_scheduled)
 
+    @property
+    def active_subscriptions(self):
+        """
+        Returns a list of invoice objects pertaining to active user
+        subscriptions
+        """
+        return PlanInvoice.list_invoices(self.group_id, relevant_plan=None,
+                                         customer_id=self.external_id,
+                                         active_only=True)
 
+    def can_trial(self, plan_id):
+        """
+        Returns true/false if user has used the trial of the plan before
+        :param plan_id: the external_id of the plan
+        :return: True/False
+        """
+        results = PlanInvoice.list_invoices(self.group_id,
+                                            relevant_plan=plan_id,
+                                            customer_id=self.external_id)
+        can = True
+        for each in results:
+            if each.includes_trial:
+                can = False
+        return can
 
-    #Todo get user's active subscriptions
+    @property
+    def current_debt(self):
+        """
+        Returns the total outstanding debt for the customer
+        """
+        now = datetime.now(UTC)
+        results = PlanInvoice.filter(
+            PlanInvoice.customer_id == self.external_id,
+            PlanInvoice.group_id == self.group_id,
+            PlanInvoice.remaining_balance_cents > 0,
+            PlanInvoice.due_dt < now,
+        ).all()
+        total_overdue = 0
+        for invoice in results:
+            rem_bal = invoice.remaining_balance_cents
+            total_overdue += rem_bal if rem_bal else 0
+        return total_overdue
 
-    #Todo plan trial use
+    def is_debtor(self, limit_cents):
+        """
+        Tells whether a customer is a debtor based on the provided limit
+        :param limit_cents: Amount in cents which marks a user as a debtor. i
+        .e if total_debt > limit_cents they are a debtor. Can be 0.
+        :return:
+        """
+        total_overdue = self.current_debt
+        if total_overdue > limit_cents:
+            return True
+        else:
+            return False

@@ -89,9 +89,7 @@ class Customer(Base):
         :raise: LimitReachedError if coupon max redeemed.
         """
         coupon_obj = Coupon.retrieve_coupon(coupon_id, self.group_id,
-                                            active_only=True) #Raises
-        # NotFoundError if
-        # not found
+                                            active_only=True)
         if coupon_obj.max_redeem != -1 and coupon_obj.count_redeemed > \
                 coupon_obj.max_redeem:
             raise LimitReachedError("Coupon redemtions exceeded max_redeem.")

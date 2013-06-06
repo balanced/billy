@@ -1,27 +1,25 @@
 from datetime import datetime
 
-from sqlalchemy import Column, String, Integer, Boolean, DateTime
-from sqlalchemy.schema import UniqueConstraint
-from sqlalchemy.orm import relationship
 from pytz import UTC
 from dateutil.relativedelta import relativedelta
-from sqlalchemy import and_
+from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, ForeignKey
 
 from billy.models.base import Base, JSONDict
-from billy.errors import BadIntervalError
-from utils.plans.customers import Customer
-from billy.invoices.models import PlanInvoice
+from billy.models.customers import Customer
+from billy.utils.models import uuid_factory
 from billy.errors import NotFoundError, AlreadyExistsError
 
 
 class Plan(Base):
     __tablename__ = 'plans'
 
-    plan_id = Column(String, primary_key=True)
-    marketplace = Column(String)
-    name = Column(String)
+    guid = Column(Unicode, primary_key=True, default=uuid_factory('PL'))
+    external_id = Column(Unicode)
+    group_id = Column(Unicode, ForeignKey('groups.id'))
+    name = Column(Unicode)
     price_cents = Column(Integer)
-
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     deleted_at = Column(DateTime(timezone=UTC))
@@ -30,28 +28,10 @@ class Plan(Base):
     plan_interval = Column(JSONDict)
     customers = relationship(Customer.__name__, backref='plans')
 
-    #Todo end of period
     __table_args__ = (
-    UniqueConstraint('plan_id', 'marketplace', name='planid_marketplace'),
+        UniqueConstraint('external_id', 'group_id', name='planid_group_id'),
     )
 
-
-    def __init__(self, id, marketplace, name, price_cents, plan_interval,
-                 trial_interval):
-        self.plan_id = id
-        self.name = name
-        self.price_cents = price_cents
-        if not isinstance(plan_interval, relativedelta):
-            raise BadIntervalError(
-                "plan_interval must be a relativedelta type.")
-        else:
-            self.plan_interval = self.from_relativedelta(plan_interval)
-        if not isinstance(trial_interval, relativedelta):
-            raise BadIntervalError(
-                "trial_interval must be a relativedelta type.")
-        else:
-            self.trial_interval = self.from_relativedelta(trial_interval)
-        self.marketplace = marketplace
 
     def from_relativedelta(self, inter):
         return {
@@ -69,63 +49,74 @@ class Plan(Base):
 
 
     @classmethod
-    def create_plan(cls, plan_id, marketplace, name, price_cents,
+    def create_plan(cls, external_id, group_id, name, price_cents,
                     plan_interval, trial_interval):
         """
         Creates a plan that users can be assigned to.
-        :param plan_id: A unique id/uri for the plan
-        :param marketplace: a group/marketplace id/uri the user should be placed in (matches balanced payments marketplaces)
+        :param external_id: A unique id/uri for the plan
+        :param group_id: a group id/uri the user should be placed in
         :param name: A display name for the plan
         :param price_cents: Price in cents of the plan per interval. $1.00 = 100
-        :param plan_interval: A Interval class that defines how frequently the charge the plan
-        :param trial_interval: A Interval class that defines how long the initial trial is
+        :param plan_interval: A Interval class that defines how frequently
+        the charge the plan
+        :param trial_interval: A Interval class that defines how long the
+        initial trial is
         :return: Plan Object if success or raises error if not
         :raise AlreadyExistsError: if plan already exists
         :raise TypeError: if intervals are not relativedelta (Interval class)
         """
-        exists = cls.query.filter(and_(cls.plan_id == plan_id,
-                               cls.marketplace == marketplace)).first()
+        exists = cls.query.filter(cls.external_id == external_id,
+                                  cls.group_id == group_id).first()
         if not exists:
-            new_plan = Plan(plan_id, marketplace, name, price_cents, plan_interval, trial_interval)
+            new_plan = Plan(
+                external_id=external_id,
+                group_id=group_id,
+                name=name,
+                price_cents=price_cents,
+                plan_interval=plan_interval,
+                trial_interval=trial_interval
+            )
             cls.session.add(new_plan)
             cls.session.commit()
             return new_plan
         else:
-            raise AlreadyExistsError('Plan already exists. Check plan_id and marketplace')
+            raise AlreadyExistsError(
+                'Plan already exists. Check external_id and group_id')
 
     @classmethod
-    def retrieve_plan(cls, plan_id, marketplace, active_only=False):
+    def retrieve_plan(cls, external_id, group_id, active_only=False):
         """
         This method retrieves a single plan.
-        :param plan_id: the unique plan_id
-        :param marketplace: the plans marketplace/group
+        :param external_id: the unique external_id
+        :param group_id: the plans group
         :param active_only: if true only returns active plans
         :raise NotFoundError:  if plan not found.
         """
-        query = cls.query.filter(and_(cls.plan_id == plan_id,
-                                       cls.marketplace == marketplace))
+        query = cls.query.filter(cls.external_id == external_id,
+                                 cls.group_id == group_id)
         if active_only:
             query.filter(cls.active == True)
         exists = query.first()
         if not exists:
-            raise NotFoundError('Active Plan not found. Check plan_id and marketplace')
+            raise NotFoundError(
+                'Active Plan not found. Check external_id and group_id')
         return exists
-    #Todo model methods
 
 
     @classmethod
-    def update_plan(cls, plan_id, marketplace, new_name):
+    def update_plan(cls, external_id, group_id, new_name):
         """
-        Updates ONLY the plan name. By design the only updateable field is the name.
+        Updates ONLY the plan name. By design the only updateable field is
+        the name.
         To change other params create a new plan.
-        :param plan_id: The plan id/uri
-        :param marketplace: The group/marketplace id/uri
+        :param external_id: The plan id/uri
+        :param group_id: The group id/uri
         :param new_name: The new display name for the plan
         :raise NotFoundError:  if plan not found.
         :returns: New Plan object
         """
-        exists = cls.query.filter(and_(cls.plan_id == plan_id,
-                               cls.marketplace == marketplace)).first()
+        exists = cls.query.filter(cls.external_id == external_id,
+                                  cls.group_id == group_id).first()
         if not exists:
             raise NotFoundError('Plan not found. Try different id')
         exists.name = new_name
@@ -134,33 +125,36 @@ class Plan(Base):
         return exists
 
     @classmethod
-    def list_plans(cls, marketplace):
-        #Todo active only
+    def list_plans(cls, group_id, active_only=False):
         """
         Returns a list of plans currently in the database
-        :param marketplace: The group/marketplace id/uri
+        :param group_id: The group id/uri
         :returns: A list of Plan objects
         """
-        results = cls.query.filter(cls.marketplace == marketplace).all()
-        return results
+        query = cls.query.filter(cls.group_id == group_id)
+        if active_only:
+            query.filter(cls.active == True)
+        return query.all()
 
 
     @classmethod
-    def delete_plan(cls, plan_id, marketplace):
+    def delete_plan(cls, external_id, group_id):
         """
-        This method deletes a plan. Plans are not deleted from the database, but are instead marked as inactive so no new
-        users can be added. Everyone currently on the plan is maintained on the plan.
-        :param plan_id: the unique plan_id
-        :param marketplace: the plans marketplace/group
+        This method deletes a plan. Plans are not deleted from the database,
+        but are instead marked as inactive so no new
+        users can be added. Everyone currently on the plan is maintained on
+        the plan.
+        :param external_id: the unique plan id/uri
+        :param group_id: the plans group id/uri
         :returns: the deleted Plan object
         :raise NotFoundError:  if plan not found.
         """
-        exists = cls.query.filter(and_(cls.plan_id == plan_id,
-                               cls.marketplace == marketplace)).first()
+        exists = cls.query.filter(cls.external_id == external_id,
+                                  cls.group_id == group_id).first()
         if not exists:
             raise NotFoundError('Plan not found. Use different id')
         exists.active = False
-        exists.updated_at = datetime.now(UTC)
+        exists.updataed_at = datetime.now(UTC)
         exists.deleted_at = datetime.now(UTC)
         cls.session.commit()
         return exists

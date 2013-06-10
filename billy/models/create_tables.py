@@ -1,9 +1,8 @@
 import sys
 from billy.settings import DB_ENGINE
+from billy.models import *
 
 def delete_and_replace_tables():
-    from billy.models import Base
-    assert('test' in sys.argv)
     for table in Base.metadata.sorted_tables:
          table.delete()
     create_if_notexists()

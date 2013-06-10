@@ -9,7 +9,6 @@ from billy.models.customers import Customer
 from billy.models.groups import Group
 from billy.models.plans import Plan
 from billy.models.payouts import Payout
-from billy.models.transactions import PaymentTransaction
 from billy.models.coupons import Coupon
 from billy.utils.models import uuid_factory
 from billy.errors import NotFoundError
@@ -36,7 +35,7 @@ class PlanInvoice(Base):
     quantity = Column(Integer)
     charge_at_period_end = Column(Boolean)
     active = Column(Boolean, default=True)
-    cleared_by = Column(Unicode, ForeignKey(PaymentTransaction.guid))
+    cleared_by = Column(Unicode, ForeignKey('payment_transactions.guid'))
 
     #Todo: Unique constraint on active cust_id and group_id invoices.
     __table_args__ = (

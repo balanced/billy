@@ -2,30 +2,20 @@ from datetime import datetime
 
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Integer
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.schema import ForeignKeyConstraint
 from pytz import UTC
 
-from billy.models.base import Base
-from billy.models.invoices import PlanInvoice, PayoutInvoice
-from billy.models.customers import Customer
+from billy.models import Base, PlanInvoice, PayoutInvoice, Customer
 from billy.utils.models import uuid_factory, Status
 from billy.settings import TRANSACTION_PROVIDER_CLASS
 
 
-class Transaction(Base):
-    external_id = Column(Unicode, ForeignKey)
-    group_id = Column(Unicode)
-    customer_id = Column(Unicode)
+class TransactionMixin(object):
+    external_id = Column(Unicode)
     created_at = Column(DateTime(timezone=UTC))
     amount_cents = Column(Integer)
     status = Column(Unicode)
-
-    __table_args__ = (
-        #Customer foreign key
-        ForeignKeyConstraint(
-            [customer_id, group_id],
-            [Customer.external_id, Customer.group_id]),
-    )
 
     charge_callable = NotImplementedError
 
@@ -63,16 +53,24 @@ class Transaction(Base):
     #Todo retry ERROR status ones.
 
 
-class PaymentTransaction(Transaction):
+class PaymentTransaction(TransactionMixin, Base):
     __tablename__ = 'payment_transactions'
 
     charge_callable = TRANSACTION_PROVIDER_CLASS.make_payout
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PAT'))
+    group_id = Column(Unicode)
+    customer_id = Column(Unicode)
     plan_invoices = relationship(PlanInvoice.__name__, backref='transaction')
 
+    __table_args__ = (
+        #Customer foreign key
+        ForeignKeyConstraint(
+            [customer_id, group_id],
+            [Customer.external_id, Customer.group_id]),
+    )
 
-class PayoutTransaction(Transaction):
+class PayoutTransaction(TransactionMixin, Base):
     __tablename__ = 'payout_transactions'
 
     charge_callable = TRANSACTION_PROVIDER_CLASS.create_charge
@@ -80,3 +78,12 @@ class PayoutTransaction(Transaction):
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POT'))
     payout_invoices = relationship(PayoutInvoice.__name__,
                                  backref='transaction')
+    group_id = Column(Unicode)
+    customer_id = Column(Unicode)
+
+    __table_args__ = (
+        #Customer foreign key
+        ForeignKeyConstraint(
+            [customer_id, group_id],
+            [Customer.external_id, Customer.group_id]),
+    )

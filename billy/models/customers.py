@@ -19,7 +19,7 @@ class Customer(Base):
     guid = Column(Unicode, index=True, default=uuid_factory('CU'))
     external_id = Column(Unicode, primary_key=True)
     group_id = Column(Unicode, ForeignKey(Group.external_id), primary_key=True)
-    current_coupon = Column(Unicode, ForeignKey(Coupon.external_id))
+    current_coupon = Column(Unicode, ForeignKey('coupons.external_id'))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     coupon_use = Column(JSONDict, default={})

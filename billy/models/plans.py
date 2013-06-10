@@ -30,7 +30,7 @@ class Plan(Base):
     customers = relationship(Customer.__name__, backref='plans')
 
     __table_args__ = (
-        UniqueConstraint('external_id', 'group_id', name='planid_group_id'),
+        UniqueConstraint(external_id, group_id, name='planid_group_id'),
     )
 
 

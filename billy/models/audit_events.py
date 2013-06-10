@@ -2,7 +2,7 @@ from pytz import UTC
 from datetime import datetime
 from sqlalchemy.orm import mapper
 from sqlalchemy import event, ForeignKey
-from sqlalchemy import Column, String, DateTime, Unicode
+from sqlalchemy import Column, Unicode, DateTime, Unicode
 
 from billy.models.base import Base
 from billy.models.groups import Group
@@ -14,15 +14,17 @@ class AuditEvent(Base):
     __tablename__ = 'audit_events'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
-    customer_id = Column(String)
-    group_id = Column(String, ForeignKey(Group.external_id))
-    model_name = Column(String)
-    plan_id = Column(String)
-    payout_id = Column(String)
-    coupon_id = Column(String)
-    invoice_id = Column(String)
-    event = Column(String)
-    sql_event = Column(String)
+    obj_guid = Column(Unicode)
+    customer_id = Column(Unicode)
+    external_id = Column(Unicode)
+    group_id = Column(Unicode, ForeignKey(Group.external_id))
+    model_name = Column(Unicode)
+    plan_id = Column(Unicode)
+    payout_id = Column(Unicode)
+    coupon_id = Column(Unicode)
+    invoice_id = Column(Unicode)
+    event = Column(Unicode)
+    sql_event = Column(Unicode)
     created_at = created_at = Column(DateTime(timezone=UTC),
                                      default=datetime.now(UTC))
 
@@ -34,10 +36,12 @@ class AuditEvent(Base):
         new_audit.coupon_id = string_attr(entity, 'coupon_id')
         new_audit.invoice_id = string_attr(entity, 'invoice_id')
         new_audit.model_name = entity.__name__
+        new_audit.obj_guid = string_attr(entity, 'guid')
         new_audit.plan_id = string_attr(entity, 'plan_id')
         new_audit.group_id = string_attr(entity, 'group_id')
         new_audit.customer_id = string_attr(entity, 'customer_id')
         new_audit.payout_id = string_attr(entity, 'payout_id')
+        new_audit.external_id = string_attr(entity, 'external_id')
         #Todo add events everwhere...
         new_audit.event = string_attr(entity, 'event')
         cls.session.add(new_audit)

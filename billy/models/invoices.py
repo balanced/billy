@@ -123,7 +123,7 @@ class PlanInvoice(Base):
         results = cls.query.filter(
             cls.remaining_balance_cents > 0,
             cls.due_dt > now,
-            ).group_by(cls.customer_id).all()
+        ).group_by(cls.customer_id).all()
         return [result.customer for result in results]
 
     @classmethod
@@ -183,7 +183,6 @@ class PayoutInvoice(Base):
     cleared_by = Column(Unicode, ForeignKey('payout_transactions.guid'))
     attempts_made = Column(Integer, default=0)
 
-
     __table_args__ = (
         #Customer foreign key
         ForeignKeyConstraint(
@@ -240,8 +239,8 @@ class PayoutInvoice(Base):
     def needs_payout_made(cls):
         now = datetime.now(UTC)
         return cls.query.filter(cls.payout_date < now,
-                         cls.completed == False
-                        ).all()
+                                cls.completed == False
+        ).all()
 
     @classmethod
     def needs_rollover(cls):
@@ -255,11 +254,10 @@ class PayoutInvoice(Base):
                                  start_dt=self.payout_date)
 
 
-
     def make_payout(self, force=False):
         now = datetime.now(UTC)
         current_balance = TRANSACTION_PROVIDER_CLASS.check_balance(
-                                        self.customer_id, self.group_id)
+            self.customer_id, self.group_id)
         payout_date = self.payout_date
         if len(RETRY_DELAY_PAYOUT) > self.attempts_made and not force:
             self.active = False
@@ -270,7 +268,7 @@ class PayoutInvoice(Base):
             if when_to_payout < now:
                 payout_amount = current_balance - self.balance_to_keep_cents
                 transaction = TRANSACTION_PROVIDER_CLASS.make_payout(
-                            self.customer_id, self.group_id, payout_amount)
+                    self.customer_id, self.group_id, payout_amount)
                 try:
                     transaction.execute()
                     self.cleared_by = transaction.guid

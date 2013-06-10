@@ -300,7 +300,7 @@ class Customer(Base):
 
     @classmethod
     def add_payout_customer(cls, external_id, group_id, payout_id,
-                            first_now=False):
+                            first_now=False, start_dt = None):
         """
         Changes a customer payout schedule
         :param external_id: A unique id/uri for the customer
@@ -315,7 +315,7 @@ class Customer(Base):
                                         cls.group_id == group_id).first()
         if not customer_obj:
             raise NotFoundError('Customer not found. Try different id')
-        return customer_obj.add_payout(payout_id, first_now)
+        return customer_obj.add_payout(payout_id, first_now, start_dt=start_dt)
 
 
     def cancel_payout(self, payout_id, cancel_scheduled=False):

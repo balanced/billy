@@ -25,7 +25,7 @@ class Coupon(Base):
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     deleted_at = Column(DateTime(timezone=UTC))
-    customers = relationship(Customer, backref='coupon')
+    customers = relationship('Customer', backref='coupon')
 
 
     @classmethod

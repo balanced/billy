@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import Column, Unicode, DateTime
-from sqlalchemy.schema import UniqueConstraint, ForeignKey
+from sqlalchemy.schema import ForeignKeyConstraint, ForeignKey
 from sqlalchemy.orm import relationship
 from pytz import UTC
 from dateutil.relativedelta import relativedelta
@@ -19,10 +19,15 @@ class Customer(Base):
     guid = Column(Unicode, index=True, default=uuid_factory('CU'))
     external_id = Column(Unicode, primary_key=True)
     group_id = Column(Unicode, ForeignKey(Group.external_id), primary_key=True)
-    current_coupon = Column(Unicode, ForeignKey('coupons.external_id'))
+    current_coupon = Column(Unicode)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     coupon_use = Column(JSONDict, default={})
+
+    __table_args__ = (
+        ForeignKeyConstraint([current_coupon, group_id],
+                             [Coupon.external_id, Coupon.group_id]),
+    )
 
     @classmethod
     def create_customer(cls, external_id, group_id):

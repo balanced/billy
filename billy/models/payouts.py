@@ -3,12 +3,10 @@ from datetime import datetime
 from pytz import UTC
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import relationship
-from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, ForeignKey
 
-from billy.models.base import Base, JSONDict
-from billy.models.customers import Customer
-from billy.models.groups import Group
+from billy.models import *
+from billy.models.base import JSONDict
 from billy.utils.models import uuid_factory
 from billy.errors import NotFoundError, AlreadyExistsError
 
@@ -26,7 +24,7 @@ class Payout(Base):
     deleted_at = Column(DateTime(timezone=UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_interval = Column(JSONDict)
-    customers = relationship(Customer.__name__, backref='payouts')
+    customers = relationship('Customer', backref='payouts')
 
 
     def from_relativedelta(self, inter):

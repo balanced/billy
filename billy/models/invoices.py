@@ -4,12 +4,7 @@ from pytz import UTC
 from sqlalchemy import Column, Unicode, Integer, DateTime, Boolean
 from sqlalchemy.schema import ForeignKey, ForeignKeyConstraint
 
-from billy.models.base import Base
-from billy.models.customers import Customer
-from billy.models.groups import Group
-from billy.models.plans import Plan
-from billy.models.payouts import Payout
-from billy.models.coupons import Coupon
+from billy.models import *
 from billy.utils.models import uuid_factory
 from billy.errors import NotFoundError
 

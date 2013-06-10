@@ -2,7 +2,7 @@ from pytz import UTC
 from datetime import datetime
 from sqlalchemy.orm import mapper
 from sqlalchemy import event, ForeignKey
-from sqlalchemy import Column, Unicode, DateTime, Unicode
+from sqlalchemy import Column, Unicode, DateTime
 
 from billy.models.base import Base
 from billy.models.groups import Group

@@ -17,7 +17,7 @@ class Payout(Base):
     __tablename__ = 'payouts'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PO'))
-    external_id = Column(Unicode)
+    external_id = Column(Unicode, index=True)
     group_id = Column(Unicode, ForeignKey(Group.external_id))
     name = Column(Unicode)
     balance_to_keep_cents = Column(Integer)
@@ -29,7 +29,7 @@ class Payout(Base):
     customers = relationship(Customer.__name__, backref='payouts')
     #Payout by percentage
     __table_args__ = (
-        UniqueConstraint('external_id', 'group_id',
+        UniqueConstraint(external_id, group_id,
                          name='payoutid_group_id'))
 
 

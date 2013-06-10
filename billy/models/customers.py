@@ -7,13 +7,8 @@ from sqlalchemy.orm import relationship
 from pytz import UTC
 from dateutil.relativedelta import relativedelta
 
-from billy.models.base import Base, JSONDict
-from billy.models.coupons import Coupon
-from billy.models.groups import Group
-from billy.models.plans import Plan
-from billy.models.invoices import PlanInvoice, PayoutInvoice
-from billy.models.payouts import Payout
-from billy.models.transactions import PaymentTransaction, PayoutTransaction
+from billy.models import *
+from billy.models.base import JSONDict
 from billy.errors import AlreadyExistsError, NotFoundError, LimitReachedError
 from billy.utils.models import uuid_factory
 

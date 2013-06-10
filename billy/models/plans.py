@@ -2,7 +2,6 @@ from datetime import datetime
 
 from pytz import UTC
 from dateutil.relativedelta import relativedelta
-from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, ForeignKey
 

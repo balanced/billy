@@ -6,7 +6,8 @@ from sqlalchemy import Column, String, DateTime, Unicode
 
 from billy.models.base import Base
 from billy.models.groups import Group
-from utils.audit_events import string_attr
+from billy.utils.audit_events import string_attr
+from billy.utils.models import uuid_factory
 
 
 class AuditEvent(Base):

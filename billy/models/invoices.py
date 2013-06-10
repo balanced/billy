@@ -2,13 +2,14 @@ from datetime import datetime
 
 from pytz import UTC
 from sqlalchemy import Column, Unicode, Integer, DateTime, Boolean
-from sqlalchemy.schema import ForeignKey, UniqueConstraint
+from sqlalchemy.schema import ForeignKey, ForeignKeyConstraint
 
 from billy.models.base import Base
 from billy.models.customers import Customer
 from billy.models.groups import Group
 from billy.models.plans import Plan
 from billy.models.payouts import Payout
+from billy.models.transactions import PaymentTransaction
 from billy.models.coupons import Coupon
 from billy.utils.models import uuid_factory
 from billy.errors import NotFoundError
@@ -18,10 +19,10 @@ class PlanInvoice(Base):
     __tablename__ = 'charge_invoices'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PLI'))
-    customer_id = Column(Unicode, ForeignKey(Customer.external_id))
-    group_id = Column(Unicode, ForeignKey(Group.external_id))
-    relevant_plan = Column(Unicode, ForeignKey(Plan.external_id))
-    relevant_coupon = Column(Unicode, ForeignKey(Coupon.external_id))
+    customer_id = Column(Unicode)
+    group_id = Column(Unicode)
+    relevant_plan = Column(Unicode)
+    relevant_coupon = Column(Unicode)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     start_dt = Column(DateTime(timezone=UTC))
     end_dt = Column(DateTime(timezone=UTC))
@@ -35,12 +36,23 @@ class PlanInvoice(Base):
     quantity = Column(Integer)
     charge_at_period_end = Column(Boolean)
     active = Column(Boolean, default=True)
-    cleared_by = Column(Unicode, ForeignKey('payment_transactions.guid'))
+    cleared_by = Column(Unicode, ForeignKey(PaymentTransaction.guid))
 
-    #Todo: Unique constraint here should include active
-    __table_args__ = (UniqueConstraint('customer_id', 'group_id',
-                                       'relevant_plan',
-                                       name='plan_invoice_unique'),
+    #Todo: Unique constraint on active cust_id and group_id invoices.
+    __table_args__ = (
+        #Customer foreign key
+        ForeignKeyConstraint(
+            [customer_id, group_id],
+            [Customer.external_id, Customer.group_id]),
+        #Plan foreign key
+        ForeignKeyConstraint(
+            [relevant_plan, group_id],
+            [Plan.external_id, Plan.group_id]),
+        #Coupon foreign key
+        ForeignKeyConstraint(
+            [relevant_coupon, group_id],
+            [Coupon.external_id, Plan.group_id])
+
     )
 
     @classmethod
@@ -72,7 +84,7 @@ class PlanInvoice(Base):
             start_dt=start_dt,
             end_dt=end_dt,
             due_dt=due_dt,
-            original_end_dt = end_dt,
+            original_end_dt=end_dt,
             amount_base_cents=amount_base_cents,
             amount_after_coupon_cents=amount_after_coupon_cents,
             amount_paid_cents=amount_paid_cents,
@@ -115,7 +127,7 @@ class PlanInvoice(Base):
         invoices_rollover = cls.query.filter(cls.end_dt > now,
                                              cls.active == True,
                                              cls.remaining_balance_cents == 0,
-                                             ).all()
+        ).all()
         return invoices_rollover
 
     def rollover(self):
@@ -125,11 +137,11 @@ class PlanInvoice(Base):
         self.active = False
         self.session.flush()
         Customer.add_plan_customer(self.customer_id, self.group_id,
-                                       self.relevant_plan,
-                                       quantity=self.quantity,
-                                       charge_at_period_end=self
-                                       .charge_at_period_end,
-                                       start_dt=self.end_dt)
+                                   self.relevant_plan,
+                                   quantity=self.quantity,
+                                   charge_at_period_end=self
+                                   .charge_at_period_end,
+                                   start_dt=self.end_dt)
         self.session.commit()
 
     @classmethod
@@ -144,9 +156,9 @@ class PayoutInvoice(Base):
     __tablename__ = 'payout_invoices'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POI'))
-    customer_id = Column(Unicode, ForeignKey(Customer.external_id))
-    group_id = Column(Unicode, ForeignKey(Customer.group_id))
-    relevant_payout = Column(Unicode, ForeignKey(Payout.guid))
+    customer_id = Column(Unicode)
+    group_id = Column(Unicode)
+    relevant_payout = Column(Unicode)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_date = Column(DateTime(timezone=UTC))
     balance_to_keep_cents = Column(Integer)
@@ -156,9 +168,17 @@ class PayoutInvoice(Base):
     #Todo: make sure yo update this field...
     balance_at_exec = Column(Integer)
 
-    __table_args__ = (UniqueConstraint('customer_id', 'group_id',
-                                       'relevant_payout',
-                                       name='payout_invoice_unique'))
+    __table_args__ = (
+        #Customer foreign key
+        ForeignKeyConstraint(
+            [customer_id, group_id],
+            [Customer.external_id, Customer.group_id]),
+        #Payout foreign key
+        ForeignKeyConstraint(
+            [relevant_payout, group_id],
+            [Payout.external_id, Payout.group_id]),
+
+    )
 
     @classmethod
     def create_invoice(cls, customer_id, group_id, relevant_payout,

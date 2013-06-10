@@ -6,9 +6,7 @@ from sqlalchemy.schema import ForeignKeyConstraint
 from sqlalchemy.orm import relationship
 from pytz import UTC
 
-from billy.models.base import Base
-from billy.models.customers import Customer
-from billy.models.groups import Group
+from billy.models import *
 from billy.utils.models import uuid_factory
 from billy.errors import NotFoundError, AlreadyExistsError
 

@@ -2,21 +2,30 @@ from datetime import datetime
 
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Integer
 from sqlalchemy.orm import relationship
+from sqlalchemy.schema import ForeignKeyConstraint
 from pytz import UTC
 
 from billy.models.base import Base
 from billy.models.invoices import PlanInvoice, PayoutInvoice
+from billy.models.customers import Customer
 from billy.utils.models import uuid_factory, Status
 from billy.settings import TRANSACTION_PROVIDER_CLASS
 
 
 class Transaction(Base):
     external_id = Column(Unicode, ForeignKey)
-    group_id = Column(Unicode, ForeignKey('groups.guid'))
-    customer_id = Column(Unicode, ForeignKey('customers.external_id'))
+    group_id = Column(Unicode)
+    customer_id = Column(Unicode)
     created_at = Column(DateTime(timezone=UTC))
     amount_cents = Column(Integer)
     status = Column(Unicode)
+
+    __table_args__ = (
+        #Customer foreign key
+        ForeignKeyConstraint(
+            [customer_id, group_id],
+            [Customer.external_id, Customer.group_id]),
+    )
 
     charge_callable = NotImplementedError
 

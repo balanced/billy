@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from base import Base
 from billy.utils.models import uuid_factory
 from billy.errors import AlreadyExistsError
-from models import *
+from billy.models import *
 
 
 class Group(Base):
@@ -12,10 +12,10 @@ class Group(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     external_id = Column(Unicode, unique=True)
-    coupons = relationship(AuditEvent.__name__, backref='group')
-    customers = relationship(Customer.__name__, backref='group')
-    plan_invoices = relationship(PlanInvoice.__name__, backref='group')
-    payout_invoices = relationship(PayoutInvoice.__name__, backref='group')
+    coupons = relationship('AuditEvent', backref='group')
+    customers = relationship('Customer', backref='group')
+    plan_invoices = relationship('PlanInvoice', backref='group')
+    payout_invoices = relationship('PayoutInvoice', backref='group')
 
 
 

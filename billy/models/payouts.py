@@ -16,9 +16,9 @@ from billy.errors import NotFoundError, AlreadyExistsError
 class Payout(Base):
     __tablename__ = 'payouts'
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('PO'))
-    external_id = Column(Unicode, index=True)
-    group_id = Column(Unicode, ForeignKey(Group.external_id))
+    guid = Column(Unicode, index=True, default=uuid_factory('PO'))
+    external_id = Column(Unicode, primary_key=True)
+    group_id = Column(Unicode, ForeignKey(Group.external_id), primary_key=True)
     name = Column(Unicode)
     balance_to_keep_cents = Column(Integer)
     active = Column(Boolean, default=True)
@@ -27,10 +27,6 @@ class Payout(Base):
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_interval = Column(JSONDict)
     customers = relationship(Customer.__name__, backref='payouts')
-    #Payout by percentage
-    __table_args__ = (
-        UniqueConstraint(external_id, group_id,
-                         name='payoutid_group_id'))
 
 
     def from_relativedelta(self, inter):

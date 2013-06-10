@@ -8,6 +8,7 @@ from billy.models.base import Base
 from billy.models.customers import Customer
 from billy.models.groups import Group
 from billy.models.plans import Plan
+from billy.models.payouts import Payout
 from billy.models.coupons import Coupon
 from billy.utils.models import uuid_factory
 from billy.errors import NotFoundError
@@ -143,9 +144,9 @@ class PayoutInvoice(Base):
     __tablename__ = 'payout_invoices'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POI'))
-    customer_id = Column(Unicode, ForeignKey('customers.customer_id'))
-    group_id = Column(Unicode, ForeignKey('groups.guid'))
-    relevant_payout = Column(Unicode, ForeignKey('plans.plan_id'))
+    customer_id = Column(Unicode, ForeignKey(Customer.external_id))
+    group_id = Column(Unicode, ForeignKey(Customer.group_id))
+    relevant_payout = Column(Unicode, ForeignKey(Payout.guid))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_date = Column(DateTime(timezone=UTC))
     balance_to_keep_cents = Column(Integer)

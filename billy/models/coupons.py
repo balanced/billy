@@ -16,9 +16,9 @@ from billy.errors import NotFoundError, AlreadyExistsError
 class Coupon(Base):
     __tablename__ = 'coupons'
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
-    external_id = Column(Unicode, index=True)
-    group_id = Column(Unicode, ForeignKey(Group.external_id))
+    guid = Column(Unicode, index=True, default=uuid_factory('CU'))
+    external_id = Column(Unicode, primary_key=True)
+    group_id = Column(Unicode, ForeignKey(Group.external_id), primary_key=True)
     price_off_cents = Column(Integer)
     percent_off_int = Column(Integer)
     expire_at = Column(DateTime(timezone=UTC))

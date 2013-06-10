@@ -16,9 +16,9 @@ from billy.errors import NotFoundError, AlreadyExistsError
 class Plan(Base):
     __tablename__ = 'plans'
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('PL'))
-    external_id = Column(Unicode, index=True)
-    group_id = Column(Unicode, ForeignKey(Group.external_id), index=True)
+    guid = Column(Unicode, index=True, default=uuid_factory('PL'))
+    external_id = Column(Unicode, primary_key=True)
+    group_id = Column(Unicode, ForeignKey(Group.external_id), primary_key=True)
     name = Column(Unicode)
     price_cents = Column(Integer)
     active = Column(Boolean, default=True)
@@ -28,10 +28,6 @@ class Plan(Base):
     trial_interval = Column(JSONDict)
     plan_interval = Column(JSONDict)
     customers = relationship(Customer.__name__, backref='plans')
-
-    __table_args__ = (
-        UniqueConstraint(external_id, group_id, name='planid_group_id'),
-    )
 
 
     def from_relativedelta(self, inter):

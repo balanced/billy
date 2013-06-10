@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pytz import UTC
 from sqlalchemy import Column, Unicode, Integer, DateTime, Boolean
-from sqlalchemy.schema import ForeignKey, ForeignKeyConstraint
+from sqlalchemy.schema import ForeignKey, ForeignKeyConstraint, Index
 
 from billy.models import *
 from billy.utils.models import uuid_factory
@@ -32,7 +32,6 @@ class PlanInvoice(Base):
     active = Column(Boolean, default=True)
     cleared_by = Column(Unicode, ForeignKey('payment_transactions.guid'))
 
-    #Todo: Unique constraint on active cust_id and group_id invoices.
     __table_args__ = (
         #Customer foreign key
         ForeignKeyConstraint(
@@ -45,8 +44,8 @@ class PlanInvoice(Base):
         #Coupon foreign key
         ForeignKeyConstraint(
             [relevant_coupon, group_id],
-            [Coupon.external_id, Plan.group_id])
-
+            [Coupon.external_id, Plan.group_id]),
+        Index('unique_plan_invoice', relevant_plan, group_id, active == True)
     )
 
     @classmethod
@@ -161,6 +160,7 @@ class PayoutInvoice(Base):
     active = Column(Boolean, default=True)
     #Todo: make sure yo update this field...
     balance_at_exec = Column(Integer)
+    cleared_by = Column(Unicode, ForeignKey('payout_transactions.guid'))
 
     __table_args__ = (
         #Customer foreign key
@@ -171,6 +171,8 @@ class PayoutInvoice(Base):
         ForeignKeyConstraint(
             [relevant_payout, group_id],
             [Payout.external_id, Payout.group_id]),
+        Index('unique_payout_invoice', relevant_payout, group_id,
+              active == True)
 
     )
 

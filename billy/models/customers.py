@@ -7,7 +7,7 @@ from sqlalchemy.orm import relationship
 from pytz import UTC
 from dateutil.relativedelta import relativedelta
 
-from billy.settings import RETRY_DELAY
+from billy.settings import RETRY_DELAY_PLAN
 from billy.models import *
 from billy.models.base import JSONDict
 from billy.errors import AlreadyExistsError, NotFoundError, LimitReachedError
@@ -271,11 +271,11 @@ class Customer(Base):
         cls.session.commit()
 
 
-    def add_payout(self, group_id, payout_id, first_now=False):
-        payout_obj = Payout.retrieve_payout(payout_id, group_id,
+    def add_payout(self, payout_id, first_now=False, start_dt = None):
+        payout_obj = Payout.retrieve_payout(payout_id, self.group_id,
                                             active_only=True)
         try:
-            PayoutInvoice.retrieve_invoice(self.external_id, group_id,
+            PayoutInvoice.retrieve_invoice(self.external_id, self.group_id,
                                            payout_obj.payout_id,
                                            active_only=True)
             raise AlreadyExistsError("The customer already has a active "
@@ -283,12 +283,12 @@ class Customer(Base):
                                      "that first to continue.")
         except:
             pass
-        first_charge = datetime.now(UTC)
+        first_charge = start_dt or datetime.now(UTC)
         balance_to_keep_cents = payout_obj.balance_to_keep_cents
         if not first_now:
             first_charge += payout_obj.to_relativedelta(
                 payout_obj.payout_interval)
-        invoice = PayoutInvoice.create_invoice(self.external_id, group_id,
+        invoice = PayoutInvoice.create_invoice(self.external_id, self.group_id,
                                                payout_obj.payout_id,
                                                first_charge,
                                                balance_to_keep_cents,
@@ -315,7 +315,7 @@ class Customer(Base):
                                         cls.group_id == group_id).first()
         if not customer_obj:
             raise NotFoundError('Customer not found. Try different id')
-        return customer_obj.add_payout(group_id, payout_id, first_now)
+        return customer_obj.add_payout(payout_id, first_now)
 
 
     def cancel_payout(self, payout_id, cancel_scheduled=False):
@@ -410,32 +410,20 @@ class Customer(Base):
         else:
             return False
 
-    @classmethod
-    def need_plan_debt_cleared(cls):
-        """
-        Returns a list of customer objects that need to clear their plan debt
-        """
-        now = datetime.now(UTC)
-        results = PlanInvoice.filter(
-            PlanInvoice.remaining_balance_cents > 0,
-            PlanInvoice.due_dt > now,
-        ).group_by(PlanInvoice.customer_id).all()
-        return [result.customer for result in results]
 
 
-    def clear_plan_debt(self):
+    def clear_plan_debt(self, force=False):
         now = datetime.now(UTC)
         earliest_due = datetime.now(UTC)
         plan_invoices_due = self.plan_invoices_due
         for plan_invoice in plan_invoices_due:
             earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \
                                                   earliest_due else earliest_due
-        if len(RETRY_DELAY) > self.charge_attempts:
-            #Deactiate all invoices due...
+        if len(RETRY_DELAY_PLAN) > self.charge_attempts and not force:
             for plan_invoice in plan_invoices_due:
                 plan_invoice.active = False
         else:
-            retry_delay = sum(RETRY_DELAY[:self.charge_attempts])
+            retry_delay = sum(RETRY_DELAY_PLAN[:self.charge_attempts])
             when_to_charge = earliest_due + retry_delay if retry_delay else \
                 earliest_due
             if when_to_charge < now:
@@ -444,15 +432,15 @@ class Customer(Base):
                                                         self.group_id, sum_debt)
                 try:
                     transaction.execute()
+                    for each in plan_invoices_due:
+                        each.cleared_by = transaction.guid
+                        each.remaining_balance_cents = 0
                 except:
                     self.charge_attempts += 1
-                for each in plan_invoices_due:
-                    each.cleared_by = transaction.guid
-                    each.remaining_balance_cents = 0
         self.session.commit()
         return self
 
-    @classmethod
-    def clear_all_plan_debt(cls):
-        for customer in cls.need_plan_debt_cleared():
-            customer.clear_plan_debt()
+
+
+
+

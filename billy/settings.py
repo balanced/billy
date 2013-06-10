@@ -24,12 +24,18 @@ DB_URL = URL(DB_SETTINGS['driver'], username=DB_SETTINGS['user'],
 DB_ENGINE = create_engine(DB_URL)
 Session = scoped_session(sessionmaker(bind=DB_ENGINE))
 
-TRANSACTION_PROVIDER_CLASS = BalancedDummyProvider
+TRANSACTION_PROVIDER_CLASS = BalancedDummyProvider('blah')
 
 #A list of attempt invervals, [ATTEMPT n DELAY INTERVAL,...]
-RETRY_DELAY = [
+RETRY_DELAY_PLAN = [
            Intervals.DAY,
            Intervals.DAY * 3,
            Intervals.WEEK
+]
+
+RETRY_DELAY_PAYOUT = [
+    Intervals.DAY,
+    Intervals.DAY * 3,
+    Intervals.WEEK
 ]
 

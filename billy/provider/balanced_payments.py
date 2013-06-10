@@ -6,7 +6,7 @@ from billy.utils.models import uuid_factory
 class BalancedDummyProvider(BaseProvider):
 
 
-    def check_balance(self):
+    def check_balance(self, customer, group):
         """
         Returns balance
         """
@@ -17,10 +17,10 @@ class BalancedDummyProvider(BaseProvider):
         """
         Returns a transaction identifier or raises error
         """
-        return uuid_factory('YOLO')()
+        return uuid_factory('CHDUMMY')()
 
     def make_payout(self, customer, group, amount_cents):
         """
         Returns a transaction identifier or raises error.
         """
-        return uuid_factory('NOPE')()
+        return uuid_factory('PODUMMY')()

@@ -17,8 +17,6 @@ class TransactionMixin(object):
     amount_cents = Column(Integer)
     status = Column(Unicode)
 
-    charge_callable = NotImplementedError
-
     @classmethod
     def create(cls, customer_id, group_id, amount_cents):
         new_transaction = cls(
@@ -31,15 +29,6 @@ class TransactionMixin(object):
         cls.session.commit()
         return cls
 
-    def execute(self):
-        try:
-            self.charge_callable(self.customer_id, self.group_id, self.amount_cents)
-            self.status = Status.COMPLETE
-        except Exception, e:
-            self.status = Status.ERROR
-            raise e
-        self.customer.charge_attempts = 0
-        self.session.commit()
 
     @classmethod
     def retrieve(cls, group_id, customer_id=None, external_id=None):
@@ -57,12 +46,24 @@ class TransactionMixin(object):
 class PaymentTransaction(TransactionMixin, Base):
     __tablename__ = 'payment_transactions'
 
-    charge_callable = TRANSACTION_PROVIDER_CLASS.make_payout
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PAT'))
     group_id = Column(Unicode)
     customer_id = Column(Unicode)
     plan_invoices = relationship(PlanInvoice.__name__, backref='transaction')
+
+    def execute(self):
+        try:
+            external_id = TRANSACTION_PROVIDER_CLASS.create_charge(
+                            self.customer_id, self.group_id,
+                                         self.amount_cents)
+            self.status = Status.COMPLETE
+            self.external_id = external_id
+        except Exception, e:
+            self.status = Status.ERROR
+            raise e
+        self.customer.charge_attempts = 0
+        self.session.commit()
 
     __table_args__ = (
         #Customer foreign key
@@ -81,6 +82,20 @@ class PayoutTransaction(TransactionMixin, Base):
                                  backref='transaction')
     group_id = Column(Unicode)
     customer_id = Column(Unicode)
+
+
+    def execute(self):
+        try:
+            external_id = TRANSACTION_PROVIDER_CLASS.make_payout(
+                self.customer_id, self.group_id,
+                self.amount_cents)
+            self.status = Status.COMPLETE
+            self.external_id = external_id
+        except Exception, e:
+            self.status = Status.ERROR
+            raise e
+        self.customer.charge_attempts = 0
+        self.session.commit()
 
     __table_args__ = (
         #Customer foreign key

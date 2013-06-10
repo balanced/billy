@@ -7,6 +7,7 @@ from sqlalchemy.schema import ForeignKey, ForeignKeyConstraint, Index
 from billy.models import *
 from billy.utils.models import uuid_factory
 from billy.errors import NotFoundError
+from billy.settings import TRANSACTION_PROVIDER_CLASS, RETRY_DELAY_PAYOUT
 
 
 class PlanInvoice(Base):
@@ -114,6 +115,18 @@ class PlanInvoice(Base):
         return query.first()
 
     @classmethod
+    def need_debt_cleared(cls):
+        """
+        Returns a list of customer objects that need to clear their plan debt
+        """
+        now = datetime.now(UTC)
+        results = cls.query.filter(
+            cls.remaining_balance_cents > 0,
+            cls.due_dt > now,
+            ).group_by(cls.customer_id).all()
+        return [result.customer for result in results]
+
+    @classmethod
     def need_rollover(cls):
         """
         Returns a list of PlanInvoice objects that need a rollover
@@ -147,6 +160,12 @@ class PlanInvoice(Base):
         return True
 
 
+    @classmethod
+    def clear_all_plan_debt(cls):
+        for customer in cls.need_plan_debt_cleared():
+            customer.clear_plan_debt()
+
+
 class PayoutInvoice(Base):
     __tablename__ = 'payout_invoices'
 
@@ -160,9 +179,10 @@ class PayoutInvoice(Base):
     amount_payed_out = Column(Integer)
     completed = Column(Boolean, default=False)
     active = Column(Boolean, default=True)
-    #Todo: make sure yo update this field...
     balance_at_exec = Column(Integer)
     cleared_by = Column(Unicode, ForeignKey('payout_transactions.guid'))
+    attempts_made = Column(Integer, default=0)
+
 
     __table_args__ = (
         #Customer foreign key
@@ -216,6 +236,69 @@ class PayoutInvoice(Base):
         return query.first()
 
 
+    @classmethod
+    def needs_payout_made(cls):
+        now = datetime.now(UTC)
+        return cls.query.filter(cls.payout_date < now,
+                         cls.completed == False
+                        ).all()
+
+    @classmethod
+    def needs_rollover(cls):
+        return cls.query.filter(cls.completed == True,
+                                cls.active == False).all()
+
     def rollover(self):
-        #Todo
-        pass
+        self.active = False
+        self.session.flush()
+        self.customer.add_payout(self.relevant_payout, first_now=False,
+                                 start_dt=self.payout_date)
+
+
+
+    def make_payout(self, force=False):
+        now = datetime.now(UTC)
+        current_balance = TRANSACTION_PROVIDER_CLASS.check_balance(
+                                        self.customer_id, self.group_id)
+        payout_date = self.payout_date
+        if len(RETRY_DELAY_PAYOUT) > self.attempts_made and not force:
+            self.active = False
+        else:
+            retry_delay = sum(RETRY_DELAY_PAYOUT[:self.attempts_made])
+            when_to_payout = payout_date + retry_delay if retry_delay else \
+                payout_date
+            if when_to_payout < now:
+                payout_amount = current_balance - self.balance_to_keep_cents
+                transaction = TRANSACTION_PROVIDER_CLASS.make_payout(
+                            self.customer_id, self.group_id, payout_amount)
+                try:
+                    transaction.execute()
+                    self.cleared_by = transaction.guid
+                    self.balance_at_exec = current_balance
+                    self.amount_payed_out = payout_amount
+                    self.completed = True
+                except:
+                    self.attempts_made += 1
+        self.session.commit()
+        return self
+
+    @classmethod
+    def make_all_payouts(cls):
+        payout_invoices = cls.needs_payout_made()
+        for invoice in payout_invoices:
+            invoice.make_payout()
+        return True
+
+    @classmethod
+    def rollover_all(cls):
+        need_rollover = cls.needs_rollover()
+        for payout in need_rollover:
+            payout.rollover()
+
+
+
+
+
+
+
+

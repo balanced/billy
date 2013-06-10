@@ -21,13 +21,17 @@ from billy.utils.models import uuid_factory
 class Customer(Base):
     __tablename__ = 'customers'
 
-    guid = Column(Unicode, default=uuid_factory('CU'))
-    external_id = Column(Unicode, primary_key=True)
+    guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
+    external_id = Column(Unicode, index=True)
     group_id = Column(Unicode, ForeignKey(Group.external_id))
     current_coupon = Column(Unicode, ForeignKey(Coupon.external_id))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     coupon_use = Column(JSONDict, default={})
+
+    __table_args__ = (
+        UniqueConstraint(external_id, group_id, name='custid_group_id'),
+    )
 
     @classmethod
     def create_customer(cls, external_id, group_id):

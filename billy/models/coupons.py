@@ -181,3 +181,11 @@ class Coupon(Base):
         """
         return Customer.query.filter(Customer.current_coupon == self
         .external_id).count()
+
+    @classmethod
+    def expire_coupons(cls):
+        now = datetime.now(UTC)
+        to_expire = cls.query.filter(cls.expire_at > now).all()
+        for coupon in to_expire:
+            coupon.active = False
+        cls.session.commit()

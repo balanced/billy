@@ -2,6 +2,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import sessionmaker, scoped_session
+
+from billy.utils.plans import Intervals
 from billy.provider.balanced_payments import BalancedDummyProvider
 
 
@@ -23,4 +25,11 @@ DB_ENGINE = create_engine(DB_URL)
 Session = scoped_session(sessionmaker(bind=DB_ENGINE))
 
 TRANSACTION_PROVIDER_CLASS = BalancedDummyProvider
+
+#A list of attempt invervals, [ATTEMPT n DELAY INTERVAL,...]
+RETRY_DELAY = [
+           Intervals.DAY,
+           Intervals.DAY * 3,
+           Intervals.WEEK
+]
 

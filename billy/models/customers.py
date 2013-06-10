@@ -1,12 +1,13 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Column, Unicode, DateTime
+from sqlalchemy import Column, Unicode, DateTime, Integer
 from sqlalchemy.schema import ForeignKeyConstraint, ForeignKey
 from sqlalchemy.orm import relationship
 from pytz import UTC
 from dateutil.relativedelta import relativedelta
 
+from billy.settings import RETRY_DELAY
 from billy.models import *
 from billy.models.base import JSONDict
 from billy.errors import AlreadyExistsError, NotFoundError, LimitReachedError
@@ -23,6 +24,13 @@ class Customer(Base):
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     coupon_use = Column(JSONDict, default={})
+    plan_invoices = relationship('plan_invoices', backref='customer')
+    payout_invoices = relationship('payout_invoices', backref='customer')
+    payment_transactions = relationship('payment_transactions',
+                                        backref='customer')
+    payout_transactions = relationship('payout_transactions',
+                                       backref='customer')
+    charge_attempts = Column(Integer, default=0)
 
     __table_args__ = (
         ForeignKeyConstraint([current_coupon, group_id],
@@ -145,7 +153,7 @@ class Customer(Base):
     @classmethod
     def add_plan_customer(cls, external_id, group_id, plan_id,
                           quantity=1, charge_at_period_end=False,
-                          start_dt = None):
+                          start_dt=None):
         """
         Changes a customer's plan
         :param external_id: A unique id/uri for the customer
@@ -335,7 +343,6 @@ class Customer(Base):
         :raise NotFoundError: if customer or payout are not found.
         :returns: The customer object
         """
-        now = datetime.now(UTC)
         customer = cls.retrieve_customer(external_id, group_id)
         return customer.cancel_payout(payout_id, cancel_scheduled)
 
@@ -372,7 +379,7 @@ class Customer(Base):
             PlanInvoice.group_id == self.group_id,
             PlanInvoice.remaining_balance_cents > 0,
             PlanInvoice.due_dt > now,
-            ).all()
+        ).all()
         return results
 
     def sum_plan_debt(self, plan_invoices_due):
@@ -403,31 +410,49 @@ class Customer(Base):
         else:
             return False
 
-    def need_plan_debt_cleared(self):
+    @classmethod
+    def need_plan_debt_cleared(cls):
         """
-        Returns a list of custoemr objects that need to clear their plan debt
+        Returns a list of customer objects that need to clear their plan debt
         """
-        #Todo
-        pass
+        now = datetime.now(UTC)
+        results = PlanInvoice.filter(
+            PlanInvoice.remaining_balance_cents > 0,
+            PlanInvoice.due_dt > now,
+        ).group_by(PlanInvoice.customer_id).all()
+        return [result.customer for result in results]
+
 
     def clear_plan_debt(self):
+        now = datetime.now(UTC)
+        earliest_due = datetime.now(UTC)
         plan_invoices_due = self.plan_invoices_due
-        sum_debt = self.sum_plan_debt(plan_invoices_due)
-        transaction = PaymentTransaction.create(self.external_id,
-                                                self.group_id, sum_debt)
-        try:
-            transaction.execute()
-        except:
-            #Transaction error. Todo retry
-            pass
-        for each in plan_invoices_due:
-            each.cleared_by = transaction.guid
-            each.remaining_balance_cents = 0
+        for plan_invoice in plan_invoices_due:
+            earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \
+                                                  earliest_due else earliest_due
+        if len(RETRY_DELAY) > self.charge_attempts:
+            #Deactiate all invoices due...
+            for plan_invoice in plan_invoices_due:
+                plan_invoice.active = False
+        else:
+            retry_delay = sum(RETRY_DELAY[:self.charge_attempts])
+            when_to_charge = earliest_due + retry_delay if retry_delay else \
+                earliest_due
+            if when_to_charge < now:
+                sum_debt = self.sum_plan_debt(plan_invoices_due)
+                transaction = PaymentTransaction.create(self.external_id,
+                                                        self.group_id, sum_debt)
+                try:
+                    transaction.execute()
+                except:
+                    self.charge_attempts += 1
+                for each in plan_invoices_due:
+                    each.cleared_by = transaction.guid
+                    each.remaining_balance_cents = 0
         self.session.commit()
         return self
 
-
-
-    def retry_cancel(self):
-        #Todo
-        pass
+    @classmethod
+    def clear_all_plan_debt(cls):
+        for customer in cls.need_plan_debt_cleared():
+            customer.clear_plan_debt()

@@ -11,7 +11,7 @@ from billy.utils.models import uuid_factory
 
 
 class AuditEvent(Base):
-    __tablename__ = 'auditevents'
+    __tablename__ = 'audit_events'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     customer_id = Column(String)

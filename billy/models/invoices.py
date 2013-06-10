@@ -10,7 +10,7 @@ from billy.errors import NotFoundError
 
 
 class PlanInvoice(Base):
-    __tablename__ = 'charge_invoices'
+    __tablename__ = 'plan_invoices'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PLI'))
     customer_id = Column(Unicode)
@@ -45,7 +45,9 @@ class PlanInvoice(Base):
         ForeignKeyConstraint(
             [relevant_coupon, group_id],
             [Coupon.external_id, Plan.group_id]),
-        Index('unique_plan_invoice', relevant_plan, group_id, active == True)
+        Index('unique_plan_invoice', relevant_plan, group_id,
+              postgresql_where=active == True,
+              unique=True)
     )
 
     @classmethod
@@ -172,7 +174,7 @@ class PayoutInvoice(Base):
             [relevant_payout, group_id],
             [Payout.external_id, Payout.group_id]),
         Index('unique_payout_invoice', relevant_payout, group_id,
-              active == True)
+              postgresql_where=active == True, unique=True)
 
     )
 

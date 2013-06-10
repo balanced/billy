@@ -38,6 +38,7 @@ class TransactionMixin(object):
         except Exception, e:
             self.status = Status.ERROR
             raise e
+        self.customer.charge_attempts = 0
         self.session.commit()
 
     @classmethod

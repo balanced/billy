@@ -5,6 +5,10 @@ from sqlalchemy import Column, Unicode, Integer, DateTime, Boolean
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
 
 from billy.models.base import Base
+from billy.models.customers import Customer
+from billy.models.groups import Group
+from billy.models.plans import Plan
+from billy.models.coupons import Coupon
 from billy.utils.models import uuid_factory
 from billy.errors import NotFoundError
 
@@ -13,13 +17,14 @@ class PlanInvoice(Base):
     __tablename__ = 'charge_invoices'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PLI'))
-    customer_id = Column(Unicode, ForeignKey('customers.customer_id'))
-    group_id = Column(Unicode, ForeignKey('groups.guid'))
-    relevant_plan = Column(Unicode, ForeignKey('plans.plan_id'))
-    relevant_coupon = Column(Unicode, ForeignKey('coupons.coupon_id'))
+    customer_id = Column(Unicode, ForeignKey(Customer.external_id))
+    group_id = Column(Unicode, ForeignKey(Group.external_id))
+    relevant_plan = Column(Unicode, ForeignKey(Plan.external_id))
+    relevant_coupon = Column(Unicode, ForeignKey(Coupon.external_id))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     start_dt = Column(DateTime(timezone=UTC))
     end_dt = Column(DateTime(timezone=UTC))
+    original_end_dt = Column(DateTime(timezone=UTC))
     due_dt = Column(DateTime(timezone=UTC))
     includes_trial = Column(Boolean)
     amount_base_cents = Column(Integer)
@@ -29,6 +34,7 @@ class PlanInvoice(Base):
     quantity = Column(Integer)
     charge_at_period_end = Column(Boolean)
     active = Column(Boolean, default=True)
+    cleared_by = Column(Unicode, ForeignKey('payment_transactions.guid'))
 
     #Todo: Unique constraint here should include active
     __table_args__ = (UniqueConstraint('customer_id', 'group_id',
@@ -65,6 +71,7 @@ class PlanInvoice(Base):
             start_dt=start_dt,
             end_dt=end_dt,
             due_dt=due_dt,
+            original_end_dt = end_dt,
             amount_base_cents=amount_base_cents,
             amount_after_coupon_cents=amount_after_coupon_cents,
             amount_paid_cents=amount_paid_cents,
@@ -97,6 +104,39 @@ class PlanInvoice(Base):
         if relevant_plan:
             query.filter(cls.relevant_plan == relevant_plan)
         return query.first()
+
+    @classmethod
+    def need_rollover(cls):
+        """
+        Returns a list of PlanInvoice objects that need a rollover
+        """
+        now = datetime.now(UTC)
+        invoices_rollover = cls.query.filter(cls.end_dt > now,
+                                             cls.active == True,
+                                             cls.remaining_balance_cents == 0,
+                                             ).all()
+        return invoices_rollover
+
+    def rollover(self):
+        """
+        Rollover the invoice
+        """
+        self.active = False
+        self.session.flush()
+        Customer.add_plan_customer(self.customer_id, self.group_id,
+                                       self.relevant_plan,
+                                       quantity=self.quantity,
+                                       charge_at_period_end=self
+                                       .charge_at_period_end,
+                                       start_dt=self.end_dt)
+        self.session.commit()
+
+    @classmethod
+    def rollover_all(cls):
+        to_rollover = cls.need_rollover()
+        for plan_invoice in to_rollover:
+            plan_invoice.rollover()
+        return True
 
 
 class PayoutInvoice(Base):
@@ -155,3 +195,8 @@ class PayoutInvoice(Base):
         if relevant_payout:
             query.filter(cls.payout_id == relevant_payout)
         return query.first()
+
+
+    def rollover(self):
+        #Todo
+        pass

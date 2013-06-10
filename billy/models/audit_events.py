@@ -5,6 +5,7 @@ from sqlalchemy import event, ForeignKey
 from sqlalchemy import Column, String, DateTime, Unicode
 
 from billy.models.base import Base
+from billy.models.groups import Group
 from utils.audit_events import string_attr
 
 
@@ -13,7 +14,7 @@ class AuditEvent(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     customer_id = Column(String)
-    group_id = Column(String, ForeignKey('groups.guid'))
+    group_id = Column(String, ForeignKey(Group.external_id))
     model_name = Column(String)
     plan_id = Column(String)
     payout_id = Column(String)

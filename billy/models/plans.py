@@ -8,6 +8,7 @@ from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, ForeignKey
 
 from billy.models.base import Base, JSONDict
 from billy.models.customers import Customer
+from billy.models.groups import Group
 from billy.utils.models import uuid_factory
 from billy.errors import NotFoundError, AlreadyExistsError
 
@@ -16,8 +17,8 @@ class Plan(Base):
     __tablename__ = 'plans'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PL'))
-    external_id = Column(Unicode)
-    group_id = Column(Unicode, ForeignKey('groups.guid'))
+    external_id = Column(Unicode, index=True)
+    group_id = Column(Unicode, ForeignKey(Group.external_id), index=True)
     name = Column(Unicode)
     price_cents = Column(Integer)
     active = Column(Boolean, default=True)

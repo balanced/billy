@@ -3,14 +3,17 @@ from decimal import Decimal
 
 from sqlalchemy import Column, Unicode, DateTime
 from sqlalchemy.schema import UniqueConstraint, ForeignKey
+from sqlalchemy.orm import relationship
 from pytz import UTC
 from dateutil.relativedelta import relativedelta
 
 from billy.models.base import Base, JSONDict
 from billy.models.coupons import Coupon
+from billy.models.groups import Group
 from billy.models.plans import Plan
 from billy.models.invoices import PlanInvoice, PayoutInvoice
 from billy.models.payouts import Payout
+from billy.models.transactions import PaymentTransaction, PayoutTransaction
 from billy.errors import AlreadyExistsError, NotFoundError, LimitReachedError
 from billy.utils.models import uuid_factory
 
@@ -18,17 +21,13 @@ from billy.utils.models import uuid_factory
 class Customer(Base):
     __tablename__ = 'customers'
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
+    guid = Column(Unicode, default=uuid_factory('CU'))
     external_id = Column(Unicode, primary_key=True)
-    group_id = Column(Unicode, ForeignKey('groups.guid'))
-    current_coupon = Column(Unicode, ForeignKey('coupons.coupon_id'))
+    group_id = Column(Unicode, ForeignKey(Group.external_id))
+    current_coupon = Column(Unicode, ForeignKey(Coupon.external_id))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     coupon_use = Column(JSONDict, default={})
-
-    __table_args__ = (UniqueConstraint('external_id', 'group_id',
-                                       name='customerid_group'),
-    )
 
     @classmethod
     def create_customer(cls, external_id, group_id):
@@ -145,7 +144,8 @@ class Customer(Base):
 
     @classmethod
     def add_plan_customer(cls, external_id, group_id, plan_id,
-                          quantity=1, charge_at_period_end=False):
+                          quantity=1, charge_at_period_end=False,
+                          start_dt = None):
         """
         Changes a customer's plan
         :param external_id: A unique id/uri for the customer
@@ -156,14 +156,14 @@ class Customer(Base):
         customer_obj = cls.retrieve_customer(external_id, group_id)
         plan_obj = Plan.retrieve_plan(plan_id, group_id, active_only=True)
         current_coupon = customer_obj.coupon
-        start_date = datetime.now(UTC)
+        start_date = start_dt or datetime.now(UTC)
         due_on = datetime.now(UTC)
         coupon_use_count = customer_obj.coupon_use.get(current_coupon
                                                        .coupon_id, 0)
         use_coupon = True if current_coupon.repeating == -1 or \
                              coupon_use_count \
                              <= current_coupon.repeating else False
-        can_trial = customer_obj.can_trial()
+        can_trial = customer_obj.can_trial(plan_obj.external_id)
         end_date = start_date + plan_obj.to_relativedelta(
             plan_obj.plan_interval)
         trial_interval = plan_obj.to_relativedelta(plan_obj.trial_interval)
@@ -371,7 +371,7 @@ class Customer(Base):
             PlanInvoice.customer_id == self.external_id,
             PlanInvoice.group_id == self.group_id,
             PlanInvoice.remaining_balance_cents > 0,
-            PlanInvoice.due_dt < now,
+            PlanInvoice.due_dt > now,
             ).all()
         return results
 
@@ -403,16 +403,31 @@ class Customer(Base):
         else:
             return False
 
+    def need_plan_debt_cleared(self):
+        """
+        Returns a list of custoemr objects that need to clear their plan debt
+        """
+        #Todo
+        pass
 
     def clear_plan_debt(self):
-        transaction = Transaction.create(self.due_invoices)
-        transaction.execute()
         plan_invoices_due = self.plan_invoices_due
         sum_debt = self.sum_plan_debt(plan_invoices_due)
-        trans_id = #MAKE TRANSCATION
+        transaction = PaymentTransaction.create(self.external_id,
+                                                self.group_id, sum_debt)
+        try:
+            transaction.execute()
+        except:
+            #Transaction error. Todo retry
+            pass
         for each in plan_invoices_due:
-            each.cleared_by = trans_id
+            each.cleared_by = transaction.guid
+            each.remaining_balance_cents = 0
+        self.session.commit()
+        return self
 
 
-        #todo
+
+    def retry_cancel(self):
+        #Todo
         pass

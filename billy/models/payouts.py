@@ -8,6 +8,7 @@ from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, ForeignKey
 
 from billy.models.base import Base, JSONDict
 from billy.models.customers import Customer
+from billy.models.groups import Group
 from billy.utils.models import uuid_factory
 from billy.errors import NotFoundError, AlreadyExistsError
 
@@ -17,7 +18,7 @@ class Payout(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PO'))
     external_id = Column(Unicode)
-    group_id = Column(Unicode, ForeignKey('groups.guid'))
+    group_id = Column(Unicode, ForeignKey(Group.external_id))
     name = Column(Unicode)
     balance_to_keep_cents = Column(Integer)
     active = Column(Boolean, default=True)

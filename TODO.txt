@@ -1,3 +1,5 @@
 #Todo add event attribute to the various models
 #Todo find strategy to convert commits to flush
 #Todo Convert try/except blocks to constraints
+#Todo needle haystack issue, what comes first group or customer?
+#Todo relationships should use guid

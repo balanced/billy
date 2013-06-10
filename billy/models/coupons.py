@@ -2,12 +2,13 @@ from datetime import datetime
 
 from sqlalchemy import ForeignKey
 from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime
-from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.schema import ForeignKeyConstraint
 from sqlalchemy.orm import relationship
 from pytz import UTC
 
 from billy.models.base import Base
 from billy.models.customers import Customer
+from billy.models.groups import Group
 from billy.utils.models import uuid_factory
 from billy.errors import NotFoundError, AlreadyExistsError
 
@@ -15,10 +16,9 @@ from billy.errors import NotFoundError, AlreadyExistsError
 class Coupon(Base):
     __tablename__ = 'coupons'
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
-    external_id = Column(Unicode)
-    name = Column(Unicode)
-    group_id = Column(Unicode, ForeignKey('groups.guid'))
+    guid = Column(Unicode, default=uuid_factory('CU'))
+    external_id = Column(Unicode, primary_key=True)
+    group_id = Column(Unicode, ForeignKey(Group.external_id), primary_key=True)
     price_off_cents = Column(Integer)
     percent_off_int = Column(Integer)
     expire_at = Column(DateTime(timezone=UTC))
@@ -28,10 +28,6 @@ class Coupon(Base):
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     deleted_at = Column(DateTime(timezone=UTC))
     customers = relationship(Customer, backref='coupon')
-    __table_args__ = (
-        UniqueConstraint('external_id', 'group_Id',
-                         name='couponid_group'),
-    )
 
 
     @classmethod

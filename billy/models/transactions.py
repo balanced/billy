@@ -1,10 +1,12 @@
 from datetime import datetime
 
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Integer
+from sqlalchemy.orm import relationship
 from pytz import UTC
 
 from billy.models.base import Base
-from billy.utils.models import uuid_factory
+from billy.models.invoices import PlanInvoice, PayoutInvoice
+from billy.utils.models import uuid_factory, Status
 from billy.settings import TRANSACTION_PROVIDER_CLASS
 
 
@@ -14,22 +16,30 @@ class Transaction(Base):
     customer_id = Column(Unicode, ForeignKey('customers.external_id'))
     created_at = Column(DateTime(timezone=UTC))
     amount_cents = Column(Integer)
-    status = Column(Integer)
+    status = Column(Unicode)
 
     charge_callable = NotImplementedError
 
     @classmethod
-    def create(cls, group_id, customer_id, amount_cents):
+    def create(cls, customer_id, group_id, amount_cents):
         new_transaction = cls(
-            external_id=external_id,
             group_id=group_id,
             customer_id=customer_id,
             amount_cents=amount_cents,
+            status = Status.PENDING
         )
         cls.session.add(new_transaction)
-        cls.session.flush()
+        cls.session.commit()
+        return cls
 
-
+    def execute(self):
+        try:
+            self.charge_callable(self.customer_id, self.group_id, self.amount_cents)
+            self.status = Status.COMPLETE
+        except Exception, e:
+            self.status = Status.ERROR
+            raise e
+        self.session.commit()
 
     @classmethod
     def retrieve(cls, group_id, customer_id=None, external_id=None):
@@ -41,17 +51,23 @@ class Transaction(Base):
         return query.all()
 
 
+    #Todo retry ERROR status ones.
+
+
 class PaymentTransaction(Transaction):
-    __tablename__ = 'payout_transactions'
+    __tablename__ = 'payment_transactions'
 
     charge_callable = TRANSACTION_PROVIDER_CLASS.make_payout
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PAT'))
+    plan_invoices = relationship(PlanInvoice.__name__, backref='transaction')
 
 
 class PayoutTransaction(Transaction):
     __tablename__ = 'payout_transactions'
 
-    charge_callabe = TRANSACTION_PROVIDER_CLASS.create_charge
+    charge_callable = TRANSACTION_PROVIDER_CLASS.create_charge
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POT'))
+    payout_invoices = relationship(PayoutInvoice.__name__,
+                                 backref='transaction')

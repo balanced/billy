@@ -42,7 +42,7 @@ def uuid_factory(prefix=None):
 
 
 
-class STATUS(object):
+class Status(object):
 
     PENDING = 'PENDING'
     COMPLETE = 'COMPLETE'

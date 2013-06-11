@@ -35,7 +35,7 @@ class AuditEvent(Base):
         new_audit.sql_event = event_type
         new_audit.coupon_id = string_attr(entity, 'coupon_id')
         new_audit.invoice_id = string_attr(entity, 'invoice_id')
-        new_audit.model_name = entity.__name__
+        new_audit.model_name = getattr(entity, '__tablename__', None)
         new_audit.obj_guid = string_attr(entity, 'guid')
         new_audit.plan_id = string_attr(entity, 'plan_id')
         new_audit.group_id = string_attr(entity, 'group_id')
@@ -43,8 +43,8 @@ class AuditEvent(Base):
         new_audit.payout_id = string_attr(entity, 'payout_id')
         new_audit.external_id = string_attr(entity, 'external_id')
         new_audit.event = string_attr(entity, 'event')
-        cls.session.add(new_audit)
-        cls.session.commit()
+        #cls.session.add(new_audit)
+        #cls.session.commit() Todo check this out...
 
     @staticmethod
     def insert_listener(mapper, connection, target):

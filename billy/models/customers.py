@@ -27,11 +27,11 @@ class Customer(Base):
     last_debt_clear = Column(DateTime(timezone=UTC))
 
 
-    plan_invoices = relationship('plan_invoices', backref='customer')
-    payout_invoices = relationship('payout_invoices', backref='customer')
-    payment_transactions = relationship('payment_transactions',
+    plan_invoices = relationship('PlanInvoice', backref='customer')
+    payout_invoices = relationship('PayoutInvoice', backref='customer')
+    payment_transactions = relationship('PaymentTransaction',
                                         backref='customer')
-    payout_transactions = relationship('payout_transactions',
+    payout_transactions = relationship('PayoutTransaction',
                                        backref='customer')
     charge_attempts = Column(Integer, default=0)
 

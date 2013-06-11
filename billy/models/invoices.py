@@ -16,7 +16,7 @@ class PlanInvoice(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PLI'))
     customer_id = Column(Unicode)
-    group_id = Column(Unicode)
+    group_id = Column(Unicode, ForeignKey(Group.external_id))
     relevant_plan = Column(Unicode)
     relevant_coupon = Column(Unicode)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
@@ -174,7 +174,7 @@ class PayoutInvoice(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POI'))
     customer_id = Column(Unicode)
-    group_id = Column(Unicode)
+    group_id = Column(Unicode, ForeignKey(Group.external_id))
     relevant_payout = Column(Unicode)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_date = Column(DateTime(timezone=UTC))

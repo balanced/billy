@@ -25,7 +25,6 @@ class Payout(Base):
     deleted_at = Column(DateTime(timezone=UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_interval = Column(JSONDict)
-    customers = relationship('Customer', backref='payouts')
 
 
     def from_relativedelta(self, inter):

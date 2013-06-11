@@ -15,6 +15,8 @@ class Group(Base):
     external_id = Column(Unicode, unique=True)
     coupons = relationship('AuditEvent', backref='group')
     customers = relationship('Customer', backref='group')
+    plans = relationship('Plan', backref='group')
+    payouts = relationship('Payout', backref='group')
     plan_invoices = relationship('PlanInvoice', backref='group')
     payout_invoices = relationship('PayoutInvoice', backref='group')
 
@@ -23,13 +25,10 @@ class Group(Base):
 
     @classmethod
     def create_group(cls, external_id):
-        exists = cls.query.filter(cls.external_id == external_id)
-        if exists:
-            raise AlreadyExistsError('The group already exists in the db.')
-        new_group = cls(external_id == external_id)
+        new_group = cls(external_id = external_id)
         new_group.event = EventCatalog.GROUP_CREATE
         cls.session.add(new_group)
-
+        cls.session.commit()
     @classmethod
     def retrieve_group(cls, group_id):
         return cls.query.get(group_id)

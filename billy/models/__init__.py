@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from base import Base
 from audit_events import AuditEvent
 from groups import Group

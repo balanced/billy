@@ -18,6 +18,7 @@ class Coupon(Base):
     guid = Column(Unicode, index=True, default=uuid_factory('CU'))
     external_id = Column(Unicode, primary_key=True)
     group_id = Column(Unicode, ForeignKey(Group.external_id), primary_key=True)
+    name = Column(Unicode)
     price_off_cents = Column(Integer)
     percent_off_int = Column(Integer)
     expire_at = Column(DateTime(timezone=UTC))
@@ -48,28 +49,20 @@ class Coupon(Base):
         :param repeating: The maximum number of invoices it applies to. -1
         for all/forver
         :return: The new coupon object
-        :raise AlreadyExistsError: If the coupon already exists
         """
-
-        exists = cls.query.filter(cls.external_id == external_id,
-                                  cls.group_id == group_id).first()
-        if not exists:
-            new_coupon = cls(
-                external_id=external_id,
-                group_id=group_id,
-                name=name,
-                price_off_cents=price_off_cents,
-                percent_off_int=percent_off_int,
-                max_redeem=max_redeem,
-                repeating=repeating,
-                expire_at=expire_at)
-            new_coupon.event = EventCatalog.COUPON_CREATE
-            cls.session.add(new_coupon)
-            cls.session.commit()
-            return new_coupon
-        else:
-            raise AlreadyExistsError(
-                'Coupon already exists. Check external_id and group_id')
+        new_coupon = cls(
+            external_id=external_id,
+            group_id=group_id,
+            name=name,
+            price_off_cents=price_off_cents,
+            percent_off_int=percent_off_int,
+            max_redeem=max_redeem,
+            repeating=repeating,
+            expire_at=expire_at)
+        new_coupon.event = EventCatalog.COUPON_CREATE
+        cls.session.add(new_coupon)
+        cls.session.commit()
+        return new_coupon
 
     @classmethod
     def retrieve_coupon(cls, external_id, group_id, active_only=False):
@@ -81,17 +74,11 @@ class Coupon(Base):
         :returns: Single coupon
         :raise NotFoundError:  if coupon not found.
         """
-        query = cls.filter(cls.external_id == external_id,
+        query = cls.query.filter(cls.external_id == external_id,
                            cls.group_id == group_id)
-
         if active_only:
             query.filter(cls.active == True)
-
-        exists = query.first()
-        if not exists:
-            raise NotFoundError(
-                'Active Coupon not found. Check external_id and group_id')
-        return exists
+        return query.one()
 
     def update(self, new_name=None,
                new_max_redeem=None, new_expire_at=None, new_repeating=None):

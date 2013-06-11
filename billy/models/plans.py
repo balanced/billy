@@ -27,7 +27,6 @@ class Plan(Base):
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     trial_interval = Column(JSONDict)
     plan_interval = Column(JSONDict)
-    customers = relationship(Customer.__name__, backref='plans')
 
 
     def from_relativedelta(self, inter):

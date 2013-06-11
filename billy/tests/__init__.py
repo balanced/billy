@@ -45,12 +45,11 @@ class BalancedTransactionalTestCase(unittest.TestCase):
 
         self._db_connection = self._db_engine.connect()
         self._db_transaction = self._db_connection.begin()
-
         Session.configure(bind=self._db_connection)
         # HACK: this is done solely to set up signals for model test cases --
         # alternatives are welcome
         self.session = Base.session = Session
-
+        Base.session.commit = Base.session.flush
         # adds the clean up handler that will reset the database
         # state, which is necessary for when your setUp() function
         # can fail in the middle of setting up a db-fixture.

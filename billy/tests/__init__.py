@@ -1,22 +1,17 @@
 from __future__ import unicode_literals
-import base64
-import contextlib
-import imp
+import unittest
 import os
-import sys
 
-from functools import partial
-from billy.settings import DB_URL
-from billy.models.base import Base
-from sqlalchemy.orm.session import sessionmaker
 import sqlalchemy
+
+from billy.settings import DB_URL, Session
+from billy.models.base import Base
+
 BASE_PATH = os.path.abspath(os.path.join(
     os.path.basename(__file__), '..'))
 SCRIPTS_PATH = os.path.join(BASE_PATH, 'scripts')
 PACKAGE_PATH = os.path.join(BASE_PATH, 'balanced_service')
 
-import unittest
-from billy.settings import Session
 
 
 class BalancedTransactionalTestCase(unittest.TestCase):

@@ -1,31 +1,31 @@
 from datetime import datetime
-from sqlalchemy import Column, String, Integer, Boolean, DateTime
-from sqlalchemy.schema import UniqueConstraint
-from sqlalchemy.orm import relationship
+
 from pytz import UTC
 from dateutil.relativedelta import relativedelta
+from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, ForeignKey
 
-from billy.models.base import Base, JSONDict
-from billy.models.customers import Customer
+from billy.models import *
+from billy.models.base import JSONDict
+from billy.utils.models import uuid_factory
+from billy.utils.audit_events import EventCatalog
 from billy.errors import NotFoundError, AlreadyExistsError
 
 
 class Payout(Base):
     __tablename__ = 'payouts'
 
-    payout_id = Column(String, primary_key=True)
-    marketplace = Column(String)
-    name = Column(String)
+    guid = Column(Unicode, index=True, default=uuid_factory('PO'))
+    external_id = Column(Unicode, primary_key=True)
+    group_id = Column(Unicode, ForeignKey(Group.external_id), primary_key=True)
+    name = Column(Unicode)
     balance_to_keep_cents = Column(Integer)
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     deleted_at = Column(DateTime(timezone=UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_interval = Column(JSONDict)
-    customers = relationship(Customer.__name__, backref='payouts')
-    #Payout by percentage
-    __table_args__ = (
-    UniqueConstraint('payout_id', 'marketplace', name='payoutid_marketplace'))
+    customers = relationship('Customer', backref='payouts')
 
 
     def from_relativedelta(self, inter):
@@ -44,13 +44,14 @@ class Payout(Base):
 
 
     @classmethod
-    def create_payout(cls, payout_id, marketplace, name, balance_to_keep_cents,
-                       payout_interval):
+    def create_payout(cls, external_id, group_id, name,
+                      balance_to_keep_cents,
+                      payout_interval):
         """
         Creates a payout that users can be assigned to.
-        :param payout_id: A unique id/uri for the payout
-        :param marketplace: a group/marketplace id/uri the user should be placed
-        in (matches balanced payments marketplaces)
+        :param external_id: A unique id/uri for the payout
+        :param group_id: a group id/uri the user should be placed
+        in (matches balanced payments group_id)
         :param name: A display name for the payout
         :param balance_to_keep_cents: The amount to keep in the users balance
         . Everything else will be payedout.
@@ -61,75 +62,76 @@ class Payout(Base):
         :raise TypeError: if intervals are not relativedelta (Interval class)
         """
         exists = cls.query.filter(
-            cls.payout_id == payout_id, cls.marketplace == marketplace) \
+            cls.external_id == external_id, cls.group_id == group_id) \
             .first()
         if not exists:
             new_payout = cls(
-                payout_id = payout_id,
-                marketplace = marketplace,
-                name = name,
-                balance_to_keep_cents = balance_to_keep_cents,
-                payout_interval = payout_interval)
+                external_id=external_id,
+                group_id=group_id,
+                name=name,
+                balance_to_keep_cents=balance_to_keep_cents,
+                payout_interval=payout_interval)
+            new_payout.event = EventCatalog.PAYOUT_CREATE
             cls.session.add(new_payout)
             cls.session.commit()
             return new_payout
         else:
             raise AlreadyExistsError(
-                'Payout already exists. Check payout_id and marketplace')
+                'Payout already exists. Check external_id and group_id')
 
     @classmethod
-    def retrieve_payout(cls, payout_id, marketplace, active_only=False):
+    def retrieve_payout(cls, external_id, group_id, active_only=False):
         """
         This method retrieves a single payout.
-        :param payout_id: the unique payout_id
-        :param marketplace: the payouts marketplace/group
+        :param external_id: the unique external_id
+        :param group_id: the payouts group
         :param active_only: if true only returns active payouts
         :raise NotFoundError:  if payout not found.
         """
-        query = cls.filter(cls.payout_id == payout_id,
-                              cls.marketplace == marketplace)
+        query = cls.filter(cls.external_id == external_id,
+                           cls.group_id == group_id)
         if active_only:
             query.filter(cls.active == True)
         exists = query.first()
         if not exists:
             raise NotFoundError(
-                'Active Payout not found. Check payout_id and marketplace')
+                'Active Payout not found. Check external_id and group_id')
         return exists
 
     def update(self, new_name):
         self.name = new_name
         self.updated_at = datetime.now(UTC)
+        self.session = EventCatalog.PAYOUT_UPDATE
         self.session.commit()
         return self
 
     @classmethod
-    def update_payout(cls, payout_id, marketplace, new_name):
+    def update_payout(cls, external_id, group_id, new_name):
         """
         Updates ONLY the payout name. By design the only updateable field is the
         name.
         To change other params create a new payout.
-        :param payout_id: The payout id/uri
-        :param marketplace: The group/marketplace id/uri
+        :param external_id: The payout id/uri
+        :param group_id: The group id/uri
         :param new_name: The new display name for the payout
         :raise NotFoundError:  if payout not found.
         :returns: New Payout object
         """
         exists = cls.query.filter(
-            cls.payout_id == payout_id, cls.marketplace == marketplace) \
+            cls.external_id == external_id, cls.group_id == group_id) \
             .first()
         if not exists:
             raise NotFoundError('Payout not found. Try different id')
         return exists.update(new_name)
 
     @classmethod
-    def list_payouts(cls, marketplace, active_only = False):
-        #Todo active only
+    def list_payouts(cls, group_id, active_only=False):
         """
         Returns a list of payouts currently in the database
-        :param marketplace: The group/marketplace id/uri
+        :param group_id: The group id/uri
         :returns: A list of Payout objects
         """
-        query = cls.query.filter(cls.marketplace == marketplace)
+        query = cls.query.filter(cls.group_id == group_id)
         if active_only:
             query.filter(cls.active == True)
         results = query.all()
@@ -140,24 +142,26 @@ class Payout(Base):
         self.active = False
         self.updated_at = datetime.now(UTC)
         self.deleted_at = datetime.now(UTC)
+        self.event = EventCatalog.PAYOUT_DELETE
         self.session.commit()
         return self
 
     @classmethod
-    def delete_payout(cls, payout_id, marketplace):
+    def delete_payout(cls, external_id, group_id):
         """
         This method deletes a payout. Payouts are not deleted from the database,
         but are instead marked as inactive so no new
-        users can be added. Everyone currently on the payout is maintained on the
+        users can be added. Everyone currently on the payout is maintained on
+         the
         payout.
-        :param payout_id: the unique payout_id
-        :param marketplace: the payout marketplace/group
+        :param external_id: the unique external_id
+        :param group_id: the payout group
         :returns: the deleted Payout object
         :raise NotFoundError:  if payout not found.
         """
         exists = cls.filter(
-            cls.payout_id == payout_id, cls.marketplace ==
-                                           marketplace).first()
+            cls.external_id == external_id, cls.group_id ==
+                                            group_id).first()
         if not exists:
             raise NotFoundError('Payout not found. Use different id')
         return exists.delete()

@@ -2,21 +2,21 @@ from __future__ import unicode_literals
 from datetime import datetime
 
 from pytz import UTC
-from sqlalchemy import Boolean, Column, DateTime, Integer, ForeignKey, Unicode
+from sqlalchemy import Boolean, Column, DateTime, Integer, ForeignKey, \
+    Unicode, UniqueConstraint
 from sqlalchemy.orm import relationship, validates
 
 from billy.models import *
 from billy.utils.models import uuid_factory
 from billy.utils.audit_events import EventCatalog
-from billy.errors import NotFoundError, AlreadyExistsError
 
 
 class Coupon(Base):
     __tablename__ = 'coupons'
 
-    guid = Column(Unicode, index=True, default=uuid_factory('CU'))
-    external_id = Column(Unicode, primary_key=True)
-    group_id = Column(Unicode, ForeignKey(Group.external_id), primary_key=True)
+    guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
+    external_id = Column(Unicode)
+    group_id = Column(Unicode, ForeignKey(Group.external_id))
     name = Column(Unicode)
     price_off_cents = Column(Integer)
     percent_off_int = Column(Integer)
@@ -28,9 +28,12 @@ class Coupon(Base):
     deleted_at = Column(DateTime(timezone=UTC))
     customers = relationship('Customer', backref='coupon')
 
+    __table_args__ = (UniqueConstraint(external_id, group_id,
+                                       name='coupon_id_group_unique')
+    )
 
     @classmethod
-    def create_coupon(cls, external_id, group_id, name, price_off_cents,
+    def create(cls, external_id, group_id, name, price_off_cents,
                       percent_off_int, max_redeem, repeating, expire_at=None):
         """
         Creates a coupon that can be later applied to a customer.
@@ -64,7 +67,7 @@ class Coupon(Base):
         return new_coupon
 
     @classmethod
-    def retrieve_coupon(cls, external_id, group_id, active_only=False):
+    def retrieve(cls, external_id, group_id, active_only=False):
         """
         This method retrieves a single coupon.
         :param external_id: the unique external_id
@@ -103,19 +106,6 @@ class Coupon(Base):
         self.event = EventCatalog.COUPON_UPDATE
         self.session.commit()
 
-    @classmethod
-    def update_coupon(cls, external_id, group_id, new_name=None,
-                      new_max_redeem=None, new_expire_at=None,
-                      new_repeating=None):
-        """
-        Static version of update
-        """
-        exists = cls.query.filter(cls.external_id == external_id,
-                                  cls.group_id == group_id).one()
-        return exists.update(new_name=new_name, new_max_redeem=new_max_redeem,
-                             new_expire_at=new_expire_at,
-                             new_repeating=new_repeating)
-
     def delete(self):
         """
         Deletes the coupon. Coupons are not deleted from the database,
@@ -130,24 +120,9 @@ class Coupon(Base):
         self.session.commit()
         return self
 
-    @classmethod
-    def delete_coupon(cls, external_id, group_id):
-        """
-        Static version of delete method.
-        :param external_id: the unique external_id
-        :param group_id: the plans group/marketplace
-        :returns: the deleted Coupon object
-        :raise NotFoundError:  if coupon not found.
-        """
-        exists = cls.query.filter(cls.external_id == external_id,
-                                  cls.group_id == group_id).one()
-        if not exists:
-            raise NotFoundError('Coupon not found. Try a different id')
-        return exists.delete()
-
 
     @classmethod
-    def list_coupons(cls, group_id, active_only=False):
+    def list(cls, group_id, active_only=False):
         """
         Returns a list of coupons currently in the database
         :param group_id: The group/marketplace id/uri
@@ -157,7 +132,6 @@ class Coupon(Base):
         if active_only:
             query = query.filter(cls.active == True)
         return query.all()
-
 
     @property
     def count_redeemed(self):
@@ -169,6 +143,9 @@ class Coupon(Base):
 
     @classmethod
     def expire_coupons(cls):
+        """
+        Expires all expired coupons (TASK)
+        """
         now = datetime.now(UTC)
         to_expire = cls.query.filter(cls.expire_at < now).all()
         for coupon in to_expire:

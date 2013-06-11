@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 
 from base import Base
 from billy.utils.models import uuid_factory
+from billy.utils.audit_events import EventCatalog
 from billy.errors import AlreadyExistsError
 from billy.models import *
 
@@ -26,6 +27,7 @@ class Group(Base):
         if exists:
             raise AlreadyExistsError('The group already exists in the db.')
         new_group = cls(external_id == external_id)
+        new_group.event = EventCatalog.GROUP_CREATE
         cls.session.add(new_group)
 
     @classmethod

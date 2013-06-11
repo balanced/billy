@@ -12,7 +12,10 @@ def string_attr(the_object, the_attribute):
 
 class EventCatalog(object):
 
-    #CUSTOMER EVENTS
+    #GROUPS
+    GROUP_CREATE = "GROUP_CREATE"
+
+    #CUSTOMER
     CUSTOMER_CREATE = "CUSTOMER_CREATE"
     CUSTOMER_APPLY_COUPON = "CUSTOMER_APPLY_COUPON"
     CUSTOMER_REMOVE_COUPON = "CUSTOMER_REMOVE_COUPON"

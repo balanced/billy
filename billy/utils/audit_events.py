@@ -43,7 +43,10 @@ class EventCatalog(object):
     POI_MAKE_PAYOUT = "POI_MAKE_PAYOUT"
     POI_PAYOUT_ATTEMPT = "POI_PAYOUT_ATTEMPT"
 
-
+    #Plans
+    PLAN_CREATE = "PLAN_CREATE"
+    PLAN_UPDATE = "PLAN_UPDATE"
+    PLAN_DELETE = "PLAN_DELETE"
 
 
 

@@ -9,6 +9,7 @@ from billy.models.base import Base, JSONDict
 from billy.models.customers import Customer
 from billy.models.groups import Group
 from billy.utils.models import uuid_factory
+from billy.utils.audit_events import EventCatalog
 from billy.errors import NotFoundError, AlreadyExistsError
 
 
@@ -72,6 +73,7 @@ class Plan(Base):
                 plan_interval=plan_interval,
                 trial_interval=trial_interval
             )
+            new_plan.event = EventCatalog.PLAN_CREATE
             cls.session.add(new_plan)
             cls.session.commit()
             return new_plan
@@ -117,6 +119,7 @@ class Plan(Base):
             raise NotFoundError('Plan not found. Try different id')
         exists.name = new_name
         exists.updated_at = datetime.now(UTC)
+        exists.event = EventCatalog.PLAN_UPDATE
         cls.session.commit()
         return exists
 
@@ -152,6 +155,7 @@ class Plan(Base):
         exists.active = False
         exists.updated_at = datetime.now(UTC)
         exists.deleted_at = datetime.now(UTC)
+        exists.event = EventCatalog.PLAN_DELETE
         cls.session.commit()
         return exists
 

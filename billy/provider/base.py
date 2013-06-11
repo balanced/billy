@@ -4,7 +4,7 @@ class BaseProvider(object):
     def __init__(self, api_key):
         self.api_key = api_key
 
-    def check_balance(self):
+    def check_balance(self, customer, marketpalce,):
         """
         Returns balance
         """

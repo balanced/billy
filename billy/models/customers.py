@@ -12,6 +12,7 @@ from billy.models import *
 from billy.models.base import JSONDict
 from billy.errors import AlreadyExistsError, NotFoundError, LimitReachedError
 from billy.utils.models import uuid_factory
+from billy.utils.audit_events import EventCatalog
 
 
 class Customer(Base):
@@ -52,6 +53,7 @@ class Customer(Base):
         if not exists:
             new_customer = cls(cls.external_id == external_id,
                                cls.group_id == group_id)
+            new_customer.event = EventCatalog.CUSTOMER_CREATE
             cls.session.add(new_customer)
             cls.session.commit()
             return new_customer
@@ -102,6 +104,7 @@ class Customer(Base):
             raise LimitReachedError("Coupon redemtions exceeded max_redeem.")
         self.current_coupon = coupon_id
         self.updated_at = datetime.now(UTC)
+        self.event = EventCatalog.CUSTOMER_APPLY_COUPON
         self.session.commit()
         return self
 
@@ -131,6 +134,7 @@ class Customer(Base):
             return self
         self.current_coupon = None
         self.updated_at = datetime.now(UTC)
+        self.event = EventCatalog.CUSTOMER_REMOVE_COUPON
         self.session.commit()
         return self
 
@@ -200,6 +204,7 @@ class Customer(Base):
                                    includes_trial=can_trial)
         customer_obj.coupon_use[coupon_id] += 1
         cls.prorate_last_invoice(customer_obj.external_id, group_id, plan_id)
+        customer_obj.event = EventCatalog.CUSTOMER_ADD_PLAN
         cls.session.commit()
         return customer_obj
 
@@ -352,9 +357,20 @@ class Customer(Base):
         Returns a list of invoice objects pertaining to active user
         subscriptions
         """
-        return PlanInvoice.list_invoices(self.group_id, relevant_plan=None,
-                                         customer_id=self.external_id,
-                                         active_only=True)
+        already_in = set([])
+        active_list = []
+        results = PlanInvoice.list_invoices(self.group_id,
+                                            relevant_plan=None,
+                                            customer_id=self.external_id,
+                                            active_only=True).all() + \
+                  PlanInvoice.query.filter(PlanInvoice.group_id == self
+                  .group_id, PlanInvoice.customer_id == self.external_id,
+                               PlanInvoice.)
+        for invoice in results:
+            if invoice.guid not in already_in:
+                already_in.add(invoice.guid)
+                active_list.append(invoice)
+
 
     def can_trial(self, plan_id):
         """

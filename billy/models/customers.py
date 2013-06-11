@@ -24,7 +24,9 @@ class Customer(Base):
     current_coupon = Column(Unicode)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
-    coupon_use = Column(JSONDict, default={})
+    last_debt_clear = Column(DateTime(timezone=UTC))
+
+
     plan_invoices = relationship('plan_invoices', backref='customer')
     payout_invoices = relationship('payout_invoices', backref='customer')
     payment_transactions = relationship('payment_transactions',
@@ -223,6 +225,7 @@ class Customer(Base):
                                                   self.group_id,
                                                   plan_id, active_only=True)
             result.active = False
+            result.event = EventCatalog.CUSTOMER_CANCEL_PLAN
             self.session.commit()
         else:
             self.prorate_last_invoice(self.external_id, self.group_id,
@@ -273,6 +276,7 @@ class Customer(Base):
             last_invoice.end_dt = right_now - relativedelta(
                 seconds=30) #Extra safety for find query
             last_invoice.active = False
+            last_invoice.event =  EventCatalog.PRORATE_LAST_INVOICE
         cls.session.commit()
 
 
@@ -298,6 +302,7 @@ class Customer(Base):
                                                first_charge,
                                                balance_to_keep_cents,
         )
+        invoice.event = EventCatalog.CUSTOMER_ADD_PAYOUT
         self.session.add(invoice)
         self.session.commit()
         return self
@@ -332,6 +337,7 @@ class Customer(Base):
         current_payout_invoice.active = False
         if cancel_scheduled:
             current_payout_invoice.completed = True
+            current_payout_invoice.event = EventCatalog.CUSTOMER_CANCEL_PAYOUT
         self.session.commit()
         return self
 
@@ -357,6 +363,7 @@ class Customer(Base):
         Returns a list of invoice objects pertaining to active user
         subscriptions
         """
+        now = datetime.now(UTC)
         already_in = set([])
         active_list = []
         results = PlanInvoice.list_invoices(self.group_id,
@@ -364,12 +371,14 @@ class Customer(Base):
                                             customer_id=self.external_id,
                                             active_only=True).all() + \
                   PlanInvoice.query.filter(PlanInvoice.group_id == self
-                  .group_id, PlanInvoice.customer_id == self.external_id,
-                               PlanInvoice.)
+                        .group_id, PlanInvoice.customer_id == self.external_id,
+                               PlanInvoice.group_id == self.group_id,
+                               PlanInvoice.end_dt > now).all()
         for invoice in results:
             if invoice.guid not in already_in:
                 already_in.add(invoice.guid)
                 active_list.append(invoice)
+        return active_list
 
 
     def can_trial(self, plan_id):
@@ -451,7 +460,11 @@ class Customer(Base):
                     for each in plan_invoices_due:
                         each.cleared_by = transaction.guid
                         each.remaining_balance_cents = 0
+                    self.last_debt_clear = now
+                    self.event = EventCatalog.CUSTOMER_CLEAR_DEBT
+
                 except:
+                    self.event = EventCatalog.CUSTOMER_CHARGE_ATTEMPT
                     self.charge_attempts += 1
         self.session.commit()
         return self

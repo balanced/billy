@@ -276,7 +276,7 @@ class Customer(Base):
             last_invoice.end_dt = right_now - relativedelta(
                 seconds=30) #Extra safety for find query
             last_invoice.active = False
-            last_invoice.event =  EventCatalog.PRORATE_LAST_INVOICE
+            last_invoice.event =  EventCatalog.PI_PRORATE_LAST
         cls.session.commit()
 
 

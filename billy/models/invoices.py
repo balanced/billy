@@ -6,6 +6,7 @@ from sqlalchemy.schema import ForeignKey, ForeignKeyConstraint, Index
 
 from billy.models import *
 from billy.utils.models import uuid_factory
+from billy.utils.audit_events import EventCatalog
 from billy.errors import NotFoundError
 from billy.settings import TRANSACTION_PROVIDER_CLASS, RETRY_DELAY_PAYOUT
 
@@ -89,6 +90,7 @@ class PlanInvoice(Base):
             charge_at_period_end=charge_at_period_end,
             includes_trial=includes_trial,
         )
+        new_invoice.event = EventCatalog.PI_CREATE
         cls.session.add(new_invoice)
 
     @classmethod
@@ -143,6 +145,7 @@ class PlanInvoice(Base):
         Rollover the invoice
         """
         self.active = False
+        self.event = EventCatalog.PI_ROLLOVER
         self.session.flush()
         Customer.add_plan_customer(self.customer_id, self.group_id,
                                    self.relevant_plan,
@@ -207,6 +210,9 @@ class PayoutInvoice(Base):
             payout_date=payout_date,
             balanced_to_keep_cents=balanced_to_keep_cents,
         )
+        new_invoice.event = EventCatalog.POI_CREATE
+        cls.session.add(new_invoice)
+        cls.session.commit()
 
     @classmethod
     def retrieve_invoice(cls, customer_id, group_id, relevant_payout=None,
@@ -249,6 +255,7 @@ class PayoutInvoice(Base):
 
     def rollover(self):
         self.active = False
+        self.event =  EventCatalog.POI_ROLLOVER
         self.session.flush()
         self.customer.add_payout(self.relevant_payout, first_now=False,
                                  start_dt=self.payout_date)
@@ -275,7 +282,9 @@ class PayoutInvoice(Base):
                     self.balance_at_exec = current_balance
                     self.amount_payed_out = payout_amount
                     self.completed = True
+                    self.event = EventCatalog.POI_MAKE_PAYOUT
                 except:
+                    self.event = EventCatalog.POI_PAYOUT_ATTEMPT
                     self.attempts_made += 1
         self.session.commit()
         return self

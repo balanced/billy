@@ -42,7 +42,6 @@ class AuditEvent(Base):
         new_audit.customer_id = string_attr(entity, 'customer_id')
         new_audit.payout_id = string_attr(entity, 'payout_id')
         new_audit.external_id = string_attr(entity, 'external_id')
-        #Todo add events everwhere...
         new_audit.event = string_attr(entity, 'event')
         cls.session.add(new_audit)
         cls.session.commit()

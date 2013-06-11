@@ -11,11 +11,11 @@ from utils.plans import Plan
 
 
 class TestPlans(TestCase):
-    
+
     def setUp(self):
         self.marketplace = 'test_my_marketplace'
         query_tool.query(Plan).filter(Plan.marketplace == self.marketplace).delete()
-    
+
     def test_intervals(self):
         self.assertEqual(Intervals.DAY, relativedelta(days=1))
         self.assertEqual(Intervals.WEEK, relativedelta(weeks=1))
@@ -82,9 +82,7 @@ class TestPlans(TestCase):
                     Intervals.WEEK, Intervals.DAY)
         list_of_plans = list_plans(self.marketplace)
         self.assertEqual(len(list_of_plans), 2)
-    #Todo test active only
 
     def tearDown(self):
         query_tool.query(Plan).filter(Plan.marketplace == self.marketplace).delete()
         self.assertFalse(list_plans(self.marketplace))
-        #TODO-me: Figure out why the last row isn't tearing down...SWITCH TO TRANSACTIONAL

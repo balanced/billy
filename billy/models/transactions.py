@@ -42,8 +42,6 @@ class TransactionMixin(object):
         return query.all()
 
 
-        #Todo retry ERROR status ones.
-
 
 class PaymentTransaction(TransactionMixin, Base):
     __tablename__ = 'payment_transactions'

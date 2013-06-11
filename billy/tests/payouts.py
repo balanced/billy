@@ -91,11 +91,9 @@ class TestPayouts(TestCase):
                       5000, Intervals.WEEK)
         list_of_payouts = list_payouts(self.marketplace)
         self.assertEqual(len(list_of_payouts), 2)
-        #Todo test active only
 
     def tearDown(self):
         query_tool.query(Payout).filter(Payout.marketplace == self.marketplace
         ).delete()
         query_tool.commit()
         self.assertFalse(list_payouts(self.marketplace))
-        #TODO-me: Figure out why the last row isn't tearing down...SWITCH TO TRANSACTIONAL

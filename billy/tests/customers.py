@@ -98,4 +98,3 @@ class TestCustomer(BalancedTransactionalTestCase):
     # def tearDown(self):
     #     query_tool.query(Plan).filter(Plan.marketplace == self.marketplace).delete()
     #     self.assertFalse(list_plans(self.marketplace))
-    #     #TODO-me: Figure out why the last row isn't tearing down...SWITCH TO TRANSACTIONAL

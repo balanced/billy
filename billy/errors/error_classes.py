@@ -1,38 +1,38 @@
-class BillySerivceError(Exception):
+class BillyServiceError(Exception):
     """
     All billy errors extend from here.
     """
     pass
 
 
-class NotFoundError(BillySerivceError):
+class NotFoundError(BillyServiceError):
     """
     Raised when object requested is not found.
     """
     pass
 
-class BadIntervalError(BillySerivceError):
+class BadIntervalError(BillyServiceError):
     """
     Raised when interval is not of relativedelta type
     """
     pass
 
 
-class AlreadyExistsError(BillySerivceError):
+class AlreadyExistsError(BillyServiceError):
     """
     Raised when the insertion already exists and can't be done.
     """
     pass
 
 
-class ValidationError(BillySerivceError):
+class ValidationError(BillyServiceError):
     """
     Raised if the parameter passed could not be validated.
     """
     pass
 
 
-class LimitReachedError(Exception):
+class LimitReachedError(BillyServiceError):
     """
     Raised when a predefined limit is reached, e.g. coupon max_redeem
     """

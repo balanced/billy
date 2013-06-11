@@ -8,6 +8,7 @@ from pytz import UTC
 
 from billy.models import *
 from billy.utils.models import uuid_factory
+from billy.utils.audit_events import EventCatalog
 from billy.errors import NotFoundError, AlreadyExistsError
 
 
@@ -62,6 +63,7 @@ class Coupon(Base):
                 max_redeem=max_redeem,
                 repeating=repeating,
                 expire_at=expire_at)
+            new_coupon.event = EventCatalog.COUPON_CREATE
             cls.session.add(new_coupon)
             cls.session.commit()
             return new_coupon
@@ -114,6 +116,7 @@ class Coupon(Base):
         if new_repeating:
             self.repeating = new_repeating
         self.updated_at = datetime.now(UTC)
+        self.event = EventCatalog.COUPON_UPDATE
         self.session.commit()
 
     @classmethod
@@ -142,6 +145,7 @@ class Coupon(Base):
         self.active = False
         self.updated_at = datetime.now(UTC)
         self.deleted_at = datetime.now(UTC)
+        self.event = EventCatalog.COUPON_DELETE
         self.session.commit()
         return self
 
@@ -188,4 +192,5 @@ class Coupon(Base):
         to_expire = cls.query.filter(cls.expire_at > now).all()
         for coupon in to_expire:
             coupon.active = False
+            coupon.event = EventCatalog.COUPON_EXPIRE
         cls.session.commit()

@@ -8,6 +8,7 @@ from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, ForeignKey
 from billy.models import *
 from billy.models.base import JSONDict
 from billy.utils.models import uuid_factory
+from billy.utils.audit_events import EventCatalog
 from billy.errors import NotFoundError, AlreadyExistsError
 
 
@@ -70,6 +71,7 @@ class Payout(Base):
                 name=name,
                 balance_to_keep_cents=balance_to_keep_cents,
                 payout_interval=payout_interval)
+            new_payout.event = EventCatalog.PAYOUT_CREATE
             cls.session.add(new_payout)
             cls.session.commit()
             return new_payout
@@ -99,6 +101,7 @@ class Payout(Base):
     def update(self, new_name):
         self.name = new_name
         self.updated_at = datetime.now(UTC)
+        self.session = EventCatalog.PAYOUT_UPDATE
         self.session.commit()
         return self
 
@@ -139,6 +142,7 @@ class Payout(Base):
         self.active = False
         self.updated_at = datetime.now(UTC)
         self.deleted_at = datetime.now(UTC)
+        self.event = EventCatalog.PAYOUT_DELETE
         self.session.commit()
         return self
 

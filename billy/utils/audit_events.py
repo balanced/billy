@@ -49,6 +49,12 @@ class EventCatalog(object):
     PLAN_DELETE = "PLAN_DELETE"
 
 
+    #Payout
+    PAYOUT_CREATE = "PAYOUT_CREATE"
+    PAYOUT_UPDATE = "PAYOUT_UPDATE"
+    PAYOUT_DELETE = "PAYOUT_DELETE"
+
+
 
 
 

@@ -1,10 +1,9 @@
+from __future__ import unicode_literals
 from datetime import datetime
 
-from sqlalchemy import ForeignKey
-from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime
-from sqlalchemy.schema import ForeignKeyConstraint
-from sqlalchemy.orm import relationship
 from pytz import UTC
+from sqlalchemy import Boolean, Column, DateTime, Integer, ForeignKey, Unicode
+from sqlalchemy.orm import relationship, validates
 
 from billy.models import *
 from billy.utils.models import uuid_factory
@@ -47,7 +46,7 @@ class Coupon(Base):
         :param max_redeem: The number of unique users that can redeem this
         coupon, -1 for unlimited
         :param repeating: The maximum number of invoices it applies to. -1
-        for all/forver
+        for all/forever
         :return: The new coupon object
         """
         new_coupon = cls(
@@ -72,12 +71,11 @@ class Coupon(Base):
         :param group_id: the group/marketplace to associate with
         :param active_only: only returns active coupons
         :returns: Single coupon
-        :raise NotFoundError:  if coupon not found.
         """
         query = cls.query.filter(cls.external_id == external_id,
                            cls.group_id == group_id)
         if active_only:
-            query.filter(cls.active == True)
+            query = query.filter(cls.active == True)
         return query.one()
 
     def update(self, new_name=None,
@@ -91,7 +89,6 @@ class Coupon(Base):
         work
         :param new_repeating: The maximum number of invoices it applies to.
         -1 for all/forever
-        :raise NotFoundError:  if coupon not found.
         :returns: Self
         """
         if new_name:
@@ -114,10 +111,7 @@ class Coupon(Base):
         Static version of update
         """
         exists = cls.query.filter(cls.external_id == external_id,
-                                  cls.group_id == group_id).first()
-        if not exists:
-            raise NotFoundError(
-                'Coupon not found. Use different id/marketplace')
+                                  cls.group_id == group_id).one()
         return exists.update(new_name=new_name, new_max_redeem=new_max_redeem,
                              new_expire_at=new_expire_at,
                              new_repeating=new_repeating)
@@ -146,7 +140,7 @@ class Coupon(Base):
         :raise NotFoundError:  if coupon not found.
         """
         exists = cls.query.filter(cls.external_id == external_id,
-                                  cls.group_id == group_id).first()
+                                  cls.group_id == group_id).one()
         if not exists:
             raise NotFoundError('Coupon not found. Try a different id')
         return exists.delete()
@@ -161,7 +155,7 @@ class Coupon(Base):
         """
         query = cls.query.filter(cls.group_id == group_id)
         if active_only:
-            query.filter(cls.active == True)
+            query = query.filter(cls.active == True)
         return query.all()
 
 
@@ -176,8 +170,28 @@ class Coupon(Base):
     @classmethod
     def expire_coupons(cls):
         now = datetime.now(UTC)
-        to_expire = cls.query.filter(cls.expire_at > now).all()
+        to_expire = cls.query.filter(cls.expire_at < now).all()
         for coupon in to_expire:
             coupon.active = False
             coupon.event = EventCatalog.COUPON_EXPIRE
         cls.session.commit()
+
+    @validates('max_redeem')
+    def validate_max_redeem(self, key, address):
+        assert(address > 0 or address == -1)
+        return address
+
+    @validates('repeating')
+    def validate_repeating(self, key, address):
+        assert(address > 0 or address == -1)
+        return address
+
+    @validates('percent_off_int')
+    def validate_percent_off_int(self, key, address):
+        assert(0 < address <= 100)
+        return address
+
+    @validates('price_off_cents')
+    def validate_price_off_cents(self, key, address):
+        assert(address >= 0)
+        return address

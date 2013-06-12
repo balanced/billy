@@ -243,7 +243,7 @@ class TestUpdateDelete(TestCoupon):
                              price_off_cents=20,
                              percent_off_int=1,
                              max_redeem=4,
-                             repeating=-11,
+                             repeating=11,
                              )
         coup.update(new_name='New name', new_max_redeem=10,
                     new_expire_at=now, new_repeating=-1)
@@ -254,19 +254,16 @@ class TestUpdateDelete(TestCoupon):
         self.assertEqual(updated_coup.repeating, -1)
         self.assertEqual(updated_coup.max_redeem, 10)
 
-    def test_update_dne(self):
-        self.assertRaises(NoResultFound, Coupon.update_coupon, 'COUPON_DNE',
-                          self.marketplace, new_name='Hey')
 
 
     def test_delete(self):
-        Coupon.create(external_id='MY_TEST_COUPON1',
+        Coupon.create(external_id='MY_TEST_COUPON',
                       group_id=self.marketplace,
                       name='My coupon',
                       price_off_cents=20,
                       percent_off_int=1,
                       max_redeem=4,
-                      repeating=-11,
+                      repeating=11,
                       )
         coup = Coupon.retrieve('MY_TEST_COUPON', self.marketplace)
         self.assertTrue(coup.active)
@@ -274,11 +271,6 @@ class TestUpdateDelete(TestCoupon):
         self.assertFalse(coup.active)
         coup = Coupon.retrieve('MY_TEST_COUPON', self.marketplace)
         self.assertFalse(coup.active)
-
-
-    def test_delete_dne(self):
-        with self.assertRaises(NoResultFound):
-            Coupon.retrieve('COUPON_DNE', self.marketplace).delete()
 
 
 
@@ -337,3 +329,8 @@ class TestValidators(TestCoupon):
                           max_redeem=5,
                           repeating=10,
                           )
+
+
+if __name__ == '__main__':
+    import unittest
+    unittest.main()

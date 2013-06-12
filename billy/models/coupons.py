@@ -29,7 +29,7 @@ class Coupon(Base):
     customers = relationship('Customer', backref='coupon')
 
     __table_args__ = (UniqueConstraint(external_id, group_id,
-                                       name='coupon_id_group_unique')
+                                       name='coupon_id_group_unique'),
     )
 
     @classmethod

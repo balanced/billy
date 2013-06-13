@@ -10,8 +10,8 @@ from billy.utils.audit_events import string_attr
 from billy.utils.models import uuid_factory
 
 
-class AuditEvent(Base):
-    __tablename__ = 'audit_events'
+class BillyAction(Base):
+    __tablename__ = 'billy_actions'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     obj_guid = Column(Unicode)
@@ -48,21 +48,21 @@ class AuditEvent(Base):
 
     @staticmethod
     def insert_listener(mapper, connection, target):
-        AuditEvent.create_from_event(target, 'INSERT')
+        BillyAction.create_from_event(target, 'INSERT')
 
     @staticmethod
     def delete_listener(mapper, connection, target):
-        AuditEvent.create_from_event(target, 'DELETE')
+        BillyAction.create_from_event(target, 'DELETE')
 
     @staticmethod
     def update_listener(mapper, connection, target):
-        AuditEvent.create_from_event(target, 'UPDATE')
+        BillyAction.create_from_event(target, 'UPDATE')
 
 
 #initite listeners
-event.listen(mapper, 'after_delete', AuditEvent.delete_listener)
-event.listen(mapper, 'after_insert', AuditEvent.insert_listener)
-event.listen(mapper, 'after_update', AuditEvent.update_listener)
+event.listen(mapper, 'after_delete', BillyAction.delete_listener)
+event.listen(mapper, 'after_insert', BillyAction.insert_listener)
+event.listen(mapper, 'after_update', BillyAction.update_listener)
 
 
 

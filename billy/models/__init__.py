@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 from base import Base
-from audit_events import AuditEvent
+from billy_action import AuditEvent
 from groups import Group
 from coupons import Coupon
 from payouts import Payout

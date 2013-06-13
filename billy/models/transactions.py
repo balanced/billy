@@ -2,7 +2,6 @@ from datetime import datetime
 
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Integer
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.schema import ForeignKeyConstraint
 from pytz import UTC
 

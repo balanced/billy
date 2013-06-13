@@ -21,7 +21,7 @@ class TestCoupon(BalancedTransactionalTestCase):
 
 
     def test_redeem_count(self):
-        pass
+        pass #Todo
 
     def test_expire(self):
         future = datetime(2013, 7, 1, tzinfo=UTC)

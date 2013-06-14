@@ -155,20 +155,24 @@ class Coupon(Base):
 
     @validates('max_redeem')
     def validate_max_redeem(self, key, address):
-        assert(address > 0 or address == -1)
+        if not address > 0 or address == -1:
+            raise ValueError('max_redeem must be greater than 0 or -1')
         return address
 
     @validates('repeating')
     def validate_repeating(self, key, address):
-        assert(address > 0 or address == -1)
+        if not (address > 0 or address == -1):
+            raise ValueError('repeating must be greater than 0 or -1')
         return address
 
     @validates('percent_off_int')
     def validate_percent_off_int(self, key, address):
-        assert(0 < address <= 100)
+        if not 0 < address <= 100:
+            raise ValueError('percent_off_int must be between 0 and 100')
         return address
 
     @validates('price_off_cents')
     def validate_price_off_cents(self, key, address):
-        assert(address >= 0)
+        if not address >= 0:
+            raise ValueError('price_off_cents must be greater than 0')
         return address

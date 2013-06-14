@@ -4,12 +4,12 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from pytz import UTC
 
-from utils.plans import Intervals
+from utils.intervals import Intervals
 from billy.payout.utils import create_payout, list_payouts, update_payout, \
     retrieve_payout, delete_payout
 from billy.errors import NotFoundError, BadIntervalError, AlreadyExistsError
 from billy.settings import query_tool
-from plans.payouts import Payout
+from tests.models.test_plans.payouts import Payout
 
 
 class TestPayouts(TestCase):

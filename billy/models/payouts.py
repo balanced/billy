@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, ForeignKey
 
 from billy.models import *
-from billy.models.base import JSONDict
+from billy.models.base import RelativeDelta
 from billy.utils.models import uuid_factory
 from billy.utils.audit_events import EventCatalog
 from billy.errors import NotFoundError, AlreadyExistsError
@@ -24,7 +24,7 @@ class Payout(Base):
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     deleted_at = Column(DateTime(timezone=UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
-    payout_interval = Column(JSONDict)
+    payout_interval = Column(RelativeDelta)
 
 
     def from_relativedelta(self, inter):

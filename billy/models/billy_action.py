@@ -8,7 +8,7 @@ from sqlalchemy import Column, Unicode, DateTime
 
 from billy.models.base import Base
 from billy.models.groups import Group
-from billy.utils.audit_events import string_attr
+from billy.utils.billy_action import string_attr
 from billy.utils.models import uuid_factory
 
 

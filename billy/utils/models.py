@@ -21,6 +21,7 @@ def base62_encode(num, alphabet=ALPHABET):
     arr.reverse()
     return ''.join(arr)
 
+
 def uuid_factory(prefix=None):
     """
     Given a prefix, which defaults to None, will generate a function
@@ -29,11 +30,8 @@ def uuid_factory(prefix=None):
     If a prefix string is passed, it prefixes the uuid.
     """
 
-
-    encoder = lambda x: base62_encode(x.int)
-
     def generate_uuid():
-        the_uuid = encoder(uuid.uuid1())
+        the_uuid = base62_encode(uuid.uuid1())
         if prefix:
             the_uuid = prefix + the_uuid
 
@@ -42,9 +40,7 @@ def uuid_factory(prefix=None):
     return generate_uuid
 
 
-
 class Status(object):
-
     PENDING = 'PENDING'
     COMPLETE = 'COMPLETE'
     ERROR = 'ERROR'

@@ -2,14 +2,14 @@ from __future__ import unicode_literals
 from datetime import datetime
 
 from pytz import UTC
-from dateutil.relativedelta import relativedelta
-from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, \
+    ForeignKey, UniqueConstraint
+from sqlalchemy.orm import validates
 
 from billy.models import *
 from billy.models.base import RelativeDelta
 from billy.utils.models import uuid_factory
-from billy.utils.audit_events import EventCatalog
+from billy.utils.billy_action import ActionCatalog
 
 
 class Payout(Base):
@@ -26,20 +26,9 @@ class Payout(Base):
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_interval = Column(RelativeDelta)
 
-
-    def from_relativedelta(self, inter):
-        return {
-            'years': inter.years,
-            'months': inter.months,
-            'days': inter.days,
-            'hours': inter.hours,
-            'minutes': inter.minutes
-        }
-
-    def to_relativedelta(self, param):
-        return relativedelta(years=param['years'], months=param['months'],
-                             days=param['days'], hours=param['hours'],
-                             minutes=param['minutes'])
+    __table_args__ = (UniqueConstraint(external_id, group_id,
+                                       name='plan_id_group_unique'),
+    )
 
 
     @classmethod
@@ -53,7 +42,7 @@ class Payout(Base):
         in (matches balanced payments group_id)
         :param name: A display name for the payout
         :param balance_to_keep_cents: The amount to keep in the users balance
-        . Everything else will be payedout.
+        . Everything else will be paid out.
         :param payout_interval: A Interval class that defines how frequently the
         make the payout
         :return: Payout Object if success or raises error if not
@@ -64,7 +53,7 @@ class Payout(Base):
             name=name,
             balance_to_keep_cents=balance_to_keep_cents,
             payout_interval=payout_interval)
-        new_payout.event = EventCatalog.PAYOUT_CREATE
+        new_payout.event = ActionCatalog.PAYOUT_CREATE
         cls.session.add(new_payout)
         cls.session.commit()
         return new_payout
@@ -78,7 +67,7 @@ class Payout(Base):
         :param active_only: if true only returns active payouts
         :raise NotFoundError:  if payout not found.
         """
-        query = cls.filter(cls.external_id == external_id,
+        query = cls.query.filter(cls.external_id == external_id,
                            cls.group_id == group_id)
         if active_only:
             query = query.filter(cls.active == True)
@@ -92,7 +81,7 @@ class Payout(Base):
         """
         self.name = name
         self.updated_at = datetime.now(UTC)
-        self.session = EventCatalog.PAYOUT_UPDATE
+        self.event = ActionCatalog.PAYOUT_UPDATE
         self.session.commit()
         return self
 
@@ -122,6 +111,12 @@ class Payout(Base):
         self.active = False
         self.updated_at = datetime.now(UTC)
         self.deleted_at = datetime.now(UTC)
-        self.event = EventCatalog.PAYOUT_DELETE
+        self.event = ActionCatalog.PAYOUT_DELETE
         self.session.commit()
         return self
+
+    @validates('balance_to_keep_cents')
+    def validate_balance_to_keep(self, key, address):
+        if not address > 0:
+            raise ValueError("balance_to_keep_cents must be greater than 0")
+        return address

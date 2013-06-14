@@ -126,6 +126,8 @@ class TestRetrieve(TestPlan):
                     Intervals.WEEK, Intervals.DAY)
         Plan.create('MY_TEST_PLAN4', self.group, 'YO4', 1400,
                     Intervals.THREE_MONTHS, Intervals.WEEK)
+        Plan.create('MY_TEST_PLAN4', self.group_2, 'YO4', 1400,
+                    Intervals.THREE_MONTHS, Intervals.WEEK)
         results = Plan.list(self.group)
         self.assertEqual(len(results), 4)
 

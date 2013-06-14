@@ -8,7 +8,7 @@ from pytz import UTC
 
 from billy.models import Base, PlanInvoice, PayoutInvoice, Customer
 from billy.utils.models import uuid_factory, Status
-from billy.utils.audit_events import EventCatalog
+from billy.utils.billy_action import ActionCatalog
 from billy.settings import TRANSACTION_PROVIDER_CLASS
 
 
@@ -26,7 +26,7 @@ class TransactionMixin(object):
             amount_cents=amount_cents,
             status=Status.PENDING
         )
-        new_transaction.event = EventCatalog.TR_CREATE
+        new_transaction.event = ActionCatalog.TR_CREATE
         cls.session.add(new_transaction)
         cls.session.commit()
         return cls
@@ -58,10 +58,10 @@ class PaymentTransaction(TransactionMixin, Base):
                 self.amount_cents)
             self.status = Status.COMPLETE
             self.external_id = external_id
-            self.event = EventCatalog.TR_EXECUTE_PAYMENT
+            self.event = ActionCatalog.TR_EXECUTE_PAYMENT
         except Exception, e:
             self.status = Status.ERROR
-            self.event = EventCatalog.TR_PAYMENT_ERROR
+            self.event = ActionCatalog.TR_PAYMENT_ERROR
             raise e
         self.customer.charge_attempts = 0
         self.session.commit()
@@ -93,10 +93,10 @@ class PayoutTransaction(TransactionMixin, Base):
                 self.amount_cents)
             self.status = Status.COMPLETE
             self.external_id = external_id
-            self.event = EventCatalog.TR_EXECUTE_PAYOUT
+            self.event = ActionCatalog.TR_EXECUTE_PAYOUT
         except Exception, e:
             self.status = Status.ERROR
-            self.event = EventCatalog.TR_PAYOUT_ERROR
+            self.event = ActionCatalog.TR_PAYOUT_ERROR
             raise e
         self.customer.charge_attempts = 0
         self.session.commit()

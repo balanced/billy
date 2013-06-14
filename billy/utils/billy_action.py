@@ -12,7 +12,7 @@ def string_attr(the_object, the_attribute):
 
 
 
-class EventCatalog(object):
+class ActionCatalog(object):
 
     #GROUPS
     GROUP_CREATE = "GROUP_CREATE"

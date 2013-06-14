@@ -13,7 +13,7 @@ from billy.models import *
 from billy.models.base import RelativeDelta
 from billy.errors import AlreadyExistsError, NotFoundError, LimitReachedError
 from billy.utils.models import uuid_factory
-from billy.utils.audit_events import EventCatalog
+from billy.utils.billy_action import ActionCatalog
 
 
 class Customer(Base):
@@ -56,7 +56,7 @@ class Customer(Base):
         if not exists:
             new_customer = cls(cls.external_id == external_id,
                                cls.group_id == group_id)
-            new_customer.event = EventCatalog.CUSTOMER_CREATE
+            new_customer.event = ActionCatalog.CUSTOMER_CREATE
             cls.session.add(new_customer)
             cls.session.commit()
             return new_customer
@@ -107,7 +107,7 @@ class Customer(Base):
             raise LimitReachedError("Coupon redemtions exceeded max_redeem.")
         self.current_coupon = coupon_id
         self.updated_at = datetime.now(UTC)
-        self.event = EventCatalog.CUSTOMER_APPLY_COUPON
+        self.event = ActionCatalog.CUSTOMER_APPLY_COUPON
         self.session.commit()
         return self
 
@@ -137,7 +137,7 @@ class Customer(Base):
             return self
         self.current_coupon = None
         self.updated_at = datetime.now(UTC)
-        self.event = EventCatalog.CUSTOMER_REMOVE_COUPON
+        self.event = ActionCatalog.CUSTOMER_REMOVE_COUPON
         self.session.commit()
         return self
 
@@ -207,7 +207,7 @@ class Customer(Base):
                                    includes_trial=can_trial)
         customer_obj.coupon_use[coupon_id] += 1
         cls.prorate_last_invoice(customer_obj.external_id, group_id, plan_id)
-        customer_obj.event = EventCatalog.CUSTOMER_ADD_PLAN
+        customer_obj.event = ActionCatalog.CUSTOMER_ADD_PLAN
         cls.session.commit()
         return customer_obj
 
@@ -226,7 +226,7 @@ class Customer(Base):
                                                   self.group_id,
                                                   plan_id, active_only=True)
             result.active = False
-            result.event = EventCatalog.CUSTOMER_CANCEL_PLAN
+            result.event = ActionCatalog.CUSTOMER_CANCEL_PLAN
             self.session.commit()
         else:
             self.prorate_last_invoice(self.external_id, self.group_id,
@@ -277,7 +277,7 @@ class Customer(Base):
             last_invoice.end_dt = right_now - relativedelta(
                 seconds=30) #Extra safety for find query
             last_invoice.active = False
-            last_invoice.event =  EventCatalog.PI_PRORATE_LAST
+            last_invoice.event =  ActionCatalog.PI_PRORATE_LAST
         cls.session.commit()
 
 
@@ -303,7 +303,7 @@ class Customer(Base):
                                                first_charge,
                                                balance_to_keep_cents,
         )
-        invoice.event = EventCatalog.CUSTOMER_ADD_PAYOUT
+        invoice.event = ActionCatalog.CUSTOMER_ADD_PAYOUT
         self.session.add(invoice)
         self.session.commit()
         return self
@@ -338,7 +338,7 @@ class Customer(Base):
         current_payout_invoice.active = False
         if cancel_scheduled:
             current_payout_invoice.completed = True
-            current_payout_invoice.event = EventCatalog.CUSTOMER_CANCEL_PAYOUT
+            current_payout_invoice.event = ActionCatalog.CUSTOMER_CANCEL_PAYOUT
         self.session.commit()
         return self
 
@@ -462,10 +462,10 @@ class Customer(Base):
                         each.cleared_by = transaction.guid
                         each.remaining_balance_cents = 0
                     self.last_debt_clear = now
-                    self.event = EventCatalog.CUSTOMER_CLEAR_DEBT
+                    self.event = ActionCatalog.CUSTOMER_CLEAR_DEBT
 
                 except:
-                    self.event = EventCatalog.CUSTOMER_CHARGE_ATTEMPT
+                    self.event = ActionCatalog.CUSTOMER_CHARGE_ATTEMPT
                     self.charge_attempts += 1
         self.session.commit()
         return self

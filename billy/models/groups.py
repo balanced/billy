@@ -4,7 +4,7 @@ from sqlalchemy import Unicode, Column
 from sqlalchemy.orm import relationship
 
 from base import Base
-from billy.utils.audit_events import EventCatalog
+from billy.utils.billy_action import ActionCatalog
 
 
 class Group(Base):
@@ -22,7 +22,7 @@ class Group(Base):
     @classmethod
     def create_group(cls, external_id):
         new_group = cls(external_id=external_id)
-        new_group.event = EventCatalog.GROUP_CREATE
+        new_group.event = ActionCatalog.GROUP_CREATE
         cls.session.add(new_group)
         cls.session.commit()
         return new_group

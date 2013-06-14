@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 def string_attr(the_object, the_attribute):
     prop = getattr(the_object, the_attribute, None)
     if prop:

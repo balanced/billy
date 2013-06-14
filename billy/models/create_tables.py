@@ -1,6 +1,8 @@
+from __future__ import unicode_literals
 import sys
-from billy.settings import DB_ENGINE
+
 from billy.models import *
+from billy.settings import DB_ENGINE
 
 def delete_and_replace_tables():
     for table in Base.metadata.sorted_tables:

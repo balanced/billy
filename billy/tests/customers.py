@@ -97,4 +97,4 @@ class TestCustomer(BalancedTransactionalTestCase):
     #
     # def tearDown(self):
     #     query_tool.query(Plan).filter(Plan.marketplace == self.marketplace).delete()
-    #     self.assertFalse(list_plans(self.marketplace))
+    #     self.assertFalse(list(self.marketplace))

@@ -1,4 +1,5 @@
-#DB SETTINGS
+from __future__ import unicode_literals
+
 from sqlalchemy import create_engine
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import sessionmaker, scoped_session

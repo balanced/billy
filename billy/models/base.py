@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import TypeDecorator, VARCHAR

@@ -1,5 +1,7 @@
-from pytz import UTC
+from __future__ import unicode_literals
+
 from datetime import datetime
+from pytz import UTC
 from sqlalchemy.orm import mapper
 from sqlalchemy import event, ForeignKey
 from sqlalchemy import Column, Unicode, DateTime

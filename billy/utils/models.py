@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import uuid
 
 ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'

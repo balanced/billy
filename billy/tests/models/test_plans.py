@@ -126,7 +126,7 @@ class TestRetrieve(TestPlan):
                     Intervals.WEEK, Intervals.DAY)
         Plan.create('MY_TEST_PLAN4', self.group, 'YO4', 1400,
                     Intervals.THREE_MONTHS, Intervals.WEEK)
-        results = Plan.list_plans(self.group)
+        results = Plan.list(self.group)
         self.assertEqual(len(results), 4)
 
 
@@ -140,7 +140,7 @@ class TestRetrieve(TestPlan):
         Plan.create('MY_TEST_PLAN4', self.group, 'YO4', 1400,
                     Intervals.THREE_MONTHS, Intervals.WEEK)
         to_cancel.delete()
-        results = Plan.list_plans(self.group, active_only=True)
+        results = Plan.list(self.group, active_only=True)
         self.assertEqual(len(results), 3)
 
 

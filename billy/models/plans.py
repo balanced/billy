@@ -76,7 +76,7 @@ class Plan(Base):
         return query.one()
 
     @classmethod
-    def list_plans(cls, group_id, active_only=False):
+    def list(cls, group_id, active_only=False):
         """
         Returns a list of plans currently in the database
         :param group_id: The group id/uri
@@ -109,7 +109,7 @@ class Plan(Base):
         but are instead marked as inactive so no new
         users can be added. Everyone currently on the plan is maintained on
         the plan.
-        :returns: the deleted Plan object
+        :returns: the deleted Plan object (self)
         """
         self.active = False
         self.updated_at = datetime.now(UTC)

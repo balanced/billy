@@ -10,7 +10,6 @@ from dateutil.relativedelta import relativedelta
 
 from billy.settings import RETRY_DELAY_PLAN
 from billy.models import *
-from billy.models.base import RelativeDelta
 from billy.errors import AlreadyExistsError, NotFoundError, LimitReachedError
 from billy.utils.models import uuid_factory
 from billy.utils.billy_action import ActionCatalog

@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.schema import ForeignKeyConstraint
 from pytz import UTC
 
-from billy.models import Base, PlanInvoice, PayoutInvoice, Customer
+from billy.models import Base, Customer, PlanInvoice, PayoutInvoice
 from billy.utils.models import uuid_factory, Status
 from billy.utils.billy_action import ActionCatalog
 from billy.settings import TRANSACTION_PROVIDER_CLASS

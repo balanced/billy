@@ -31,7 +31,7 @@ def uuid_factory(prefix=None):
     """
 
     def generate_uuid():
-        the_uuid = base62_encode(uuid.uuid1())
+        the_uuid = base62_encode(uuid.uuid1().int)
         if prefix:
             the_uuid = prefix + the_uuid
 

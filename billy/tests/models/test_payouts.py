@@ -145,7 +145,7 @@ class TestUpdateDelete(TestPayout):
                             group_id=self.group,
                             name='Payout 1',
                             balance_to_keep_cents=123456,
-                            payout_interval=Intervals.TWO_WEEKS
+                            payout_interval=Intervals.custom(years=1)
         )
         self.assertEqual(ret.name, 'Payout 1')
         ret.update('new name')

@@ -5,7 +5,7 @@ def string_attr(the_object, the_attribute):
     if prop:
         try:
             return str(prop)
-        except:
+        except TypeError:
             return None
     else:
         return None

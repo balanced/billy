@@ -7,5 +7,6 @@ from coupons import Coupon
 from payouts import Payout
 from plans import Plan
 from customers import Customer
-from invoices import PlanInvoice, PayoutInvoice
+from plan_invoice import PlanInvoice
+from payout_invoice import PayoutInvoice
 from transactions import PaymentTransaction, PayoutTransaction

@@ -14,7 +14,8 @@ class Intervals(object):
     MONTH = relativedelta(months=1)
     THREE_MONTHS = relativedelta(months=3)
 
-    def custom(self, years=0, months=0, weeks=0, days=0, hours=0, minutes=0):
+    @classmethod
+    def custom(cls, years=0, months=0, weeks=0, days=0, hours=0, minutes=0):
         """
         If one of the predefined intervals isn't useful you can create a custom
         plan interval with a resolution of upto a minute.

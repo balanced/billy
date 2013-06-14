@@ -295,7 +295,7 @@ class TestValidators(TestCoupon):
                           name='My coupon',
                           price_off_cents=20,
                           percent_off_int=1,
-                          max_redeem=-5,
+                          max_redeem=5,
                           repeating=-10,
                           )
 
@@ -306,7 +306,7 @@ class TestValidators(TestCoupon):
                           name='My coupon',
                           price_off_cents=20,
                           percent_off_int=-20,
-                          max_redeem=-5,
+                          max_redeem=5,
                           repeating=10,
                           )
         with self.assertRaises(ValueError):

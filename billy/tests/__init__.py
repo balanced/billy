@@ -44,6 +44,7 @@ class BalancedTransactionalTestCase(unittest.TestCase):
         # HACK: this is done solely to set up signals for model test cases --
         # alternatives are welcome
         self.session = Base.session = Session
+        #ew... very dirty... look into this (todo)...
         Base.session.commit = Base.session.flush
         # adds the clean up handler that will reset the database
         # state, which is necessary for when your setUp() function

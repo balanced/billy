@@ -27,7 +27,7 @@ class Payout(Base):
     payout_interval = Column(RelativeDelta)
 
     __table_args__ = (UniqueConstraint(external_id, group_id,
-                                       name='plan_id_group_unique'),
+                                       name='payout_id_group_unique'),
     )
 
 

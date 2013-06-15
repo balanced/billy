@@ -29,7 +29,7 @@ class PlanInvoice(Base):
     quantity = Column(Integer)
     charge_at_period_end = Column(Boolean)
     active = Column(Boolean, default=True)
-    cleared_by = Column(Unicode, ForeignKey('payment_transactions.guid'))
+    cleared_by = Column(Unicode, ForeignKey('plan_transactions.guid'))
 
     __table_args__ = (
         #Customer foreign key

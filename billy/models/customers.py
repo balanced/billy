@@ -27,10 +27,9 @@ class Customer(Base):
     last_debt_clear = Column(DateTime(timezone=UTC))
     charge_attempts = Column(Integer, default=0)
 
-
     plan_invoices = relationship('PlanInvoice', backref='customer')
     payout_invoices = relationship('PayoutInvoice', backref='customer')
-    payment_transactions = relationship('PlanTransaction',
+    plan_transactions = relationship('PlanTransaction',
                                         backref='customer')
     payout_transactions = relationship('PayoutTransaction',
                                        backref='customer')
@@ -38,7 +37,7 @@ class Customer(Base):
     __table_args__ = (
         ForeignKeyConstraint([current_coupon, group_id],
                              [Coupon.external_id, Coupon.group_id]),
-        UniqueConstraint(external_id, group_id, 'customerid_group_unique')
+        UniqueConstraint(external_id, group_id, name='customerid_group_unique')
     )
 
     @classmethod
@@ -131,7 +130,7 @@ class Customer(Base):
         use_coupon = True if current_coupon.repeating == -1 or \
                              coupon_use_count \
                              <= current_coupon.repeating else False
-        can_trial = self.can_trial(plan_obj.external_id)
+        can_trial = self.can_trial_plan(plan_obj.external_id)
         end_date = start_date + plan_obj.to_relativedelta(
             plan_obj.plan_interval)
         trial_interval = plan_obj.to_relativedelta(plan_obj.trial_interval)
@@ -260,7 +259,7 @@ class Customer(Base):
 
 
     @property
-    def active_subscriptions(self):
+    def active_plans(self):
         """
         Returns a list of invoice objects pertaining to active user
         subscriptions
@@ -283,7 +282,7 @@ class Customer(Base):
         return active_list
 
 
-    def can_trial(self, plan_id):
+    def can_trial_plan(self, plan_id):
         """
         Returns true/false if user has used the trial of the plan before
         :param plan_id: the external_id of the plan
@@ -323,6 +322,7 @@ class Customer(Base):
         Returns the total outstanding debt for the customer
         """
         return self.sum_plan_debt(self.plan_invoices_due)
+
 
     def is_debtor(self, limit_cents):
         """
@@ -364,7 +364,7 @@ class Customer(Base):
                         each.remaining_balance_cents = 0
                     self.last_debt_clear = now
                     self.event = ActionCatalog.CUSTOMER_CLEAR_DEBT
-
+                #Todo wtf man... really?
                 except:
                     self.event = ActionCatalog.CUSTOMER_CHARGE_ATTEMPT
                     self.charge_attempts += 1

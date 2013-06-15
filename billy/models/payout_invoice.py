@@ -123,6 +123,7 @@ class PayoutInvoice(Base):
                     self.amount_payed_out = payout_amount
                     self.completed = True
                     self.event = ActionCatalog.POI_MAKE_PAYOUT
+                #Todo wtf man
                 except:
                     self.event = ActionCatalog.POI_PAYOUT_ATTEMPT
                     self.attempts_made += 1

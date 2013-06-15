@@ -4,7 +4,7 @@ import random
 from base import BaseProvider
 from billy.utils.models import uuid_factory
 
-class BalancedDummyProvider(BaseProvider):
+class DummyProvider(BaseProvider):
 
 
     def check_balance(self, customer, group):

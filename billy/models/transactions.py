@@ -1,10 +1,9 @@
 from __future__ import unicode_literals
-from datetime import datetime
 
+from pytz import UTC
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Integer
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import ForeignKeyConstraint
-from pytz import UTC
 
 from billy.models import Base, Customer, PlanInvoice, PayoutInvoice
 from billy.utils.models import uuid_factory, Status
@@ -43,11 +42,11 @@ class TransactionMixin(object):
 
 
 
-class PaymentTransaction(TransactionMixin, Base):
-    __tablename__ = 'payment_transactions'
+class PlanTransaction(TransactionMixin, Base):
+    __tablename__ = "plan_transactions"
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PAT'))
-    group_id = Column(Unicode)
+    group_id = Column(Unicode, ForeignKey('groups.external_id'))
     customer_id = Column(Unicode)
     plan_invoices = relationship(PlanInvoice.__name__, backref='transaction')
 

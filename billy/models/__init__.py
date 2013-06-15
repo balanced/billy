@@ -9,4 +9,4 @@ from plans import Plan
 from customers import Customer
 from plan_invoice import PlanInvoice
 from payout_invoice import PayoutInvoice
-from transactions import PaymentTransaction, PayoutTransaction
+from transactions import PlanTransaction, PayoutTransaction

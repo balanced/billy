@@ -140,8 +140,6 @@ class Customer(Base):
             due_on += trial_interval
         if charge_at_period_end:
             due_on = end_date
-        if quantity < 1:
-            raise ValueError("Quantity must be greater than 1")
         amount_base = plan_obj.price_cents * Decimal(quantity)
         amount_after_coupon = amount_base
         amount_paid = 0

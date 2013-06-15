@@ -7,7 +7,7 @@ from billy.models import Coupon, Group
 from billy.tests import BalancedTransactionalTestCase
 
 
-class TestCoupon(BalancedTransactionalTestCase):
+class TestGroup(BalancedTransactionalTestCase):
 
     def setUp(self):
         super(TestCoupon, self).setUp()
@@ -31,6 +31,12 @@ class TestCoupon(BalancedTransactionalTestCase):
     def test_retrieve_dne(self):
         with self.assertRaises(NoResultFound):
             Group.retrieve_group(self.marketplace)
+
+
+
+def TestRelations(TestGroup):
+    #Todo
+    pass
 
 
 if __name__ == '__main__':

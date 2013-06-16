@@ -3,14 +3,14 @@ from __future__ import unicode_literals
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from billy.models import Coupon, Group
+from billy.models import Group
 from billy.tests import BalancedTransactionalTestCase
 
 
 class TestGroup(BalancedTransactionalTestCase):
 
     def setUp(self):
-        super(TestCoupon, self).setUp()
+        super(TestGroup, self).setUp()
         self.marketplace = 'BILLY_TEST_MARKETPLACE'
 
     def test_create(self):
@@ -36,7 +36,8 @@ class TestGroup(BalancedTransactionalTestCase):
 
 def TestRelations(TestGroup):
     #Todo
-    pass
+    def test_temp(self):
+        return True
 
 
 if __name__ == '__main__':

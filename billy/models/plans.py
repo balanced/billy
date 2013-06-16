@@ -47,7 +47,7 @@ class Plan(Base):
         initial trial is
         :return: Plan Object if success or raises error if not
         """
-        new_plan = Plan(
+        new_plan = cls(
             external_id=external_id,
             group_id=group_id,
             name=name,

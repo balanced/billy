@@ -218,6 +218,8 @@ class TestRetrieve(TestCoupon):
                       'My Coupon', 60, 2, 3, 12)
         Coupon.create('MY_TEST_COUPON3', self.group,
                       'My Coupon', 60, 3, 2, 13)
+        Coupon.create('MY_TEST_COUPON3', self.group_2,
+                      'My Coupon', 60, 3, 2, 13)
         Coupon.create('MY_TEST_COUPON4', self.group,
                       'My Coupon', 60, 4, 1, 14)
         self.assertEqual(len(Coupon.list(self.group)), 4)

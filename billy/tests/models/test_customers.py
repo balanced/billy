@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
 
 from sqlalchemy.exc import *
-from sqlalchemy.orm import *
+from sqlalchemy.orm.exc import *
 
-from billy.models import Customer, Group
+from billy.models import Customer, Group, Coupon
 from billy.tests import BalancedTransactionalTestCase
 
 
@@ -51,53 +51,131 @@ class TestCreate(TestCustomer):
 
 class TestRetrieve(TestCustomer):
     def test_create_and_retrieve(self):
-        Customer.create(
+        customer = Customer.create(
             external_id=self.external_id,
             group_id=self.group
         )
         ret = Customer.retrieve(self.external_id, self.group)
-
-
+        self.assertEqual(customer, ret)
 
 
     def test_retrieve_dne(self):
-        pass
+        with self.assertRaises(NoResultFound):
+            Customer.retrieve('CUSTOMER_DNE', self.group)
 
 
     def test_retrieve_params(self):
-        pass
+        customer = Customer.create(
+            external_id=self.external_id,
+            group_id=self.group
+        )
+        ret = Customer.retrieve(self.external_id, self.group)
+        self.assertEqual(customer, ret)
+
 
     def test_list(self):
-        pass
+        Customer.create('MY_TEST_CUST_1', self.group)
+        Customer.create('MY_TEST_CUST_2', self.group)
+        Customer.create('MY_TEST_CUST_3', self.group)
+        Customer.create('MY_TEST_CUST_4', self.group)
+        Customer.create('MY_TEST_CUST_1', self.group_2)
+        self.assertEqual(len(Customer.list(self.group)), 4)
 
 
 class TestCoupon(TestCustomer):
     def test_apply_coupon(self):
-        pass
+        customer = Customer.create(
+            external_id=self.external_id,
+            group_id=self.group
+        )
+        coupon = Coupon.create(external_id=self.external_id,
+                               group_id=self.group,
+                               name='My coupon',
+                               price_off_cents=100,
+                               percent_off_int=10,
+                               max_redeem=5,
+                               repeating=-1,
+        )
+        customer.apply_coupon(coupon.external_id)
+        self.assertEqual(customer.current_coupon, coupon.external_id)
 
+
+    def test_increase_max_redeem(self):
+        coupon = Coupon.create(external_id='MY_TEST_COUPON',
+                               group_id=self.group,
+                               name='My coupon',
+                               price_off_cents=100,
+                               percent_off_int=10,
+                               max_redeem=3,
+                               repeating=-1,
+        )
+        Customer.create('MY_TEST_CUST_1', self.group).apply_coupon(coupon
+        .external_id)
+        self.assertEqual(coupon.count_redeemed, 1)
+        Customer.create('MY_TEST_CUST_2', self.group).apply_coupon(coupon
+        .external_id)
+        self.assertEqual(coupon.count_redeemed, 2)
+        customer = Customer.create('MY_TEST_CUST_3', self.group).apply_coupon(
+            coupon
+            .external_id)
+        self.assertEqual(coupon.count_redeemed, 3)
+        with self.assertRaises(ValueError):
+            Customer.create('MY_TEST_CUST_4', self.group).apply_coupon(
+                coupon
+                .external_id)
+        customer.remove_coupon()
+        Customer.retrieve('MY_TEST_CUST_4', self.group).apply_coupon(
+            coupon.external_id)
+
+
+    def test_apply_inactive_coupon(self):
+        coupon = Coupon.create(external_id='MY_TEST_COUPON',
+                               group_id=self.group,
+                               name='My coupon',
+                               price_off_cents=100,
+                               percent_off_int=10,
+                               max_redeem=3,
+                               repeating=-1,
+        )
+        coupon.delete()
+        with self.assertRaises(NoResultFound):
+            Customer.create('MY_TEST_CUST_3', self.group).apply_coupon(coupon
+            .external_id)
 
     def test_apply_coupon_dne(self):
-        pass
-
-
-    def test_coupon_max_redeemed(self):
-        pass
+        with self.assertRaises(NoResultFound):
+            Customer.create(self.external_id, self.group).apply_coupon(
+                'TEST_COUPON_DNE'
+            )
 
     def test_remove_coupon(self):
-        pass
+        customer = Customer.create(self.external_id, self.group)
+        coupon = Coupon.create(external_id='MY_TEST_COUPON',
+                               group_id=self.group,
+                               name='My coupon',
+                               price_off_cents=100,
+                               percent_off_int=10,
+                               max_redeem=3,
+                               repeating=-1,
+        )
+        customer.apply_coupon(coupon.external_id)
+        self.assertEqual(customer.current_coupon, coupon.external_id)
+        customer.remove_coupon()
+        self.assertIsNone(customer.current_coupon)
 
 
     def test_remove_coupon_empty(self):
-        pass
-
-
-    def test_coupon_repeating(self):
-        pass
+        customer = Customer.create(self.external_id, self.group)
+        customer.remove_coupon()
 
 
 class TestUpdatePlan(TestCustomer):
-    def test_update_plan(self):
+    def test_update_first(self):
         pass
+
+    def test_update_qty(self):
+        pass
+
 
     def test_at_period_end(self):
         pass
@@ -136,10 +214,7 @@ class TestUpdatePlan(TestCustomer):
         pass
 
 
-    def test_is_debtor_low(self):
-        pass
-
-    def test_is_debtor_high(self):
+    def test_is_debtor(self):
         pass
 
 
@@ -192,6 +267,10 @@ class TestTask(TestCustomer):
 
 
     def test_retry(self):
+        pass
+
+
+    def test_coupon_repeating(self):
         pass
 
 

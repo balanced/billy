@@ -10,7 +10,6 @@ from dateutil.relativedelta import relativedelta
 
 from billy.settings import RETRY_DELAY_PLAN
 from billy.models import *
-from billy.errors import AlreadyExistsError, NotFoundError, LimitReachedError
 from billy.utils.models import uuid_factory
 from billy.utils.billy_action import ActionCatalog
 
@@ -30,13 +29,13 @@ class Customer(Base):
     plan_invoices = relationship('PlanInvoice', backref='customer')
     payout_invoices = relationship('PayoutInvoice', backref='customer')
     plan_transactions = relationship('PlanTransaction',
-                                        backref='customer')
+                                     backref='customer')
     payout_transactions = relationship('PayoutTransaction',
                                        backref='customer')
 
     __table_args__ = (
         ForeignKeyConstraint([current_coupon, group_id],
-                             [Coupon.external_id, Coupon.group_id]),
+                             ['coupons.external_id', 'coupons.group_id']),
         UniqueConstraint(external_id, group_id, name='customerid_group_unique')
     )
 
@@ -50,8 +49,10 @@ class Customer(Base):
         :return: Customer Object if success or raises error if not
         :raise AlreadyExistsError: if customer already exists
         """
-        new_customer = cls(cls.external_id == external_id,
-                           cls.group_id == group_id)
+        new_customer = cls(
+            external_id=external_id,
+            group_id=group_id
+        )
         new_customer.event = ActionCatalog.CUSTOMER_CREATE
         cls.session.add(new_customer)
         cls.session.commit()
@@ -68,8 +69,8 @@ class Customer(Base):
         :return: Customer Object if success or raises error if not
         :raise NotFoundError:  if plan not found.
         """
-        query =  cls.query.filter(cls.external_id == external_id,
-                                    cls.group_id == group_id)
+        query = cls.query.filter(cls.external_id == external_id,
+                                 cls.group_id == group_id)
         return query.one()
 
     @classmethod
@@ -86,15 +87,19 @@ class Customer(Base):
     def apply_coupon(self, coupon_id):
         """
         Adds a coupon to the user.
-        :param coupon_id:
+        :param coupon_id: A retrieved coupon class
         :return: Self
         :raise: LimitReachedError if coupon max redeemed.
         """
-        coupon_obj = Coupon.retrieve(coupon_id, self.group_id,
-                                            active_only=True)
-        if coupon_obj.max_redeem != -1 and coupon_obj.count_redeemed > \
-                coupon_obj.max_redeem:
-            raise LimitReachedError("Coupon redemtions exceeded max_redeem.")
+        #Todo, dirty. Fix later.
+        from billy.models import Coupon
+
+        coupon = Coupon.retrieve(coupon_id, self.group_id,
+                                 active_only=True)
+        if coupon.max_redeem != -1 and coupon.count_redeemed >= \
+                coupon.max_redeem:
+            raise ValueError('Coupon already redeemed maximum times. See '
+                             'max_redeem')
         self.current_coupon = coupon_id
         self.updated_at = datetime.now(UTC)
         self.event = ActionCatalog.CUSTOMER_APPLY_COUPON
@@ -114,7 +119,7 @@ class Customer(Base):
         self.session.commit()
         return self
 
-    def update_plan(self,  plan_id,quantity=1,
+    def update_plan(self, plan_id, quantity=1,
                     charge_at_period_end=False, start_dt=None):
         """
         Changes a customer's plan
@@ -126,7 +131,7 @@ class Customer(Base):
         start_date = start_dt or datetime.now(UTC)
         due_on = datetime.now(UTC)
         coupon_use_count = self.coupon_use.get(current_coupon
-                                                       .coupon_id, 0)
+                                               .coupon_id, 0)
         use_coupon = True if current_coupon.repeating == -1 or \
                              coupon_use_count \
                              <= current_coupon.repeating else False
@@ -151,21 +156,21 @@ class Customer(Base):
                 amount_after_coupon * Decimal(percent_off) / Decimal(100))
         balance = amount_after_coupon
         PlanInvoice.create_invoice(
-                    customer_id=self.external_id,
-                    group_id=self.group_id,
-                    relevant_plan=plan_id,
-                    relevant_coupon= coupon_id,
-                    start_dt=start_date,
-                    end_dt= end_date,
-                    due_dt= due_on,
-                    amount_base_cents=amount_base,
-                    amount_after_coupon_cents=amount_after_coupon,
-                    amount_paid_cents=amount_paid,
-                    remaining_balance_cents=balance,
-                    quantity=quantity,
-                    charge_at_period_end=charge_at_period_end,
-                    includes_trial=can_trial
-                    )
+            customer_id=self.external_id,
+            group_id=self.group_id,
+            relevant_plan=plan_id,
+            relevant_coupon=coupon_id,
+            start_dt=start_date,
+            end_dt=end_date,
+            due_dt=due_on,
+            amount_base_cents=amount_base,
+            amount_after_coupon_cents=amount_after_coupon,
+            amount_paid_cents=amount_paid,
+            remaining_balance_cents=balance,
+            quantity=quantity,
+            charge_at_period_end=charge_at_period_end,
+            includes_trial=can_trial
+        )
         self.coupon_use[coupon_id] += 1
         self.prorate_last_invoice(plan_id)
         self.event = ActionCatalog.CUSTOMER_ADD_PLAN
@@ -221,11 +226,11 @@ class Customer(Base):
             last_invoice.end_dt = right_now - relativedelta(
                 seconds=30) #Extra safety for find query
             last_invoice.active = False
-            last_invoice.event =  ActionCatalog.PI_PRORATE_LAST
+            last_invoice.event = ActionCatalog.PI_PRORATE_LAST
         self.session.commit()
 
 
-    def add_payout(self, payout_id, first_now=False, start_dt = None):
+    def add_payout(self, payout_id, first_now=False, start_dt=None):
         payout_obj = Payout.retrieve_payout(payout_id, self.group_id,
                                             active_only=True)
         first_charge = start_dt or datetime.now(UTC)
@@ -272,9 +277,10 @@ class Customer(Base):
                                             customer_id=self.external_id,
                                             active_only=True).all() + \
                   PlanInvoice.query.filter(PlanInvoice.group_id == self
-                        .group_id, PlanInvoice.customer_id == self.external_id,
-                               PlanInvoice.group_id == self.group_id,
-                               PlanInvoice.end_dt > now).all()
+                  .group_id, PlanInvoice.customer_id == self.external_id,
+                                           PlanInvoice.group_id == self
+                                           .group_id,
+                                           PlanInvoice.end_dt > now).all()
         for invoice in results:
             if invoice.guid not in already_in:
                 already_in.add(invoice.guid)
@@ -338,7 +344,6 @@ class Customer(Base):
             return False
 
 
-
     def clear_plan_debt(self, force=False):
         now = datetime.now(UTC)
         earliest_due = datetime.now(UTC)
@@ -356,7 +361,7 @@ class Customer(Base):
             if when_to_charge < now:
                 sum_debt = self.sum_plan_debt(plan_invoices_due)
                 transaction = PlanTransaction.create(self.external_id,
-                                                        self.group_id, sum_debt)
+                                                     self.group_id, sum_debt)
                 try:
                     transaction.execute()
                     for each in plan_invoices_due:

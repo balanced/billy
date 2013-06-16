@@ -3,7 +3,8 @@ from __future__ import unicode_literals
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from billy.models import Customer, Group, Coupon
+from billy.models import Customer, Group, Coupon, Plan
+from billy.utils.intervals import Intervals
 from billy.tests import BalancedTransactionalTestCase
 
 
@@ -74,11 +75,11 @@ class TestRetrieve(TestCustomer):
         self.assertEqual(customer, ret)
 
     def test_list(self):
-        Customer.create('MY_TEST_CUST_1', self.group)
-        Customer.create('MY_TEST_CUST_2', self.group)
-        Customer.create('MY_TEST_CUST_3', self.group)
-        Customer.create('MY_TEST_CUST_4', self.group)
-        Customer.create('MY_TEST_CUST_1', self.group_2)
+        Customer.create('MY_TEST_CUS_1', self.group)
+        Customer.create('MY_TEST_CUS_2', self.group)
+        Customer.create('MY_TEST_CUS_3', self.group)
+        Customer.create('MY_TEST_CUS_4', self.group)
+        Customer.create('MY_TEST_CUS_1', self.group_2)
         self.assertEqual(len(Customer.list(self.group)), 4)
 
 
@@ -109,22 +110,22 @@ class TestCoupon(TestCustomer):
                                max_redeem=3,
                                repeating=-1,
                                )
-        Customer.create('MY_TEST_CUST_1', self.group).apply_coupon(coupon
+        Customer.create('MY_TEST_CUS_1', self.group).apply_coupon(coupon
                                                                    .external_id)
         self.assertEqual(coupon.count_redeemed, 1)
-        Customer.create('MY_TEST_CUST_2', self.group).apply_coupon(coupon
+        Customer.create('MY_TEST_CUS_2', self.group).apply_coupon(coupon
                                                                    .external_id)
         self.assertEqual(coupon.count_redeemed, 2)
-        customer = Customer.create('MY_TEST_CUST_3', self.group).apply_coupon(
+        customer = Customer.create('MY_TEST_CUS_3', self.group).apply_coupon(
             coupon
             .external_id)
         self.assertEqual(coupon.count_redeemed, 3)
         with self.assertRaises(ValueError):
-            Customer.create('MY_TEST_CUST_4', self.group).apply_coupon(
+            Customer.create('MY_TEST_CUS_4', self.group).apply_coupon(
                 coupon
                 .external_id)
         customer.remove_coupon()
-        Customer.retrieve('MY_TEST_CUST_4', self.group).apply_coupon(
+        Customer.retrieve('MY_TEST_CUS_4', self.group).apply_coupon(
             coupon.external_id)
 
     def test_apply_inactive_coupon(self):
@@ -138,7 +139,7 @@ class TestCoupon(TestCustomer):
                                )
         coupon.delete()
         with self.assertRaises(NoResultFound):
-            Customer.create('MY_TEST_CUST_3', self.group).apply_coupon(coupon
+            Customer.create('MY_TEST_CUS_3', self.group).apply_coupon(coupon
                                                                        .external_id)
 
     def test_apply_coupon_dne(self):
@@ -169,8 +170,28 @@ class TestCoupon(TestCustomer):
 
 class TestUpdatePlan(TestCustomer):
 
+    def setUp(self):
+        super(TestUpdatePlan, self).setUp()
+        self.customer = Customer.create(
+            external_id=self.external_id,
+            group_id=self.group
+        )
+        self.plan = Plan.create(
+            external_id=self.external_id,
+            group_id=self.group,
+            name='Starter',
+            price_cents=1000,
+            plan_interval=Intervals.MONTH,
+            trial_interval=Intervals.WEEK
+        )
+
     def test_update_first(self):
-        pass
+        self.customer.update_plan(
+            plan_id=self.plan.external_id,
+            charge_at_period_end=False,
+            start_dt=None
+        )
+
 
     def test_update_qty(self):
         pass
@@ -185,9 +206,6 @@ class TestUpdatePlan(TestCustomer):
         pass
 
     def test_trial_repeat(self):
-        pass
-
-    def test_without_coupon(self):
         pass
 
     def test_with_coupon(self):

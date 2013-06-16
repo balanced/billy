@@ -60,7 +60,7 @@ class BillyAction(Base):
         BillyAction.create_from_event(target, 'UPDATE')
 
 
-# initite listeners
+# initiate listeners
 event.listen(mapper, 'after_delete', BillyAction.delete_listener)
 event.listen(mapper, 'after_insert', BillyAction.insert_listener)
 event.listen(mapper, 'after_update', BillyAction.update_listener)

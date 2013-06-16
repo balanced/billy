@@ -125,7 +125,7 @@ class Customer(Base):
         :param plan_id: The plan id to associate customer with
         :raise:
         """
-        plan_obj = Plan.retrieve_plan(plan_id, group_id, active_only=True)
+        plan_obj = Plan.retrieve_plan(plan_id, self.group_id, active_only=True)
         current_coupon = self.coupon
         start_date = start_dt or datetime.now(UTC)
         due_on = datetime.now(UTC)
@@ -170,7 +170,6 @@ class Customer(Base):
             charge_at_period_end=charge_at_period_end,
             includes_trial=can_trial
         )
-        self.coupon_use[coupon_id] += 1
         self.prorate_last_invoice(plan_id)
         self.event = ActionCatalog.CUSTOMER_ADD_PLAN
         self.session.commit()

@@ -28,8 +28,7 @@ class Payout(Base):
 
     __table_args__ = (UniqueConstraint(external_id, group_id,
                                        name='payout_id_group_unique'),
-    )
-
+                      )
 
     @classmethod
     def create(cls, external_id, group_id, name,
@@ -68,7 +67,7 @@ class Payout(Base):
         :raise NotFoundError:  if payout not found.
         """
         query = cls.query.filter(cls.external_id == external_id,
-                           cls.group_id == group_id)
+                                 cls.group_id == group_id)
         if active_only:
             query = query.filter(cls.active == True)
         return query.one()
@@ -85,7 +84,6 @@ class Payout(Base):
         self.session.commit()
         return self
 
-
     @classmethod
     def list(cls, group_id, active_only=False):
         """
@@ -97,7 +95,6 @@ class Payout(Base):
         if active_only:
             query = query.filter(cls.active == True)
         return query.all()
-
 
     def delete(self):
         """

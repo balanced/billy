@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 from billy.models import *
-from models import PlanInvoice, PayoutInvoice
+from .models import PlanInvoice, PayoutInvoice
 
 
 def main_task():

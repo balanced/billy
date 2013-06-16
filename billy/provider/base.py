@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
-class BaseProvider(object):
 
+class BaseProvider(object):
 
     def __init__(self, api_key):
         self.api_key = api_key

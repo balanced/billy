@@ -30,7 +30,6 @@ class BillyAction(Base):
     created_at = created_at = Column(DateTime(timezone=UTC),
                                      default=datetime.now(UTC))
 
-
     @classmethod
     def create_from_event(cls, entity, event_type):
         new_audit = cls()
@@ -45,8 +44,8 @@ class BillyAction(Base):
         new_audit.payout_id = string_attr(entity, 'payout_id')
         new_audit.external_id = string_attr(entity, 'external_id')
         new_audit.event = string_attr(entity, 'event')
-        #cls.session.add(new_audit)
-        #cls.session.commit() Todo check this out...
+        # cls.session.add(new_audit)
+        # cls.session.commit() Todo check this out...
 
     @staticmethod
     def insert_listener(mapper, connection, target):
@@ -61,12 +60,7 @@ class BillyAction(Base):
         BillyAction.create_from_event(target, 'UPDATE')
 
 
-#initite listeners
+# initite listeners
 event.listen(mapper, 'after_delete', BillyAction.delete_listener)
 event.listen(mapper, 'after_insert', BillyAction.insert_listener)
 event.listen(mapper, 'after_update', BillyAction.update_listener)
-
-
-
-
-

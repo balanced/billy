@@ -29,8 +29,7 @@ class Plan(Base):
 
     __table_args__ = (UniqueConstraint(external_id, group_id,
                                        name='plan_id_group_unique'),
-    )
-
+                      )
 
     @classmethod
     def create(cls, external_id, group_id, name, price_cents,
@@ -102,7 +101,6 @@ class Plan(Base):
         self.session.commit()
         return self
 
-
     def delete(self):
         """
         This method deletes a plan. Plans are not deleted from the database,
@@ -118,11 +116,8 @@ class Plan(Base):
         self.session.commit()
         return self
 
-
     @validates('price_cents')
     def validate_price_off_cents(self, key, address):
         if not address > 0:
             raise ValueError("price_cents must be greater than 0.")
         return address
-
-

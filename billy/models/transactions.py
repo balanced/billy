@@ -30,7 +30,6 @@ class TransactionMixin(object):
         cls.session.commit()
         return cls
 
-
     @classmethod
     def retrieve(cls, group_id, customer_id=None, external_id=None):
         query = cls.query.filter(cls.group_id == group_id)
@@ -39,7 +38,6 @@ class TransactionMixin(object):
         if external_id:
             query.filter(cls.external_id == external_id)
         return query.all()
-
 
 
 class PlanTransaction(TransactionMixin, Base):
@@ -66,7 +64,7 @@ class PlanTransaction(TransactionMixin, Base):
         self.session.commit()
 
     __table_args__ = (
-        #Customer foreign key
+        # Customer foreign key
         ForeignKeyConstraint(
             [customer_id, group_id],
             [Customer.external_id, Customer.group_id]),
@@ -84,7 +82,6 @@ class PayoutTransaction(TransactionMixin, Base):
     group_id = Column(Unicode)
     customer_id = Column(Unicode)
 
-
     def execute(self):
         try:
             external_id = TRANSACTION_PROVIDER_CLASS.make_payout(
@@ -101,7 +98,7 @@ class PayoutTransaction(TransactionMixin, Base):
         self.session.commit()
 
     __table_args__ = (
-        #Customer foreign key
+        # Customer foreign key
         ForeignKeyConstraint(
             [customer_id, group_id],
             [Customer.external_id, Customer.group_id]),

@@ -27,11 +27,11 @@ class PayoutInvoice(Base):
     attempts_made = Column(Integer, default=0)
 
     __table_args__ = (
-        #Customer foreign key
+        # Customer foreign key
         ForeignKeyConstraint(
             [customer_id, group_id],
             [Customer.external_id, Customer.group_id]),
-        #Payout foreign key
+        # Payout foreign key
         ForeignKeyConstraint(
             [relevant_payout, group_id],
             [Payout.external_id, Payout.group_id]),
@@ -67,7 +67,6 @@ class PayoutInvoice(Base):
             query.filter(cls.completed == False)
         return query.first()
 
-
     @classmethod
     def list_invoices(cls, group_id, relevant_payout=None,
                       customer_id=None, active_only=False):
@@ -80,13 +79,12 @@ class PayoutInvoice(Base):
             query.filter(cls.payout_id == relevant_payout)
         return query.first()
 
-
     @classmethod
     def needs_payout_made(cls):
         now = datetime.now(UTC)
         return cls.query.filter(cls.payout_date < now,
                                 cls.completed == False
-        ).all()
+                                ).all()
 
     @classmethod
     def needs_rollover(cls):
@@ -99,7 +97,6 @@ class PayoutInvoice(Base):
         self.session.flush()
         self.customer.add_payout(self.relevant_payout, first_now=False,
                                  start_dt=self.payout_date)
-
 
     def make_payout(self, force=False):
         now = datetime.now(UTC)
@@ -123,7 +120,7 @@ class PayoutInvoice(Base):
                     self.amount_payed_out = payout_amount
                     self.completed = True
                     self.event = ActionCatalog.POI_MAKE_PAYOUT
-                #Todo wtf man
+                # Todo wtf man
                 except:
                     self.event = ActionCatalog.POI_PAYOUT_ATTEMPT
                     self.attempts_made += 1

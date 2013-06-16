@@ -18,7 +18,6 @@ class Group(Base):
     plan_invoices = relationship('PlanInvoice', backref='group')
     payout_invoices = relationship('PayoutInvoice', backref='group')
 
-
     @classmethod
     def create_group(cls, external_id):
         new_group = cls(external_id=external_id)
@@ -27,8 +26,7 @@ class Group(Base):
         cls.session.commit()
         return new_group
 
-
     @classmethod
     def retrieve_group(cls, external_id):
-        #Used one() instead get() to raise error if not found...
+        # Used one() instead get() to raise error if not found...
         return cls.query.filter(cls.external_id == external_id).one()

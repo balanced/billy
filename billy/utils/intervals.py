@@ -2,7 +2,9 @@ from __future__ import unicode_literals
 
 from dateutil.relativedelta import relativedelta
 
+
 class Intervals(object):
+
     """
     A class to represent and create relativedelta objects which will be used
     to define the plan intervals. Plan intervals MUST be defined using this class.
@@ -20,7 +22,6 @@ class Intervals(object):
         If one of the predefined intervals isn't useful you can create a custom
         plan interval with a resolution of upto a minute.
         """
-        return relativedelta(years=years, months=months, weeks=weeks, days=days,
-                             hours=hours, minutes=minutes)
-
-
+        return relativedelta(
+            years=years, months=months, weeks=weeks, days=days,
+            hours=hours, minutes=minutes)

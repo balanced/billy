@@ -13,8 +13,8 @@ SCRIPTS_PATH = os.path.join(BASE_PATH, 'scripts')
 PACKAGE_PATH = os.path.join(BASE_PATH, 'balanced_service')
 
 
-
 class BalancedTransactionalTestCase(unittest.TestCase):
+
     """
     This class is optimized for multiple tests requiring the
     database, by putting every db test in a large transaction
@@ -27,13 +27,11 @@ class BalancedTransactionalTestCase(unittest.TestCase):
     below.
     """
 
-
-
     def __init__(self, *A, **KW):
         super(BalancedTransactionalTestCase, self).__init__(*A, **KW)
         self._db_engine = sqlalchemy.create_engine(DB_URL,
-            isolation_level='SERIALIZABLE'
-        )
+                                                   isolation_level='SERIALIZABLE'
+                                                   )
 
     def setUp(self):
         super(BalancedTransactionalTestCase, self).setUp()
@@ -44,7 +42,7 @@ class BalancedTransactionalTestCase(unittest.TestCase):
         # HACK: this is done solely to set up signals for model test cases --
         # alternatives are welcome
         self.session = Base.session = Session
-        #ew... very dirty... look into this (todo)...
+        # ew... very dirty... look into this (todo)...
         Base.session.commit = Base.session.flush
         # adds the clean up handler that will reset the database
         # state, which is necessary for when your setUp() function

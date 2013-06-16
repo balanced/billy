@@ -58,7 +58,6 @@ class Customer(Base):
         cls.session.commit()
         return new_customer
 
-
     @classmethod
     def retrieve(cls, external_id, group_id):
         """
@@ -91,7 +90,7 @@ class Customer(Base):
         :return: Self
         :raise: LimitReachedError if coupon max redeemed.
         """
-        #Todo, dirty. Fix later.
+        # Todo, dirty. Fix later.
         from billy.models import Coupon
 
         coupon = Coupon.retrieve(coupon_id, self.group_id,
@@ -133,8 +132,8 @@ class Customer(Base):
         coupon_use_count = self.coupon_use.get(current_coupon
                                                .coupon_id, 0)
         use_coupon = True if current_coupon.repeating == -1 or \
-                             coupon_use_count \
-                             <= current_coupon.repeating else False
+            coupon_use_count \
+            <= current_coupon.repeating else False
         can_trial = self.can_trial_plan(plan_obj.external_id)
         end_date = start_date + plan_obj.to_relativedelta(
             plan_obj.plan_interval)
@@ -151,7 +150,7 @@ class Customer(Base):
         if use_coupon and current_coupon:
             dollars_off = current_coupon.price_off_cents
             percent_off = current_coupon.percent_off_int
-            amount_after_coupon -= dollars_off #BOTH CENTS, safe
+            amount_after_coupon -= dollars_off  # BOTH CENTS, safe
             amount_after_coupon -= int(
                 amount_after_coupon * Decimal(percent_off) / Decimal(100))
         balance = amount_after_coupon
@@ -177,7 +176,6 @@ class Customer(Base):
         self.session.commit()
         return self
 
-
     def cancel_plan(self, plan_id, cancel_at_period_end=False):
         """
         Cancels the customers subscription. You can either do it immediately
@@ -198,7 +196,6 @@ class Customer(Base):
             self.prorate_last_invoice(plan_id)
         return True
 
-
     def prorate_last_invoice(self, plan_id):
         """
         Prorates the last invoice when changing a users plan. Only use when
@@ -217,18 +214,17 @@ class Customer(Base):
             percent_used = time_used / time_total
             new_base_amount = last_invoice.amount_base_cents * percent_used
             new_coupon_amount = last_invoice.amount_after_coupon_cents * \
-                                percent_used
+                percent_used
             new_balance = last_invoice.amount_after_coupon_cents - \
-                          last_invoice.amount_paid_cents
+                last_invoice.amount_paid_cents
             last_invoice.amount_base_cents = new_base_amount
             last_invoice.amount_after_coupon_cents = new_coupon_amount
             last_invoice.remaining_balance_cents = new_balance
             last_invoice.end_dt = right_now - relativedelta(
-                seconds=30) #Extra safety for find query
+                seconds=30)  # Extra safety for find query
             last_invoice.active = False
             last_invoice.event = ActionCatalog.PI_PRORATE_LAST
         self.session.commit()
-
 
     def add_payout(self, payout_id, first_now=False, start_dt=None):
         payout_obj = Payout.retrieve_payout(payout_id, self.group_id,
@@ -242,12 +238,11 @@ class Customer(Base):
                                                payout_obj.payout_id,
                                                first_charge,
                                                balance_to_keep_cents,
-        )
+                                               )
         invoice.event = ActionCatalog.CUSTOMER_ADD_PAYOUT
         self.session.add(invoice)
         self.session.commit()
         return self
-
 
     def cancel_payout(self, payout_id, cancel_scheduled=False):
         current_payout_invoice = PayoutInvoice.retrieve_invoice(
@@ -262,7 +257,6 @@ class Customer(Base):
         self.session.commit()
         return self
 
-
     @property
     def active_plans(self):
         """
@@ -276,17 +270,16 @@ class Customer(Base):
                                             relevant_plan=None,
                                             customer_id=self.external_id,
                                             active_only=True).all() + \
-                  PlanInvoice.query.filter(PlanInvoice.group_id == self
-                  .group_id, PlanInvoice.customer_id == self.external_id,
-                                           PlanInvoice.group_id == self
-                                           .group_id,
-                                           PlanInvoice.end_dt > now).all()
+            PlanInvoice.query.filter(PlanInvoice.group_id == self
+                                     .group_id, PlanInvoice.customer_id == self.external_id,
+                                     PlanInvoice.group_id == self
+                                     .group_id,
+                                     PlanInvoice.end_dt > now).all()
         for invoice in results:
             if invoice.guid not in already_in:
                 already_in.add(invoice.guid)
                 active_list.append(invoice)
         return active_list
-
 
     def can_trial_plan(self, plan_id):
         """
@@ -321,14 +314,12 @@ class Customer(Base):
             total_overdue += rem_bal if rem_bal else 0
         return total_overdue
 
-
     @property
     def current_debt(self):
         """
         Returns the total outstanding debt for the customer
         """
         return self.sum_plan_debt(self.plan_invoices_due)
-
 
     def is_debtor(self, limit_cents):
         """
@@ -343,14 +334,13 @@ class Customer(Base):
         else:
             return False
 
-
     def clear_plan_debt(self, force=False):
         now = datetime.now(UTC)
         earliest_due = datetime.now(UTC)
         plan_invoices_due = self.plan_invoices_due
         for plan_invoice in plan_invoices_due:
             earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \
-                                                  earliest_due else earliest_due
+                earliest_due else earliest_due
         if len(RETRY_DELAY_PLAN) > self.charge_attempts and not force:
             for plan_invoice in plan_invoices_due:
                 plan_invoice.active = False
@@ -369,14 +359,9 @@ class Customer(Base):
                         each.remaining_balance_cents = 0
                     self.last_debt_clear = now
                     self.event = ActionCatalog.CUSTOMER_CLEAR_DEBT
-                #Todo wtf man... really?
+                # Todo wtf man... really?
                 except:
                     self.event = ActionCatalog.CUSTOMER_CHARGE_ATTEMPT
                     self.charge_attempts += 1
         self.session.commit()
         return self
-
-
-
-
-

@@ -1,4 +1,5 @@
-import sys; sys.argv.append('test')
+import sys
+sys.argv.append('test')
 from billy.tests import BalancedTransactionalTestCase
 from billy.customer.utils import create_customer, retrieve_customer, \
     list_customers, apply_coupon_to_customer, remove_customer_coupon, \
@@ -10,31 +11,32 @@ from datetime import datetime, timedelta
 from pytz import UTC
 from billy.models.create_tables import delete_and_replace_tables
 
+
 class TestCustomer(BalancedTransactionalTestCase):
 
     def setUp(self):
         super(TestCustomer, self).setUp()
         self.marketplace = 'test_my_marketplace'
 
-
     def test_create_and_retrieve(self):
-        #Create the customer
+        # Create the customer
         customer_id = 'test_my_customer_1'
         create_customer(customer_id, self.marketplace)
-        #Retrieve the customer:
+        # Retrieve the customer:
         result = retrieve_customer(customer_id, self.marketplace)
         self.assertEqual(result.customer_id, customer_id)
         self.assertEqual(result.marketplace, self.marketplace)
-        self.assertLess(result.created_at - datetime.now(UTC), timedelta(seconds=30))
-        #Try Creating duplicate
+        self.assertLess(
+            result.created_at - datetime.now(UTC), timedelta(seconds=30))
+        # Try Creating duplicate
         self.assertRaises(AlreadyExistsError,
-                          create_customer ,customer_id, self.marketplace)
-        #Retrieve notexisting customer:
+                          create_customer, customer_id, self.marketplace)
+        # Retrieve notexisting customer:
         self.assertRaises(NotFoundError, retrieve_customer,
                           'test_my_customer_DNE', self.marketplace)
 
     def test_apply_coupon(self):
-        #Create a coupon
+        # Create a coupon
         customer_id = 'test_my_customer_2'
         coupon_id = 'test_coupon'
         create_customer(customer_id, self.marketplace)
@@ -43,7 +45,6 @@ class TestCustomer(BalancedTransactionalTestCase):
         customer_obj = retrieve_customer(customer_id, self.marketplace)
         self.assertEqual(customer_obj.current_coupon, coupon_id)
         self.assertEqual(customer_obj.coupon.coupon_id, coupon_id)
-
 
     # def test_apply_coupon_past_limit(self):
     #     max_limit = random.randint(1,40)
@@ -55,14 +56,12 @@ class TestCustomer(BalancedTransactionalTestCase):
     #         apply_coupon_to_customer(cust_id, self.marketplace, 'limit_coupon')
     #     self.assertRaises(LimitReachedError, apply_coupon_to_customer,
     #                       'extra', self.marketplace, 'limit_coupon')
-
     def test_apply_dne_coupon(self):
-        cust_id ='test_my_customer_5'
+        cust_id = 'test_my_customer_5'
         create_customer(cust_id, self.marketplace)
         retrieve_customer(cust_id, self.marketplace)
         self.assertRaises(NotFoundError, apply_coupon_to_customer, cust_id,
-                          self.marketplace, 'COUPON_DNE' )
-
+                          self.marketplace, 'COUPON_DNE')
 
     # def test_update_plan(self):
     #     plan_id = 'test_my_plan_3'

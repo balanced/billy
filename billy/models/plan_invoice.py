@@ -32,15 +32,15 @@ class PlanInvoice(Base):
     cleared_by = Column(Unicode, ForeignKey('plan_transactions.guid'))
 
     __table_args__ = (
-        #Customer foreign key
+        # Customer foreign key
         ForeignKeyConstraint(
             [customer_id, group_id],
             [Customer.external_id, Customer.group_id]),
-        #Plan foreign key
+        # Plan foreign key
         ForeignKeyConstraint(
             [relevant_plan, group_id],
             [Plan.external_id, Plan.group_id]),
-        #Coupon foreign key
+        # Coupon foreign key
         ForeignKeyConstraint(
             [relevant_coupon, group_id],
             [Coupon.external_id, Plan.group_id]),
@@ -134,7 +134,7 @@ class PlanInvoice(Base):
         invoices_rollover = cls.query.filter(cls.end_dt > now,
                                              cls.active == True,
                                              cls.remaining_balance_cents == 0,
-        ).all()
+                                             ).all()
         return invoices_rollover
 
     def rollover(self):
@@ -158,7 +158,6 @@ class PlanInvoice(Base):
         for plan_invoice in to_rollover:
             plan_invoice.rollover()
         return True
-
 
     @classmethod
     def clear_all_plan_debt(cls):

@@ -20,9 +20,8 @@ class TestCoupon(BalancedTransactionalTestCase):
         Group.create_group(self.group)
         Group.create_group(self.group_2)
 
-
     def test_redeem_count(self):
-        pass #Todo
+        pass  # Todo
 
     def test_expire(self):
         future = datetime(2013, 7, 1, tzinfo=UTC)
@@ -37,14 +36,13 @@ class TestCoupon(BalancedTransactionalTestCase):
         with freeze_time('2013-6-25'):
             Coupon.expire_coupons()
             self.assertEqual(Coupon.retrieve(self.external_id,
-                                                    self.group).active,
+                                             self.group).active,
                              True)
         with freeze_time('2013-7-2'):
 
             Coupon.expire_coupons()
             self.assertEqual(Coupon.retrieve(self.external_id,
-                                            self.group).active, False)
-
+                                             self.group).active, False)
 
     def test_expire_multiple(self):
         Coupon.create(external_id=self.external_id,
@@ -65,12 +63,11 @@ class TestCoupon(BalancedTransactionalTestCase):
                       expire_at=datetime(2013, 7, 5, tzinfo=UTC))
         Coupon.expire_coupons()
         self.assertEqual(len(Coupon.list(self.group,
-                                                 active_only=True)), 2)
+                                         active_only=True)), 2)
         with freeze_time('2013-7-6'):
             Coupon.expire_coupons()
         self.assertEqual(len(Coupon.list(self.group,
-                                                 active_only=True)), 0)
-
+                                         active_only=True)), 0)
 
 
 class TestCreate(TestCoupon):
@@ -78,25 +75,25 @@ class TestCreate(TestCoupon):
     def test_create(self):
         now = datetime.now(UTC)
         coupon = Coupon.create(external_id=self.external_id,
-                      group_id=self.group,
-                      name='My Coupon',
-                      price_off_cents=100,
-                      percent_off_int=10,
-                      max_redeem=5,
-                      repeating=-1,
-                      expire_at=now)
+                               group_id=self.group,
+                               name='My Coupon',
+                               price_off_cents=100,
+                               percent_off_int=10,
+                               max_redeem=5,
+                               repeating=-1,
+                               expire_at=now)
         self.assertIsInstance(coupon, Coupon)
 
     def test_create_existing(self):
         now = datetime.now(UTC)
         Coupon.create(external_id=self.external_id,
-                               group_id=self.group,
-                               name='My Coupon',
-                               price_off_cents=120,
-                               percent_off_int=11,
-                               max_redeem=6,
-                               repeating=3,
-                               expire_at=now)
+                      group_id=self.group,
+                      name='My Coupon',
+                      price_off_cents=120,
+                      percent_off_int=11,
+                      max_redeem=6,
+                      repeating=3,
+                      expire_at=now)
 
         with self.assertRaises(IntegrityError):
             Coupon.create(external_id=self.external_id,
@@ -107,7 +104,6 @@ class TestCreate(TestCoupon):
                           max_redeem=7,
                           repeating=9,
                           expire_at=now)
-
 
     def test_create_semi_colliding(self):
         """
@@ -135,7 +131,6 @@ class TestCreate(TestCoupon):
         ret = Coupon.retrieve(self.external_id, self.group_2)
         self.assertEqual(ret.price_off_cents, 120)
 
-
     def test_create_no_expire(self):
         now = datetime.now(UTC)
         Coupon.create(external_id=self.external_id,
@@ -151,25 +146,24 @@ class TestCreate(TestCoupon):
         ret = Coupon.retrieve(self.external_id, self.group)
         self.assertTrue(ret.active)
 
+
 class TestRetrieve(TestCoupon):
 
     def test_create_and_retrieve(self):
         coupon = Coupon.create(external_id=self.external_id,
-                      group_id=self.group,
-                      name='My coupon',
-                      price_off_cents=100,
-                      percent_off_int=10,
-                      max_redeem=5,
-                      repeating=-1,
-                      )
+                               group_id=self.group,
+                               name='My coupon',
+                               price_off_cents=100,
+                               percent_off_int=10,
+                               max_redeem=5,
+                               repeating=-1,
+                               )
         ret_coupon = Coupon.retrieve(self.external_id, self.group)
         self.assertEqual(coupon, ret_coupon)
 
     def test_retrieve_dne(self):
         with self.assertRaises(NoResultFound):
-            Coupon.retrieve("COUPON_DNE",self.group)
-
-
+            Coupon.retrieve("COUPON_DNE", self.group)
 
     def test_retrieve_params(self):
         with freeze_time('2013-7-1'):
@@ -259,8 +253,6 @@ class TestUpdateDelete(TestCoupon):
         self.assertEqual(updated_coup.repeating, -1)
         self.assertEqual(updated_coup.max_redeem, 10)
 
-
-
     def test_delete(self):
         Coupon.create(external_id=self.external_id,
                       group_id=self.group,
@@ -276,7 +268,6 @@ class TestUpdateDelete(TestCoupon):
         self.assertFalse(coup.active)
         coup = Coupon.retrieve(self.external_id, self.group)
         self.assertFalse(coup.active)
-
 
 
 class TestValidators(TestCoupon):
@@ -322,7 +313,6 @@ class TestValidators(TestCoupon):
                           max_redeem=-5,
                           repeating=10,
                           )
-
 
     def test_price_off(self):
         with self.assertRaises(ValueError):

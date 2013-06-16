@@ -27,15 +27,13 @@ class TestGroup(BalancedTransactionalTestCase):
         ret = Group.retrieve_group(self.marketplace)
         self.assertEqual(group, ret)
 
-
     def test_retrieve_dne(self):
         with self.assertRaises(NoResultFound):
             Group.retrieve_group(self.marketplace)
 
 
-
 def TestRelations(TestGroup):
-    #Todo
+    # Todo
     def test_temp(self):
         return True
 

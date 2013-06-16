@@ -30,11 +30,11 @@ class Coupon(Base):
 
     __table_args__ = (UniqueConstraint(external_id, group_id,
                                        name='coupon_id_group_unique'),
-    )
+                      )
 
     @classmethod
     def create(cls, external_id, group_id, name, price_off_cents,
-                      percent_off_int, max_redeem, repeating, expire_at=None):
+               percent_off_int, max_redeem, repeating, expire_at=None):
         """
         Creates a coupon that can be later applied to a customer.
         :param external_id: A unique id for the coupon
@@ -76,7 +76,7 @@ class Coupon(Base):
         :returns: Single coupon
         """
         query = cls.query.filter(cls.external_id == external_id,
-                           cls.group_id == group_id)
+                                 cls.group_id == group_id)
         if active_only:
             query = query.filter(cls.active == True)
         return query.one()
@@ -120,7 +120,6 @@ class Coupon(Base):
         self.session.commit()
         return self
 
-
     @classmethod
     def list(cls, group_id, active_only=False):
         """
@@ -139,7 +138,7 @@ class Coupon(Base):
         The number of unique customers that are using the coupon
         """
         return Customer.query.filter(Customer.current_coupon == self
-        .external_id).count()
+                                     .external_id).count()
 
     @classmethod
     def expire_coupons(cls):

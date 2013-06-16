@@ -13,6 +13,7 @@ Base.session = Session
 
 
 class RelativeDelta(TypeDecorator):
+
     """
     A python dictionary to json type
     """
@@ -32,7 +33,6 @@ class RelativeDelta(TypeDecorator):
                              days=param['days'], hours=param['hours'],
                              minutes=param['minutes'])
 
-
     def process_bind_param(self, value, dialect):
         if not isinstance(value, relativedelta):
             raise ValueError("Accepts only relativedelta types")
@@ -50,6 +50,7 @@ class RelativeDelta(TypeDecorator):
 
 
 class JSONList(TypeDecorator):
+
     """
     A python dictionary to json type
     """

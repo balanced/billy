@@ -125,27 +125,31 @@ class Customer(Base):
         :param plan_id: The plan id to associate customer with
         :raise:
         """
-        plan_obj = Plan.retrieve_plan(plan_id, self.group_id, active_only=True)
+        #Todo dirty clean this...
+        from billy.models import PlanInvoice
+        plan = Plan.retrieve(plan_id, self.group_id, active_only=True)
         current_coupon = self.coupon
         start_date = start_dt or datetime.now(UTC)
         due_on = datetime.now(UTC)
-        coupon_use_count = self.coupon_use.get(current_coupon
-                                               .coupon_id, 0)
-        use_coupon = True if current_coupon.repeating == -1 or \
-            coupon_use_count \
-            <= current_coupon.repeating else False
-        can_trial = self.can_trial_plan(plan_obj.external_id)
-        end_date = start_date + plan_obj.to_relativedelta(
-            plan_obj.plan_interval)
-        trial_interval = plan_obj.to_relativedelta(plan_obj.trial_interval)
+        if current_coupon:
+            coupon_use_count = PlanInvoice.query.filter(
+                PlanInvoice.relevant_coupon == current_coupon.external_id,
+                PlanInvoice.group_id == current_coupon.group_id,
+                PlanInvoice.customer_id == self.external_id).count()
+            use_coupon = True if current_coupon.repeating == -1 or \
+                coupon_use_count \
+                <= current_coupon.repeating else False
+        else:
+            use_coupon = False
+        can_trial = self.can_trial_plan(plan.external_id)
+        end_date = start_date + plan.plan_interval
         if can_trial:
-            end_date += trial_interval
-            due_on += trial_interval
+            end_date += plan.trial_interval
+            due_on += plan.trial_interval
         if charge_at_period_end:
             due_on = end_date
-        amount_base = plan_obj.price_cents * Decimal(quantity)
+        amount_base = plan.price_cents * Decimal(quantity)
         amount_after_coupon = amount_base
-        amount_paid = 0
         coupon_id = current_coupon.coupon_id if current_coupon else None
         if use_coupon and current_coupon:
             dollars_off = current_coupon.price_off_cents
@@ -154,6 +158,7 @@ class Customer(Base):
             amount_after_coupon -= int(
                 amount_after_coupon * Decimal(percent_off) / Decimal(100))
         balance = amount_after_coupon
+        self.prorate_last_invoice(plan_id)
         PlanInvoice.create_invoice(
             customer_id=self.external_id,
             group_id=self.group_id,
@@ -164,13 +169,12 @@ class Customer(Base):
             due_dt=due_on,
             amount_base_cents=amount_base,
             amount_after_coupon_cents=amount_after_coupon,
-            amount_paid_cents=amount_paid,
+            amount_paid_cents=0,
             remaining_balance_cents=balance,
             quantity=quantity,
             charge_at_period_end=charge_at_period_end,
             includes_trial=can_trial
         )
-        self.prorate_last_invoice(plan_id)
         self.event = ActionCatalog.CUSTOMER_ADD_PLAN
         self.session.commit()
         return self
@@ -201,6 +205,8 @@ class Customer(Base):
         changing a users plan.
         in (matches balanced payments groups)
         """
+        #Todo remove
+        from billy.models import PlanInvoice
         right_now = datetime.now(UTC)
         last_invoice = PlanInvoice.retrieve_invoice(self.external_id,
                                                     self.group_id,
@@ -231,8 +237,7 @@ class Customer(Base):
         first_charge = start_dt or datetime.now(UTC)
         balance_to_keep_cents = payout_obj.balance_to_keep_cents
         if not first_now:
-            first_charge += payout_obj.to_relativedelta(
-                payout_obj.payout_interval)
+            first_charge += payout_obj.payout_interval
         invoice = PayoutInvoice.create_invoice(self.external_id, self.group_id,
                                                payout_obj.payout_id,
                                                first_charge,
@@ -286,11 +291,13 @@ class Customer(Base):
         :param plan_id: the external_id of the plan
         :return: True/False
         """
+        #Todo fix
+        from billy.models import PlanInvoice
         results = PlanInvoice.list_invoices(self.group_id,
                                             relevant_plan=plan_id,
                                             customer_id=self.external_id)
         can = True
-        for each in results:
+        for each in results or []:
             if each.includes_trial:
                 can = False
         return can

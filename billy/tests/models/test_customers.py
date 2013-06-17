@@ -1,15 +1,17 @@
 from __future__ import unicode_literals
+from datetime import datetime
 
+from freezegun import freeze_time
+from pytz import UTC
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from billy.models import Customer, Group, Coupon, Plan
+from billy.models import Customer, Group, Coupon, Plan, PlanInvoice
 from billy.utils.intervals import Intervals
 from billy.tests import BalancedTransactionalTestCase
 
 
 class TestCustomer(BalancedTransactionalTestCase):
-
     def setUp(self):
         super(TestCustomer, self).setUp()
         self.external_id = 'MY_TEST_CUSTOMER'
@@ -20,7 +22,6 @@ class TestCustomer(BalancedTransactionalTestCase):
 
 
 class TestCreate(TestCustomer):
-
     def test_create(self):
         Customer.create(
             external_id=self.external_id,
@@ -53,7 +54,6 @@ class TestCreate(TestCustomer):
 
 
 class TestRetrieve(TestCustomer):
-
     def test_create_and_retrieve(self):
         customer = Customer.create(
             external_id=self.external_id,
@@ -84,7 +84,6 @@ class TestRetrieve(TestCustomer):
 
 
 class TestCoupon(TestCustomer):
-
     def test_apply_coupon(self):
         customer = Customer.create(
             external_id=self.external_id,
@@ -97,7 +96,7 @@ class TestCoupon(TestCustomer):
                                percent_off_int=10,
                                max_redeem=5,
                                repeating=-1,
-                               )
+        )
         customer.apply_coupon(coupon.external_id)
         self.assertEqual(customer.current_coupon, coupon.external_id)
 
@@ -109,12 +108,12 @@ class TestCoupon(TestCustomer):
                                percent_off_int=10,
                                max_redeem=3,
                                repeating=-1,
-                               )
+        )
         Customer.create('MY_TEST_CUS_1', self.group).apply_coupon(coupon
-                                                                   .external_id)
+        .external_id)
         self.assertEqual(coupon.count_redeemed, 1)
         Customer.create('MY_TEST_CUS_2', self.group).apply_coupon(coupon
-                                                                   .external_id)
+        .external_id)
         self.assertEqual(coupon.count_redeemed, 2)
         customer = Customer.create('MY_TEST_CUS_3', self.group).apply_coupon(
             coupon
@@ -136,11 +135,11 @@ class TestCoupon(TestCustomer):
                                percent_off_int=10,
                                max_redeem=3,
                                repeating=-1,
-                               )
+        )
         coupon.delete()
         with self.assertRaises(NoResultFound):
             Customer.create('MY_TEST_CUS_3', self.group).apply_coupon(coupon
-                                                                       .external_id)
+            .external_id)
 
     def test_apply_coupon_dne(self):
         with self.assertRaises(NoResultFound):
@@ -157,7 +156,7 @@ class TestCoupon(TestCustomer):
                                percent_off_int=10,
                                max_redeem=3,
                                repeating=-1,
-                               )
+        )
         customer.apply_coupon(coupon.external_id)
         self.assertEqual(customer.current_coupon, coupon.external_id)
         customer.remove_coupon()
@@ -169,7 +168,6 @@ class TestCoupon(TestCustomer):
 
 
 class TestUpdatePlan(TestCustomer):
-
     def setUp(self):
         super(TestUpdatePlan, self).setUp()
         self.customer = Customer.create(
@@ -177,7 +175,7 @@ class TestUpdatePlan(TestCustomer):
             group_id=self.group
         )
         self.plan = Plan.create(
-            external_id=self.external_id,
+            external_id='MY_TEST_PLAN',
             group_id=self.group,
             name='Starter',
             price_cents=1000,
@@ -186,12 +184,25 @@ class TestUpdatePlan(TestCustomer):
         )
 
     def test_update_first(self):
-        self.customer.update_plan(
-            plan_id=self.plan.external_id,
-            charge_at_period_end=False,
-            start_dt=None
-        )
+        with freeze_time('2013-02-01'):
+            self.customer.update_plan(self.plan.external_id)
+            invoice = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
+                                                   active_only=True)
+            self.assertEqual(invoice.relevant_plan, self.plan.external_id)
+            self.assertEqual(invoice.start_dt, datetime.now(UTC))
+            should_end = datetime.now(UTC) + self.plan.plan_interval + self.plan.trial_interval
+            self.assertEqual(invoice.end_dt, should_end)
+            self.assertEqual(invoice.original_end_dt, should_end)
+            self.assertEqual(invoice.due_dt, datetime.now(UTC) + self.plan.trial_interval)
+            self.assertEqual(invoice.amount_base_cents, self.plan.price_cents)
+            self.assertEqual(invoice.amount_after_coupon_cents, self.plan.price_cents)
+            self.assertTrue(invoice.includes_trial)
+            self.assertFalse(invoice.charge_at_period_end)
+            self.assertEqual(invoice.quantity, 1)
 
+
+    def test_update_plan_dne(self):
+        pass
 
     def test_update_qty(self):
         pass
@@ -202,10 +213,10 @@ class TestUpdatePlan(TestCustomer):
     def test_custom_start_dt(self):
         pass
 
-    def test_trial_first(self):
+    def test_can_trial(self):
         pass
 
-    def test_trial_repeat(self):
+    def test_cant_trial(self):
         pass
 
     def test_with_coupon(self):
@@ -228,13 +239,11 @@ class TestUpdatePlan(TestCustomer):
 
 
 class TestProrate(TestCustomer):
-
     def test_prorate_last_invoice(self):
         pass
 
 
 class TestPayout(TestCustomer):
-
     def add_payout(self):
         pass
 
@@ -261,7 +270,6 @@ class TestPayout(TestCustomer):
 
 
 class TestProperties(TestCustomer):
-
     def test_active_plans(self):
         pass
 
@@ -270,7 +278,6 @@ class TestProperties(TestCustomer):
 
 
 class TestTask(TestCustomer):
-
     def test_clear_plan_debt_none(self):
         pass
 
@@ -285,7 +292,6 @@ class TestTask(TestCustomer):
 
 
 class TestRelations(TestCustomer):
-
     def test_coupons(self):
         pass
 

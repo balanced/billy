@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 import unittest
 import os
 
+import datetime
+from pytz import UTC
 import sqlalchemy
 
 from billy.settings import DB_URL, Session
@@ -14,7 +16,6 @@ PACKAGE_PATH = os.path.join(BASE_PATH, 'balanced_service')
 
 
 class BalancedTransactionalTestCase(unittest.TestCase):
-
     """
     This class is optimized for multiple tests requiring the
     database, by putting every db test in a large transaction
@@ -31,7 +32,7 @@ class BalancedTransactionalTestCase(unittest.TestCase):
         super(BalancedTransactionalTestCase, self).__init__(*A, **KW)
         self._db_engine = sqlalchemy.create_engine(DB_URL,
                                                    isolation_level='SERIALIZABLE'
-                                                   )
+        )
 
     def setUp(self):
         super(BalancedTransactionalTestCase, self).setUp()
@@ -69,3 +70,8 @@ def _transactional_db_reset(db_session, db_transaction, db_connection):
     db_connection.close()
     # remove the session from the registry
     Session.remove()
+
+
+def rel_delta_to_sec(rel):
+    now = datetime.datetime.now()
+    return ((now + rel) - now).total_seconds()

@@ -1,14 +1,17 @@
 from __future__ import unicode_literals
 from datetime import datetime
+from decimal import Decimal
 
 from freezegun import freeze_time
 from pytz import UTC
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
+
 from billy.models import Customer, Group, Coupon, Plan, PlanInvoice
 from billy.utils.intervals import Intervals
-from billy.tests import BalancedTransactionalTestCase
+from billy.tests import BalancedTransactionalTestCase, rel_delta_to_sec
+
 
 
 class TestCustomer(BalancedTransactionalTestCase):
@@ -211,19 +214,30 @@ class TestUpdatePlan(TestCustomer):
         with freeze_time('2013-01-15'):
             second = datetime.now(UTC)
             self.customer.update_plan(self.plan.external_id, quantity=5)
-        ratio = (second - first).total_seconds()/ self.plan.plan_interval.total_seconds()
-        print ratio
+        ratio = (second - (first + self.plan.trial_interval)).total_seconds() / rel_delta_to_sec(self.plan.plan_interval)
         invoice_old = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
                                                    active_only=False)
         invoice_new = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
                                                    active_only=True)
-        self.assertAlmostEqual(invoice_old.remaining_balance_cents)
+        self.assertEqual(invoice_new.remaining_balance_cents, 5000)
+        self.assertAlmostEqual(Decimal(invoice_old.remaining_balance_cents) / Decimal(1000), Decimal(ratio), places=1)
 
     def test_at_period_end(self):
-        pass
+        self.customer.update_plan(self.plan.external_id, quantity=1, charge_at_period_end=True)
+        invoice_new = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
+                                                   active_only=True)
+        self.assertEqual(invoice_new.end_dt, invoice_new.due_dt)
 
     def test_custom_start_dt(self):
-        pass
+        dt = datetime(2013, 2, 1, tzinfo=UTC)
+        self.customer.update_plan(self.plan.external_id, quantity=1, start_dt=dt)
+        invoice_new = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
+                                                   active_only=True)
+        self.assertEqual(invoice_new.start_dt, dt)
+        self.assertEqual(invoice_new.due_dt, invoice_new.start_dt + self.plan.trial_interval)
+        self.assertEqual(invoice_new.end_dt, invoice_new.start_dt + self.plan.trial_interval + self.plan.plan_interval)
+
+
 
     def test_can_trial(self):
         pass

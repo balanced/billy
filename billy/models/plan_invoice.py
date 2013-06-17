@@ -102,9 +102,9 @@ class PlanInvoice(Base):
         query = cls.query.filter(cls.customer_id == customer_id,
                                  cls.group_id == group_id)
         if relevant_plan:
-            query.filter(cls.relevant_plan == relevant_plan)
+            query = query.filter(cls.relevant_plan == relevant_plan)
         if active_only:
-            query.filter(cls.active == True)
+            query = query.filter(cls.active == True)
         return query.first()
 
     @classmethod

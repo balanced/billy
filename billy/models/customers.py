@@ -130,7 +130,7 @@ class Customer(Base):
         plan = Plan.retrieve(plan_id, self.group_id, active_only=True)
         current_coupon = self.coupon
         start_date = start_dt or datetime.now(UTC)
-        due_on = datetime.now(UTC)
+        due_on = start_date
         if current_coupon:
             coupon_use_count = PlanInvoice.query.filter(
                 PlanInvoice.relevant_coupon == current_coupon.external_id,
@@ -211,7 +211,6 @@ class Customer(Base):
                                                     self.group_id,
                                                     plan_id, active_only=True)
         if last_invoice:
-            import ipdb;ipdb.set_trace()
             plan = last_invoice.plan
             true_start = last_invoice.start_dt
             if last_invoice.includes_trial:
@@ -223,12 +222,11 @@ class Customer(Base):
                     (right_now - true_start).total_seconds())
                 percent_used = time_used / time_total
                 new_base_amount = last_invoice.amount_base_cents * percent_used
-                new_coupon_amount = last_invoice.amount_after_coupon_cents * \
+                new_after_coupon_amount = last_invoice.amount_after_coupon_cents * \
                     percent_used
-                new_balance = last_invoice.amount_after_coupon_cents - \
-                    last_invoice.amount_paid_cents
+                new_balance = new_after_coupon_amount - last_invoice.amount_paid_cents
                 last_invoice.amount_base_cents = new_base_amount
-                last_invoice.amount_after_coupon_cents = new_coupon_amount
+                last_invoice.amount_after_coupon_cents = new_after_coupon_amount
                 last_invoice.remaining_balance_cents = new_balance
                 last_invoice.end_dt = right_now - relativedelta(
                     seconds=30)  # Extra safety for find query

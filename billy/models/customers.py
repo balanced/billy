@@ -205,31 +205,36 @@ class Customer(Base):
         changing a users plan.
         in (matches balanced payments groups)
         """
-        #Todo remove
         from billy.models import PlanInvoice
         right_now = datetime.now(UTC)
         last_invoice = PlanInvoice.retrieve_invoice(self.external_id,
                                                     self.group_id,
                                                     plan_id, active_only=True)
         if last_invoice:
-            time_total = Decimal(
-                (last_invoice.end_dt - last_invoice.due_dt).total_seconds())
-            time_used = Decimal(
-                (last_invoice.start_dt - right_now).total_seconds())
-            percent_used = time_used / time_total
-            new_base_amount = last_invoice.amount_base_cents * percent_used
-            new_coupon_amount = last_invoice.amount_after_coupon_cents * \
-                percent_used
-            new_balance = last_invoice.amount_after_coupon_cents - \
-                last_invoice.amount_paid_cents
-            last_invoice.amount_base_cents = new_base_amount
-            last_invoice.amount_after_coupon_cents = new_coupon_amount
-            last_invoice.remaining_balance_cents = new_balance
-            last_invoice.end_dt = right_now - relativedelta(
-                seconds=30)  # Extra safety for find query
-            last_invoice.active = False
-            last_invoice.event = ActionCatalog.PI_PRORATE_LAST
-        self.session.commit()
+            import ipdb;ipdb.set_trace()
+            plan = last_invoice.plan
+            true_start = last_invoice.start_dt
+            if last_invoice.includes_trial:
+                true_start = true_start + plan.trial_interval
+            if last_invoice:
+                time_total = Decimal(
+                    (last_invoice.end_dt - true_start).total_seconds())
+                time_used = Decimal(
+                    (right_now - true_start).total_seconds())
+                percent_used = time_used / time_total
+                new_base_amount = last_invoice.amount_base_cents * percent_used
+                new_coupon_amount = last_invoice.amount_after_coupon_cents * \
+                    percent_used
+                new_balance = last_invoice.amount_after_coupon_cents - \
+                    last_invoice.amount_paid_cents
+                last_invoice.amount_base_cents = new_base_amount
+                last_invoice.amount_after_coupon_cents = new_coupon_amount
+                last_invoice.remaining_balance_cents = new_balance
+                last_invoice.end_dt = right_now - relativedelta(
+                    seconds=30)  # Extra safety for find query
+                last_invoice.active = False
+                last_invoice.event = ActionCatalog.PI_PRORATE_LAST
+            self.session.commit()
 
     def add_payout(self, payout_id, first_now=False, start_dt=None):
         payout_obj = Payout.retrieve_payout(payout_id, self.group_id,
@@ -297,7 +302,7 @@ class Customer(Base):
                                             relevant_plan=plan_id,
                                             customer_id=self.external_id)
         can = True
-        for each in results or []:
+        for each in results:
             if each.includes_trial:
                 can = False
         return can

@@ -200,12 +200,24 @@ class TestUpdatePlan(TestCustomer):
             self.assertFalse(invoice.charge_at_period_end)
             self.assertEqual(invoice.quantity, 1)
 
-
     def test_update_plan_dne(self):
-        pass
+        with self.assertRaises(NoResultFound):
+            self.customer.update_plan('MY_PLAN_DNE')
 
     def test_update_qty(self):
-        pass
+        with freeze_time('2013-01-01'):
+            first = datetime.now(UTC)
+            self.customer.update_plan(self.plan.external_id, quantity=1)
+        with freeze_time('2013-01-15'):
+            second = datetime.now(UTC)
+            self.customer.update_plan(self.plan.external_id, quantity=5)
+        ratio = (second - first).total_seconds()/ self.plan.plan_interval.total_seconds()
+        print ratio
+        invoice_old = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
+                                                   active_only=False)
+        invoice_new = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
+                                                   active_only=True)
+        self.assertAlmostEqual(invoice_old.remaining_balance_cents)
 
     def test_at_period_end(self):
         pass
@@ -237,10 +249,6 @@ class TestUpdatePlan(TestCustomer):
     def test_is_debtor(self):
         pass
 
-
-class TestProrate(TestCustomer):
-    def test_prorate_last_invoice(self):
-        pass
 
 
 class TestPayout(TestCustomer):

@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import sys
 
 from billy.models import *
 from billy.settings import DB_ENGINE

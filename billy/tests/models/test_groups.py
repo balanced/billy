@@ -32,10 +32,10 @@ class TestGroup(BalancedTransactionalTestCase):
             Group.retrieve_group(self.marketplace)
 
 
-def TestRelations(TestGroup):
-    # Todo
-    def test_temp(self):
-        return True
+# def TestRelations(TestGroup):
+#     # Todo
+#     def test_temp(self):
+#         return True
 
 
 if __name__ == '__main__':

@@ -137,6 +137,8 @@ class Coupon(Base):
         """
         The number of unique customers that are using the coupon
         """
+        #Todo remove this.
+        from billy.models import Customer
         return Customer.query.filter(Customer.current_coupon == self
                                      .external_id).count()
 

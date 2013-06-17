@@ -2,6 +2,8 @@ from datetime import datetime
 from pytz import UTC
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
     Integer, ForeignKeyConstraint, Index
+from sqlalchemy.orm import relationship
+
 from billy.errors import NotFoundError
 from billy.models import Base, Group, Customer, Plan, Coupon
 from billy.utils.billy_action import ActionCatalog
@@ -31,6 +33,10 @@ class PlanInvoice(Base):
     active = Column(Boolean, default=True)
     cleared_by = Column(Unicode, ForeignKey('plan_transactions.guid'))
 
+    plan = relationship('Plan', backref='invoices', foreign_keys=[relevant_plan, group_id])
+
+
+
     __table_args__ = (
         # Customer foreign key
         ForeignKeyConstraint(
@@ -43,7 +49,7 @@ class PlanInvoice(Base):
         # Coupon foreign key
         ForeignKeyConstraint(
             [relevant_coupon, group_id],
-            [Coupon.external_id, Plan.group_id]),
+            [Coupon.external_id, Coupon.group_id]),
         Index('unique_plan_invoice', relevant_plan, group_id,
               postgresql_where=active == True,
               unique=True)
@@ -111,7 +117,7 @@ class PlanInvoice(Base):
             query.filter(cls.active == True)
         if relevant_plan:
             query.filter(cls.relevant_plan == relevant_plan)
-        return query.first()
+        return query.all()
 
     @classmethod
     def need_debt_cleared(cls):

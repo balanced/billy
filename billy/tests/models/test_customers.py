@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from freezegun import freeze_time
@@ -249,16 +249,54 @@ class TestUpdatePlan(TestCustomer):
         self.assertEqual(invoice_new.due_dt, invoice_new.start_dt)
 
     def test_with_coupon(self):
-        pass
+        price_off = 500
+        percent_off = 50
+        new_coupon = Coupon.create('MY_TEST_COUPON', self.group, 'Yo', price_off_cents=price_off,
+                                   percent_off_int=percent_off, max_redeem=5, repeating=2)
+        self.customer.apply_coupon(new_coupon.external_id)
+        self.customer.update_plan(self.plan.external_id, quantity=1)
+        invoice = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
+                                                   active_only=True)
+        self.assertEqual(invoice.remaining_balance_cents, (self.plan.price_cents - 500) * Decimal(percent_off) / 100)
 
-    def test_cancel_plan_now(self):
-        pass
+    def test_cancel_now(self):
+        with freeze_time('2013-01-01'):
+            self.customer.update_plan(self.plan.external_id, quantity=1)
+        with freeze_time('2013-01-15'):
+            self.customer.cancel_plan(self.plan.external_id, cancel_at_period_end=False)
+            invoice = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
+                                               active_only=False)
+            self.assertEqual(invoice.end_dt.astimezone(UTC), datetime.now(UTC))
 
-    def test_cancel_plan_at_period_end(self):
-        pass
+
+    def test_cancel_at_end(self):
+        with freeze_time('2013-01-01'):
+            self.customer.update_plan(self.plan.external_id, quantity=1)
+        with freeze_time('2013-01-15'):
+            self.customer.cancel_plan(self.plan.external_id, cancel_at_period_end=True)
+        with freeze_time('2013-01-17'):
+            self.customer.update_plan(self.plan.external_id, quantity=1)
+            invoice_old = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
+                                                   active_only=False)
+            self.assertEqual(invoice_old.end_dt, datetime.now(UTC))
+            invoice_new = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
+                                                   active_only=True)
+            self.assertFalse(invoice_old.active, False)
+            self.assertEqual(invoice_old.prorated, True)
 
     def test_can_trial_plan(self):
-        pass
+        with freeze_time('2013-01-01'):
+            self.customer.update_plan(self.plan.external_id, quantity=1)
+        with freeze_time('2013-01-15'):
+            self.customer.update_plan(self.plan.external_id, quantity=1)
+        invoice_old = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
+                                                   active_only=False)
+        invoice_new = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
+                                                   active_only=True)
+        self.assertTrue(invoice_old.includes_trial)
+        self.assertFalse(invoice_new.includes_trial)
+
+
 
     def test_sum_plan_debt(self):
         pass

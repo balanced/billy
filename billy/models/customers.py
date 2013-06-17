@@ -150,7 +150,7 @@ class Customer(Base):
             due_on = end_date
         amount_base = plan.price_cents * Decimal(quantity)
         amount_after_coupon = amount_base
-        coupon_id = current_coupon.coupon_id if current_coupon else None
+        coupon_id = current_coupon.external_id if current_coupon else None
         if use_coupon and current_coupon:
             dollars_off = current_coupon.price_off_cents
             percent_off = current_coupon.percent_off_int
@@ -188,6 +188,7 @@ class Customer(Base):
         it has to renew.
         :returns: New customer object.
         """
+        from billy.models import PlanInvoice
         if cancel_at_period_end:
             result = PlanInvoice.retrieve_invoice(self.external_id,
                                                   self.group_id,
@@ -207,9 +208,16 @@ class Customer(Base):
         """
         from billy.models import PlanInvoice
         right_now = datetime.now(UTC)
-        last_invoice = PlanInvoice.retrieve_invoice(self.external_id,
+        last_invoice_active = PlanInvoice.retrieve_invoice(self.external_id,
                                                     self.group_id,
                                                     plan_id, active_only=True)
+        last_invoice_deleted = PlanInvoice.query.filter(
+            PlanInvoice.customer_id == self.external_id,
+            PlanInvoice.group_id == self.group_id,
+            PlanInvoice.active == False,
+            PlanInvoice.end_dt > right_now
+        ).first()
+        last_invoice = last_invoice_active or last_invoice_deleted
         if last_invoice:
             plan = last_invoice.plan
             true_start = last_invoice.start_dt
@@ -228,10 +236,10 @@ class Customer(Base):
                 last_invoice.amount_base_cents = new_base_amount
                 last_invoice.amount_after_coupon_cents = new_after_coupon_amount
                 last_invoice.remaining_balance_cents = new_balance
-                last_invoice.end_dt = right_now - relativedelta(
-                    seconds=30)  # Extra safety for find query
+                last_invoice.end_dt = right_now
                 last_invoice.active = False
                 last_invoice.event = ActionCatalog.PI_PRORATE_LAST
+                last_invoice.prorated = True
             self.session.commit()
 
     def add_payout(self, payout_id, first_now=False, start_dt=None):

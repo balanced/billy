@@ -29,6 +29,7 @@ class PlanInvoice(Base):
     amount_paid_cents = Column(Integer)
     remaining_balance_cents = Column(Integer)
     quantity = Column(Integer)
+    prorated = Column(Boolean)
     charge_at_period_end = Column(Boolean)
     active = Column(Boolean, default=True)
     cleared_by = Column(Unicode, ForeignKey('plan_transactions.guid'))

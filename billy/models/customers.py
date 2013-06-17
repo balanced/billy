@@ -2,11 +2,11 @@ from __future__ import unicode_literals
 from datetime import datetime
 from decimal import Decimal
 
+from dateutil.relativedelta import relativedelta
+from pytz import UTC
 from sqlalchemy import Column, Unicode, DateTime, Integer
 from sqlalchemy.schema import ForeignKeyConstraint, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
-from pytz import UTC
-from dateutil.relativedelta import relativedelta
 
 from billy.settings import RETRY_DELAY_PLAN
 from billy.models import *

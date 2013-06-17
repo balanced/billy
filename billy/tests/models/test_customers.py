@@ -7,11 +7,9 @@ from pytz import UTC
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-
 from billy.models import Customer, Group, Coupon, Plan, PlanInvoice
 from billy.utils.intervals import Intervals
 from billy.tests import BalancedTransactionalTestCase, rel_delta_to_sec
-
 
 
 class TestCustomer(BalancedTransactionalTestCase):
@@ -214,7 +212,8 @@ class TestUpdatePlan(TestCustomer):
         with freeze_time('2013-01-15'):
             second = datetime.now(UTC)
             self.customer.update_plan(self.plan.external_id, quantity=5)
-        ratio = (second - (first + self.plan.trial_interval)).total_seconds() / rel_delta_to_sec(self.plan.plan_interval)
+        ratio = (second - (first + self.plan.trial_interval)).total_seconds() / rel_delta_to_sec(
+            self.plan.plan_interval)
         invoice_old = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
                                                    active_only=False)
         invoice_new = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
@@ -237,13 +236,17 @@ class TestUpdatePlan(TestCustomer):
         self.assertEqual(invoice_new.due_dt, invoice_new.start_dt + self.plan.trial_interval)
         self.assertEqual(invoice_new.end_dt, invoice_new.start_dt + self.plan.trial_interval + self.plan.plan_interval)
 
-
-
     def test_can_trial(self):
-        pass
-
-    def test_cant_trial(self):
-        pass
+        with freeze_time('2013-01-01'):
+            self.customer.update_plan(self.plan.external_id, quantity=1)
+        with freeze_time('2013-01-15'):
+            self.customer.update_plan(self.plan.external_id, quantity=5)
+        invoice_old = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
+                                                   active_only=False)
+        invoice_new = PlanInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
+                                                   active_only=True)
+        self.assertEqual(invoice_old.due_dt, invoice_old.start_dt + self.plan.trial_interval)
+        self.assertEqual(invoice_new.due_dt, invoice_new.start_dt)
 
     def test_with_coupon(self):
         pass
@@ -262,7 +265,6 @@ class TestUpdatePlan(TestCustomer):
 
     def test_is_debtor(self):
         pass
-
 
 
 class TestPayout(TestCustomer):

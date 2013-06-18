@@ -244,14 +244,15 @@ class Customer(Base):
             self.session.commit()
 
     def add_payout(self, payout_id, first_now=False, start_dt=None):
-        payout_obj = Payout.retrieve_payout(payout_id, self.group_id,
+        from billy.models import PayoutInvoice
+        payout = Payout.retrieve(payout_id, self.group_id,
                                             active_only=True)
         first_charge = start_dt or datetime.now(UTC)
-        balance_to_keep_cents = payout_obj.balance_to_keep_cents
+        balance_to_keep_cents = payout.balance_to_keep_cents
         if not first_now:
-            first_charge += payout_obj.payout_interval
-        invoice = PayoutInvoice.create_invoice(self.external_id, self.group_id,
-                                               payout_obj.payout_id,
+            first_charge += payout.payout_interval
+        invoice = PayoutInvoice.create(self.external_id, self.group_id,
+                                               payout.external_id,
                                                first_charge,
                                                balance_to_keep_cents,
                                                )
@@ -261,6 +262,7 @@ class Customer(Base):
         return self
 
     def cancel_payout(self, payout_id, cancel_scheduled=False):
+        from billy.models import PayoutInvoice
         current_payout_invoice = PayoutInvoice.retrieve_invoice(
             self.external_id,
             self.group_id,

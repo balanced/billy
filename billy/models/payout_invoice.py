@@ -3,6 +3,8 @@ from datetime import datetime
 from pytz import UTC
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
     Integer, ForeignKeyConstraint, Index
+from sqlalchemy.orm import relationship
+
 from billy.models import Base, Group, Customer, Payout
 from billy.settings import TRANSACTION_PROVIDER_CLASS, RETRY_DELAY_PAYOUT
 from billy.utils.billy_action import ActionCatalog
@@ -26,6 +28,9 @@ class PayoutInvoice(Base):
     cleared_by = Column(Unicode, ForeignKey('payout_transactions.guid'))
     attempts_made = Column(Integer, default=0)
 
+    payout = relationship('Payout', backref='invoices',
+                        foreign_keys=[relevant_payout, group_id])
+
     __table_args__ = (
         # Customer foreign key
         ForeignKeyConstraint(
@@ -41,18 +46,19 @@ class PayoutInvoice(Base):
     )
 
     @classmethod
-    def create_invoice(cls, customer_id, group_id, relevant_payout,
+    def create(cls, customer_id, group_id, relevant_payout,
                        payout_date, balanced_to_keep_cents):
         new_invoice = cls(
             customer_id=customer_id,
             group_id=group_id,
             relevant_payout=relevant_payout,
             payout_date=payout_date,
-            balanced_to_keep_cents=balanced_to_keep_cents,
+            balance_to_keep_cents=balanced_to_keep_cents,
         )
         new_invoice.event = ActionCatalog.POI_CREATE
         cls.session.add(new_invoice)
         cls.session.commit()
+        return new_invoice
 
     @classmethod
     def retrieve_invoice(cls, customer_id, group_id, relevant_payout=None,
@@ -60,12 +66,12 @@ class PayoutInvoice(Base):
         query = cls.query.filter(cls.customer_id == customer_id,
                                  cls.group_id == group_id)
         if relevant_payout:
-            query.filter(cls.relevant_payout == relevant_payout)
+            query = query.filter(cls.relevant_payout == relevant_payout)
         if active_only:
-            query.filter(cls.active == True)
+            query = query.filter(cls.active == True)
         if only_incomplete:
-            query.filter(cls.completed == False)
-        return query.first()
+            query = query.filter(cls.completed == False)
+        return query.one()
 
     @classmethod
     def list_invoices(cls, group_id, relevant_payout=None,

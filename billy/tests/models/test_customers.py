@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 
 from freezegun import freeze_time
@@ -7,7 +7,7 @@ from pytz import UTC
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from billy.models import Customer, Group, Coupon, Plan, PlanInvoice
+from billy.models import Customer, Group, Coupon, Plan, PlanInvoice, Payout, PayoutInvoice
 from billy.utils.intervals import Intervals
 from billy.tests import BalancedTransactionalTestCase, rel_delta_to_sec
 
@@ -343,29 +343,69 @@ class TestUpdatePlan(TestCustomer):
 
 class TestPayout(TestCustomer):
 
-    def add_payout(self):
-        pass
+    def setUp(self):
+        super(TestPayout, self).setUp()
+        self.customer = Customer.create(
+            external_id=self.external_id,
+            group_id=self.group
+        )
+        self.payout = Payout.create(
+            external_id='MY_TEST_PLAN',
+            group_id=self.group,
+            name='Pay me out!',
+            balance_to_keep_cents=5000,
+            payout_interval=Intervals.TWO_WEEKS
+        )
 
-    def add_payout_dne(self):
-        pass
+    def test_change_payout(self):
+        with freeze_time('2013-2-15'):
+            self.customer.add_payout(self.payout.external_id)
+            invoice = PayoutInvoice.retrieve_invoice(self.customer.external_id, self.group, self.payout.external_id, active_only=True)
+            self.assertEqual(invoice.payout_date, datetime.now(UTC) + self.payout.payout_interval)
 
-    def add_payout_first_now(self):
-        pass
+
+    def test_change_payout_dne(self):
+        with self.assertRaises(NoResultFound):
+            self.customer.add_payout('MY)PAYOUT_DNE')
+
+    def test_add_payout_first_now(self):
+        with freeze_time('2013-2-15'):
+            self.customer.add_payout(self.payout.external_id, first_now=True)
+            invoice = PayoutInvoice.retrieve_invoice(self.customer.external_id, self.group, self.payout.external_id, active_only=True)
+            self.assertEqual(invoice.payout_date, datetime.now(UTC))
 
     def add_payout_not_first_now(self):
-        pass
+        with freeze_time('2013-2-15'):
+            self.customer.add_payout(self.payout.external_id)
+            invoice = PayoutInvoice.retrieve_invoice(self.customer.external_id, self.group, self.payout.external_id, active_only=True)
+            self.assertEqual(invoice.payout_date, datetime.now(UTC) + self.payout.payout_interval)
 
     def test_add_payout_custom_start_dt(self):
-        pass
+        start_dt = datetime(2013, 4, 5, tzinfo=UTC)
+        self.customer.add_payout(self.payout.external_id, first_now=True, start_dt=start_dt)
+        invoice = PayoutInvoice.retrieve_invoice(self.customer.external_id, self.group, self.payout.external_id, active_only=True)
+        self.assertEqual(invoice.payout_date, start_dt)
 
-    def cancel_payout(self):
-        pass
+    def test_cancel_payout(self):
+        self.customer.add_payout(self.payout.external_id)
+        PayoutInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, active_only=True)
+        self.customer.cancel_payout(self.payout.external_id)
+        with self.assertRaises(NoResultFound):
+            PayoutInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, active_only=True)
 
-    def cancel_payout_dne(self):
-        pass
 
-    def cancel_payout_already_scheduled(self):
-        pass
+    def test_cancel_payout_dne(self):
+        with self.assertRaises(NoResultFound):
+            self.customer.cancel_payout('MY_PAYOUT_DNE')
+
+    def test_cancel_payout_already_scheduled(self):
+        self.customer.add_payout(self.payout.external_id)
+        PayoutInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id, active_only=True)
+        self.customer.cancel_payout(self.payout.external_id, cancel_scheduled=True)
+        invoice = PayoutInvoice.retrieve_invoice(self.customer.external_id, self.customer.group_id,
+                                                 relevant_payout=self.payout.external_id)
+        self.assertTrue(invoice.completed)
+        self.assertFalse(invoice.active)
 
 
 class TestProperties(TestCustomer):

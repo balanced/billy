@@ -16,6 +16,7 @@ PACKAGE_PATH = os.path.join(BASE_PATH, 'balanced_service')
 
 
 class BalancedTransactionalTestCase(unittest.TestCase):
+
     """
     This class is optimized for multiple tests requiring the
     database, by putting every db test in a large transaction
@@ -32,7 +33,7 @@ class BalancedTransactionalTestCase(unittest.TestCase):
         super(BalancedTransactionalTestCase, self).__init__(*A, **KW)
         self._db_engine = sqlalchemy.create_engine(DB_URL,
                                                    isolation_level='SERIALIZABLE'
-        )
+                                                   )
 
     def setUp(self):
         super(BalancedTransactionalTestCase, self).setUp()

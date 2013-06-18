@@ -125,7 +125,7 @@ class Customer(Base):
         :param plan_id: The plan id to associate customer with
         :raise:
         """
-        #Todo dirty clean this...
+        # Todo dirty clean this...
         from billy.models import PlanInvoice
         plan = Plan.retrieve(plan_id, self.group_id, active_only=True)
         current_coupon = self.coupon
@@ -209,8 +209,8 @@ class Customer(Base):
         from billy.models import PlanInvoice
         right_now = datetime.now(UTC)
         last_invoice_active = PlanInvoice.retrieve_invoice(self.external_id,
-                                                    self.group_id,
-                                                    plan_id, active_only=True)
+                                                           self.group_id,
+                                                           plan_id, active_only=True)
         last_invoice_deleted = PlanInvoice.query.filter(
             PlanInvoice.customer_id == self.external_id,
             PlanInvoice.group_id == self.group_id,
@@ -232,7 +232,8 @@ class Customer(Base):
                 new_base_amount = last_invoice.amount_base_cents * percent_used
                 new_after_coupon_amount = last_invoice.amount_after_coupon_cents * \
                     percent_used
-                new_balance = new_after_coupon_amount - last_invoice.amount_paid_cents
+                new_balance = new_after_coupon_amount - \
+                    last_invoice.amount_paid_cents
                 last_invoice.amount_base_cents = new_base_amount
                 last_invoice.amount_after_coupon_cents = new_after_coupon_amount
                 last_invoice.remaining_balance_cents = new_balance
@@ -302,7 +303,7 @@ class Customer(Base):
         :param plan_id: the external_id of the plan
         :return: True/False
         """
-        #Todo fix
+        # Todo fix
         from billy.models import PlanInvoice
         results = PlanInvoice.list_invoices(self.group_id,
                                             relevant_plan=plan_id,

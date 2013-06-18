@@ -34,9 +34,8 @@ class PlanInvoice(Base):
     active = Column(Boolean, default=True)
     cleared_by = Column(Unicode, ForeignKey('plan_transactions.guid'))
 
-    plan = relationship('Plan', backref='invoices', foreign_keys=[relevant_plan, group_id])
-
-
+    plan = relationship('Plan', backref='invoices',
+                        foreign_keys=[relevant_plan, group_id])
 
     __table_args__ = (
         # Customer foreign key

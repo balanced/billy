@@ -30,7 +30,6 @@ class BillyAction(Base):
     created_at = created_at = Column(DateTime(timezone=UTC),
                                      default=datetime.now(UTC))
 
-
     @classmethod
     def create_from_event(cls, entity, event_type):
         new_audit = cls()

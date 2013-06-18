@@ -10,6 +10,7 @@ from billy.models import Group, Customer, Plan, PlanInvoice
 from billy.utils.intervals import Intervals
 from billy.tests import BalancedTransactionalTestCase
 
+
 class TestPlanInvoice(BalancedTransactionalTestCase):
 
     def setUp(self):
@@ -48,10 +49,6 @@ class TestPlanInvoice(BalancedTransactionalTestCase):
         )
 
 
-
-
-
-
 class TestCreate(TestPlanInvoice):
 
     def test_create(self):
@@ -72,7 +69,6 @@ class TestCreate(TestPlanInvoice):
             includes_trial=False,
         )
 
-
     def test_create_exists(self):
         PlanInvoice.create(
             customer_id=self.customer,
@@ -89,7 +85,7 @@ class TestCreate(TestPlanInvoice):
             quantity=10,
             charge_at_period_end=False,
             includes_trial=False,
-                        )
+        )
         with self.assertRaises(IntegrityError):
             PlanInvoice.create(
                 customer_id=self.customer,
@@ -106,9 +102,7 @@ class TestCreate(TestPlanInvoice):
                 quantity=10,
                 charge_at_period_end=False,
                 includes_trial=False,
-                )
-
-
+            )
 
     def test_create_customer_dne(self):
         with self.assertRaises(IntegrityError):
@@ -127,7 +121,7 @@ class TestCreate(TestPlanInvoice):
                 quantity=10,
                 charge_at_period_end=False,
                 includes_trial=False,
-                )
+            )
 
     def test_create_exist_inactive(self):
         var = PlanInvoice.create(
@@ -163,9 +157,7 @@ class TestCreate(TestPlanInvoice):
             quantity=10,
             charge_at_period_end=False,
             includes_trial=False,
-            )
-
-
+        )
 
 
 class TestRetrieve(TestPlanInvoice):
@@ -186,16 +178,15 @@ class TestRetrieve(TestPlanInvoice):
             quantity=10,
             charge_at_period_end=False,
             includes_trial=False,
-            )
-        res = PlanInvoice.retrieve(self.customer,self.group, self.plan_id, active_only=True)
+        )
+        res = PlanInvoice.retrieve(
+            self.customer, self.group, self.plan_id, active_only=True)
         self.assertEqual(res.amount_base_cents, 1000)
-
-
 
     def test_retrieve_dne(self):
         with self.assertRaises(NoResultFound):
-            PlanInvoice.retrieve('CUSTOMER_DNE', self.group, self.plan_id, active_only=True)
-
+            PlanInvoice.retrieve(
+                'CUSTOMER_DNE', self.group, self.plan_id, active_only=True)
 
     def test_retrieve_params(self):
         PlanInvoice.create(
@@ -213,8 +204,9 @@ class TestRetrieve(TestPlanInvoice):
             quantity=10,
             charge_at_period_end=False,
             includes_trial=False,
-            )
-        res = PlanInvoice.retrieve(self.customer, self.group, self.plan_id, active_only=True)
+        )
+        res = PlanInvoice.retrieve(
+            self.customer, self.group, self.plan_id, active_only=True)
         self.assertEqual(res.customer_id, self.customer)
         self.assertTrue(res.active)
         self.assertEqual(res.relevant_plan, self.plan_id)
@@ -246,12 +238,12 @@ class TestRetrieve(TestPlanInvoice):
             quantity=10,
             charge_at_period_end=False,
             includes_trial=False,
-            )
+        )
         ret.active = False
         ret.session.commit()
         with self.assertRaises(NoResultFound):
-            PlanInvoice.retrieve(self.customer, self.group, self.plan_id, active_only=True)
-
+            PlanInvoice.retrieve(
+                self.customer, self.group, self.plan_id, active_only=True)
 
     def test_list(self):
         PlanInvoice.create(
@@ -269,7 +261,7 @@ class TestRetrieve(TestPlanInvoice):
             quantity=10,
             charge_at_period_end=False,
             includes_trial=False,
-            )
+        )
         PlanInvoice.create(
             customer_id=self.customer_2,
             group_id=self.group,
@@ -285,10 +277,9 @@ class TestRetrieve(TestPlanInvoice):
             quantity=10,
             charge_at_period_end=False,
             includes_trial=False,
-            )
+        )
         list = PlanInvoice.list(self.group)
         self.assertEqual(len(list), 2)
-
 
     def test_list_active_only(self):
         PlanInvoice.create(
@@ -306,7 +297,7 @@ class TestRetrieve(TestPlanInvoice):
             quantity=10,
             charge_at_period_end=False,
             includes_trial=False,
-            )
+        )
         two = PlanInvoice.create(
             customer_id=self.customer_2,
             group_id=self.group,
@@ -322,12 +313,11 @@ class TestRetrieve(TestPlanInvoice):
             quantity=10,
             charge_at_period_end=False,
             includes_trial=False,
-            )
+        )
         two.active = False
         two.session.commit()
         list = PlanInvoice.list(self.group, active_only=True)
         self.assertEqual(len(list), 1)
-
 
 
 class TestUtils(TestPlanInvoice):
@@ -349,7 +339,7 @@ class TestUtils(TestPlanInvoice):
             quantity=10,
             charge_at_period_end=False,
             includes_trial=False,
-            )
+        )
         PlanInvoice.create(
             customer_id=self.customer,
             group_id=self.group,
@@ -365,7 +355,7 @@ class TestUtils(TestPlanInvoice):
             quantity=10,
             charge_at_period_end=False,
             includes_trial=False,
-            )
+        )
         PlanInvoice.create(
             customer_id=self.customer_2,
             group_id=self.group,
@@ -381,8 +371,7 @@ class TestUtils(TestPlanInvoice):
             quantity=10,
             charge_at_period_end=False,
             includes_trial=False,
-            )
-
+        )
 
     def test_needs_rollover(self):
         with freeze_time(str(self.month)):
@@ -392,8 +381,6 @@ class TestUtils(TestPlanInvoice):
             list = PlanInvoice.need_rollover()
             self.assertEqual(len(list), 3)
 
-
-
     def test_rollover(self):
         with freeze_time(str(self.month)):
             list = PlanInvoice.needs_plan_debt_cleared()
@@ -402,7 +389,6 @@ class TestUtils(TestPlanInvoice):
             invoices = PlanInvoice.need_rollover()
             for invoice in invoices:
                 invoice.rollover()
-
 
     def test_rollover_all(self):
         with freeze_time(str(self.month + Intervals.TWO_WEEKS)):
@@ -426,7 +412,6 @@ class TestUtils(TestPlanInvoice):
             self.assertEqual(len(PlanInvoice.needs_plan_debt_cleared()), 0)
 
 
-
 class TestValidators(TestPlanInvoice):
 
     def test_amount_base_cents(self):
@@ -446,7 +431,7 @@ class TestValidators(TestPlanInvoice):
                 quantity=10,
                 charge_at_period_end=False,
                 includes_trial=False,
-                )
+            )
 
     def test_amount_after_coupon_cents(self):
         with self.assertRaises(ValueError):
@@ -465,7 +450,7 @@ class TestValidators(TestPlanInvoice):
                 quantity=10,
                 charge_at_period_end=False,
                 includes_trial=False,
-                )
+            )
 
     def test_amount_paid_cents(self):
         with self.assertRaises(ValueError):
@@ -484,7 +469,7 @@ class TestValidators(TestPlanInvoice):
                 quantity=10,
                 charge_at_period_end=False,
                 includes_trial=False,
-                )
+            )
 
     def test_quantity(self):
         with self.assertRaises(ValueError):
@@ -503,13 +488,4 @@ class TestValidators(TestPlanInvoice):
                 quantity=-10,
                 charge_at_period_end=False,
                 includes_trial=False,
-                )
-
-
-
-
-
-
-
-
-
+            )

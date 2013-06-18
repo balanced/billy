@@ -58,11 +58,11 @@ class PlanInvoice(Base):
 
     @classmethod
     def create(cls, customer_id, group_id, relevant_plan,
-                       relevant_coupon,
-                       start_dt, end_dt, due_dt,
-                       amount_base_cents, amount_after_coupon_cents,
-                       amount_paid_cents, remaining_balance_cents, quantity,
-                       charge_at_period_end, includes_trial=False):
+               relevant_coupon,
+               start_dt, end_dt, due_dt,
+               amount_base_cents, amount_after_coupon_cents,
+               amount_paid_cents, remaining_balance_cents, quantity,
+               charge_at_period_end, includes_trial=False):
         new_invoice = cls(
             customer_id=customer_id,
             group_id=group_id,
@@ -87,7 +87,7 @@ class PlanInvoice(Base):
 
     @classmethod
     def retrieve(cls, customer_id, group_id, relevant_plan=None,
-                         active_only=False):
+                 active_only=False):
         query = cls.query.filter(cls.customer_id == customer_id,
                                  cls.group_id == group_id)
         if relevant_plan:
@@ -101,7 +101,7 @@ class PlanInvoice(Base):
 
     @classmethod
     def list(cls, group_id, relevant_plan=None, customer_id=None,
-                      active_only=False):
+             active_only=False):
         query = cls.query.filter(cls.group_id == group_id)
         if customer_id:
             query = query.filter(cls.customer_id == customer_id)
@@ -131,7 +131,7 @@ class PlanInvoice(Base):
         invoices_rollover = cls.query.filter(cls.end_dt <= now,
                                              cls.active == True,
                                              cls.remaining_balance_cents == 0,
-                                            ).all()
+                                             ).all()
         return invoices_rollover
 
     def rollover(self):
@@ -142,10 +142,10 @@ class PlanInvoice(Base):
         self.event = ActionCatalog.PI_ROLLOVER
         self.session.flush()
         Customer.retrieve(self.customer_id, self.group_id).update_plan(
-                                   plan_id=self.relevant_plan,
-                                   quantity=self.quantity,
-                                   charge_at_period_end=self.charge_at_period_end,
-                                   start_dt=self.end_dt)
+            plan_id=self.relevant_plan,
+            quantity=self.quantity,
+            charge_at_period_end=self.charge_at_period_end,
+            start_dt=self.end_dt)
         self.session.commit()
 
     @classmethod

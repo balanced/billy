@@ -29,7 +29,7 @@ class PayoutInvoice(Base):
     attempts_made = Column(Integer, default=0)
 
     payout = relationship('Payout', backref='invoices',
-                        foreign_keys=[relevant_payout, group_id])
+                          foreign_keys=[relevant_payout, group_id])
 
     __table_args__ = (
         # Customer foreign key
@@ -47,7 +47,7 @@ class PayoutInvoice(Base):
 
     @classmethod
     def create(cls, customer_id, group_id, relevant_payout,
-                       payout_date, balanced_to_keep_cents):
+               payout_date, balanced_to_keep_cents):
         new_invoice = cls(
             customer_id=customer_id,
             group_id=group_id,

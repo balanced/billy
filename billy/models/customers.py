@@ -191,8 +191,8 @@ class Customer(Base):
         from billy.models import PlanInvoice
         if cancel_at_period_end:
             result = PlanInvoice.retrieve(self.external_id,
-                                                  self.group_id,
-                                                  plan_id, active_only=True)
+                                          self.group_id,
+                                          plan_id, active_only=True)
             result.active = False
             result.event = ActionCatalog.CUSTOMER_CANCEL_PLAN
             self.session.commit()
@@ -248,15 +248,15 @@ class Customer(Base):
     def add_payout(self, payout_id, first_now=False, start_dt=None):
         from billy.models import PayoutInvoice
         payout = Payout.retrieve(payout_id, self.group_id,
-                                            active_only=True)
+                                 active_only=True)
         first_charge = start_dt or datetime.now(UTC)
         balance_to_keep_cents = payout.balance_to_keep_cents
         if not first_now:
             first_charge += payout.payout_interval
         invoice = PayoutInvoice.create(self.external_id, self.group_id,
-                                               payout.external_id,
-                                               first_charge,
-                                               balance_to_keep_cents,
+                                       payout.external_id,
+                                       first_charge,
+                                       balance_to_keep_cents,
                                                )
         invoice.event = ActionCatalog.CUSTOMER_ADD_PAYOUT
         self.session.add(invoice)
@@ -288,10 +288,10 @@ class Customer(Base):
         already_in = set([])
         active_list = []
         results = PlanInvoice.list(self.group_id,
-                                            relevant_plan=None,
-                                            customer_id=self.external_id,
-                                            active_only=True) + \
-                  PlanInvoice.query.filter(PlanInvoice.group_id == self
+                                   relevant_plan=None,
+                                   customer_id=self.external_id,
+                                   active_only=True) + \
+            PlanInvoice.query.filter(PlanInvoice.group_id == self
                                      .group_id, PlanInvoice.customer_id == self.external_id,
                                      PlanInvoice.group_id == self
                                      .group_id,
@@ -311,8 +311,8 @@ class Customer(Base):
         # Todo fix
         from billy.models import PlanInvoice
         results = PlanInvoice.list(self.group_id,
-                                            relevant_plan=plan_id,
-                                            customer_id=self.external_id)
+                                   relevant_plan=plan_id,
+                                   customer_id=self.external_id)
         can = True
         for each in results:
             if each.includes_trial:
@@ -366,7 +366,7 @@ class Customer(Base):
         for plan_invoice in plan_invoices_due:
             earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \
                 earliest_due else earliest_due
-        #import ipdb;ipdb.set_trace()
+        # import ipdb;ipdb.set_trace()
         if len(RETRY_DELAY_PLAN) < self.charge_attempts and not force:
             for plan_invoice in plan_invoices_due:
                 plan_invoice.active = False

@@ -188,6 +188,14 @@ class TestUpdatePlan(TestCustomer):
             plan_interval=Intervals.MONTH,
             trial_interval=Intervals.WEEK
         )
+        self.plan_2 = Plan.create(
+            external_id='MY_TEST_PLAN_2',
+            group_id=self.group,
+            name='Starter',
+            price_cents=500,
+            plan_interval=Intervals.TWO_WEEKS,
+            trial_interval=Intervals.MONTH
+        )
 
     def test_update_first(self):
         with freeze_time('2013-02-01'):
@@ -326,6 +334,15 @@ class TestUpdatePlan(TestCustomer):
         self.assertTrue(invoice_old.includes_trial)
         self.assertFalse(invoice_new.includes_trial)
 
+
+    def test_active_plans(self):
+        self.customer.update_plan(self.plan.external_id, quantity=1)
+        self.assertEqual(len(self.customer.active_plans), 1)
+        self.customer.update_plan(self.plan_2.external_id, quantity=3)
+        self.assertEqual(len(self.customer.active_plans), 2)
+
+
+
     def test_current_debt(self):
         with freeze_time('2013-01-01'):
             self.customer.update_plan(self.plan.external_id, quantity=1)
@@ -350,7 +367,7 @@ class TestPayout(TestCustomer):
             group_id=self.group
         )
         self.payout = Payout.create(
-            external_id='MY_TEST_PLAN',
+            external_id='MY_TEST_PAYOUT',
             group_id=self.group,
             name='Pay me out!',
             balance_to_keep_cents=5000,
@@ -408,43 +425,65 @@ class TestPayout(TestCustomer):
         self.assertFalse(invoice.active)
 
 
-class TestProperties(TestCustomer):
-
-    def test_active_plans(self):
-        pass
-
-    def test_plan_invoices_due(self):
-        pass
-
-
-class TestTask(TestCustomer):
-
-    def test_clear_plan_debt_none(self):
-        pass
-
-    def test_clear_plan_deb(self):
-        pass
-
-    def test_retry(self):
-        pass
-
-    def test_coupon_repeating(self):
-        pass
-
-
 class TestRelations(TestCustomer):
 
+    def setUp(self):
+        super(TestRelations, self).setUp()
+        self.customer = Customer.create(
+            external_id=self.external_id,
+            group_id=self.group
+        )
+        self.plan = Plan.create(
+            external_id='MY_TEST_PLAN',
+            group_id=self.group,
+            name='Starter',
+            price_cents=1000,
+            plan_interval=Intervals.MONTH,
+            trial_interval=Intervals.WEEK
+        )
+        self.plan_2 = Plan.create(
+            external_id='MY_TEST_PLAN_2',
+            group_id=self.group,
+            name='Starter',
+            price_cents=500,
+            plan_interval=Intervals.TWO_WEEKS,
+            trial_interval=Intervals.MONTH
+        )
+        self.payout = Payout.create(
+            external_id='MY_TEST_PAYOUT',
+            group_id=self.group,
+            name='Pay me out!',
+            balance_to_keep_cents=5000,
+            payout_interval=Intervals.TWO_WEEKS
+        )
+        self.payout_2 = Payout.create(
+            external_id='MY_TEST_PAYOUT_2',
+            group_id=self.group,
+            name='Pay me out!',
+            balance_to_keep_cents=5000,
+            payout_interval=Intervals.TWO_WEEKS
+        )
+
     def test_coupons(self):
-        pass
+        coupon = Coupon.create('MY_TEST_COUPON', self.group, 'my coup', 100, 5, 1, 20)
+        self.customer.apply_coupon(coupon.external_id)
+        self.customer.coupon
+
 
     def test_plan_invoices(self):
-        pass
+        self.customer.update_plan(self.plan.external_id)
+        self.customer.update_plan(self.plan_2.external_id)
+        self.assertEqual(len(self.customer.plan_invoices), 2)
 
     def test_payout_invoices(self):
-        pass
+        self.customer.add_payout(self.payout.external_id)
+        self.customer.add_payout(self.payout_2.external_id)
+        self.assertEqual(len(self.customer.payout_invoices), 2)
 
     def test_plan_transactions(self):
+        #Todo
         pass
 
     def test_payout_transactions(self):
+        #Todo
         pass

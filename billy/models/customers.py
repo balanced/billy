@@ -281,14 +281,15 @@ class Customer(Base):
         Returns a list of invoice objects pertaining to active user
         subscriptions
         """
+        from billy.models import PlanInvoice
         now = datetime.now(UTC)
         already_in = set([])
         active_list = []
         results = PlanInvoice.list_invoices(self.group_id,
                                             relevant_plan=None,
                                             customer_id=self.external_id,
-                                            active_only=True).all() + \
-            PlanInvoice.query.filter(PlanInvoice.group_id == self
+                                            active_only=True) + \
+                  PlanInvoice.query.filter(PlanInvoice.group_id == self
                                      .group_id, PlanInvoice.customer_id == self.external_id,
                                      PlanInvoice.group_id == self
                                      .group_id,

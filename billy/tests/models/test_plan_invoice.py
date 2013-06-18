@@ -122,7 +122,24 @@ class TestCreate(TestPlanInvoice):
                 charge_at_period_end=False,
                 includes_trial=False,
             )
-
+    def test_create_plan_dne(self):
+        with self.assertRaises(IntegrityError):
+            PlanInvoice.create(
+                customer_id=self.customer,
+                group_id=self.group,
+                relevant_plan='PLAN_DNE',
+                relevant_coupon=None,
+                start_dt=self.now,
+                end_dt=self.month,
+                due_dt=self.week,
+                amount_base_cents=1000,
+                amount_after_coupon_cents=1000,
+                amount_paid_cents=1000,
+                remaining_balance_cents=1000,
+                quantity=10,
+                charge_at_period_end=False,
+                includes_trial=False,
+                )
     def test_create_exist_inactive(self):
         var = PlanInvoice.create(
             customer_id=self.customer,

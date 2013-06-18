@@ -265,7 +265,7 @@ class Customer(Base):
 
     def cancel_payout(self, payout_id, cancel_scheduled=False):
         from billy.models import PayoutInvoice
-        current_payout_invoice = PayoutInvoice.retrieve_invoice(
+        current_payout_invoice = PayoutInvoice.retrieve(
             self.external_id,
             self.group_id,
             payout_id,

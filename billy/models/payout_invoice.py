@@ -61,7 +61,7 @@ class PayoutInvoice(Base):
         return new_invoice
 
     @classmethod
-    def retrieve_invoice(cls, customer_id, group_id, relevant_payout=None,
+    def retrieve(cls, customer_id, group_id, relevant_payout=None,
                          active_only=False, only_incomplete=False):
         query = cls.query.filter(cls.customer_id == customer_id,
                                  cls.group_id == group_id)
@@ -74,16 +74,16 @@ class PayoutInvoice(Base):
         return query.one()
 
     @classmethod
-    def list_invoices(cls, group_id, relevant_payout=None,
+    def list(cls, group_id, relevant_payout=None,
                       customer_id=None, active_only=False):
         query = cls.query.filter(cls.group_id == group_id)
         if customer_id:
-            query.filter(cls.customer_id == customer_id)
+            query = query.filter(cls.customer_id == customer_id)
         if active_only:
-            query.filter(cls.active == True)
+            query = query.filter(cls.active == True)
         if relevant_payout:
-            query.filter(cls.payout_id == relevant_payout)
-        return query.first()
+            query = query.filter(cls.payout_id == relevant_payout)
+        return query.all()
 
     @classmethod
     def needs_payout_made(cls):
@@ -126,10 +126,11 @@ class PayoutInvoice(Base):
                     self.amount_payed_out = payout_amount
                     self.completed = True
                     self.event = ActionCatalog.POI_MAKE_PAYOUT
-                # Todo wtf man
-                except:
+                except Exception, e:
                     self.event = ActionCatalog.POI_PAYOUT_ATTEMPT
                     self.attempts_made += 1
+                    self.session.commit()
+                    raise e
         self.session.commit()
         return self
 

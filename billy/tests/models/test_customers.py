@@ -374,7 +374,7 @@ class TestPayout(TestCustomer):
     def test_change_payout(self):
         with freeze_time('2013-2-15'):
             self.customer.add_payout(self.payout.external_id)
-            invoice = PayoutInvoice.retrieve_invoice(
+            invoice = PayoutInvoice.retrieve(
                 self.customer.external_id, self.group, self.payout.external_id, active_only=True)
             self.assertEqual(
                 invoice.payout_date, datetime.now(UTC) + self.payout.payout_interval)
@@ -386,14 +386,14 @@ class TestPayout(TestCustomer):
     def test_add_payout_first_now(self):
         with freeze_time('2013-2-15'):
             self.customer.add_payout(self.payout.external_id, first_now=True)
-            invoice = PayoutInvoice.retrieve_invoice(
+            invoice = PayoutInvoice.retrieve(
                 self.customer.external_id, self.group, self.payout.external_id, active_only=True)
             self.assertEqual(invoice.payout_date, datetime.now(UTC))
 
     def add_payout_not_first_now(self):
         with freeze_time('2013-2-15'):
             self.customer.add_payout(self.payout.external_id)
-            invoice = PayoutInvoice.retrieve_invoice(
+            invoice = PayoutInvoice.retrieve(
                 self.customer.external_id, self.group, self.payout.external_id, active_only=True)
             self.assertEqual(
                 invoice.payout_date, datetime.now(UTC) + self.payout.payout_interval)
@@ -402,17 +402,17 @@ class TestPayout(TestCustomer):
         start_dt = datetime(2013, 4, 5, tzinfo=UTC)
         self.customer.add_payout(
             self.payout.external_id, first_now=True, start_dt=start_dt)
-        invoice = PayoutInvoice.retrieve_invoice(
+        invoice = PayoutInvoice.retrieve(
             self.customer.external_id, self.group, self.payout.external_id, active_only=True)
         self.assertEqual(invoice.payout_date, start_dt)
 
     def test_cancel_payout(self):
         self.customer.add_payout(self.payout.external_id)
-        PayoutInvoice.retrieve_invoice(
+        PayoutInvoice.retrieve(
             self.customer.external_id, self.customer.group_id, active_only=True)
         self.customer.cancel_payout(self.payout.external_id)
         with self.assertRaises(NoResultFound):
-            PayoutInvoice.retrieve_invoice(
+            PayoutInvoice.retrieve(
                 self.customer.external_id, self.customer.group_id, active_only=True)
 
     def test_cancel_payout_dne(self):
@@ -421,11 +421,11 @@ class TestPayout(TestCustomer):
 
     def test_cancel_payout_already_scheduled(self):
         self.customer.add_payout(self.payout.external_id)
-        PayoutInvoice.retrieve_invoice(
+        PayoutInvoice.retrieve(
             self.customer.external_id, self.customer.group_id, active_only=True)
         self.customer.cancel_payout(
             self.payout.external_id, cancel_scheduled=True)
-        invoice = PayoutInvoice.retrieve_invoice(
+        invoice = PayoutInvoice.retrieve(
             self.customer.external_id, self.customer.group_id,
             relevant_payout=self.payout.external_id)
         self.assertTrue(invoice.completed)

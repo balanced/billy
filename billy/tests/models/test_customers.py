@@ -296,13 +296,19 @@ class TestUpdatePlan(TestCustomer):
         self.assertTrue(invoice_old.includes_trial)
         self.assertFalse(invoice_new.includes_trial)
 
-
-
-    def test_sum_plan_debt(self):
-        pass
+    def test_current_debt(self):
+        with freeze_time('2013-01-01'):
+            self.customer.update_plan(self.plan.external_id, quantity=1)
+            self.assertEqual(self.customer.current_debt, 0)
+        with freeze_time('2013-01-09'):
+            self.assertEqual(self.customer.current_debt, 1000)
 
     def test_is_debtor(self):
-        pass
+        with freeze_time('2013-01-01'):
+            self.customer.update_plan(self.plan.external_id, quantity=1)
+            self.assertEqual(self.customer.current_debt, 0)
+        with freeze_time('2013-01-09'):
+            self.assertTrue(self.customer.is_debtor(900), 1000)
 
 
 class TestPayout(TestCustomer):

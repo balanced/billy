@@ -315,12 +315,13 @@ class Customer(Base):
 
     @property
     def plan_invoices_due(self):
+        from billy.models import PlanInvoice
         now = datetime.now(UTC)
-        results = PlanInvoice.filter(
+        results = PlanInvoice.query.filter(
             PlanInvoice.customer_id == self.external_id,
             PlanInvoice.group_id == self.group_id,
             PlanInvoice.remaining_balance_cents > 0,
-            PlanInvoice.due_dt > now,
+            PlanInvoice.due_dt < now,
         ).all()
         return results
 

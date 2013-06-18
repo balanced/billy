@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pytz import UTC
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
-    Integer, ForeignKeyConstraint, Index
+    Integer, ForeignKeyConstraint, Index, distinct
 from sqlalchemy.orm import relationship
 
 from billy.models import Base, Group, Customer, Plan, Coupon
@@ -41,8 +41,8 @@ class PlanInvoice(Base):
     __table_args__ = (
         # Customer foreign key
         ForeignKeyConstraint(
-            [customer_id, group_id],
-            [Customer.external_id, Customer.group_id]),
+            ['customer_id', 'group_id'],
+            ['customers.external_id', 'customers.group_id']),
         # Plan foreign key
         ForeignKeyConstraint(
             [relevant_plan, group_id],
@@ -51,7 +51,7 @@ class PlanInvoice(Base):
         ForeignKeyConstraint(
             [relevant_coupon, group_id],
             [Coupon.external_id, Coupon.group_id]),
-        Index('unique_plan_invoice', relevant_plan, group_id,
+        Index('unique_plan_invoice', relevant_plan, group_id, customer_id,
               postgresql_where=active == True,
               unique=True)
     )
@@ -82,6 +82,8 @@ class PlanInvoice(Base):
         )
         new_invoice.event = ActionCatalog.PI_CREATE
         cls.session.add(new_invoice)
+        cls.session.commit()
+        return new_invoice
 
     @classmethod
     def retrieve(cls, customer_id, group_id, relevant_plan=None,
@@ -92,7 +94,10 @@ class PlanInvoice(Base):
             query = query.filter(cls.relevant_plan == relevant_plan)
         if active_only:
             query = query.filter(cls.active == True)
-        return query.first()
+        if relevant_plan and active_only:
+            return query.one()
+        else:
+            return query.first()
 
     @classmethod
     def list(cls, group_id, relevant_plan=None, customer_id=None,
@@ -112,10 +117,11 @@ class PlanInvoice(Base):
         Returns a list of customer objects that need to clear their plan debt
         """
         now = datetime.now(UTC)
-        results = cls.query.filter(
+        results = cls.session.query(distinct(cls.customer_id)).filter(
             cls.remaining_balance_cents > 0,
-            cls.due_dt > now,
-        ).group_by(cls.customer_id).all()
+            cls.due_dt <= now).all()
+        for each in results:
+            print each
         return [result.customer for result in results]
 
     @classmethod
@@ -124,10 +130,10 @@ class PlanInvoice(Base):
         Returns a list of PlanInvoice objects that need a rollover
         """
         now = datetime.now(UTC)
-        invoices_rollover = cls.query.filter(cls.end_dt > now,
+        invoices_rollover = cls.query.filter(cls.end_dt <= now,
                                              cls.active == True,
                                              cls.remaining_balance_cents == 0,
-                                             ).all()
+                                            ).all()
         return invoices_rollover
 
     def rollover(self):

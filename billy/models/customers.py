@@ -2,11 +2,11 @@ from __future__ import unicode_literals
 from datetime import datetime
 from decimal import Decimal
 
-from dateutil.relativedelta import relativedelta
 from pytz import UTC
 from sqlalchemy import Column, Unicode, DateTime, Integer
 from sqlalchemy.schema import ForeignKeyConstraint, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
+from sqlalchemy.orm.exc import *
 
 from billy.settings import RETRY_DELAY_PLAN
 from billy.models import *
@@ -208,15 +208,17 @@ class Customer(Base):
         """
         from billy.models import PlanInvoice
         right_now = datetime.now(UTC)
-        last_invoice_active = PlanInvoice.retrieve(self.external_id,
-                                                           self.group_id,
-                                                           plan_id, active_only=True)
+        try:
+            last_invoice_active = PlanInvoice.retrieve(self.external_id,
+                                                       self.group_id,
+                                                       plan_id, active_only=True)
+        except NoResultFound:
+            last_invoice_active = None
         last_invoice_deleted = PlanInvoice.query.filter(
             PlanInvoice.customer_id == self.external_id,
             PlanInvoice.group_id == self.group_id,
             PlanInvoice.active == False,
-            PlanInvoice.end_dt > right_now
-        ).first()
+            PlanInvoice.end_dt > right_now).first()
         last_invoice = last_invoice_active or last_invoice_deleted
         if last_invoice:
             plan = last_invoice.plan

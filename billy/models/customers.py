@@ -159,7 +159,7 @@ class Customer(Base):
                 amount_after_coupon * Decimal(percent_off) / Decimal(100))
         balance = amount_after_coupon
         self.prorate_last_invoice(plan_id)
-        PlanInvoice.create_invoice(
+        PlanInvoice.create(
             customer_id=self.external_id,
             group_id=self.group_id,
             relevant_plan=plan_id,
@@ -190,7 +190,7 @@ class Customer(Base):
         """
         from billy.models import PlanInvoice
         if cancel_at_period_end:
-            result = PlanInvoice.retrieve_invoice(self.external_id,
+            result = PlanInvoice.retrieve(self.external_id,
                                                   self.group_id,
                                                   plan_id, active_only=True)
             result.active = False
@@ -208,7 +208,7 @@ class Customer(Base):
         """
         from billy.models import PlanInvoice
         right_now = datetime.now(UTC)
-        last_invoice_active = PlanInvoice.retrieve_invoice(self.external_id,
+        last_invoice_active = PlanInvoice.retrieve(self.external_id,
                                                            self.group_id,
                                                            plan_id, active_only=True)
         last_invoice_deleted = PlanInvoice.query.filter(
@@ -285,7 +285,7 @@ class Customer(Base):
         now = datetime.now(UTC)
         already_in = set([])
         active_list = []
-        results = PlanInvoice.list_invoices(self.group_id,
+        results = PlanInvoice.list(self.group_id,
                                             relevant_plan=None,
                                             customer_id=self.external_id,
                                             active_only=True) + \
@@ -308,7 +308,7 @@ class Customer(Base):
         """
         # Todo fix
         from billy.models import PlanInvoice
-        results = PlanInvoice.list_invoices(self.group_id,
+        results = PlanInvoice.list(self.group_id,
                                             relevant_plan=plan_id,
                                             customer_id=self.external_id)
         can = True

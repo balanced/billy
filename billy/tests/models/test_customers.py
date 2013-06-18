@@ -200,7 +200,7 @@ class TestUpdatePlan(TestCustomer):
     def test_update_first(self):
         with freeze_time('2013-02-01'):
             self.customer.update_plan(self.plan.external_id)
-            invoice = PlanInvoice.retrieve_invoice(
+            invoice = PlanInvoice.retrieve(
                 self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
                 active_only=True)
             self.assertEqual(invoice.relevant_plan, self.plan.external_id)
@@ -231,10 +231,10 @@ class TestUpdatePlan(TestCustomer):
             self.customer.update_plan(self.plan.external_id, quantity=5)
         ratio = (second - (first + self.plan.trial_interval)).total_seconds() / rel_delta_to_sec(
             self.plan.plan_interval)
-        invoice_old = PlanInvoice.retrieve_invoice(
+        invoice_old = PlanInvoice.retrieve(
             self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
             active_only=False)
-        invoice_new = PlanInvoice.retrieve_invoice(
+        invoice_new = PlanInvoice.retrieve(
             self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
             active_only=True)
         self.assertEqual(invoice_new.remaining_balance_cents, 5000)
@@ -244,7 +244,7 @@ class TestUpdatePlan(TestCustomer):
     def test_at_period_end(self):
         self.customer.update_plan(
             self.plan.external_id, quantity=1, charge_at_period_end=True)
-        invoice_new = PlanInvoice.retrieve_invoice(
+        invoice_new = PlanInvoice.retrieve(
             self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
             active_only=True)
         self.assertEqual(invoice_new.end_dt, invoice_new.due_dt)
@@ -253,7 +253,7 @@ class TestUpdatePlan(TestCustomer):
         dt = datetime(2013, 2, 1, tzinfo=UTC)
         self.customer.update_plan(
             self.plan.external_id, quantity=1, start_dt=dt)
-        invoice_new = PlanInvoice.retrieve_invoice(
+        invoice_new = PlanInvoice.retrieve(
             self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
             active_only=True)
         self.assertEqual(invoice_new.start_dt, dt)
@@ -267,10 +267,10 @@ class TestUpdatePlan(TestCustomer):
             self.customer.update_plan(self.plan.external_id, quantity=1)
         with freeze_time('2013-01-15'):
             self.customer.update_plan(self.plan.external_id, quantity=5)
-        invoice_old = PlanInvoice.retrieve_invoice(
+        invoice_old = PlanInvoice.retrieve(
             self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
             active_only=False)
-        invoice_new = PlanInvoice.retrieve_invoice(
+        invoice_new = PlanInvoice.retrieve(
             self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
             active_only=True)
         self.assertEqual(
@@ -285,7 +285,7 @@ class TestUpdatePlan(TestCustomer):
             percent_off_int=percent_off, max_redeem=5, repeating=2)
         self.customer.apply_coupon(new_coupon.external_id)
         self.customer.update_plan(self.plan.external_id, quantity=1)
-        invoice = PlanInvoice.retrieve_invoice(
+        invoice = PlanInvoice.retrieve(
             self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
             active_only=True)
         self.assertEqual(invoice.remaining_balance_cents, (
@@ -297,7 +297,7 @@ class TestUpdatePlan(TestCustomer):
         with freeze_time('2013-01-15'):
             self.customer.cancel_plan(
                 self.plan.external_id, cancel_at_period_end=False)
-            invoice = PlanInvoice.retrieve_invoice(
+            invoice = PlanInvoice.retrieve(
                 self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
                 active_only=False)
             self.assertEqual(invoice.end_dt.astimezone(UTC), datetime.now(UTC))
@@ -310,11 +310,11 @@ class TestUpdatePlan(TestCustomer):
                 self.plan.external_id, cancel_at_period_end=True)
         with freeze_time('2013-01-17'):
             self.customer.update_plan(self.plan.external_id, quantity=1)
-            invoice_old = PlanInvoice.retrieve_invoice(
+            invoice_old = PlanInvoice.retrieve(
                 self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
                 active_only=False)
             self.assertEqual(invoice_old.end_dt, datetime.now(UTC))
-            invoice_new = PlanInvoice.retrieve_invoice(
+            invoice_new = PlanInvoice.retrieve(
                 self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
                 active_only=True)
             self.assertFalse(invoice_old.active, False)
@@ -325,10 +325,10 @@ class TestUpdatePlan(TestCustomer):
             self.customer.update_plan(self.plan.external_id, quantity=1)
         with freeze_time('2013-01-15'):
             self.customer.update_plan(self.plan.external_id, quantity=1)
-        invoice_old = PlanInvoice.retrieve_invoice(
+        invoice_old = PlanInvoice.retrieve(
             self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
             active_only=False)
-        invoice_new = PlanInvoice.retrieve_invoice(
+        invoice_new = PlanInvoice.retrieve(
             self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
             active_only=True)
         self.assertTrue(invoice_old.includes_trial)
@@ -467,7 +467,7 @@ class TestRelations(TestCustomer):
     def test_coupons(self):
         coupon = Coupon.create('MY_TEST_COUPON', self.group, 'my coup', 100, 5, 1, 20)
         self.customer.apply_coupon(coupon.external_id)
-        self.customer.coupon
+        self.assertTrue(self.customer.coupon)
 
 
     def test_plan_invoices(self):

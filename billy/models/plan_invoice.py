@@ -1,10 +1,11 @@
+from __future__ import unicode_literals
 from datetime import datetime
+
 from pytz import UTC
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
     Integer, ForeignKeyConstraint, Index
 from sqlalchemy.orm import relationship
 
-from billy.errors import NotFoundError
 from billy.models import Base, Group, Customer, Plan, Coupon
 from billy.utils.billy_action import ActionCatalog
 from billy.utils.models import uuid_factory
@@ -56,21 +57,7 @@ class PlanInvoice(Base):
     )
 
     @classmethod
-    def retrieve_invoice(cls, customer_id, group_id, relevant_plan=None,
-                         active_only=False):
-        query = cls.query.filter(cls.customer_id == customer_id,
-                                 cls.group_id == group_id)
-        if relevant_plan:
-            query.filter(cls.relevant_plan == relevant_plan)
-        if active_only:
-            query.filter(cls.active == True)
-        exists = query.first()
-        if not exists:
-            raise NotFoundError('The invoice was not found. Check params.')
-        return exists
-
-    @classmethod
-    def create_invoice(cls, customer_id, group_id, relevant_plan,
+    def create(cls, customer_id, group_id, relevant_plan,
                        relevant_coupon,
                        start_dt, end_dt, due_dt,
                        amount_base_cents, amount_after_coupon_cents,
@@ -97,7 +84,7 @@ class PlanInvoice(Base):
         cls.session.add(new_invoice)
 
     @classmethod
-    def retrieve_invoice(cls, customer_id, group_id, relevant_plan=None,
+    def retrieve(cls, customer_id, group_id, relevant_plan=None,
                          active_only=False):
         query = cls.query.filter(cls.customer_id == customer_id,
                                  cls.group_id == group_id)
@@ -108,7 +95,7 @@ class PlanInvoice(Base):
         return query.first()
 
     @classmethod
-    def list_invoices(cls, group_id, relevant_plan=None, customer_id=None,
+    def list(cls, group_id, relevant_plan=None, customer_id=None,
                       active_only=False):
         query = cls.query.filter(cls.group_id == group_id)
         if customer_id:

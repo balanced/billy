@@ -3,8 +3,8 @@ from datetime import datetime
 
 from pytz import UTC
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
-    Integer, ForeignKeyConstraint, Index, distinct
-from sqlalchemy.orm import relationship
+    Integer, ForeignKeyConstraint, Index
+from sqlalchemy.orm import relationship, validates
 
 from billy.models import Base, Group, Customer, Plan, Coupon
 from billy.utils.billy_action import ActionCatalog
@@ -112,7 +112,7 @@ class PlanInvoice(Base):
         return query.all()
 
     @classmethod
-    def need_debt_cleared(cls):
+    def needs_plan_debt_cleared(cls):
         """
         Returns a list of customer objects that need to clear their plan debt
         """
@@ -141,11 +141,10 @@ class PlanInvoice(Base):
         self.active = False
         self.event = ActionCatalog.PI_ROLLOVER
         self.session.flush()
-        Customer.add_plan_customer(self.customer_id, self.group_id,
-                                   self.relevant_plan,
+        Customer.retrieve(self.customer_id, self.group_id).update_plan(
+                                   plan_id=self.relevant_plan,
                                    quantity=self.quantity,
-                                   charge_at_period_end=self
-                                   .charge_at_period_end,
+                                   charge_at_period_end=self.charge_at_period_end,
                                    start_dt=self.end_dt)
         self.session.commit()
 
@@ -154,9 +153,37 @@ class PlanInvoice(Base):
         to_rollover = cls.need_rollover()
         for plan_invoice in to_rollover:
             plan_invoice.rollover()
-        return True
+        return len(to_rollover)
 
     @classmethod
     def clear_all_plan_debt(cls):
-        for customer in cls.need_plan_debt_cleared():
+        for customer in cls.needs_plan_debt_cleared():
             customer.clear_plan_debt()
+
+    @validates('amount_base_cents')
+    def validate_amount_base_cents(self, key, value):
+        if not value >= 0:
+            raise ValueError('{} must be greater than 0'.format(key))
+        else:
+            return value
+
+    @validates('amount_after_coupon_cents')
+    def validate_amount_after_coupon_cents(self, key, value):
+        if not value >= 0:
+            raise ValueError('{} must be greater than 0'.format(key))
+        else:
+            return value
+
+    @validates('amount_paid_cents')
+    def validate_amount_paid_cents(self, key, value):
+        if not value >= 0:
+            raise ValueError('{} must be greater than 0'.format(key))
+        else:
+            return value
+
+    @validates('quantity')
+    def validate_quantity(self, key, value):
+        if not value > 0:
+            raise ValueError('{} must be greater than 0'.format(key))
+        else:
+            return value

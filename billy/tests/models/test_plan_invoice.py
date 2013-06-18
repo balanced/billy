@@ -384,20 +384,9 @@ class TestUtils(TestPlanInvoice):
             )
 
 
-    def test_needs_debt_cleared(self):
-        list = PlanInvoice.need_debt_cleared()
-        self.assertEqual(len(list), 0)
-        with freeze_time(str(self.two_weeks)):
-            list = PlanInvoice.need_debt_cleared()
-            self.assertEqual(len(list), 1)
-        with freeze_time(str(self.month)):
-            list = PlanInvoice.need_debt_cleared()
-            self.assertEqual(len(list), 2)
-
-
     def test_needs_rollover(self):
         with freeze_time(str(self.month)):
-            list = PlanInvoice.need_debt_cleared()
+            list = PlanInvoice.needs_plan_debt_cleared()
             for each in list:
                 each.clear_plan_debt()
             list = PlanInvoice.need_rollover()
@@ -406,33 +395,115 @@ class TestUtils(TestPlanInvoice):
 
 
     def test_rollover(self):
-        pass
+        with freeze_time(str(self.month)):
+            list = PlanInvoice.needs_plan_debt_cleared()
+            for each in list:
+                each.clear_plan_debt()
+            invoices = PlanInvoice.need_rollover()
+            for invoice in invoices:
+                invoice.rollover()
 
 
     def test_rollover_all(self):
-        pass
+        with freeze_time(str(self.month + Intervals.TWO_WEEKS)):
+            PlanInvoice.clear_all_plan_debt()
+            count_invoices = PlanInvoice.rollover_all()
+            self.assertEqual(count_invoices, 3)
 
+    def test_needs_debt_cleared(self):
+        list = PlanInvoice.needs_plan_debt_cleared()
+        self.assertEqual(len(list), 0)
+        with freeze_time(str(self.two_weeks)):
+            list = PlanInvoice.needs_plan_debt_cleared()
+            self.assertEqual(len(list), 1)
+        with freeze_time(str(self.month)):
+            list = PlanInvoice.needs_plan_debt_cleared()
+            self.assertEqual(len(list), 2)
 
     def test_clear_all_plan_debt(self):
-        pass
+        with freeze_time(str(self.month)):
+            PlanInvoice.clear_all_plan_debt()
+            self.assertEqual(len(PlanInvoice.needs_plan_debt_cleared()), 0)
+
 
 
 class TestValidators(TestPlanInvoice):
 
     def test_amount_base_cents(self):
-        pass
+        with self.assertRaises(ValueError):
+            PlanInvoice.create(
+                customer_id=self.customer,
+                group_id=self.group,
+                relevant_plan=self.plan_id,
+                relevant_coupon=None,
+                start_dt=self.now,
+                end_dt=self.month,
+                due_dt=self.week,
+                amount_base_cents=-1000,
+                amount_after_coupon_cents=1000,
+                amount_paid_cents=1000,
+                remaining_balance_cents=1000,
+                quantity=10,
+                charge_at_period_end=False,
+                includes_trial=False,
+                )
 
     def test_amount_after_coupon_cents(self):
-        pass
+        with self.assertRaises(ValueError):
+            PlanInvoice.create(
+                customer_id=self.customer,
+                group_id=self.group,
+                relevant_plan=self.plan_id,
+                relevant_coupon=None,
+                start_dt=self.now,
+                end_dt=self.month,
+                due_dt=self.week,
+                amount_base_cents=1000,
+                amount_after_coupon_cents=-1000,
+                amount_paid_cents=1000,
+                remaining_balance_cents=1000,
+                quantity=10,
+                charge_at_period_end=False,
+                includes_trial=False,
+                )
 
     def test_amount_paid_cents(self):
-        pass
-
-    def test_remaining_balance_cents(self):
-        pass
+        with self.assertRaises(ValueError):
+            PlanInvoice.create(
+                customer_id=self.customer,
+                group_id=self.group,
+                relevant_plan=self.plan_id,
+                relevant_coupon=None,
+                start_dt=self.now,
+                end_dt=self.month,
+                due_dt=self.week,
+                amount_base_cents=1000,
+                amount_after_coupon_cents=1000,
+                amount_paid_cents=-1000,
+                remaining_balance_cents=1000,
+                quantity=10,
+                charge_at_period_end=False,
+                includes_trial=False,
+                )
 
     def test_quantity(self):
-        pass
+        with self.assertRaises(ValueError):
+            PlanInvoice.create(
+                customer_id=self.customer,
+                group_id=self.group,
+                relevant_plan=self.plan_id,
+                relevant_coupon=None,
+                start_dt=self.now,
+                end_dt=self.month,
+                due_dt=self.week,
+                amount_base_cents=1000,
+                amount_after_coupon_cents=1000,
+                amount_paid_cents=1000,
+                remaining_balance_cents=1000,
+                quantity=-10,
+                charge_at_period_end=False,
+                includes_trial=False,
+                )
 
 
 

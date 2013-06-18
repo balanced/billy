@@ -374,7 +374,7 @@ class Customer(Base):
             retry_delay = sum(RETRY_DELAY_PLAN[:self.charge_attempts])
             when_to_charge = earliest_due + retry_delay if retry_delay else \
                 earliest_due
-            if when_to_charge < now:
+            if when_to_charge <= now:
                 sum_debt = self.sum_plan_debt(plan_invoices_due)
                 transaction = PlanTransaction.create(self.external_id,
                                                      self.group_id, sum_debt)

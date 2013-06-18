@@ -59,6 +59,7 @@ class PlanTransaction(TransactionMixin, Base):
         except Exception, e:
             self.status = Status.ERROR
             self.event = ActionCatalog.TR_PAYMENT_ERROR
+            self.session.commit()
             raise e
         self.customer.charge_attempts = 0
         self.session.commit()
@@ -93,6 +94,7 @@ class PayoutTransaction(TransactionMixin, Base):
         except Exception, e:
             self.status = Status.ERROR
             self.event = ActionCatalog.TR_PAYOUT_ERROR
+            self.session.commit()
             raise e
         self.customer.charge_attempts = 0
         self.session.commit()

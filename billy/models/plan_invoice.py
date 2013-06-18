@@ -117,11 +117,9 @@ class PlanInvoice(Base):
         Returns a list of customer objects that need to clear their plan debt
         """
         now = datetime.now(UTC)
-        results = cls.session.query(distinct(cls.customer_id)).filter(
+        results = cls.query.filter(
             cls.remaining_balance_cents > 0,
-            cls.due_dt <= now).all()
-        for each in results:
-            print each
+            cls.due_dt <= now).distinct(cls.customer_id).all()
         return [result.customer for result in results]
 
     @classmethod

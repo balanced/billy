@@ -327,7 +327,7 @@ class Customer(Base):
             PlanInvoice.customer_id == self.external_id,
             PlanInvoice.group_id == self.group_id,
             PlanInvoice.remaining_balance_cents > 0,
-            PlanInvoice.due_dt < now,
+            PlanInvoice.due_dt <= now,
         ).all()
         return results
 
@@ -359,13 +359,15 @@ class Customer(Base):
             return False
 
     def clear_plan_debt(self, force=False):
+        from billy.models import PlanTransaction
         now = datetime.now(UTC)
         earliest_due = datetime.now(UTC)
         plan_invoices_due = self.plan_invoices_due
         for plan_invoice in plan_invoices_due:
             earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \
                 earliest_due else earliest_due
-        if len(RETRY_DELAY_PLAN) > self.charge_attempts and not force:
+        #import ipdb;ipdb.set_trace()
+        if len(RETRY_DELAY_PLAN) < self.charge_attempts and not force:
             for plan_invoice in plan_invoices_due:
                 plan_invoice.active = False
         else:
@@ -383,9 +385,10 @@ class Customer(Base):
                         each.remaining_balance_cents = 0
                     self.last_debt_clear = now
                     self.event = ActionCatalog.CUSTOMER_CLEAR_DEBT
-                # Todo wtf man... really?
-                except:
+                except Exception, e:
                     self.event = ActionCatalog.CUSTOMER_CHARGE_ATTEMPT
                     self.charge_attempts += 1
+                    self.session.commit()
+                    raise e
         self.session.commit()
         return self

@@ -384,7 +384,6 @@ class TestUtils(TestPlanInvoice):
             )
 
 
-
     def test_needs_debt_cleared(self):
         list = PlanInvoice.need_debt_cleared()
         self.assertEqual(len(list), 0)
@@ -396,11 +395,14 @@ class TestUtils(TestPlanInvoice):
             self.assertEqual(len(list), 2)
 
 
-
-
-
     def test_needs_rollover(self):
-        pass
+        with freeze_time(str(self.month)):
+            list = PlanInvoice.need_debt_cleared()
+            for each in list:
+                each.clear_plan_debt()
+            list = PlanInvoice.need_rollover()
+            self.assertEqual(len(list), 3)
+
 
 
     def test_rollover(self):

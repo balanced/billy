@@ -28,7 +28,7 @@ class TransactionMixin(object):
         new_transaction.event = ActionCatalog.TR_CREATE
         cls.session.add(new_transaction)
         cls.session.commit()
-        return cls
+        return new_transaction
 
     @classmethod
     def retrieve(cls, group_id, customer_id=None, external_id=None):

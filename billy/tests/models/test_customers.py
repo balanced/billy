@@ -19,8 +19,8 @@ class TestCustomer(BalancedTransactionalTestCase):
         self.external_id = 'MY_TEST_CUSTOMER'
         self.group = 'BILLY_TEST_MARKETPLACE'
         self.group_2 = 'BILLY_TEST_MARKETPLACE_2'
-        Group.create_group(self.group)
-        Group.create_group(self.group_2)
+        Group.create(self.group)
+        Group.create(self.group_2)
 
 
 class TestCreate(TestCustomer):

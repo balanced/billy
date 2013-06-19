@@ -1,11 +1,13 @@
 from __future__ import unicode_literals
 import random
 
-from base import BaseProvider
 from billy.utils.models import uuid_factory
 
 
-class DummyProvider(BaseProvider):
+class DummyProvider(object):
+
+    def __init__(self, api_key):
+        self.api_key = api_key
 
     def check_balance(self, customer, group):
         """

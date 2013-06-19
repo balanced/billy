@@ -14,22 +14,22 @@ class TestGroup(BalancedTransactionalTestCase):
         self.marketplace = 'BILLY_TEST_MARKETPLACE'
 
     def test_create(self):
-        group = Group.create_group(self.marketplace)
+        group = Group.create(self.marketplace)
         self.assertIsInstance(group, Group)
 
     def test_create_existing(self):
-        Group.create_group(self.marketplace)
+        Group.create(self.marketplace)
         with self.assertRaises(IntegrityError):
-            Group.create_group(self.marketplace)
+            Group.create(self.marketplace)
 
     def test_create_and_retrieve(self):
-        group = Group.create_group(self.marketplace)
-        ret = Group.retrieve_group(self.marketplace)
+        group = Group.create(self.marketplace)
+        ret = Group.retrieve(self.marketplace)
         self.assertEqual(group, ret)
 
     def test_retrieve_dne(self):
         with self.assertRaises(NoResultFound):
-            Group.retrieve_group(self.marketplace)
+            Group.retrieve(self.marketplace)
 
 
 # def TestRelations(TestGroup):

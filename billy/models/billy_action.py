@@ -3,23 +3,28 @@ from __future__ import unicode_literals
 from datetime import datetime
 from pytz import UTC
 from sqlalchemy.orm import mapper
-from sqlalchemy import event, ForeignKey
+from sqlalchemy import event
 from sqlalchemy import Column, Unicode, DateTime
 
-from billy.models.base import Base
-from billy.models.groups import Group
+from billy.models import *
 from billy.utils.billy_action import string_attr
 from billy.utils.models import uuid_factory
 
 
 class BillyAction(Base):
+    """
+    This is a simple transaction logger that should be seldom queried.
+    WORK IN PROGRESS.
+    Note: No FKeys here because it'd be wasted index. Its a catch all so relational
+    querying might not make too much sense...
+    """
     __tablename__ = 'billy_actions'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     obj_guid = Column(Unicode)
     customer_id = Column(Unicode)
     external_id = Column(Unicode)
-    group_id = Column(Unicode, ForeignKey(Group.external_id))
+    group_id = Column(Unicode)
     model_name = Column(Unicode)
     plan_id = Column(Unicode)
     payout_id = Column(Unicode)

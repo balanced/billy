@@ -26,8 +26,8 @@ class TestPlanInvoice(BalancedTransactionalTestCase):
         self.week = self.now + Intervals.WEEK
         self.two_weeks = self.now + Intervals.WEEK
         self.month = self.now + Intervals.MONTH
-        Group.create_group(self.group)
-        Group.create_group(self.group_2)
+        Group.create(self.group)
+        Group.create(self.group_2)
         Customer.create(self.customer, self.group)
         Customer.create(self.customer_2, self.group)
         Customer.create(self.customer_group2, self.group_2)

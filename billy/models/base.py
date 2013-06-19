@@ -48,23 +48,3 @@ class RelativeDelta(TypeDecorator):
             value = self.to_relativedelta(data)
         return value
 
-
-class JSONList(TypeDecorator):
-
-    """
-    A python dictionary to json type
-    """
-    impl = VARCHAR
-
-    def process_bind_param(self, value, dialect):
-        if not isinstance(value, list):
-            raise ValueError("Excepts only python lists")
-        if value is not None:
-            value = ujson.dumps(value)
-
-        return value
-
-    def process_result_value(self, value, dialect):
-        if value is not None:
-            value = ujson.loads(value)
-        return value

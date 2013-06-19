@@ -1,23 +1,23 @@
+from __future__ import unicode_literals
 from datetime import datetime
 
-from sqlalchemy import ForeignKey
-from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime
-from sqlalchemy.schema import ForeignKeyConstraint
-from sqlalchemy.orm import relationship
 from pytz import UTC
+from sqlalchemy import Boolean, Column, DateTime, Integer, ForeignKey, \
+    Unicode, UniqueConstraint
+from sqlalchemy.orm import relationship, validates
 
 from billy.models import *
 from billy.utils.models import uuid_factory
-from billy.utils.audit_events import EventCatalog
-from billy.errors import NotFoundError, AlreadyExistsError
+from billy.utils.billy_action import ActionCatalog
 
 
 class Coupon(Base):
     __tablename__ = 'coupons'
 
-    guid = Column(Unicode, index=True, default=uuid_factory('CU'))
-    external_id = Column(Unicode, primary_key=True)
-    group_id = Column(Unicode, ForeignKey(Group.external_id), primary_key=True)
+    guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
+    external_id = Column(Unicode)
+    group_id = Column(Unicode, ForeignKey(Group.external_id))
+    name = Column(Unicode)
     price_off_cents = Column(Integer)
     percent_off_int = Column(Integer)
     expire_at = Column(DateTime(timezone=UTC))
@@ -28,10 +28,13 @@ class Coupon(Base):
     deleted_at = Column(DateTime(timezone=UTC))
     customers = relationship('Customer', backref='coupon')
 
+    __table_args__ = (UniqueConstraint(external_id, group_id,
+                                       name='coupon_id_group_unique'),
+                      )
 
     @classmethod
-    def create_coupon(cls, external_id, group_id, name, price_off_cents,
-                      percent_off_int, max_redeem, repeating, expire_at=None):
+    def create(cls, external_id, group_id, name, price_off_cents,
+               percent_off_int, max_redeem, repeating, expire_at=None):
         """
         Creates a coupon that can be later applied to a customer.
         :param external_id: A unique id for the coupon
@@ -46,52 +49,37 @@ class Coupon(Base):
         :param max_redeem: The number of unique users that can redeem this
         coupon, -1 for unlimited
         :param repeating: The maximum number of invoices it applies to. -1
-        for all/forver
+        for all/forever
         :return: The new coupon object
-        :raise AlreadyExistsError: If the coupon already exists
         """
-
-        exists = cls.query.filter(cls.external_id == external_id,
-                                  cls.group_id == group_id).first()
-        if not exists:
-            new_coupon = cls(
-                external_id=external_id,
-                group_id=group_id,
-                name=name,
-                price_off_cents=price_off_cents,
-                percent_off_int=percent_off_int,
-                max_redeem=max_redeem,
-                repeating=repeating,
-                expire_at=expire_at)
-            new_coupon.event = EventCatalog.COUPON_CREATE
-            cls.session.add(new_coupon)
-            cls.session.commit()
-            return new_coupon
-        else:
-            raise AlreadyExistsError(
-                'Coupon already exists. Check external_id and group_id')
+        new_coupon = cls(
+            external_id=external_id,
+            group_id=group_id,
+            name=name,
+            price_off_cents=price_off_cents,
+            percent_off_int=percent_off_int,
+            max_redeem=max_redeem,
+            repeating=repeating,
+            expire_at=expire_at)
+        new_coupon.event = ActionCatalog.COUPON_CREATE
+        cls.session.add(new_coupon)
+        cls.session.commit()
+        return new_coupon
 
     @classmethod
-    def retrieve_coupon(cls, external_id, group_id, active_only=False):
+    def retrieve(cls, external_id, group_id, active_only=False):
         """
         This method retrieves a single coupon.
         :param external_id: the unique external_id
         :param group_id: the group/marketplace to associate with
         :param active_only: only returns active coupons
         :returns: Single coupon
-        :raise NotFoundError:  if coupon not found.
         """
-        query = cls.filter(cls.external_id == external_id,
-                           cls.group_id == group_id)
-
+        query = cls.query.filter(cls.external_id == external_id,
+                                 cls.group_id == group_id)
         if active_only:
-            query.filter(cls.active == True)
-
-        exists = query.first()
-        if not exists:
-            raise NotFoundError(
-                'Active Coupon not found. Check external_id and group_id')
-        return exists
+            query = query.filter(cls.active == True)
+        return query.one()
 
     def update(self, new_name=None,
                new_max_redeem=None, new_expire_at=None, new_repeating=None):
@@ -104,7 +92,6 @@ class Coupon(Base):
         work
         :param new_repeating: The maximum number of invoices it applies to.
         -1 for all/forever
-        :raise NotFoundError:  if coupon not found.
         :returns: Self
         """
         if new_name:
@@ -116,24 +103,8 @@ class Coupon(Base):
         if new_repeating:
             self.repeating = new_repeating
         self.updated_at = datetime.now(UTC)
-        self.event = EventCatalog.COUPON_UPDATE
+        self.event = ActionCatalog.COUPON_UPDATE
         self.session.commit()
-
-    @classmethod
-    def update_coupon(cls, external_id, group_id, new_name=None,
-                      new_max_redeem=None, new_expire_at=None,
-                      new_repeating=None):
-        """
-        Static version of update
-        """
-        exists = cls.query.filter(cls.external_id == external_id,
-                                  cls.group_id == group_id).first()
-        if not exists:
-            raise NotFoundError(
-                'Coupon not found. Use different id/marketplace')
-        return exists.update(new_name=new_name, new_max_redeem=new_max_redeem,
-                             new_expire_at=new_expire_at,
-                             new_repeating=new_repeating)
 
     def delete(self):
         """
@@ -145,28 +116,12 @@ class Coupon(Base):
         self.active = False
         self.updated_at = datetime.now(UTC)
         self.deleted_at = datetime.now(UTC)
-        self.event = EventCatalog.COUPON_DELETE
+        self.event = ActionCatalog.COUPON_DELETE
         self.session.commit()
         return self
 
     @classmethod
-    def delete_coupon(cls, external_id, group_id):
-        """
-        Static version of delete method.
-        :param external_id: the unique external_id
-        :param group_id: the plans group/marketplace
-        :returns: the deleted Coupon object
-        :raise NotFoundError:  if coupon not found.
-        """
-        exists = cls.query.filter(cls.external_id == external_id,
-                                  cls.group_id == group_id).first()
-        if not exists:
-            raise NotFoundError('Coupon not found. Try a different id')
-        return exists.delete()
-
-
-    @classmethod
-    def list_coupons(cls, group_id, active_only=False):
+    def list(cls, group_id, active_only=False):
         """
         Returns a list of coupons currently in the database
         :param group_id: The group/marketplace id/uri
@@ -174,23 +129,51 @@ class Coupon(Base):
         """
         query = cls.query.filter(cls.group_id == group_id)
         if active_only:
-            query.filter(cls.active == True)
+            query = query.filter(cls.active == True)
         return query.all()
-
 
     @property
     def count_redeemed(self):
         """
         The number of unique customers that are using the coupon
         """
+        # Todo remove this.
+        from billy.models import Customer
         return Customer.query.filter(Customer.current_coupon == self
-        .external_id).count()
+                                     .external_id).count()
 
     @classmethod
     def expire_coupons(cls):
+        """
+        Expires all expired coupons (TASK)
+        """
         now = datetime.now(UTC)
-        to_expire = cls.query.filter(cls.expire_at > now).all()
+        to_expire = cls.query.filter(cls.expire_at < now).all()
         for coupon in to_expire:
             coupon.active = False
-            coupon.event = EventCatalog.COUPON_EXPIRE
+            coupon.event = ActionCatalog.COUPON_EXPIRE
         cls.session.commit()
+
+    @validates('max_redeem')
+    def validate_max_redeem(self, key, address):
+        if not address > 0 or address == -1:
+            raise ValueError('{} must be greater than 0 or -1'.format(key))
+        return address
+
+    @validates('repeating')
+    def validate_repeating(self, key, address):
+        if not (address > 0 or address == -1):
+            raise ValueError('{} must be greater than 0 or -1'.format(key))
+        return address
+
+    @validates('percent_off_int')
+    def validate_percent_off_int(self, key, address):
+        if not 0 < address <= 100:
+            raise ValueError('{} must be between 0 and 100'.format(key))
+        return address
+
+    @validates('price_off_cents')
+    def validate_price_off_cents(self, key, address):
+        if not address >= 0:
+            raise ValueError('{} must be greater than 0'.format(key))
+        return address

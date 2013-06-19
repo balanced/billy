@@ -1,17 +1,19 @@
+from __future__ import unicode_literals
 import random
 
-from base import BaseProvider
 from billy.utils.models import uuid_factory
 
-class BalancedDummyProvider(BaseProvider):
 
+class DummyProvider(object):
+
+    def __init__(self, api_key):
+        self.api_key = api_key
 
     def check_balance(self, customer, group):
         """
         Returns balance
         """
-        return random.randint(100, 500000)
-
+        return random.randint(100000, 500000)
 
     def create_charge(self, customer, group, amount_cents):
         """

@@ -1,36 +1,32 @@
+from __future__ import unicode_literals
+
 from sqlalchemy import Unicode, Column
 from sqlalchemy.orm import relationship
 
-from base import Base
-from billy.utils.models import uuid_factory
-from billy.utils.audit_events import EventCatalog
-from billy.errors import AlreadyExistsError
-from billy.models import *
+from billy.models import Base
+from billy.utils.billy_action import ActionCatalog
 
 
 class Group(Base):
     __tablename__ = 'groups'
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
-    external_id = Column(Unicode, unique=True)
-    coupons = relationship('AuditEvent', backref='group')
+    external_id = Column(Unicode, primary_key=True)
+    coupons = relationship('Coupon', backref='group')
     customers = relationship('Customer', backref='group')
+    plans = relationship('Plan', backref='group')
+    payouts = relationship('Payout', backref='group')
     plan_invoices = relationship('PlanInvoice', backref='group')
     payout_invoices = relationship('PayoutInvoice', backref='group')
 
-
-
-
     @classmethod
-    def create_group(cls, external_id):
-        exists = cls.query.filter(cls.external_id == external_id)
-        if exists:
-            raise AlreadyExistsError('The group already exists in the db.')
-        new_group = cls(external_id == external_id)
-        new_group.event = EventCatalog.GROUP_CREATE
+    def create(cls, external_id):
+        new_group = cls(external_id=external_id)
+        new_group.event = ActionCatalog.GROUP_CREATE
         cls.session.add(new_group)
+        cls.session.commit()
+        return new_group
 
     @classmethod
-    def retrieve_group(cls, group_id):
-        return cls.query.get(group_id)
-
+    def retrieve(cls, external_id):
+        # Used one() instead get() to raise error if not found...
+        return cls.query.filter(cls.external_id == external_id).one()

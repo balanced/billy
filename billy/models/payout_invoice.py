@@ -62,7 +62,7 @@ class PayoutInvoice(Base):
 
     @classmethod
     def retrieve(cls, customer_id, group_id, relevant_payout=None,
-                         active_only=False, only_incomplete=False):
+                 active_only=False, only_incomplete=False):
         query = cls.query.filter(cls.customer_id == customer_id,
                                  cls.group_id == group_id)
         if relevant_payout:
@@ -75,7 +75,7 @@ class PayoutInvoice(Base):
 
     @classmethod
     def list(cls, group_id, relevant_payout=None,
-                      customer_id=None, active_only=False):
+             customer_id=None, active_only=False):
         query = cls.query.filter(cls.group_id == group_id)
         if customer_id:
             query = query.filter(cls.customer_id == customer_id)
@@ -118,7 +118,8 @@ class PayoutInvoice(Base):
                 payout_date
             if when_to_payout <= now:
                 payout_amount = current_balance - self.balance_to_keep_cents
-                transaction = PayoutTransaction.create(self.customer_id, self.group_id, payout_amount)
+                transaction = PayoutTransaction.create(
+                    self.customer_id, self.group_id, payout_amount)
                 try:
                     transaction.execute()
                     self.cleared_by = transaction.guid
@@ -146,7 +147,6 @@ class PayoutInvoice(Base):
         need_rollover = cls.needs_rollover()
         for payout in need_rollover:
             payout.rollover()
-
 
     @validates('balance_to_keep_cents')
     def validate_balance_to_keep_cents(self, key, value):

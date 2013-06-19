@@ -122,6 +122,7 @@ class TestCreate(TestPlanInvoice):
                 charge_at_period_end=False,
                 includes_trial=False,
             )
+
     def test_create_plan_dne(self):
         with self.assertRaises(IntegrityError):
             PlanInvoice.create(
@@ -139,7 +140,8 @@ class TestCreate(TestPlanInvoice):
                 quantity=10,
                 charge_at_period_end=False,
                 includes_trial=False,
-                )
+            )
+
     def test_create_exist_inactive(self):
         var = PlanInvoice.create(
             customer_id=self.customer,

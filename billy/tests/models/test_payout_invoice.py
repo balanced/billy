@@ -31,9 +31,10 @@ class TestPayoutInvoice(BalancedTransactionalTestCase):
         Customer.create(self.customer, self.group)
         Customer.create(self.customer_2, self.group)
         Customer.create(self.customer_3, self.group_2)
-        Payout.create(self.payout, self.group, 'Test Payout', 1000, Intervals.TWO_WEEKS)
-        Payout.create(self.payout_2, self.group, 'Test Payout 2', 1500, Intervals.MONTH)
-
+        Payout.create(self.payout, self.group,
+                      'Test Payout', 1000, Intervals.TWO_WEEKS)
+        Payout.create(self.payout_2, self.group,
+                      'Test Payout 2', 1500, Intervals.MONTH)
 
 
 class TestCreate(TestPayoutInvoice):
@@ -102,6 +103,7 @@ class TestCreate(TestPayoutInvoice):
             balanced_to_keep_cents=6000
         )
 
+
 class TestRetrieve(TestPayoutInvoice):
 
     def test_create_and_retrieve(self):
@@ -112,13 +114,14 @@ class TestRetrieve(TestPayoutInvoice):
             payout_date=self.week,
             balanced_to_keep_cents=12345
         )
-        var = PayoutInvoice.retrieve(self.customer, self.group, self.payout, active_only=True)
+        var = PayoutInvoice.retrieve(
+            self.customer, self.group, self.payout, active_only=True)
         self.assertEqual(var.balance_to_keep_cents, 12345)
-
 
     def test_retrieve_dne(self):
         with self.assertRaises(NoResultFound):
-            PayoutInvoice.retrieve('CUSTOMER_DNE', self.group, self.payout, active_only=True)
+            PayoutInvoice.retrieve(
+                'CUSTOMER_DNE', self.group, self.payout, active_only=True)
 
     def test_retrieve_params(self):
         PayoutInvoice.create(
@@ -128,7 +131,8 @@ class TestRetrieve(TestPayoutInvoice):
             payout_date=self.week,
             balanced_to_keep_cents=12345
         )
-        var = PayoutInvoice.retrieve(self.customer, self.group, self.payout, active_only=True)
+        var = PayoutInvoice.retrieve(
+            self.customer, self.group, self.payout, active_only=True)
         self.assertEqual(var.customer_id, self.customer)
         self.assertEqual(var.group_id, self.group)
         self.assertEqual(var.relevant_payout, self.payout)
@@ -163,7 +167,6 @@ class TestRetrieve(TestPayoutInvoice):
         )
         self.assertEqual(len(PayoutInvoice.list(self.group)), 2)
 
-
     def test_list_active_only(self):
         var = PayoutInvoice.create(
             customer_id=self.customer,
@@ -181,52 +184,58 @@ class TestRetrieve(TestPayoutInvoice):
             payout_date=self.week,
             balanced_to_keep_cents=12345
         )
-        self.assertEqual(len(PayoutInvoice.list(self.group, active_only=True)), 1)
-
+        self.assertEqual(
+            len(PayoutInvoice.list(self.group, active_only=True)), 1)
 
 
 class TestUtils(TestPayoutInvoice):
 
     def test_needs_payout_made(self):
         with freeze_time(str(self.now)):
-            Customer.retrieve(self.customer, self.group).add_payout(self.payout)
-            Customer.retrieve(self.customer_2, self.group).add_payout(self.payout_2)
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()),0)
+            Customer.retrieve(
+                self.customer, self.group).add_payout(self.payout)
+            Customer.retrieve(
+                self.customer_2, self.group).add_payout(self.payout_2)
+            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 0)
         with freeze_time(str(self.week)):
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()),0)
+            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 0)
         with freeze_time(str(self.two_weeks)):
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()),1)
+            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 1)
         with freeze_time(str(self.month)):
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()),2)
-
+            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 2)
 
     def test_needs_rollover(self):
         with freeze_time(str(self.now)):
-            Customer.retrieve(self.customer, self.group).add_payout(self.payout)
-            Customer.retrieve(self.customer_2, self.group).add_payout(self.payout_2)
+            Customer.retrieve(
+                self.customer, self.group).add_payout(self.payout)
+            Customer.retrieve(
+                self.customer_2, self.group).add_payout(self.payout_2)
         with freeze_time(str(self.month)):
             PayoutInvoice.make_all_payouts()
-            self.assertEqual(len(PayoutInvoice.needs_rollover()),2)
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()),0)
+            self.assertEqual(len(PayoutInvoice.needs_rollover()), 2)
+            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 0)
 
     def test_rollover_all(self):
         with freeze_time(str(self.now)):
-            Customer.retrieve(self.customer, self.group).add_payout(self.payout)
-            Customer.retrieve(self.customer_2, self.group).add_payout(self.payout_2)
+            Customer.retrieve(
+                self.customer, self.group).add_payout(self.payout)
+            Customer.retrieve(
+                self.customer_2, self.group).add_payout(self.payout_2)
         with freeze_time(str(self.month)):
             PayoutInvoice.make_all_payouts()
-            self.assertEqual(len(PayoutInvoice.needs_rollover()),2)
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()),0)
+            self.assertEqual(len(PayoutInvoice.needs_rollover()), 2)
+            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 0)
             PayoutInvoice.rollover_all()
-            self.assertEqual(len(PayoutInvoice.needs_rollover()),0)
+            self.assertEqual(len(PayoutInvoice.needs_rollover()), 0)
 
     def test_rollover(self):
         with freeze_time(str(self.now)):
-            Customer.retrieve(self.customer, self.group).add_payout(self.payout)
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()),0)
+            Customer.retrieve(
+                self.customer, self.group).add_payout(self.payout)
+            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 0)
         with freeze_time(str(self.month)):
             needs_payout = PayoutInvoice.needs_payout_made()
-            self.assertEqual(len(needs_payout),1)
+            self.assertEqual(len(needs_payout), 1)
             invoice = needs_payout[0].make_payout()
             self.assertTrue(invoice.completed)
             self.assertTrue(invoice.active)
@@ -234,11 +243,12 @@ class TestUtils(TestPayoutInvoice):
 
     def test_payout(self):
         with freeze_time(str(self.now)):
-            Customer.retrieve(self.customer, self.group).add_payout(self.payout)
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()),0)
+            Customer.retrieve(
+                self.customer, self.group).add_payout(self.payout)
+            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 0)
         with freeze_time(str(self.month)):
             needs_payout = PayoutInvoice.needs_payout_made()
-            self.assertEqual(len(needs_payout),1)
+            self.assertEqual(len(needs_payout), 1)
             invoice = needs_payout[0].make_payout()
             self.assertTrue(invoice.completed)
             self.assertTrue(invoice.active)
@@ -246,11 +256,13 @@ class TestUtils(TestPayoutInvoice):
 
     def test_payout_all(self):
         with freeze_time(str(self.now)):
-            Customer.retrieve(self.customer, self.group).add_payout(self.payout)
-            Customer.retrieve(self.customer_2, self.group).add_payout(self.payout_2)
+            Customer.retrieve(
+                self.customer, self.group).add_payout(self.payout)
+            Customer.retrieve(
+                self.customer_2, self.group).add_payout(self.payout_2)
         with freeze_time(str(self.month)):
             PayoutInvoice.make_all_payouts()
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()),0)
+            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 0)
 
 
 class TestValidators(TestPayoutInvoice):

@@ -82,7 +82,7 @@ class PayoutInvoice(Base):
         if active_only:
             query = query.filter(cls.active == True)
         if relevant_payout:
-            query = query.filter(cls.payout_id == relevant_payout)
+            query = query.filter(cls.relevant_payout == relevant_payout)
         return query.all()
 
     @classmethod

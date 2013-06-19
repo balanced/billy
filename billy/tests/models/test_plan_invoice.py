@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 from datetime import datetime
 
 from freezegun import freeze_time
+from mock import patch
 from pytz import UTC
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
@@ -343,54 +344,55 @@ class TestUtils(TestPlanInvoice):
 
     def setUp(self):
         super(TestUtils, self).setUp()
-        PlanInvoice.create(
-            customer_id=self.customer,
-            group_id=self.group,
-            relevant_plan=self.plan_id,
-            relevant_coupon=None,
-            start_dt=self.now,
-            end_dt=self.month,
-            due_dt=self.week,
-            amount_base_cents=2000,
-            amount_after_coupon_cents=800,
-            amount_paid_cents=200,
-            remaining_balance_cents=600,
-            quantity=10,
-            charge_at_period_end=False,
-            includes_trial=False,
-        )
-        PlanInvoice.create(
-            customer_id=self.customer,
-            group_id=self.group,
-            relevant_plan=self.plan_id_2,
-            relevant_coupon=None,
-            start_dt=self.now,
-            end_dt=self.month,
-            due_dt=self.week,
-            amount_base_cents=2000,
-            amount_after_coupon_cents=800,
-            amount_paid_cents=200,
-            remaining_balance_cents=600,
-            quantity=10,
-            charge_at_period_end=False,
-            includes_trial=False,
-        )
-        PlanInvoice.create(
-            customer_id=self.customer_2,
-            group_id=self.group,
-            relevant_plan=self.plan_id,
-            relevant_coupon=None,
-            start_dt=self.now,
-            end_dt=self.month,
-            due_dt=self.month,
-            amount_base_cents=1000,
-            amount_after_coupon_cents=800,
-            amount_paid_cents=200,
-            remaining_balance_cents=600,
-            quantity=10,
-            charge_at_period_end=False,
-            includes_trial=False,
-        )
+        with freeze_time(str(self.now)):
+            PlanInvoice.create(
+                customer_id=self.customer,
+                group_id=self.group,
+                relevant_plan=self.plan_id,
+                relevant_coupon=None,
+                start_dt=self.now,
+                end_dt=self.month,
+                due_dt=self.week,
+                amount_base_cents=2000,
+                amount_after_coupon_cents=800,
+                amount_paid_cents=200,
+                remaining_balance_cents=600,
+                quantity=10,
+                charge_at_period_end=False,
+                includes_trial=False,
+            )
+            PlanInvoice.create(
+                customer_id=self.customer,
+                group_id=self.group,
+                relevant_plan=self.plan_id_2,
+                relevant_coupon=None,
+                start_dt=self.now,
+                end_dt=self.month,
+                due_dt=self.week,
+                amount_base_cents=2000,
+                amount_after_coupon_cents=800,
+                amount_paid_cents=200,
+                remaining_balance_cents=600,
+                quantity=10,
+                charge_at_period_end=False,
+                includes_trial=False,
+            )
+            PlanInvoice.create(
+                customer_id=self.customer_2,
+                group_id=self.group,
+                relevant_plan=self.plan_id,
+                relevant_coupon=None,
+                start_dt=self.now,
+                end_dt=self.month,
+                due_dt=self.month,
+                amount_base_cents=1000,
+                amount_after_coupon_cents=800,
+                amount_paid_cents=200,
+                remaining_balance_cents=600,
+                quantity=10,
+                charge_at_period_end=False,
+                includes_trial=False,
+            )
 
     def test_needs_rollover(self):
         with freeze_time(str(self.month)):

@@ -22,6 +22,7 @@ class TestPayoutInvoice(BalancedTransactionalTestCase):
         self.group_2 = 'BILLY_TEST_MARKETPLACE_2'
         self.payout = 'MY_TEST_PAYOUT'
         self.payout_2 = 'MY_TEST_PAYOUT_2'
+        self.payout_3 = 'MY_TEST_PAYOUT_3'
         self.now = datetime.now(UTC)
         self.week = self.now + Intervals.WEEK
         self.two_weeks = self.now + Intervals.TWO_WEEKS
@@ -35,6 +36,8 @@ class TestPayoutInvoice(BalancedTransactionalTestCase):
                       'Test Payout', 1000, Intervals.TWO_WEEKS)
         Payout.create(self.payout_2, self.group,
                       'Test Payout 2', 1500, Intervals.MONTH)
+        Payout.create(self.payout_3, self.group_2,
+                      'Test Payout 3', 9700, Intervals.MONTH)
 
 
 class TestCreate(TestPayoutInvoice):
@@ -141,9 +144,6 @@ class TestRetrieve(TestPayoutInvoice):
         self.assertIsNone(var.cleared_by)
 
     def test_list(self):
-        pass
-
-    def test_list_active_only(self):
         PayoutInvoice.create(
             customer_id=self.customer,
             group_id=self.group,
@@ -152,20 +152,14 @@ class TestRetrieve(TestPayoutInvoice):
             balanced_to_keep_cents=12345
         )
         PayoutInvoice.create(
-            customer_id=self.customer_2,
-            group_id=self.group,
-            relevant_payout=self.payout,
-            payout_date=self.week,
-            balanced_to_keep_cents=12345
-        )
-        PayoutInvoice.create(
-            customer_id=self.customer_2,
+            customer_id=self.customer_3,
             group_id=self.group_2,
-            relevant_payout=self.payout,
+            relevant_payout=self.payout_3,
             payout_date=self.week,
             balanced_to_keep_cents=12345
         )
-        self.assertEqual(len(PayoutInvoice.list(self.group)), 2)
+        self.assertEqual(len(PayoutInvoice.list(self.group, self.payout, self.customer)), 1)
+
 
     def test_list_active_only(self):
         var = PayoutInvoice.create(

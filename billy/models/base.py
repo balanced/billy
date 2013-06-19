@@ -47,4 +47,3 @@ class RelativeDelta(TypeDecorator):
             data = ujson.loads(value)
             value = self.to_relativedelta(data)
         return value
-

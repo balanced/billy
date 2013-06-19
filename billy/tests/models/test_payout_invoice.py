@@ -158,8 +158,8 @@ class TestRetrieve(TestPayoutInvoice):
             payout_date=self.week,
             balanced_to_keep_cents=12345
         )
-        self.assertEqual(len(PayoutInvoice.list(self.group, self.payout, self.customer)), 1)
-
+        self.assertEqual(
+            len(PayoutInvoice.list(self.group, self.payout, self.customer)), 1)
 
     def test_list_active_only(self):
         var = PayoutInvoice.create(

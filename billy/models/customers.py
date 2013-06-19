@@ -366,6 +366,7 @@ class Customer(Base):
         for plan_invoice in plan_invoices_due:
             earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \
                 earliest_due else earliest_due
+        # import ipdb;ipdb.set_trace()
         if len(RETRY_DELAY_PLAN) < self.charge_attempts and not force:
             for plan_invoice in plan_invoices_due:
                 plan_invoice.active = False

@@ -355,8 +355,6 @@ class TestUpdatePlan(TestCustomer):
             self.assertTrue(self.customer.is_debtor(900), 1000)
 
 
-
-
 class TestPayout(TestCustomer):
 
     def setUp(self):

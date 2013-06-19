@@ -12,6 +12,7 @@ from billy.utils.models import uuid_factory
 
 
 class BillyAction(Base):
+
     """
     This is a simple transaction logger that should be seldom queried.
     WORK IN PROGRESS.

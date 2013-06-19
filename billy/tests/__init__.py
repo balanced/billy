@@ -1,25 +1,22 @@
 from __future__ import unicode_literals
-import base64
-import contextlib
-import imp
+import unittest
 import os
-import sys
 
-from functools import partial
-from billy.settings import DB_URL
-from billy.models.base import Base
-from sqlalchemy.orm.session import sessionmaker
+import datetime
+from pytz import UTC
 import sqlalchemy
+
+from billy.settings import DB_URL, Session
+from billy.models.base import Base
+
 BASE_PATH = os.path.abspath(os.path.join(
     os.path.basename(__file__), '..'))
 SCRIPTS_PATH = os.path.join(BASE_PATH, 'scripts')
 PACKAGE_PATH = os.path.join(BASE_PATH, 'balanced_service')
 
-import unittest
-from billy.settings import Session
-
 
 class BalancedTransactionalTestCase(unittest.TestCase):
+
     """
     This class is optimized for multiple tests requiring the
     database, by putting every db test in a large transaction
@@ -32,25 +29,23 @@ class BalancedTransactionalTestCase(unittest.TestCase):
     below.
     """
 
-
-
     def __init__(self, *A, **KW):
         super(BalancedTransactionalTestCase, self).__init__(*A, **KW)
         self._db_engine = sqlalchemy.create_engine(DB_URL,
-            isolation_level='SERIALIZABLE'
-        )
+                                                   isolation_level='SERIALIZABLE'
+                                                   )
 
     def setUp(self):
         super(BalancedTransactionalTestCase, self).setUp()
 
         self._db_connection = self._db_engine.connect()
         self._db_transaction = self._db_connection.begin()
-
         Session.configure(bind=self._db_connection)
         # HACK: this is done solely to set up signals for model test cases --
         # alternatives are welcome
         self.session = Base.session = Session
-
+        # ew... very dirty... look into this (todo)...
+        Base.session.commit = Base.session.flush
         # adds the clean up handler that will reset the database
         # state, which is necessary for when your setUp() function
         # can fail in the middle of setting up a db-fixture.
@@ -76,3 +71,8 @@ def _transactional_db_reset(db_session, db_transaction, db_connection):
     db_connection.close()
     # remove the session from the registry
     Session.remove()
+
+
+def rel_delta_to_sec(rel):
+    now = datetime.datetime.now()
+    return ((now + rel) - now).total_seconds()

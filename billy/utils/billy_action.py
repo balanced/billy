@@ -1,21 +1,23 @@
+from __future__ import unicode_literals
+
+
 def string_attr(the_object, the_attribute):
     prop = getattr(the_object, the_attribute, None)
     if prop:
         try:
             return str(prop)
-        except:
+        except TypeError:
             return None
     else:
         return None
 
 
+class ActionCatalog(object):
 
-class EventCatalog(object):
-
-    #GROUPS
+    # GROUPS
     GROUP_CREATE = "GROUP_CREATE"
 
-    #CUSTOMER
+    # CUSTOMER
     CUSTOMER_CREATE = "CUSTOMER_CREATE"
     CUSTOMER_APPLY_COUPON = "CUSTOMER_APPLY_COUPON"
     CUSTOMER_REMOVE_COUPON = "CUSTOMER_REMOVE_COUPON"
@@ -26,44 +28,36 @@ class EventCatalog(object):
     CUSTOMER_CHARGE_ATTEMPT = "CUSTOMER_CHARGE_ATTEMPT"
     CUSTOMER_CLEAR_DEBT = "CUSTOMER_CLEAR_DEBT"
 
-    #COUPONS
+    # COUPONS
     COUPON_CREATE = "COUPON_CREATE"
     COUPON_UPDATE = "COUPON_UPDATE"
     COUPON_DELETE = "COUPON_DELETE"
     COUPON_EXPIRE = "COUPON_EXPIRE"
 
-    #Plan Invoice
+    # Plan Invoice
     PI_PRORATE_LAST = "PI_PRORATE_LAST"
     PI_CREATE = "PI_CREATE"
     PI_ROLLOVER = "PI_ROLLOVER"
 
-    #Payout Invoice:
+    # Payout Invoice:
     POI_CREATE = "POI_CREATE"
     POI_ROLLOVER = "POI_ROLLOVER"
     POI_MAKE_PAYOUT = "POI_MAKE_PAYOUT"
     POI_PAYOUT_ATTEMPT = "POI_PAYOUT_ATTEMPT"
 
-    #Plans
+    # Plans
     PLAN_CREATE = "PLAN_CREATE"
     PLAN_UPDATE = "PLAN_UPDATE"
     PLAN_DELETE = "PLAN_DELETE"
 
-
-    #Payout
+    # Payout
     PAYOUT_CREATE = "PAYOUT_CREATE"
     PAYOUT_UPDATE = "PAYOUT_UPDATE"
     PAYOUT_DELETE = "PAYOUT_DELETE"
 
-
-    #Transactions
+    # Transactions
     TR_CREATE = "TR_CREATE"
     TR_EXECUTE_PAYMENT = "TR_EXECUTE_PAYMENT"
     TR_EXECUTE_PAYOUT = "TR_EXECUTE_PAYOUT"
     TR_PAYMENT_ERROR = "TR_PAYMENT_ERROR"
     TR_PAYOUT_ERROR = "TR_PAYOUT_ERROR"
-
-
-
-
-
-

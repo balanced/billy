@@ -11,7 +11,7 @@ class DummyProvider(BaseProvider):
         """
         Returns balance
         """
-        return random.randint(100, 500000)
+        return random.randint(100000, 500000)
 
     def create_charge(self, customer, group, amount_cents):
         """

@@ -46,7 +46,13 @@ class PlanTransaction(TransactionMixin, Base):
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PAT'))
     group_id = Column(Unicode, ForeignKey('groups.external_id'))
     customer_id = Column(Unicode)
-    plan_invoices = relationship(PlanInvoice.__name__, backref='transaction')
+    plan_invoices = relationship(PlanInvoice, backref='transaction')
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            [customer_id, group_id],
+            [Customer.external_id, Customer.group_id])
+    )
 
     def execute(self):
         try:
@@ -75,13 +81,17 @@ class PlanTransaction(TransactionMixin, Base):
 class PayoutTransaction(TransactionMixin, Base):
     __tablename__ = 'payout_transactions'
 
-    charge_callable = TRANSACTION_PROVIDER_CLASS.create_charge
-
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POT'))
-    payout_invoices = relationship(PayoutInvoice.__name__,
-                                   backref='transaction')
     group_id = Column(Unicode)
     customer_id = Column(Unicode)
+    payout_invoices = relationship(PayoutInvoice,
+                                   backref='transaction')
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            [customer_id, group_id],
+            [Customer.external_id, Customer.group_id])
+    )
 
     def execute(self):
         try:
@@ -96,7 +106,6 @@ class PayoutTransaction(TransactionMixin, Base):
             self.event = ActionCatalog.TR_PAYOUT_ERROR
             self.session.commit()
             raise e
-        self.customer.charge_attempts = 0
         self.session.commit()
 
     __table_args__ = (

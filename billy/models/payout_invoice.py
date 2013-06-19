@@ -3,10 +3,10 @@ from datetime import datetime
 from pytz import UTC
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
     Integer, ForeignKeyConstraint, Index
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, validates
 
 from billy.models import Base, Group, Customer, Payout
-from billy.settings import TRANSACTION_PROVIDER_CLASS, RETRY_DELAY_PAYOUT
+from billy.settings import RETRY_DELAY_PAYOUT, TRANSACTION_PROVIDER_CLASS
 from billy.utils.billy_action import ActionCatalog
 from billy.utils.models import uuid_factory
 
@@ -40,7 +40,7 @@ class PayoutInvoice(Base):
         ForeignKeyConstraint(
             [relevant_payout, group_id],
             [Payout.external_id, Payout.group_id]),
-        Index('unique_payout_invoice', relevant_payout, group_id,
+        Index('unique_payout_invoice', relevant_payout, group_id, customer_id,
               postgresql_where=active == True, unique=True)
 
     )
@@ -88,14 +88,14 @@ class PayoutInvoice(Base):
     @classmethod
     def needs_payout_made(cls):
         now = datetime.now(UTC)
-        return cls.query.filter(cls.payout_date < now,
+        return cls.query.filter(cls.payout_date <= now,
                                 cls.completed == False
                                 ).all()
 
     @classmethod
     def needs_rollover(cls):
         return cls.query.filter(cls.completed == True,
-                                cls.active == False).all()
+                                cls.active == True).all()
 
     def rollover(self):
         self.active = False
@@ -105,20 +105,20 @@ class PayoutInvoice(Base):
                                  start_dt=self.payout_date)
 
     def make_payout(self, force=False):
+        from billy.models import PayoutTransaction
         now = datetime.now(UTC)
         current_balance = TRANSACTION_PROVIDER_CLASS.check_balance(
             self.customer_id, self.group_id)
         payout_date = self.payout_date
-        if len(RETRY_DELAY_PAYOUT) > self.attempts_made and not force:
+        if len(RETRY_DELAY_PAYOUT) < self.attempts_made and not force:
             self.active = False
         else:
             retry_delay = sum(RETRY_DELAY_PAYOUT[:self.attempts_made])
             when_to_payout = payout_date + retry_delay if retry_delay else \
                 payout_date
-            if when_to_payout < now:
+            if when_to_payout <= now:
                 payout_amount = current_balance - self.balance_to_keep_cents
-                transaction = TRANSACTION_PROVIDER_CLASS.make_payout(
-                    self.customer_id, self.group_id, payout_amount)
+                transaction = PayoutTransaction.create(self.customer_id, self.group_id, payout_amount)
                 try:
                     transaction.execute()
                     self.cleared_by = transaction.guid
@@ -146,3 +146,32 @@ class PayoutInvoice(Base):
         need_rollover = cls.needs_rollover()
         for payout in need_rollover:
             payout.rollover()
+
+
+    @validates('balance_to_keep_cents')
+    def validate_balance_to_keep_cents(self, key, value):
+        if not value >= 0:
+            raise ValueError('{} must be >= to 0'.format(key))
+        else:
+            return value
+
+    @validates('amount_payed_out')
+    def validate_amount_payed_out(self, key, value):
+        if not value >= 0:
+            raise ValueError('{} must be >= to 0'.format(key))
+        else:
+            return value
+
+    @validates('balance_at_exec')
+    def validate_balance_at_exec(self, key, value):
+        if not value >= 0:
+            raise ValueError('{} must be >= to 0'.format(key))
+        else:
+            return value
+
+    @validates('attempts_made')
+    def validate_attempts_made(self, key, value):
+        if not value >= 0:
+            raise ValueError('{} must be >= to 0'.format(key))
+        else:
+            return value

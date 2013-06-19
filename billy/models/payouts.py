@@ -115,5 +115,5 @@ class Payout(Base):
     @validates('balance_to_keep_cents')
     def validate_balance_to_keep(self, key, address):
         if not address > 0:
-            raise ValueError("balance_to_keep_cents must be greater than 0")
+            raise ValueError("{} must be greater than 0".format(key))
         return address

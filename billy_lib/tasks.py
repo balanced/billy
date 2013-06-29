@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from billy.models import *
+from billy_lib.models import *
 from .models import PlanInvoice, PayoutInvoice
 
 

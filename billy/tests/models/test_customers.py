@@ -238,8 +238,9 @@ class TestUpdatePlan(TestCustomer):
             self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
             active_only=True)
         self.assertEqual(invoice_new.remaining_balance_cents, 5000)
-        self.assertAlmostEqual(
-            Decimal(invoice_old.remaining_balance_cents) / Decimal(1000), Decimal(ratio), places=1)
+        self.assertalmostequal(
+            Decimal(invoice_old.remaining_balance_cents) / Decimal(1000),
+            Decimal(ratio), places=1)
 
     def test_at_period_end(self):
         self.customer.update_plan(

@@ -326,7 +326,7 @@ class Customer(Base):
         results = PlanInvoice.query.filter(
             PlanInvoice.customer_id == self.external_id,
             PlanInvoice.group_id == self.group_id,
-            PlanInvoice.remaining_balance_cents > 0,
+            PlanInvoice.remaining_balance_cents != 0,
             PlanInvoice.due_dt <= now,
         ).all()
         return results
@@ -366,7 +366,7 @@ class Customer(Base):
         for plan_invoice in plan_invoices_due:
             earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \
                 earliest_due else earliest_due
-        # import ipdb;ipdb.set_trace()
+        # Cancel a users plan if max retries reached
         if len(RETRY_DELAY_PLAN) < self.charge_attempts and not force:
             for plan_invoice in plan_invoices_due:
                 plan_invoice.active = False

@@ -6,17 +6,16 @@ from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
     Integer, ForeignKeyConstraint, Index
 from sqlalchemy.orm import relationship, validates
 
-from billy.models import Base, Group, Customer, Plan, Coupon
-from billy.utils.billy_action import ActionCatalog
-from billy.utils.models import uuid_factory
+from billy_lib.models import Base, Group, Customer, Plan, Coupon
+from billy_lib.utils.billy_action import ActionCatalog
+from billy_lib.utils.models import uuid_factory
 
 
 class PlanInvoice(Base):
     __tablename__ = 'plan_invoices'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PLI'))
-    customer_id = Column(Unicode)
-    group_id = Column(Unicode, ForeignKey(Group.external_id))
+    customer_id = Column(Unicode, ForeignKey(Customer.guid))
     relevant_plan = Column(Unicode)
     relevant_coupon = Column(Unicode)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))

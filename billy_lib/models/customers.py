@@ -8,10 +8,10 @@ from sqlalchemy.schema import ForeignKeyConstraint, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import *
 
-from billy.settings import RETRY_DELAY_PLAN
-from billy.models import *
-from billy.utils.models import uuid_factory
-from billy.utils.billy_action import ActionCatalog
+from billy_lib.settings import RETRY_DELAY_PLAN
+from billy_lib.models import *
+from billy_lib.utils.models import uuid_factory
+from billy_lib.utils.billy_action import ActionCatalog
 
 
 class Customer(Base):
@@ -91,7 +91,7 @@ class Customer(Base):
         :raise: LimitReachedError if coupon max redeemed.
         """
         # Todo, dirty. Fix later.
-        from billy.models import Coupon
+        from billy_lib.models import Coupon
 
         coupon = Coupon.retrieve(coupon_id, self.group_id,
                                  active_only=True)
@@ -126,7 +126,7 @@ class Customer(Base):
         :raise:
         """
         # Todo dirty clean this...
-        from billy.models import PlanInvoice
+        from billy_lib.models import PlanInvoice
         plan = Plan.retrieve(plan_id, self.group_id, active_only=True)
         current_coupon = self.coupon
         start_date = start_dt or datetime.now(UTC)
@@ -188,7 +188,7 @@ class Customer(Base):
         it has to renew.
         :returns: New customer object.
         """
-        from billy.models import PlanInvoice
+        from billy_lib.models import PlanInvoice
         if cancel_at_period_end:
             result = PlanInvoice.retrieve(self.external_id,
                                           self.group_id,
@@ -206,7 +206,7 @@ class Customer(Base):
         changing a users plan.
         in (matches balanced payments groups)
         """
-        from billy.models import PlanInvoice
+        from billy_lib.models import PlanInvoice
         right_now = datetime.now(UTC)
         try:
             last_invoice_active = PlanInvoice.retrieve(self.external_id,
@@ -246,7 +246,7 @@ class Customer(Base):
             self.session.commit()
 
     def add_payout(self, payout_id, first_now=False, start_dt=None):
-        from billy.models import PayoutInvoice
+        from billy_lib.models import PayoutInvoice
         payout = Payout.retrieve(payout_id, self.group_id,
                                  active_only=True)
         first_charge = start_dt or datetime.now(UTC)
@@ -264,7 +264,7 @@ class Customer(Base):
         return self
 
     def cancel_payout(self, payout_id, cancel_scheduled=False):
-        from billy.models import PayoutInvoice
+        from billy_lib.models import PayoutInvoice
         current_payout_invoice = PayoutInvoice.retrieve(
             self.external_id,
             self.group_id,
@@ -283,7 +283,7 @@ class Customer(Base):
         Returns a list of invoice objects pertaining to active user
         subscriptions
         """
-        from billy.models import PlanInvoice
+        from billy_lib.models import PlanInvoice
         now = datetime.now(UTC)
         already_in = set([])
         active_list = []
@@ -309,7 +309,7 @@ class Customer(Base):
         :return: True/False
         """
         # Todo fix
-        from billy.models import PlanInvoice
+        from billy_lib.models import PlanInvoice
         results = PlanInvoice.list(self.group_id,
                                    relevant_plan=plan_id,
                                    customer_id=self.external_id)
@@ -321,12 +321,12 @@ class Customer(Base):
 
     @property
     def plan_invoices_due(self):
-        from billy.models import PlanInvoice
+        from billy_lib.models import PlanInvoice
         now = datetime.now(UTC)
         results = PlanInvoice.query.filter(
             PlanInvoice.customer_id == self.external_id,
             PlanInvoice.group_id == self.group_id,
-            PlanInvoice.remaining_balance_cents > 0,
+            PlanInvoice.remaining_balance_cents != 0,
             PlanInvoice.due_dt <= now,
         ).all()
         return results
@@ -359,14 +359,14 @@ class Customer(Base):
             return False
 
     def clear_plan_debt(self, force=False):
-        from billy.models import PlanTransaction
+        from billy_lib.models import PlanTransaction
         now = datetime.now(UTC)
         earliest_due = datetime.now(UTC)
         plan_invoices_due = self.plan_invoices_due
         for plan_invoice in plan_invoices_due:
             earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \
                 earliest_due else earliest_due
-        # import ipdb;ipdb.set_trace()
+        # Cancel a users plan if max retries reached
         if len(RETRY_DELAY_PLAN) < self.charge_attempts and not force:
             for plan_invoice in plan_invoices_due:
                 plan_invoice.active = False

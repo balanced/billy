@@ -6,9 +6,9 @@ from sqlalchemy import Boolean, Column, DateTime, Integer, ForeignKey, \
     Unicode, UniqueConstraint
 from sqlalchemy.orm import relationship, validates
 
-from billy.models import *
-from billy.utils.models import uuid_factory
-from billy.utils.billy_action import ActionCatalog
+from billy_lib.models import *
+from billy_lib.utils.models import uuid_factory
+from billy_lib.utils.billy_action import ActionCatalog
 
 
 class Coupon(Base):
@@ -138,7 +138,7 @@ class Coupon(Base):
         The number of unique customers that are using the coupon
         """
         # Todo remove this.
-        from billy.models import Customer
+        from billy_lib.models import Customer
         return Customer.query.filter(Customer.current_coupon == self
                                      .external_id).count()
 

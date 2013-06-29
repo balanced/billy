@@ -3,8 +3,8 @@ from __future__ import unicode_literals
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from billy.models import Group
-from billy.tests import BalancedTransactionalTestCase
+from billy_lib.models import Group
+from billy_lib.tests import BalancedTransactionalTestCase
 
 
 class TestGroup(BalancedTransactionalTestCase):

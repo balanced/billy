@@ -6,9 +6,9 @@ from sqlalchemy.orm import mapper
 from sqlalchemy import event
 from sqlalchemy import Column, Unicode, DateTime
 
-from billy.models import *
-from billy.utils.billy_action import string_attr
-from billy.utils.models import uuid_factory
+from billy_lib.models import *
+from billy_lib.utils.billy_action import string_attr
+from billy_lib.utils.models import uuid_factory
 
 
 class BillyAction(Base):

@@ -7,9 +7,9 @@ from pytz import UTC
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from billy.models import Customer, Group, Coupon, Plan, PlanInvoice, Payout, PayoutInvoice
-from billy.utils.intervals import Intervals
-from billy.tests import BalancedTransactionalTestCase, rel_delta_to_sec
+from billy_lib.models import Customer, Group, Coupon, Plan, PlanInvoice, Payout, PayoutInvoice
+from billy_lib.utils.intervals import Intervals
+from billy_lib.tests import BalancedTransactionalTestCase, rel_delta_to_sec
 
 
 class TestCustomer(BalancedTransactionalTestCase):
@@ -238,8 +238,9 @@ class TestUpdatePlan(TestCustomer):
             self.customer.external_id, self.customer.group_id, 'MY_TEST_PLAN',
             active_only=True)
         self.assertEqual(invoice_new.remaining_balance_cents, 5000)
-        self.assertAlmostEqual(
-            Decimal(invoice_old.remaining_balance_cents) / Decimal(1000), Decimal(ratio), places=1)
+        self.assertalmostequal(
+            Decimal(invoice_old.remaining_balance_cents) / Decimal(1000),
+            Decimal(ratio), places=1)
 
     def test_at_period_end(self):
         self.customer.update_plan(

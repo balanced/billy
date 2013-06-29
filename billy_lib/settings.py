@@ -4,8 +4,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import sessionmaker, scoped_session
 
-from billy.utils.intervals import Intervals
-from billy.provider.dummy import DummyProvider
+from billy_lib.utils.intervals import Intervals
+from billy_lib.provider.dummy import DummyProvider
 
 
 DB_SETTINGS = {
@@ -29,9 +29,9 @@ TRANSACTION_PROVIDER_CLASS = DummyProvider('blah')
 
 # A list of attempt invervals, [ATTEMPT n DELAY INTERVAL,...]
 RETRY_DELAY_PLAN = [
-    Intervals.DAY,
-    Intervals.DAY * 3,
-    Intervals.WEEK
+    Intervals.WEEK,
+    Intervals.TWO_WEEKS,
+    Intervals.MONTH
 ]
 
 RETRY_DELAY_PAYOUT = [

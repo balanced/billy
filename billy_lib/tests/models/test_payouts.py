@@ -3,9 +3,9 @@ from __future__ import unicode_literals
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from billy.models import Payout, Group
-from billy.tests import BalancedTransactionalTestCase
-from billy.utils import Intervals
+from billy_lib.models import Payout, Group
+from billy_lib.tests import BalancedTransactionalTestCase
+from billy_lib.utils import Intervals
 
 
 class TestPayout(BalancedTransactionalTestCase):

@@ -5,10 +5,10 @@ from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Integer
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import ForeignKeyConstraint
 
-from billy_lib.models import Base, Customer, PlanInvoice, PayoutInvoice
-from billy_lib.utils.models import uuid_factory, Status
-from billy_lib.utils.billy_action import ActionCatalog
-from billy_lib.settings import TRANSACTION_PROVIDER_CLASS
+from billy.models import Base, Customer, PlanInvoice, PayoutInvoice
+from billy.utils.models import uuid_factory, Status
+from billy.utils.billy_action import ActionCatalog
+from billy.settings import TRANSACTION_PROVIDER_CLASS
 
 
 class TransactionMixin(object):

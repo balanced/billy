@@ -6,8 +6,8 @@ import datetime
 from pytz import UTC
 import sqlalchemy
 
-from billy_lib.settings import DB_URL, Session
-from billy_lib.models.base import Base
+from billy.settings import DB_URL, Session
+from billy.models.base import Base
 
 BASE_PATH = os.path.abspath(os.path.join(
     os.path.basename(__file__), '..'))

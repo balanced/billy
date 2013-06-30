@@ -5,7 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import TypeDecorator, VARCHAR
 import ujson
 
-from billy_lib.settings import Session
+from billy.settings import Session
 
 Base = declarative_base()
 Base.query = Session.query_property()

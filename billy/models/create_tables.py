@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
-from billy_lib.models import *
-from billy_lib.settings import DB_ENGINE
+from billy.models import *
+from billy.settings import DB_ENGINE
 
 
 def delete_and_replace_tables():

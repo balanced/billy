@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import random
 
-from billy_lib.utils.models import uuid_factory
+from billy.utils.models import uuid_factory
 
 
 class DummyProvider(object):

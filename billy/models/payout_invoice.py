@@ -5,10 +5,10 @@ from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
     Integer, ForeignKeyConstraint, Index
 from sqlalchemy.orm import relationship, validates
 
-from billy_lib.models import Base, Group, Customer, Payout
-from billy_lib.settings import RETRY_DELAY_PAYOUT, TRANSACTION_PROVIDER_CLASS
-from billy_lib.utils.billy_action import ActionCatalog
-from billy_lib.utils.models import uuid_factory
+from billy.models import Base, Group, Customer, Payout
+from billy.settings import RETRY_DELAY_PAYOUT, TRANSACTION_PROVIDER_CLASS
+from billy.utils.billy_action import ActionCatalog
+from billy.utils.models import uuid_factory
 
 
 class PayoutInvoice(Base):
@@ -105,7 +105,7 @@ class PayoutInvoice(Base):
                                  start_dt=self.payout_date)
 
     def make_payout(self, force=False):
-        from billy_lib.models import PayoutTransaction
+        from billy.models import PayoutTransaction
         now = datetime.now(UTC)
         current_balance = TRANSACTION_PROVIDER_CLASS.check_balance(
             self.customer_id, self.group_id)

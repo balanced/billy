@@ -6,8 +6,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.schema import ForeignKeyConstraint
 
 from billy.models import Base, Customer, PlanInvoice, PayoutInvoice
-from billy.utils.models import uuid_factory, Status
-from billy.utils.billy_action import ActionCatalog
+from billy.models.utils.generic import uuid_factory, Status
 from billy.settings import TRANSACTION_PROVIDER_CLASS
 
 
@@ -25,7 +24,6 @@ class TransactionMixin(object):
             amount_cents=amount_cents,
             status=Status.PENDING
         )
-        new_transaction.event = ActionCatalog.TR_CREATE
         cls.session.add(new_transaction)
         cls.session.commit()
         return new_transaction
@@ -61,10 +59,8 @@ class PlanTransaction(TransactionMixin, Base):
                 self.amount_cents)
             self.status = Status.COMPLETE
             self.external_id = external_id
-            self.event = ActionCatalog.TR_EXECUTE_PAYMENT
         except Exception, e:
             self.status = Status.ERROR
-            self.event = ActionCatalog.TR_PAYMENT_ERROR
             self.session.commit()
             raise e
         self.customer.charge_attempts = 0
@@ -100,10 +96,8 @@ class PayoutTransaction(TransactionMixin, Base):
                 self.amount_cents)
             self.status = Status.COMPLETE
             self.external_id = external_id
-            self.event = ActionCatalog.TR_EXECUTE_PAYOUT
         except Exception, e:
             self.status = Status.ERROR
-            self.event = ActionCatalog.TR_PAYOUT_ERROR
             self.session.commit()
             raise e
         self.session.commit()

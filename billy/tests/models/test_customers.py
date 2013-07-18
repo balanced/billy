@@ -8,7 +8,7 @@ from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
 from billy.models import Customer, Group, Coupon, Plan, PlanInvoice, Payout, PayoutInvoice
-from billy.utils.intervals import Intervals
+from billy.models.utils.intervals import Intervals
 from billy.tests import BalancedTransactionalTestCase, rel_delta_to_sec
 
 

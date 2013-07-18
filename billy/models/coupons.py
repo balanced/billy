@@ -7,8 +7,7 @@ from sqlalchemy import Boolean, Column, DateTime, Integer, ForeignKey, \
 from sqlalchemy.orm import relationship, validates
 
 from billy.models import *
-from billy.utils.models import uuid_factory
-from billy.utils.billy_action import ActionCatalog
+from models.utils.generic import uuid_factory
 
 
 class Coupon(Base):
@@ -61,7 +60,6 @@ class Coupon(Base):
             max_redeem=max_redeem,
             repeating=repeating,
             expire_at=expire_at)
-        new_coupon.event = ActionCatalog.COUPON_CREATE
         cls.session.add(new_coupon)
         cls.session.commit()
         return new_coupon
@@ -103,7 +101,6 @@ class Coupon(Base):
         if new_repeating:
             self.repeating = new_repeating
         self.updated_at = datetime.now(UTC)
-        self.event = ActionCatalog.COUPON_UPDATE
         self.session.commit()
 
     def delete(self):
@@ -116,7 +113,6 @@ class Coupon(Base):
         self.active = False
         self.updated_at = datetime.now(UTC)
         self.deleted_at = datetime.now(UTC)
-        self.event = ActionCatalog.COUPON_DELETE
         self.session.commit()
         return self
 
@@ -151,7 +147,6 @@ class Coupon(Base):
         to_expire = cls.query.filter(cls.expire_at < now).all()
         for coupon in to_expire:
             coupon.active = False
-            coupon.event = ActionCatalog.COUPON_EXPIRE
         cls.session.commit()
 
     @validates('max_redeem')

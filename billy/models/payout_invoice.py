@@ -7,8 +7,7 @@ from sqlalchemy.orm import relationship, validates
 
 from billy.models import Base, Group, Customer, Payout
 from billy.settings import RETRY_DELAY_PAYOUT, TRANSACTION_PROVIDER_CLASS
-from billy.utils.billy_action import ActionCatalog
-from billy.utils.models import uuid_factory
+from billy.models.utils.generic import uuid_factory
 
 
 class PayoutInvoice(Base):
@@ -55,7 +54,6 @@ class PayoutInvoice(Base):
             payout_date=payout_date,
             balance_to_keep_cents=balanced_to_keep_cents,
         )
-        new_invoice.event = ActionCatalog.POI_CREATE
         cls.session.add(new_invoice)
         cls.session.commit()
         return new_invoice
@@ -99,7 +97,6 @@ class PayoutInvoice(Base):
 
     def rollover(self):
         self.active = False
-        self.event = ActionCatalog.POI_ROLLOVER
         self.session.flush()
         self.customer.add_payout(self.relevant_payout, first_now=False,
                                  start_dt=self.payout_date)
@@ -126,9 +123,7 @@ class PayoutInvoice(Base):
                     self.balance_at_exec = current_balance
                     self.amount_payed_out = payout_amount
                     self.completed = True
-                    self.event = ActionCatalog.POI_MAKE_PAYOUT
                 except Exception, e:
-                    self.event = ActionCatalog.POI_PAYOUT_ATTEMPT
                     self.attempts_made += 1
                     self.session.commit()
                     raise e

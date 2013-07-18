@@ -8,8 +8,7 @@ from sqlalchemy.orm import validates
 
 from billy.models.base import Base, RelativeDelta
 from billy.models.groups import Group
-from billy.utils.models import uuid_factory
-from billy.utils.billy_action import ActionCatalog
+from billy.models.utils.generic import uuid_factory
 
 
 class Plan(Base):
@@ -54,7 +53,6 @@ class Plan(Base):
             plan_interval=plan_interval,
             trial_interval=trial_interval
         )
-        new_plan.event = ActionCatalog.PLAN_CREATE
         cls.session.add(new_plan)
         cls.session.commit()
         return new_plan
@@ -97,7 +95,6 @@ class Plan(Base):
         """
         self.name = name
         self.updated_at = datetime.now(UTC)
-        self.event = ActionCatalog.PLAN_UPDATE
         self.session.commit()
         return self
 
@@ -112,7 +109,6 @@ class Plan(Base):
         self.active = False
         self.updated_at = datetime.now(UTC)
         self.deleted_at = datetime.now(UTC)
-        self.event = ActionCatalog.PLAN_DELETE
         self.session.commit()
         return self
 

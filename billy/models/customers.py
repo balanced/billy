@@ -10,8 +10,7 @@ from sqlalchemy.orm.exc import *
 
 from billy.settings import RETRY_DELAY_PLAN
 from billy.models import *
-from billy.utils.models import uuid_factory
-from billy.utils.billy_action import ActionCatalog
+from billy.models.utils.generic import uuid_factory
 
 
 class Customer(Base):
@@ -53,7 +52,6 @@ class Customer(Base):
             external_id=external_id,
             group_id=group_id
         )
-        new_customer.event = ActionCatalog.CUSTOMER_CREATE
         cls.session.add(new_customer)
         cls.session.commit()
         return new_customer
@@ -101,7 +99,6 @@ class Customer(Base):
                              'max_redeem')
         self.current_coupon = coupon_id
         self.updated_at = datetime.now(UTC)
-        self.event = ActionCatalog.CUSTOMER_APPLY_COUPON
         self.session.commit()
         return self
 
@@ -114,7 +111,6 @@ class Customer(Base):
             return self
         self.current_coupon = None
         self.updated_at = datetime.now(UTC)
-        self.event = ActionCatalog.CUSTOMER_REMOVE_COUPON
         self.session.commit()
         return self
 
@@ -175,7 +171,6 @@ class Customer(Base):
             charge_at_period_end=charge_at_period_end,
             includes_trial=can_trial
         )
-        self.event = ActionCatalog.CUSTOMER_ADD_PLAN
         self.session.commit()
         return self
 
@@ -194,7 +189,6 @@ class Customer(Base):
                                           self.group_id,
                                           plan_id, active_only=True)
             result.active = False
-            result.event = ActionCatalog.CUSTOMER_CANCEL_PLAN
             self.session.commit()
         else:
             self.prorate_last_invoice(plan_id)
@@ -241,7 +235,6 @@ class Customer(Base):
                 last_invoice.remaining_balance_cents = new_balance
                 last_invoice.end_dt = right_now
                 last_invoice.active = False
-                last_invoice.event = ActionCatalog.PI_PRORATE_LAST
                 last_invoice.prorated = True
             self.session.commit()
 
@@ -258,7 +251,6 @@ class Customer(Base):
                                        first_charge,
                                        balance_to_keep_cents,
                                                )
-        invoice.event = ActionCatalog.CUSTOMER_ADD_PAYOUT
         self.session.add(invoice)
         self.session.commit()
         return self
@@ -273,7 +265,6 @@ class Customer(Base):
         current_payout_invoice.active = False
         if cancel_scheduled:
             current_payout_invoice.completed = True
-            current_payout_invoice.event = ActionCatalog.CUSTOMER_CANCEL_PAYOUT
         self.session.commit()
         return self
 
@@ -384,9 +375,7 @@ class Customer(Base):
                         each.cleared_by = transaction.guid
                         each.remaining_balance_cents = 0
                     self.last_debt_clear = now
-                    self.event = ActionCatalog.CUSTOMER_CLEAR_DEBT
                 except Exception, e:
-                    self.event = ActionCatalog.CUSTOMER_CHARGE_ATTEMPT
                     self.charge_attempts += 1
                     self.session.commit()
                     raise e

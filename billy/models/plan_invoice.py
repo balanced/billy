@@ -7,8 +7,7 @@ from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
 from sqlalchemy.orm import relationship, validates
 
 from billy.models import Base, Group, Customer, Plan, Coupon
-from billy.utils.billy_action import ActionCatalog
-from billy.utils.models import uuid_factory
+from billy.models.utils.generic import uuid_factory
 
 
 class PlanInvoice(Base):
@@ -79,7 +78,6 @@ class PlanInvoice(Base):
             charge_at_period_end=charge_at_period_end,
             includes_trial=includes_trial,
         )
-        new_invoice.event = ActionCatalog.PI_CREATE
         cls.session.add(new_invoice)
         cls.session.commit()
         return new_invoice
@@ -138,7 +136,6 @@ class PlanInvoice(Base):
         Rollover the invoice
         """
         self.active = False
-        self.event = ActionCatalog.PI_ROLLOVER
         self.session.flush()
         Customer.retrieve(self.customer_id, self.group_id).update_plan(
             plan_id=self.relevant_plan,

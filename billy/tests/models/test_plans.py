@@ -5,7 +5,7 @@ from sqlalchemy.orm.exc import *
 
 from billy.models import Plan, Group
 from billy.tests import BalancedTransactionalTestCase
-from billy.utils import Intervals
+from billy.models.utils import Intervals
 
 
 class TestPlan(BalancedTransactionalTestCase):

@@ -7,7 +7,7 @@ from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
 from billy.models import Group, Customer, Payout, PayoutInvoice
-from billy.utils.intervals import Intervals
+from billy.models.utils.intervals import Intervals
 from billy.tests import BalancedTransactionalTestCase
 
 

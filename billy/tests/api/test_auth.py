@@ -6,6 +6,7 @@ from test import BaseTestCase
 
 
 class AuthenticationTest(BaseTestCase):
+
     def setUp(self):
         self.bad_auth_headers = {
             'Authorization': "Basic {}".format(b64encode(':BADAPIKEY'))
@@ -15,7 +16,6 @@ class AuthenticationTest(BaseTestCase):
     def test_no_key(self):
         resp = self.client.get('/v1/users/')
         self.assertEqual(resp.status_code, 401)
-
 
     def test_bad_auth_key(self):
         resp = self.client.get('/v1/users/',

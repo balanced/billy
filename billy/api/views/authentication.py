@@ -5,6 +5,7 @@ from flask import request
 from api.views import Base
 from api.errors import BillyExc
 
+
 class AuthenticatedView(Base):
 
     api_key = None
@@ -30,4 +31,3 @@ class AuthenticatedView(Base):
         if not result:
             raise BillyExc['401']
         return result
-

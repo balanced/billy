@@ -8,7 +8,7 @@ from sqlalchemy.orm import validates
 
 from billy.models.base import Base, RelativeDelta
 from billy.models.groups import Group
-from billy.models.utils.generic import uuid_factory
+from billy.utils.generic import uuid_factory
 
 
 class Plan(Base):
@@ -16,7 +16,7 @@ class Plan(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PL'))
     external_id = Column(Unicode)
-    group_id = Column(Unicode, ForeignKey(Group.external_id))
+    group_id = Column(Unicode, ForeignKey(Group.guid))
     name = Column(Unicode)
     price_cents = Column(Integer)
     active = Column(Boolean, default=True)

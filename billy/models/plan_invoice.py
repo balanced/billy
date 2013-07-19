@@ -7,7 +7,7 @@ from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
 from sqlalchemy.orm import relationship, validates
 
 from billy.models import Base, Group, Customer, Plan, Coupon
-from billy.models.utils.generic import uuid_factory
+from billy.utils.generic import uuid_factory
 
 
 class PlanInvoice(Base):
@@ -15,8 +15,8 @@ class PlanInvoice(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PLI'))
     customer_id = Column(Unicode, ForeignKey(Customer.guid))
-    relevant_plan = Column(Unicode)
-    relevant_coupon = Column(Unicode)
+    relevant_plan = Column(Unicode, ForeignKey(Plan.guid))
+    relevant_coupon = Column(Unicode, ForeignKey(Coupon.guid))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     start_dt = Column(DateTime(timezone=UTC))
     end_dt = Column(DateTime(timezone=UTC))
@@ -33,25 +33,13 @@ class PlanInvoice(Base):
     active = Column(Boolean, default=True)
     cleared_by = Column(Unicode, ForeignKey('plan_transactions.guid'))
 
-    plan = relationship('Plan', backref='invoices',
-                        foreign_keys=[relevant_plan, group_id])
+    plan = relationship('Plan', backref='invoices')
 
     __table_args__ = (
-        # Customer foreign key
-        ForeignKeyConstraint(
-            ['customer_id', 'group_id'],
-            ['customers.external_id', 'customers.group_id']),
-        # Plan foreign key
-        ForeignKeyConstraint(
-            [relevant_plan, group_id],
-            [Plan.external_id, Plan.group_id]),
-        # Coupon foreign key
-        ForeignKeyConstraint(
-            [relevant_coupon, group_id],
-            [Coupon.external_id, Coupon.group_id]),
-        Index('unique_plan_invoice', relevant_plan, group_id, customer_id,
-              postgresql_where=active == True,
-              unique=True)
+        # TODO remove in favor a normalized table
+        # Index('unique_plan_invoice', relevant_plan, 'group_id', customer_id,
+        #       postgresql_where=active == True,
+        #       unique=True)
     )
 
     @classmethod

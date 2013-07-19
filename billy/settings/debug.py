@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import sessionmaker, scoped_session
 
-from billy.models.utils.intervals import Intervals
+from billy.utils.intervals import Intervals
 from billy.provider.dummy import DummyProvider
 
 
@@ -39,3 +39,4 @@ RETRY_DELAY_PAYOUT = [
     Intervals.DAY * 3,
     Intervals.WEEK
 ]
+

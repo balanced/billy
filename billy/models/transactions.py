@@ -5,12 +5,14 @@ from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Integer
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import ForeignKeyConstraint
 
-from billy.models import Base, Customer, PlanInvoice, PayoutInvoice
-from billy.models.utils.generic import uuid_factory, Status
+from billy.models import Base, Group, Customer, PlanInvoice, PayoutInvoice
+from billy.utils.generic import uuid_factory, Status
 from billy.settings import TRANSACTION_PROVIDER_CLASS
 
 
 class TransactionMixin(object):
+    group_id = Column(Unicode, ForeignKey(Group.guid))
+    customer_id = Column(Unicode, ForeignKey(Customer.guid))
     external_id = Column(Unicode)
     created_at = Column(DateTime(timezone=UTC))
     amount_cents = Column(Integer)
@@ -42,15 +44,7 @@ class PlanTransaction(TransactionMixin, Base):
     __tablename__ = "plan_transactions"
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PAT'))
-    group_id = Column(Unicode, ForeignKey('groups.external_id'))
-    customer_id = Column(Unicode)
     plan_invoices = relationship(PlanInvoice, backref='transaction')
-
-    __table_args__ = (
-        ForeignKeyConstraint(
-            [customer_id, group_id],
-            [Customer.external_id, Customer.group_id])
-    )
 
     def execute(self):
         try:
@@ -78,16 +72,9 @@ class PayoutTransaction(TransactionMixin, Base):
     __tablename__ = 'payout_transactions'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POT'))
-    group_id = Column(Unicode)
-    customer_id = Column(Unicode)
     payout_invoices = relationship(PayoutInvoice,
                                    backref='transaction')
 
-    __table_args__ = (
-        ForeignKeyConstraint(
-            [customer_id, group_id],
-            [Customer.external_id, Customer.group_id])
-    )
 
     def execute(self):
         try:

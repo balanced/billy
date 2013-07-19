@@ -1,7 +1,9 @@
 from __future__ import unicode_literals
+
+import random
 import uuid
 
-ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
 def base62_encode(num, alphabet=ALPHABET):
@@ -38,6 +40,14 @@ def uuid_factory(prefix=None):
         return the_uuid
 
     return generate_uuid
+
+def api_key_factory():
+    """
+    TODO: Marsenne twister is predictable. Up the security
+    """
+
+    generator = lambda: ''.join([random.choice(ALPHABET) for _ in xrange(32)])
+    return generator
 
 
 class Status(object):

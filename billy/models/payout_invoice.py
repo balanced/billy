@@ -7,16 +7,15 @@ from sqlalchemy.orm import relationship, validates
 
 from billy.models import Base, Group, Customer, Payout
 from billy.settings import RETRY_DELAY_PAYOUT, TRANSACTION_PROVIDER_CLASS
-from billy.models.utils.generic import uuid_factory
+from billy.utils.generic import uuid_factory
 
 
 class PayoutInvoice(Base):
     __tablename__ = 'payout_invoices'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POI'))
-    customer_id = Column(Unicode)
-    group_id = Column(Unicode, ForeignKey(Group.external_id))
-    relevant_payout = Column(Unicode)
+    customer_id = Column(Unicode, ForeignKey(Customer.guid))
+    relevant_payout = Column(Unicode, ForeignKey(Payout.guid))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_date = Column(DateTime(timezone=UTC))
     balance_to_keep_cents = Column(Integer)
@@ -27,21 +26,12 @@ class PayoutInvoice(Base):
     cleared_by = Column(Unicode, ForeignKey('payout_transactions.guid'))
     attempts_made = Column(Integer, default=0)
 
-    payout = relationship('Payout', backref='invoices',
-                          foreign_keys=[relevant_payout, group_id])
+    payout = relationship('Payout', backref='invoices')
 
     __table_args__ = (
-        # Customer foreign key
-        ForeignKeyConstraint(
-            [customer_id, group_id],
-            [Customer.external_id, Customer.group_id]),
-        # Payout foreign key
-        ForeignKeyConstraint(
-            [relevant_payout, group_id],
-            [Payout.external_id, Payout.group_id]),
-        Index('unique_payout_invoice', relevant_payout, group_id, customer_id,
-              postgresql_where=active == True, unique=True)
-
+        #Todo remove and swap with a sub table
+       # Index('unique_payout_invoice', relevant_payout, group_id, customer_id,
+       #       postgresql_where=active == True, unique=True)
     )
 
     @classmethod

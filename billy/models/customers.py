@@ -10,7 +10,7 @@ from sqlalchemy.orm.exc import *
 
 from billy.settings import RETRY_DELAY_PLAN
 from billy.models import *
-from billy.models.utils.generic import uuid_factory
+from billy.utils.generic import uuid_factory
 
 
 class Customer(Base):
@@ -18,8 +18,8 @@ class Customer(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     external_id = Column(Unicode)
-    group_id = Column(Unicode, ForeignKey(Group.external_id))
-    current_coupon = Column(Unicode)
+    group_id = Column(Unicode, ForeignKey(Group.guid))
+    current_coupon = Column(Unicode, ForeignKey(Coupon.guid))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     last_debt_clear = Column(DateTime(timezone=UTC))
@@ -33,8 +33,6 @@ class Customer(Base):
                                        backref='customer')
 
     __table_args__ = (
-        ForeignKeyConstraint([current_coupon, group_id],
-                             ['coupons.external_id', 'coupons.group_id']),
         UniqueConstraint(external_id, group_id, name='customerid_group_unique')
     )
 

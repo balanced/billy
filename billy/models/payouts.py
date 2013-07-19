@@ -8,15 +8,15 @@ from sqlalchemy.orm import validates
 
 from billy.models import *
 from billy.models.base import RelativeDelta
-from billy.models.utils.generic import uuid_factory
+from billy.utils.generic import uuid_factory
 
 
 class Payout(Base):
     __tablename__ = 'payouts'
 
-    guid = Column(Unicode, index=True, default=uuid_factory('PO'))
-    external_id = Column(Unicode, primary_key=True)
-    group_id = Column(Unicode, ForeignKey(Group.external_id), primary_key=True)
+    guid = Column(Unicode, primary_key=True, default=uuid_factory('PO'))
+    external_id = Column(Unicode)
+    group_id = Column(Unicode, ForeignKey(Group.guid))
     name = Column(Unicode)
     balance_to_keep_cents = Column(Integer)
     active = Column(Boolean, default=True)

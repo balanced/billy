@@ -12,3 +12,7 @@ def delete_and_replace_tables():
 
 def create_if_notexists():
     Base.metadata.create_all(DB_ENGINE)
+
+
+
+create_if_notexists()

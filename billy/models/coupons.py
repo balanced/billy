@@ -7,7 +7,7 @@ from sqlalchemy import Boolean, Column, DateTime, Integer, ForeignKey, \
 from sqlalchemy.orm import relationship, validates
 
 from billy.models import *
-from models.utils.generic import uuid_factory
+from billy.utils.generic import uuid_factory
 
 
 class Coupon(Base):
@@ -15,7 +15,7 @@ class Coupon(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     external_id = Column(Unicode)
-    group_id = Column(Unicode, ForeignKey(Group.external_id))
+    group_id = Column(Unicode, ForeignKey(Group.guid))
     name = Column(Unicode)
     price_off_cents = Column(Integer)
     percent_off_int = Column(Integer)
@@ -27,8 +27,8 @@ class Coupon(Base):
     deleted_at = Column(DateTime(timezone=UTC))
     customers = relationship('Customer', backref='coupon')
 
-    __table_args__ = (UniqueConstraint(external_id, group_id,
-                                       name='coupon_id_group_unique'),
+    __table_args__ = (
+        UniqueConstraint(external_id, group_id, name='coupon_id_group_unique'),
                       )
 
     @classmethod

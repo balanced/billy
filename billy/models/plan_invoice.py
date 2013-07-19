@@ -10,6 +10,14 @@ from billy.models import Base, Group, Customer, Plan, Coupon
 from billy.utils.generic import uuid_factory
 
 
+
+class PlanLog(Base):
+    __tablename__ = 'plan_log'
+
+    guid = Column(Unicode, primary_key=True, default=uuid_factory('PLL'))
+    customer_id = Column(Unicode, ForeignKey(Customer.guid))
+
+
 class PlanInvoice(Base):
     __tablename__ = 'plan_invoices'
 
@@ -18,7 +26,6 @@ class PlanInvoice(Base):
     relevant_plan = Column(Unicode, ForeignKey(Plan.guid))
     relevant_coupon = Column(Unicode, ForeignKey(Coupon.guid))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
-    start_dt = Column(DateTime(timezone=UTC))
     end_dt = Column(DateTime(timezone=UTC))
     original_end_dt = Column(DateTime(timezone=UTC))
     due_dt = Column(DateTime(timezone=UTC))

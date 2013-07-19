@@ -11,7 +11,6 @@ from billy.settings import TRANSACTION_PROVIDER_CLASS
 
 
 class TransactionMixin(object):
-    group_id = Column(Unicode, ForeignKey(Group.guid))
     customer_id = Column(Unicode, ForeignKey(Customer.guid))
     external_id = Column(Unicode)
     created_at = Column(DateTime(timezone=UTC))
@@ -60,13 +59,6 @@ class PlanTransaction(TransactionMixin, Base):
         self.customer.charge_attempts = 0
         self.session.commit()
 
-    __table_args__ = (
-        # Customer foreign key
-        ForeignKeyConstraint(
-            [customer_id, group_id],
-            [Customer.external_id, Customer.group_id]),
-    )
-
 
 class PayoutTransaction(TransactionMixin, Base):
     __tablename__ = 'payout_transactions'
@@ -87,10 +79,3 @@ class PayoutTransaction(TransactionMixin, Base):
             self.session.commit()
             raise e
         self.session.commit()
-
-    __table_args__ = (
-        # Customer foreign key
-        ForeignKeyConstraint(
-            [customer_id, group_id],
-            [Customer.external_id, Customer.group_id]),
-    )

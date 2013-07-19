@@ -8,6 +8,7 @@ from api.lib.auth import get_group_from_api_key
 
 
 class AuthenticatedView(Base):
+
     """
     View to inherit from if authentication is needed. Raises 401 if Api key is
     inaccurate. Finds API Key in this order:
@@ -28,7 +29,7 @@ class AuthenticatedView(Base):
         api_key = auth.get('password') if auth else \
             request.headers.get('Authorization')
         api_key = api_key or request.form.get('api_key') or \
-                  request.args.get('api_key')
+            request.args.get('api_key')
         return api_key
 
     def get_group_from_api_key(self):

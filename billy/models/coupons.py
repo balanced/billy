@@ -29,7 +29,7 @@ class Coupon(Base):
 
     __table_args__ = (
         UniqueConstraint(external_id, group_id, name='coupon_id_group_unique'),
-                      )
+    )
 
     @classmethod
     def create(cls, external_id, group_id, name, price_off_cents,

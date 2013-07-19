@@ -29,9 +29,9 @@ class PayoutInvoice(Base):
     payout = relationship('Payout', backref='invoices')
 
     __table_args__ = (
-        #Todo remove and swap with a sub table
-       # Index('unique_payout_invoice', relevant_payout, group_id, customer_id,
-       #       postgresql_where=active == True, unique=True)
+        # Todo remove and swap with a sub table
+        # Index('unique_payout_invoice', relevant_payout, group_id, customer_id,
+        #       postgresql_where=active == True, unique=True)
     )
 
     @classmethod

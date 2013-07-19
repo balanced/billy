@@ -39,4 +39,3 @@ RETRY_DELAY_PAYOUT = [
     Intervals.DAY * 3,
     Intervals.WEEK
 ]
-

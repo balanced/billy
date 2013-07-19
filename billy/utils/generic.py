@@ -41,6 +41,7 @@ def uuid_factory(prefix=None):
 
     return generate_uuid
 
+
 def api_key_factory():
     """
     TODO: Marsenne twister is predictable. Up the security

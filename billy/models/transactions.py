@@ -75,7 +75,6 @@ class PayoutTransaction(TransactionMixin, Base):
     payout_invoices = relationship(PayoutInvoice,
                                    backref='transaction')
 
-
     def execute(self):
         try:
             external_id = TRANSACTION_PROVIDER_CLASS.make_payout(

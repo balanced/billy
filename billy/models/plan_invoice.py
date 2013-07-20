@@ -31,10 +31,9 @@ class PlanSubscription(Base):
     def create_or_activate(cls, customer, plan):
         result = cls.query.filter(
             cls.customer_id == customer.guid,
-            cls.plan_id == plan.guid
-        ).first()
+            cls.plan_id == plan.guid).first()
         result = result or cls(customer_id=customer.guid, plan_id=plan.guid)
-        result.active = True
+        result.is_active = True
         result.enrolled = True
         cls.session.commit()
         return result

@@ -26,6 +26,16 @@ class PayoutSubscription(Base):
     )
 
     @classmethod
+    def create_or_activate(cls, customer, payout):
+        result = cls.query.filter(
+            cls.customer_id == customer.guid,
+            cls.payout_id == payout.guid).first()
+        result = result or cls(customer_id=customer.guid, payout_id=payout.guid)
+        result.active = True
+        cls.session.commit()
+        return result
+
+    @classmethod
     def subscribe(cls, customer, payout, first_now=False, start_dt=None):
         from billy.models import PayoutInvoice
 
@@ -33,6 +43,7 @@ class PayoutSubscription(Base):
         balance_to_keep_cents = payout.balance_to_keep_cents
         if not first_now:
             first_charge += payout.payout_interval
+        new_sub = cls.create_or_activate(customer, payout)
         invoice = PayoutInvoice.create(self.external_id, self.group_id,
                                        payout.external_id,
                                        first_charge,
@@ -62,6 +73,7 @@ class PayoutInvoice(Base):
     __tablename__ = 'payout_invoices'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POI'))
+    subscription_id = Column(Unicode, ForeignKey(PayoutSubscription.guid))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_date = Column(DateTime(timezone=UTC))
     balance_to_keep_cents = Column(Integer)
@@ -74,12 +86,10 @@ class PayoutInvoice(Base):
     subscription = relationship('PlanSubscription', backref='invoices')
 
     @classmethod
-    def create(cls, customer_id, group_id, relevant_payout,
+    def create(cls, subscription_id,
                payout_date, balanced_to_keep_cents):
         new_invoice = cls(
-            customer_id=customer_id,
-            group_id=group_id,
-            relevant_payout=relevant_payout,
+            subscription_id=subscription_id,
             payout_date=payout_date,
             balance_to_keep_cents=balanced_to_keep_cents,
         )
@@ -87,30 +97,30 @@ class PayoutInvoice(Base):
         cls.session.commit()
         return new_invoice
 
-    @classmethod
-    def retrieve(cls, customer_id, group_id, relevant_payout=None,
-                 active_only=False, only_incomplete=False):
-        query = cls.query.filter(cls.customer_id == customer_id,
-                                 cls.group_id == group_id)
-        if relevant_payout:
-            query = query.filter(cls.relevant_payout == relevant_payout)
-        if active_only:
-            query = query.filter(cls.active == True)
-        if only_incomplete:
-            query = query.filter(cls.completed == False)
-        return query.one()
-
-    @classmethod
-    def list(cls, group_id, relevant_payout=None,
-             customer_id=None, active_only=False):
-        query = cls.query.filter(cls.group_id == group_id)
-        if customer_id:
-            query = query.filter(cls.customer_id == customer_id)
-        if active_only:
-            query = query.filter(cls.active == True)
-        if relevant_payout:
-            query = query.filter(cls.relevant_payout == relevant_payout)
-        return query.all()
+    # @classmethod
+    # def retrieve(cls, customer_id, group_id, relevant_payout=None,
+    #              active_only=False, only_incomplete=False):
+    #     query = cls.query.filter(cls.customer_id == customer_id,
+    #                              cls.group_id == group_id)
+    #     if relevant_payout:
+    #         query = query.filter(cls.relevant_payout == relevant_payout)
+    #     if active_only:
+    #         query = query.filter(cls.active == True)
+    #     if only_incomplete:
+    #         query = query.filter(cls.completed == False)
+    #     return query.one()
+    #
+    # @classmethod
+    # def list(cls, group_id, relevant_payout=None,
+    #          customer_id=None, active_only=False):
+    #     query = cls.query.filter(cls.group_id == group_id)
+    #     if customer_id:
+    #         query = query.filter(cls.customer_id == customer_id)
+    #     if active_only:
+    #         query = query.filter(cls.active == True)
+    #     if relevant_payout:
+    #         query = query.filter(cls.relevant_payout == relevant_payout)
+    #     return query.all()
 
     @classmethod
     def needs_payout_made(cls):

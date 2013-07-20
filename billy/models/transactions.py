@@ -12,15 +12,14 @@ from billy.settings import TRANSACTION_PROVIDER_CLASS
 
 class TransactionMixin(object):
     customer_id = Column(Unicode, ForeignKey(Customer.guid))
-    external_id = Column(Unicode)
+    provider_txn_id = Column(Unicode)
     created_at = Column(DateTime(timezone=UTC))
     amount_cents = Column(Integer)
     status = Column(Unicode)
 
     @classmethod
-    def create(cls, customer_id, group_id, amount_cents):
+    def create(cls, customer_id, amount_cents):
         new_transaction = cls(
-            group_id=group_id,
             customer_id=customer_id,
             amount_cents=amount_cents,
             status=Status.PENDING
@@ -28,15 +27,6 @@ class TransactionMixin(object):
         cls.session.add(new_transaction)
         cls.session.commit()
         return new_transaction
-
-    @classmethod
-    def retrieve(cls, group_id, customer_id=None, external_id=None):
-        query = cls.query.filter(cls.group_id == group_id)
-        if customer_id:
-            query.filter(cls.customer_id == customer_id)
-        if external_id:
-            query.filter(cls.external_id == external_id)
-        return query.all()
 
 
 class PlanTransaction(TransactionMixin, Base):

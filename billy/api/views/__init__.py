@@ -1,3 +1,3 @@
 from base import Base
-from authentication import AuthenticatedView
+from group import GroupView
 from home import Home

@@ -12,7 +12,7 @@ api.handle_error = lambda error: error
 
 
 api.add_resource(Home, '/')
-api.add_resource(AuthenticatedView, '/auth/')
+api.add_resource(GroupView, '/auth/')
 
 if __name__ == '__main__':
     app.debug = DEBUG

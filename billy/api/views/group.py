@@ -7,7 +7,7 @@ from api.errors import BillyExc
 from api.lib.auth import get_group_from_api_key
 
 
-class AuthenticatedView(Base):
+class GroupView(Base):
 
     """
     View to inherit from if authentication is needed. Raises 401 if Api key is

@@ -4,7 +4,7 @@ from datetime import datetime
 from pytz import UTC
 from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, \
     ForeignKey, UniqueConstraint
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import validates, relationship
 
 from billy.models.base import Base, RelativeDelta
 from billy.models.groups import Group
@@ -25,6 +25,8 @@ class Plan(Base):
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     trial_interval = Column(RelativeDelta)
     plan_interval = Column(RelativeDelta)
+
+    subscriptions = relationship('PlanSubscription', backref='plan')
 
     __table_args__ = (UniqueConstraint(external_id, group_id,
                                        name='plan_id_group_unique'),

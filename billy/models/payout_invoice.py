@@ -10,29 +10,68 @@ from billy.settings import RETRY_DELAY_PAYOUT, TRANSACTION_PROVIDER_CLASS
 from billy.utils.generic import uuid_factory
 
 
+class PayoutSubscription(Base):
+    __tablename__ = 'payout_subscription'
+
+    guid = Column(Unicode, primary_key=True, default=uuid_factory('PLL'))
+    customer_id = Column(Unicode, ForeignKey(Customer.guid))
+    payout_id = Column(Unicode, ForeignKey(Payout.guid))
+    created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
+    is_active = Column(Boolean, default=True)
+
+    __table_args__ = (
+        Index('unique_payout_sub', payout_id, customer_id,
+              postgresql_where=is_active == True,
+              unique=True)
+    )
+
+    @classmethod
+    def subscribe(cls, customer, payout, first_now=False, start_dt=None):
+        from billy.models import PayoutInvoice
+
+        first_charge = start_dt or datetime.now(UTC)
+        balance_to_keep_cents = payout.balance_to_keep_cents
+        if not first_now:
+            first_charge += payout.payout_interval
+        invoice = PayoutInvoice.create(self.external_id, self.group_id,
+                                       payout.external_id,
+                                       first_charge,
+                                       balance_to_keep_cents,
+        )
+        self.session.add(invoice)
+        self.session.commit()
+        return self
+
+    @classmethod
+    def unsubscribe(cls, customer, payout_id, cancel_scheduled=False):
+        from billy.models import PayoutInvoice
+
+        current_payout_invoice = PayoutInvoice.retrieve(
+            self.external_id,
+            self.group_id,
+            payout_id,
+            active_only=True)
+        current_payout_invoice.active = False
+        if cancel_scheduled:
+            current_payout_invoice.completed = True
+        self.session.commit()
+        return self
+
+
 class PayoutInvoice(Base):
     __tablename__ = 'payout_invoices'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POI'))
-    customer_id = Column(Unicode, ForeignKey(Customer.guid))
-    relevant_payout = Column(Unicode, ForeignKey(Payout.guid))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_date = Column(DateTime(timezone=UTC))
     balance_to_keep_cents = Column(Integer)
     amount_payed_out = Column(Integer)
     completed = Column(Boolean, default=False)
-    active = Column(Boolean, default=True)
     balance_at_exec = Column(Integer)
-    cleared_by = Column(Unicode, ForeignKey('payout_transactions.guid'))
+    cleared_by_txn = Column(Unicode, ForeignKey('payout_transactions.guid'))
     attempts_made = Column(Integer, default=0)
 
-    payout = relationship('Payout', backref='invoices')
-
-    __table_args__ = (
-        # Todo remove and swap with a sub table
-        # Index('unique_payout_invoice', relevant_payout, group_id, customer_id,
-        #       postgresql_where=active == True, unique=True)
-    )
+    subscription = relationship('PlanSubscription', backref='invoices')
 
     @classmethod
     def create(cls, customer_id, group_id, relevant_payout,

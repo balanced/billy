@@ -15,10 +15,10 @@ class TestCoupon(BalancedTransactionalTestCase):
     def setUp(self):
         super(TestCoupon, self).setUp()
         self.external_id = "MY_TEST_COUPON"
-        self.group = 'BILLY_TEST_MARKETPLACE'
-        self.group_2 = 'BILLY_TEST_MARKETPLACE_2'
-        Group.create(self.group)
-        Group.create(self.group_2)
+        group_name = 'BILLY_TEST_MARKETPLACE'
+        group_2_name = 'BILLY_TEST_MARKETPLACE_2'
+        self.group = Group.create(group_name).guid
+        self.group_2 = Group.create(group_2_name).guid
 
     def test_redeem_count(self):
         pass  # Todo
@@ -52,7 +52,7 @@ class TestCoupon(BalancedTransactionalTestCase):
                       percent_off_int=1,
                       max_redeem=4,
                       repeating=11,
-                      expire_at=datetime(2013, 7, 1, tzinfo=UTC))
+                      expire_at=datetime(2016, 7, 1, tzinfo=UTC))
         Coupon.create(external_id='MY_TEST_COUPON2',
                       group_id=self.group,
                       name='My Coupon 2',
@@ -60,11 +60,11 @@ class TestCoupon(BalancedTransactionalTestCase):
                       percent_off_int=1,
                       max_redeem=4,
                       repeating=11,
-                      expire_at=datetime(2013, 7, 5, tzinfo=UTC))
+                      expire_at=datetime(2016, 7, 5, tzinfo=UTC))
         Coupon.expire_coupons()
         self.assertEqual(len(Coupon.list(self.group,
                                          active_only=True)), 2)
-        with freeze_time('2013-7-6'):
+        with freeze_time('2016-7-6'):
             Coupon.expire_coupons()
         self.assertEqual(len(Coupon.list(self.group,
                                          active_only=True)), 0)
@@ -166,7 +166,7 @@ class TestRetrieve(TestCoupon):
             Coupon.retrieve("COUPON_DNE", self.group)
 
     def test_retrieve_params(self):
-        with freeze_time('2013-7-1'):
+        with freeze_time('2016-7-1'):
             now = datetime.now(UTC)
             coupon = Coupon.create(external_id=self.external_id,
                                    group_id=self.group,

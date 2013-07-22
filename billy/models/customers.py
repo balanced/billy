@@ -2,8 +2,9 @@ from __future__ import unicode_literals
 from datetime import datetime
 
 from pytz import UTC
-from sqlalchemy import Column, Table, Unicode, DateTime, Integer, or_
+from sqlalchemy import Column, Unicode, DateTime, Integer, or_
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
 
 from billy.settings import RETRY_DELAY_PLAN
@@ -26,15 +27,10 @@ class Customer(Base):
 
     plan_sub = relationship('PlanSubscription', backref='customer')
     payout_sub = relationship('PayoutSubscription', backref='customer')
-    plan_invoices = relationship('PlanInvoice', backref='customer',
-                                 primaryjoin =
-             'and_(Customer.guid == PlanSubscription.customer_id, PlanInvoice.subscription_id == PlanSubscription.guid)'
 
-    )  # Todo join conditions
-    payout_invoices = relationship('PayoutInvoice', backref='customer',
-                                   primaryjoin =
-                                   'and_(Customer.guid == PayoutSubscription.customer_id, PayoutInvoice.subscription_id == PayoutSubscription.guid)'
-    )  # Todo join conditions
+    plan_invoices = association_proxy('PlanSubscription', 'invoices')
+    payout_invoices = association_proxy('PayoutSubscription', 'invoices')
+
     plan_transactions = relationship('PlanTransaction',
                                      backref='customer')
     payout_transactions = relationship('PayoutTransaction',
@@ -191,4 +187,3 @@ class Customer(Base):
         return self.plan_subscriptions.filter(
                         or_(PlanSubscription.is_active == True,
                                         PlanSubscription.is_enrolled == True))
-

@@ -1,4 +1,4 @@
-from billy.api.views import Base
+from billy.api.resources import Base
 
 
 class Home(Base):

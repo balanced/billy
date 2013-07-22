@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from flask import request
 
-from billy.api.views import Base
+from billy.api.resources import Base
 from billy.api.errors import BillyExc
 from billy.api.lib.auth import get_group_from_api_key
 
@@ -41,7 +41,11 @@ class GroupView(Base):
         return result
 
     def get(self):
+        """
+        Get path for auth testing purposes
+        """
         resp = {
-            'AUTH': 'GOOD',
+            'AUTH_SUCCESS': True,
             'GROUP_ID': '{}'.format(self.group.external_id)
         }
+        return resp

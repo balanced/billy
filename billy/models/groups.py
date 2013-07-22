@@ -12,13 +12,11 @@ class Group(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('GR'))
     external_id = Column(Unicode, unique=True)
-    api_key = Column(Unicode, unique=True, default=api_key_factory)
+    api_key = Column(Unicode, unique=True, default=api_key_factory())
     coupons = relationship('Coupon', backref='group')
     customers = relationship('Customer', backref='group')
     plans = relationship('Plan', backref='group')
     payouts = relationship('Payout', backref='group')
-    plan_invoices = relationship('PlanInvoice', backref='group')
-    payout_invoices = relationship('PayoutInvoice', backref='group')
 
     @classmethod
     def create(cls, external_id, **kwargs):

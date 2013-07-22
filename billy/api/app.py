@@ -4,7 +4,7 @@ from flask import Flask
 from flask.ext import restful
 
 from billy.settings import DEBUG
-from billy.api.views import *
+from billy.api.resources import *
 
 app = Flask(__name__)
 api = restful.Api(app)

@@ -44,29 +44,29 @@ class PayoutSubscription(Base):
         if not first_now:
             first_charge += payout.payout_interval
         new_sub = cls.create_or_activate(customer, payout)
-        invoice = PayoutInvoice.create(self.external_id, self.group_id,
-                                       payout.external_id,
+        invoice = PayoutInvoice.create(new_sub.guid,
                                        first_charge,
                                        balance_to_keep_cents,
         )
-        self.session.add(invoice)
-        self.session.commit()
-        return self
+        cls.session.add(invoice)
+        cls.session.commit()
+        return new_sub
 
     @classmethod
-    def unsubscribe(cls, customer, payout_id, cancel_scheduled=False):
+    def unsubscribe(cls, customer, payout, cancel_scheduled=False):
         from billy.models import PayoutInvoice
 
-        current_payout_invoice = PayoutInvoice.retrieve(
-            self.external_id,
-            self.group_id,
-            payout_id,
-            active_only=True)
-        current_payout_invoice.active = False
+        current_sub = cls.query.filter(cls.customer_id == customer.guid,
+                                       cls.payout_id == payout.guid,
+                                       cls.is_active == True
+        ).one()
+        current_sub.is_active = False
         if cancel_scheduled:
-            current_payout_invoice.completed = True
-        self.session.commit()
-        return self
+            in_process = current_sub.invoices.filter(
+                PayoutInvoice.completed == False).one()
+            in_process.completed = True
+        cls.session.commit()
+        return True
 
 
 class PayoutInvoice(Base):
@@ -97,57 +97,37 @@ class PayoutInvoice(Base):
         cls.session.commit()
         return new_invoice
 
-    # @classmethod
-    # def retrieve(cls, customer_id, group_id, relevant_payout=None,
-    #              active_only=False, only_incomplete=False):
-    #     query = cls.query.filter(cls.customer_id == customer_id,
-    #                              cls.group_id == group_id)
-    #     if relevant_payout:
-    #         query = query.filter(cls.relevant_payout == relevant_payout)
-    #     if active_only:
-    #         query = query.filter(cls.active == True)
-    #     if only_incomplete:
-    #         query = query.filter(cls.completed == False)
-    #     return query.one()
-    #
-    # @classmethod
-    # def list(cls, group_id, relevant_payout=None,
-    #          customer_id=None, active_only=False):
-    #     query = cls.query.filter(cls.group_id == group_id)
-    #     if customer_id:
-    #         query = query.filter(cls.customer_id == customer_id)
-    #     if active_only:
-    #         query = query.filter(cls.active == True)
-    #     if relevant_payout:
-    #         query = query.filter(cls.relevant_payout == relevant_payout)
-    #     return query.all()
-
     @classmethod
     def needs_payout_made(cls):
         now = datetime.now(UTC)
         return cls.query.filter(cls.payout_date <= now,
                                 cls.completed == False
-                                ).all()
+        ).all()
 
     @classmethod
     def needs_rollover(cls):
-        return cls.query.filter(cls.completed == True,
-                                cls.active == True).all()
+        # Todo: create a better query for this...
+        results = cls.query.filter(cls.completed == True).all()
+        return results.subscriptions.filter(
+            PayoutSubscription.is_active == True).all()
 
     def rollover(self):
-        self.active = False
+        self.subscription.is_active = False
         self.session.flush()
-        self.customer.add_payout(self.relevant_payout, first_now=False,
-                                 start_dt=self.payout_date)
+        PayoutSubscription.subscribe(self.subscription.customer,
+                                     self.subscription.plan,
+                                     first_now=False,
+                                     start_dt=self.payout_date)
 
     def make_payout(self, force=False):
         from billy.models import PayoutTransaction
+
         now = datetime.now(UTC)
         current_balance = TRANSACTION_PROVIDER_CLASS.check_balance(
-            self.customer_id, self.group_id)
+            self.subscription.customer.guid, self.subscription.customer.group_id)
         payout_date = self.payout_date
         if len(RETRY_DELAY_PAYOUT) < self.attempts_made and not force:
-            self.active = False
+            self.subscription.is_active = False
         else:
             retry_delay = sum(RETRY_DELAY_PAYOUT[:self.attempts_made])
             when_to_payout = payout_date + retry_delay if retry_delay else \
@@ -155,7 +135,7 @@ class PayoutInvoice(Base):
             if when_to_payout <= now:
                 payout_amount = current_balance - self.balance_to_keep_cents
                 transaction = PayoutTransaction.create(
-                    self.customer_id, self.group_id, payout_amount)
+                    self.customer_id, payout_amount)
                 try:
                     transaction.execute()
                     self.cleared_by = transaction.guid

@@ -87,7 +87,7 @@ class PlanSubscription(Base):
         from billy.models import PlanInvoice
 
         if cancel_at_period_end:
-            result = cls.query(cls.customer_id == customer.guid,
+            result = cls.query.filter(cls.customer_id == customer.guid,
                                cls.plan_id == plan.guid,
                                cls.is_active == True).one()
             result.active = False
@@ -148,15 +148,18 @@ class PlanInvoice(Base):
         """
         Prorates the last invoice when changing a users plan. Only use when
         changing a users plan.
-        in (matches balanced payments groups)
         """
         from billy.models import PlanInvoice
 
         right_now = datetime.now(UTC)
-        last_invoice = customer.plan_invoices.filter(
-            cls.end_dt >= datetime.utcnow())
+        due_invoices = customer.plan_invoices.filter(
+            cls.end_dt >= datetime.utcnow()).all()
+        last_invoice = None
+        # TODO Better query for this.
+        for invoice in due_invoices:
+            if invoice.subscription.plan_id == plan.guid:
+                last_invoice = invoice
         if last_invoice:
-            plan = last_invoice.plan
             true_start = last_invoice.start_dt
             if last_invoice.includes_trial:
                 true_start = true_start + plan.trial_interval

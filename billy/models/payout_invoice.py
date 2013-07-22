@@ -83,7 +83,7 @@ class PayoutInvoice(Base):
     cleared_by_txn = Column(Unicode, ForeignKey('payout_transactions.guid'))
     attempts_made = Column(Integer, default=0)
 
-    subscription = relationship('PlanSubscription', backref='invoices')
+    subscription = relationship('PayoutSubscription', backref='invoices')
 
     @classmethod
     def create(cls, subscription_id,

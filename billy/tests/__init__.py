@@ -3,7 +3,6 @@ import unittest
 import os
 
 import datetime
-from pytz import UTC
 import sqlalchemy
 
 from billy.settings import DB_URL, Session

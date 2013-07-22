@@ -3,8 +3,8 @@ from __future__ import unicode_literals
 from flask import Flask
 from flask.ext import restful
 
-from settings import DEBUG
-from views import *
+from billy.settings import DEBUG
+from billy.api.views import *
 
 app = Flask(__name__)
 api = restful.Api(app)

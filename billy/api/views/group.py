@@ -2,9 +2,9 @@ from __future__ import unicode_literals
 
 from flask import request
 
-from api.views import Base
-from api.errors import BillyExc
-from api.lib.auth import get_group_from_api_key
+from billy.api.views import Base
+from billy.api.errors import BillyExc
+from billy.api.lib.auth import get_group_from_api_key
 
 
 class GroupView(Base):
@@ -22,7 +22,7 @@ class GroupView(Base):
     def __init__(self):
         self.api_key = self.get_api_key_from_request()
         self.group = self.get_group_from_api_key()
-        super(AuthenticatedView, self).__init__()
+        super(GroupView, self).__init__()
 
     def get_api_key_from_request(self):
         auth = request.authorization

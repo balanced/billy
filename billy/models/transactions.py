@@ -11,7 +11,6 @@ from billy.settings import TRANSACTION_PROVIDER_CLASS
 
 
 class TransactionMixin(object):
-    customer_id = Column(Unicode, ForeignKey(Customer.guid))
     provider_txn_id = Column(Unicode)
     created_at = Column(DateTime(timezone=UTC))
     amount_cents = Column(Integer)
@@ -34,20 +33,22 @@ class PlanTransaction(TransactionMixin, Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PAT'))
     plan_invoices = relationship(PlanInvoice, backref='transaction')
+    customer_id = Column(Unicode, ForeignKey(Customer.guid))
+
 
     def execute(self):
-        try:
-            external_id = TRANSACTION_PROVIDER_CLASS.create_charge(
-                self.customer_id, self.group_id,
-                self.amount_cents)
-            self.status = Status.COMPLETE
-            self.external_id = external_id
-        except Exception, e:
-            self.status = Status.ERROR
+            try:
+                external_id = TRANSACTION_PROVIDER_CLASS.create_charge(
+                    self.customer_id, self.group_id,
+                    self.amount_cents)
+                self.status = Status.COMPLETE
+                self.external_id = external_id
+            except Exception, e:
+                self.status = Status.ERROR
+                self.session.commit()
+                raise e
+            self.customer.charge_attempts = 0
             self.session.commit()
-            raise e
-        self.customer.charge_attempts = 0
-        self.session.commit()
 
 
 class PayoutTransaction(TransactionMixin, Base):
@@ -56,6 +57,7 @@ class PayoutTransaction(TransactionMixin, Base):
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POT'))
     payout_invoices = relationship(PayoutInvoice,
                                    backref='transaction')
+    customer_id = Column(Unicode, ForeignKey(Customer.guid))
 
     def execute(self):
         try:

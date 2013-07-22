@@ -24,7 +24,7 @@ class PlanSubscription(Base):
     __table_args__ = (
         Index('unique_plan_sub', plan_id, customer_id,
               postgresql_where=is_active == True,
-              unique=True)
+              unique=True),
     )
 
     @classmethod

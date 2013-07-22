@@ -35,7 +35,7 @@ class Customer(Base):
 
 
     __table_args__ = (
-        UniqueConstraint(external_id, group_id, name='customerid_group_unique')
+        UniqueConstraint(external_id, group_id, name='customerid_group_unique'),
     )
 
     @classmethod

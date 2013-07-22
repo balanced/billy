@@ -22,7 +22,7 @@ class PayoutSubscription(Base):
     __table_args__ = (
         Index('unique_payout_sub', payout_id, customer_id,
               postgresql_where=is_active == True,
-              unique=True)
+              unique=True),
     )
 
     @classmethod

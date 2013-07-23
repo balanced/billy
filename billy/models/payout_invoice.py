@@ -3,7 +3,7 @@ from datetime import datetime
 from pytz import UTC
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
     Integer, ForeignKeyConstraint, Index
-from sqlalchemy.orm import relationship, validates
+from sqlalchemy.orm import relationship, validates, backref
 
 from billy.models import Base, Group, Customer, Payout
 from billy.settings import RETRY_DELAY_PAYOUT, TRANSACTION_PROVIDER_CLASS
@@ -30,8 +30,12 @@ class PayoutSubscription(Base):
         result = cls.query.filter(
             cls.customer_id == customer.guid,
             cls.payout_id == payout.guid).first()
-        result = result or cls(customer_id=customer.guid, payout_id=payout.guid)
-        result.active = True
+        result = result or cls(customer_id=customer.guid, payout_id=payout.guid,
+                           # Todo Temp since default not working for some reason
+                               guid=uuid_factory('PLL')())
+        result.is_active = True
+        cls.session.add(result)
+        # Todo premature commit might cause issues....
         cls.session.commit()
         return result
 
@@ -83,7 +87,8 @@ class PayoutInvoice(Base):
     cleared_by_txn = Column(Unicode, ForeignKey('payout_transactions.guid'))
     attempts_made = Column(Integer, default=0)
 
-    subscription = relationship('PayoutSubscription', backref='invoices')
+    subscription = relationship('PayoutSubscription',
+                                backref=backref('invoices',lazy='dynamic'))
 
     @classmethod
     def create(cls, subscription_id,

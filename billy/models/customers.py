@@ -59,23 +59,37 @@ class Customer(Base):
         cls.session.commit()
         return new_customer
 
+    @classmethod
+    def retrieve(cls, external_id, group_id):
+        """
+        This method retrieves a single plan.
+        :param external_id: A unique id/uri for the customer
+        :param group_id: a group id/uri the user should be placed
+        in (matches balanced payments group_id)
+        :return: Customer Object if success or raises error if not
+        :raise NotFoundError:  if plan not found.
+        """
+        query = cls.query.filter(cls.external_id == external_id,
+                                 cls.group_id == group_id)
+        return query.one()
 
-    def apply_coupon(self, coupon_id):
+
+    def apply_coupon(self, coupon_eid):
         """
         Adds a coupon to the user.
-        :param coupon_id: A retrieved coupon class
+        :param coupon_eid: A retrieved coupon class
         :return: Self
         :raise: LimitReachedError if coupon max redeemed.
         """
         from billy.models import Coupon
 
-        coupon = Coupon.retrieve(coupon_id, self.group_id,
+        coupon = Coupon.retrieve(coupon_eid, self.group_id,
                                  active_only=True)
         if coupon.max_redeem != -1 and coupon.count_redeemed >= \
                 coupon.max_redeem:
             raise ValueError('Coupon already redeemed maximum times. See '
                              'max_redeem')
-        self.current_coupon = coupon_id
+        self.current_coupon = coupon.guid
         self.updated_at = datetime.now(UTC)
         self.session.commit()
         return self

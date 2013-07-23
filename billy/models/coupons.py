@@ -136,7 +136,7 @@ class Coupon(Base):
         # Todo remove this.
         from billy.models import Customer
         return Customer.query.filter(Customer.current_coupon == self
-                                     .external_id).count()
+                                     .guid).count()
 
     @classmethod
     def expire_coupons(cls):

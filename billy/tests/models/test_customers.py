@@ -7,8 +7,8 @@ from pytz import UTC
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from billy.models import Customer, Group, Coupon, Plan, PlanInvoice, Payout, PayoutInvoice
-from billy.models.utils.intervals import Intervals
+from billy.models import *
+from billy.utils.intervals import Intervals
 from billy.tests import BalancedTransactionalTestCase, rel_delta_to_sec
 
 
@@ -17,10 +17,8 @@ class TestCustomer(BalancedTransactionalTestCase):
     def setUp(self):
         super(TestCustomer, self).setUp()
         self.external_id = 'MY_TEST_CUSTOMER'
-        self.group = 'BILLY_TEST_MARKETPLACE'
-        self.group_2 = 'BILLY_TEST_MARKETPLACE_2'
-        Group.create(self.group)
-        Group.create(self.group_2)
+        self.group = Group.create('BILLY_TEST_MARKETPLACE').guid
+        self.group_2 = Group.create('BILLY_TEST_MARKETPLACE_2').guid
 
 
 class TestCreate(TestCustomer):
@@ -103,7 +101,7 @@ class TestCoupon(TestCustomer):
                                repeating=-1,
                                )
         customer.apply_coupon(coupon.external_id)
-        self.assertEqual(customer.current_coupon, coupon.external_id)
+        self.assertEqual(customer.current_coupon, coupon.guid)
 
     def test_increase_max_redeem(self):
         coupon = Coupon.create(external_id='MY_TEST_COUPON',
@@ -163,7 +161,7 @@ class TestCoupon(TestCustomer):
                                repeating=-1,
                                )
         customer.apply_coupon(coupon.external_id)
-        self.assertEqual(customer.current_coupon, coupon.external_id)
+        self.assertEqual(customer.current_coupon, coupon.guid)
         customer.remove_coupon()
         self.assertIsNone(customer.current_coupon)
 
@@ -386,9 +384,8 @@ class TestPayout(TestCustomer):
 
     def test_add_payout_first_now(self):
         with freeze_time('2013-2-15'):
-            self.customer.add_payout(self.payout.external_id, first_now=True)
-            invoice = PayoutInvoice.retrieve(
-                self.customer.external_id, self.group, self.payout.external_id, active_only=True)
+            sub = PayoutSubscription.subscribe(self.customer, self.payout, True)
+            invoice = sub.invoices[0]
             self.assertEqual(invoice.payout_date, datetime.now(UTC))
 
     def add_payout_not_first_now(self):
@@ -401,36 +398,33 @@ class TestPayout(TestCustomer):
 
     def test_add_payout_custom_start_dt(self):
         start_dt = datetime(2013, 4, 5, tzinfo=UTC)
-        self.customer.add_payout(
-            self.payout.external_id, first_now=True, start_dt=start_dt)
-        invoice = PayoutInvoice.retrieve(
-            self.customer.external_id, self.group, self.payout.external_id, active_only=True)
+        sub = PayoutSubscription.subscribe(self.customer, self.payout, True, start_dt)
+        invoice = sub.invoices[0]
         self.assertEqual(invoice.payout_date, start_dt)
 
     def test_cancel_payout(self):
-        self.customer.add_payout(self.payout.external_id)
-        PayoutInvoice.retrieve(
-            self.customer.external_id, self.customer.group_id, active_only=True)
-        self.customer.cancel_payout(self.payout.external_id)
+        PayoutSubscription.subscribe(self.customer, self.payout)
+        result = PayoutSubscription.query.filter(
+            PayoutSubscription.customer_id == self.customer.guid,
+            PayoutSubscription.payout_id == self.payout.guid,
+            PayoutSubscription.is_active == True).one()
+        PayoutSubscription.unsubscribe(self.customer, self.payout)
         with self.assertRaises(NoResultFound):
-            PayoutInvoice.retrieve(
-                self.customer.external_id, self.customer.group_id, active_only=True)
-
-    def test_cancel_payout_dne(self):
-        with self.assertRaises(NoResultFound):
-            self.customer.cancel_payout('MY_PAYOUT_DNE')
+            PayoutSubscription.query.filter(
+                PayoutSubscription.customer_id == self.customer.guid,
+                PayoutSubscription.payout_id == self.payout.guid,
+                PayoutSubscription.is_active == True).one()
 
     def test_cancel_payout_already_scheduled(self):
-        self.customer.add_payout(self.payout.external_id)
-        PayoutInvoice.retrieve(
-            self.customer.external_id, self.customer.group_id, active_only=True)
-        self.customer.cancel_payout(
-            self.payout.external_id, cancel_scheduled=True)
-        invoice = PayoutInvoice.retrieve(
-            self.customer.external_id, self.customer.group_id,
-            relevant_payout=self.payout.external_id)
-        self.assertTrue(invoice.completed)
-        self.assertFalse(invoice.active)
+        sub = PayoutSubscription.subscribe(self.customer, self.payout)
+        test_exists = sub.invoices[0]
+        PayoutSubscription.unsubscribe(self.customer, self.payout,
+                                       cancel_scheduled=True)
+        sub = PayoutSubscription.query.filter(
+            PayoutSubscription.customer_id == self.customer.guid,
+            PayoutSubscription.payout_id == self.payout.guid).one()
+        self.assertTrue(sub.invoices[0].completed)
+        self.assertFalse(sub.is_active)
 
 
 class TestRelations(TestCustomer):

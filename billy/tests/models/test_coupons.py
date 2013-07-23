@@ -15,10 +15,9 @@ class TestCoupon(BalancedTransactionalTestCase):
     def setUp(self):
         super(TestCoupon, self).setUp()
         self.external_id = "MY_TEST_COUPON"
-        group_name = 'BILLY_TEST_MARKETPLACE'
-        group_2_name = 'BILLY_TEST_MARKETPLACE_2'
-        self.group = Group.create(group_name).guid
-        self.group_2 = Group.create(group_2_name).guid
+        self.group = Group.create('BILLY_TEST_MARKETPLACE').guid
+        self.group_2 = Group.create('BILLY_TEST_MARKETPLACE_2').guid
+
 
     def test_redeem_count(self):
         pass  # Todo

@@ -30,9 +30,11 @@ class PayoutSubscription(Base):
         result = cls.query.filter(
             cls.customer_id == customer.guid,
             cls.payout_id == payout.guid).first()
-        result = result or cls(customer_id=customer.guid, payout_id=payout.guid,
-                           # Todo Temp since default not working for some reason
-                               guid=uuid_factory('PLL')())
+        result = result or cls(
+            customer_id=customer.guid, payout_id=payout.guid,
+            # Todo Temp since default not working for some
+            # reason
+            guid=uuid_factory('PLL')())
         result.is_active = True
         cls.session.add(result)
         # Todo premature commit might cause issues....
@@ -51,7 +53,7 @@ class PayoutSubscription(Base):
         invoice = PayoutInvoice.create(new_sub.guid,
                                        first_charge,
                                        balance_to_keep_cents,
-        )
+                                       )
         cls.session.add(invoice)
         cls.session.commit()
         return new_sub
@@ -63,7 +65,7 @@ class PayoutSubscription(Base):
         current_sub = cls.query.filter(cls.customer_id == customer.guid,
                                        cls.payout_id == payout.guid,
                                        cls.is_active == True
-        ).one()
+                                       ).one()
         current_sub.is_active = False
         if cancel_scheduled:
             in_process = current_sub.invoices.filter(
@@ -88,7 +90,7 @@ class PayoutInvoice(Base):
     attempts_made = Column(Integer, default=0)
 
     subscription = relationship('PayoutSubscription',
-                                backref=backref('invoices',lazy='dynamic'))
+                                backref=backref('invoices', lazy='dynamic'))
 
     @classmethod
     def create(cls, subscription_id,
@@ -107,7 +109,7 @@ class PayoutInvoice(Base):
         now = datetime.now(UTC)
         return cls.query.filter(cls.payout_date <= now,
                                 cls.completed == False
-        ).all()
+                                ).all()
 
     @classmethod
     def needs_rollover(cls):

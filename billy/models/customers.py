@@ -36,9 +36,9 @@ class Customer(Base):
     payout_transactions = relationship('PayoutTransaction',
                                        backref='customer')
 
-
     __table_args__ = (
-        UniqueConstraint(external_id, group_id, name='customerid_group_unique'),
+        UniqueConstraint(
+            external_id, group_id, name='customerid_group_unique'),
     )
 
     @classmethod
@@ -72,7 +72,6 @@ class Customer(Base):
         query = cls.query.filter(cls.external_id == external_id,
                                  cls.group_id == group_id)
         return query.one()
-
 
     def apply_coupon(self, coupon_eid):
         """
@@ -113,12 +112,11 @@ class Customer(Base):
             PlanInvoice.relevant_coupon == self.current_coupon).count()
         return count
 
-
     @property
     def can_use_coupon(self):
         use_coupon = self.current_coupon or True \
             if self.current_coupon.repeating == -1 or \
-               self.coupon_use_count <= self.current_coupon.repeating else False
+            self.coupon_use_count <= self.current_coupon.repeating else False
         return use_coupon
 
     def can_trial_plan(self, plan_id):
@@ -165,7 +163,7 @@ class Customer(Base):
         plan_invoices_due = PlanInvoice.due(self)
         for plan_invoice in plan_invoices_due:
             earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \
-                                                  earliest_due else earliest_due
+                earliest_due else earliest_due
             # Cancel a users plan if max retries reached
         if len(RETRY_DELAY_PLAN) < self.charge_attempts and not force:
             for plan_invoice in plan_invoices_due:
@@ -199,5 +197,5 @@ class Customer(Base):
         """
         from billy.models import PlanSubscription
         return self.plan_subscriptions.filter(
-                        or_(PlanSubscription.is_active == True,
-                                        PlanSubscription.is_enrolled == True))
+            or_(PlanSubscription.is_active == True,
+                PlanSubscription.is_enrolled == True))

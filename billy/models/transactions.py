@@ -35,7 +35,6 @@ class PlanTransaction(TransactionMixin, Base):
     plan_invoices = relationship(PlanInvoice, backref='transaction')
     customer_id = Column(Unicode, ForeignKey(Customer.guid))
 
-
     def execute(self):
             try:
                 external_id = TRANSACTION_PROVIDER_CLASS.create_charge(

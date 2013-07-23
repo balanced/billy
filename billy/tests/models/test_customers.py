@@ -379,7 +379,8 @@ class TestPayout(TestCustomer):
 
     def test_add_payout_first_now(self):
         with freeze_time('2013-2-15'):
-            sub = PayoutSubscription.subscribe(self.customer, self.payout, True)
+            sub = PayoutSubscription.subscribe(
+                self.customer, self.payout, True)
             invoice = sub.invoices[0]
             self.assertEqual(invoice.payout_date, datetime.now(UTC))
 
@@ -393,7 +394,8 @@ class TestPayout(TestCustomer):
 
     def test_add_payout_custom_start_dt(self):
         start_dt = datetime(2013, 4, 5, tzinfo=UTC)
-        sub = PayoutSubscription.subscribe(self.customer, self.payout, True, start_dt)
+        sub = PayoutSubscription.subscribe(
+            self.customer, self.payout, True, start_dt)
         invoice = sub.invoices[0]
         self.assertEqual(invoice.payout_date, start_dt)
 

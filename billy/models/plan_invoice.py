@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from pytz import UTC
 from sqlalchemy import (Column, Unicode, ForeignKey, DateTime, Boolean,
-                                    Integer, Index, or_)
+                        Integer, Index, or_)
 from sqlalchemy.orm import relationship, validates
 
 from billy.models import Base, Group, Customer, Plan, Coupon
@@ -37,7 +37,6 @@ class PlanSubscription(Base):
         result.enrolled = True
         cls.session.commit()
         return result
-
 
     @classmethod
     def subscribe(cls, customer, plan, quantity=1,
@@ -88,8 +87,8 @@ class PlanSubscription(Base):
 
         if cancel_at_period_end:
             result = cls.query.filter(cls.customer_id == customer.guid,
-                               cls.plan_id == plan.guid,
-                               cls.is_active == True).one()
+                                      cls.plan_id == plan.guid,
+                                      cls.is_active == True).one()
             result.active = False
             cls.session.commit()
         else:
@@ -226,7 +225,7 @@ class PlanInvoice(Base):
         invoices_rollover = cls.query.filter(cls.end_dt <= now,
                                              cls.active == True,
                                              cls.remaining_balance_cents == 0,
-                                            ).all()
+                                             ).all()
         return invoices_rollover
 
     def rollover(self):

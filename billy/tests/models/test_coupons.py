@@ -18,7 +18,6 @@ class TestCoupon(BalancedTransactionalTestCase):
         self.group = Group.create('BILLY_TEST_MARKETPLACE').guid
         self.group_2 = Group.create('BILLY_TEST_MARKETPLACE_2').guid
 
-
     def test_redeem_count(self):
         pass  # Todo
 

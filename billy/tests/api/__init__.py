@@ -4,7 +4,9 @@ from unittest import TestCase
 
 from billy.api.app import app
 
+
 class BaseTestCase(TestCase):
+
     def setUp(self):
         self.api_key = 'wyn6BvYH8AaKqkkq2xL0piuLvZoPymlD'
         self.auth_headers = {

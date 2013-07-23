@@ -3,8 +3,8 @@ from __future__ import unicode_literals
 from sqlalchemy import Unicode, Column
 from sqlalchemy.orm import relationship
 
-from billy.models import Base
-from billy.utils.generic import api_key_factory, uuid_factory
+from models import Base
+from utils.generic import api_key_factory, uuid_factory
 
 
 class Group(Base):

@@ -6,8 +6,8 @@ from pytz import UTC
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from billy.models import Coupon, Group
-from billy.tests import BalancedTransactionalTestCase
+from models import Coupon, Group
+from tests import BalancedTransactionalTestCase
 
 
 class TestCoupon(BalancedTransactionalTestCase):

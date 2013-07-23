@@ -2,9 +2,9 @@ from __future__ import unicode_literals
 
 from flask import request
 
-from billy.api.resources import Base
-from billy.api.errors import BillyExc
-from billy.api.lib.auth import get_group_from_api_key
+from api.resources import Base
+from api.errors import BillyExc
+from api.lib.auth import get_group_from_api_key
 
 
 class GroupView(Base):

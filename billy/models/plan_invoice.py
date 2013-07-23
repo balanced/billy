@@ -7,8 +7,8 @@ from sqlalchemy import (Column, Unicode, ForeignKey, DateTime, Boolean,
                         Integer, Index, or_)
 from sqlalchemy.orm import relationship, validates
 
-from billy.models import Base, Group, Customer, Plan, Coupon
-from billy.utils.generic import uuid_factory
+from models import Base, Group, Customer, Plan, Coupon
+from utils.generic import uuid_factory
 
 
 class PlanSubscription(Base):
@@ -41,7 +41,7 @@ class PlanSubscription(Base):
     @classmethod
     def subscribe(cls, customer, plan, quantity=1,
                   charge_at_period_end=False, start_dt=None):
-        from billy.models import PlanInvoice
+        from models import PlanInvoice
         current_coupon = customer.coupon
         start_date = start_dt or datetime.now(UTC)
         due_on = start_date
@@ -83,7 +83,7 @@ class PlanSubscription(Base):
 
     @classmethod
     def unsubscribe(cls, customer, plan, cancel_at_period_end=False):
-        from billy.models import PlanInvoice
+        from models import PlanInvoice
 
         if cancel_at_period_end:
             result = cls.query.filter(cls.customer_id == customer.guid,
@@ -195,7 +195,7 @@ class PlanInvoice(Base):
         """
         Returns a list of invoices that are due for a customer
         """
-        from billy.models import PlanInvoice
+        from models import PlanInvoice
         now = datetime.now(UTC)
         results = PlanInvoice.query.filter(
             PlanInvoice.customer_id == customer.guid,

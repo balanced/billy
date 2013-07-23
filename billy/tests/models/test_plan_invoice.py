@@ -7,9 +7,9 @@ from pytz import UTC
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from billy.models import Group, Customer, Plan, PlanInvoice
-from billy.models.utils.intervals import Intervals
-from billy.tests import BalancedTransactionalTestCase
+from models import Group, Customer, Plan, PlanInvoice
+from models.utils.intervals import Intervals
+from tests import BalancedTransactionalTestCase
 
 
 class TestPlanInvoice(BalancedTransactionalTestCase):

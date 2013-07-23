@@ -6,9 +6,9 @@ from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, \
     ForeignKey, UniqueConstraint
 from sqlalchemy.orm import validates, relationship
 
-from billy.models.base import Base, RelativeDelta
-from billy.models.groups import Group
-from billy.utils.generic import uuid_factory
+from models.base import Base, RelativeDelta
+from models.groups import Group
+from utils.generic import uuid_factory
 
 
 class Plan(Base):

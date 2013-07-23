@@ -7,9 +7,9 @@ from pytz import UTC
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from billy.models import *
-from billy.utils.intervals import Intervals
-from billy.tests import BalancedTransactionalTestCase, rel_delta_to_sec
+from models import *
+from utils.intervals import Intervals
+from tests import BalancedTransactionalTestCase, rel_delta_to_sec
 
 
 class TestCustomer(BalancedTransactionalTestCase):

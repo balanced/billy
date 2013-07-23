@@ -6,9 +6,9 @@ from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, \
     ForeignKey, UniqueConstraint
 from sqlalchemy.orm import validates
 
-from billy.models import *
-from billy.models.base import RelativeDelta
-from billy.utils.generic import uuid_factory
+from models import *
+from models.base import RelativeDelta
+from utils.generic import uuid_factory
 
 
 class Payout(Base):

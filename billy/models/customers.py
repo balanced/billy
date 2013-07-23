@@ -7,9 +7,9 @@ from sqlalchemy.schema import ForeignKey, UniqueConstraint
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
 
-from billy.settings import RETRY_DELAY_PLAN
-from billy.models import *
-from billy.utils.generic import uuid_factory
+from settings import RETRY_DELAY_PLAN
+from models import *
+from utils.generic import uuid_factory
 
 
 class Customer(Base):
@@ -80,7 +80,7 @@ class Customer(Base):
         :return: Self
         :raise: LimitReachedError if coupon max redeemed.
         """
-        from billy.models import Coupon
+        from models import Coupon
 
         coupon = Coupon.retrieve(coupon_eid, self.group_id,
                                  active_only=True)
@@ -120,7 +120,7 @@ class Customer(Base):
         return use_coupon
 
     def can_trial_plan(self, plan_id):
-        from billy.models import PlanSubscription
+        from models import PlanSubscription
         count = PlanSubscription.query.filter(
             PlanSubscription.customer_id == self.guid,
             PlanSubscription.plan_id == plan_id
@@ -155,8 +155,8 @@ class Customer(Base):
             return False
 
     def clear_plan_debt(self, force=False):
-        from billy.models import PlanTransaction
-        from billy.models import PlanInvoice
+        from models import PlanTransaction
+        from models import PlanInvoice
 
         now = datetime.now(UTC)
         earliest_due = datetime.now(UTC)
@@ -195,7 +195,7 @@ class Customer(Base):
         Returns a list of invoice objects pertaining to active user
         subscriptions
         """
-        from billy.models import PlanSubscription
+        from models import PlanSubscription
         return self.plan_subscriptions.filter(
             or_(PlanSubscription.is_active == True,
                 PlanSubscription.is_enrolled == True))

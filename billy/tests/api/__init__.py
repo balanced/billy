@@ -2,7 +2,7 @@ from base64 import b64encode
 
 from unittest import TestCase
 
-from billy.api.app import app
+from api.app import app
 
 
 class BaseTestCase(TestCase):

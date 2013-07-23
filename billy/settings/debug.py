@@ -4,8 +4,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import sessionmaker, scoped_session
 
-from billy.utils.intervals import Intervals
-from billy.provider.dummy import DummyProvider
+from utils.intervals import Intervals
+from provider.dummy import DummyProvider
 
 
 DB_SETTINGS = {

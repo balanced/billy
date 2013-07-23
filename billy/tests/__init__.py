@@ -5,8 +5,8 @@ import os
 import datetime
 import sqlalchemy
 
-from billy.settings import DB_URL, Session
-from billy.models.base import Base
+from settings import DB_URL, Session
+from models.base import Base
 
 BASE_PATH = os.path.abspath(os.path.join(
     os.path.basename(__file__), '..'))

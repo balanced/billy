@@ -5,9 +5,9 @@ from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
     Integer, ForeignKeyConstraint, Index
 from sqlalchemy.orm import relationship, validates, backref
 
-from billy.models import Base, Group, Customer, Payout
-from billy.settings import RETRY_DELAY_PAYOUT, TRANSACTION_PROVIDER_CLASS
-from billy.utils.generic import uuid_factory
+from models import Base, Group, Customer, Payout
+from settings import RETRY_DELAY_PAYOUT, TRANSACTION_PROVIDER_CLASS
+from utils.generic import uuid_factory
 
 
 class PayoutSubscription(Base):
@@ -43,7 +43,7 @@ class PayoutSubscription(Base):
 
     @classmethod
     def subscribe(cls, customer, payout, first_now=False, start_dt=None):
-        from billy.models import PayoutInvoice
+        from models import PayoutInvoice
 
         first_charge = start_dt or datetime.now(UTC)
         balance_to_keep_cents = payout.balance_to_keep_cents
@@ -60,7 +60,7 @@ class PayoutSubscription(Base):
 
     @classmethod
     def unsubscribe(cls, customer, payout, cancel_scheduled=False):
-        from billy.models import PayoutInvoice
+        from models import PayoutInvoice
 
         current_sub = cls.query.filter(cls.customer_id == customer.guid,
                                        cls.payout_id == payout.guid,
@@ -127,7 +127,7 @@ class PayoutInvoice(Base):
                                      start_dt=self.payout_date)
 
     def make_payout(self, force=False):
-        from billy.models import PayoutTransaction
+        from models import PayoutTransaction
 
         now = datetime.now(UTC)
         current_balance = TRANSACTION_PROVIDER_CLASS.check_balance(

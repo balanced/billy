@@ -7,12 +7,6 @@ import sqlalchemy
 from settings import DB_URL, Session
 from models import Base
 
-BASE_PATH = os.path.abspath(os.path.join(
-    os.path.basename(__file__), '..'))
-SCRIPTS_PATH = os.path.join(BASE_PATH, 'scripts')
-PACKAGE_PATH = os.path.join(BASE_PATH, 'balanced_service')
-
-
 class BalancedTransactionalTestCase(unittest.TestCase):
 
     """

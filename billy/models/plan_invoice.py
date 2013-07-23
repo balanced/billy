@@ -49,7 +49,7 @@ class PlanSubscription(Base):
         current_coupon = customer.coupon
         start_date = start_dt or datetime.now(UTC)
         due_on = start_date
-        can_trial = customer.can_trial_plan(plan.external_id)
+        can_trial = customer.can_trial_plan(plan)
         end_date = start_date + plan.plan_interval
         if can_trial:
             end_date += plan.trial_interval
@@ -58,7 +58,7 @@ class PlanSubscription(Base):
             due_on = end_date
         amount_base = plan.price_cents * Decimal(quantity)
         amount_after_coupon = amount_base
-        coupon_id = current_coupon.external_id if current_coupon else None
+        coupon_id = current_coupon.guid if current_coupon else None
         if customer.current_coupon and current_coupon:
             dollars_off = current_coupon.price_off_cents
             percent_off = current_coupon.percent_off_int
@@ -83,7 +83,7 @@ class PlanSubscription(Base):
             includes_trial=can_trial
         )
         cls.session.commit()
-        return new_sub
+        return pi
 
     @classmethod
     def unsubscribe(cls, customer, plan, cancel_at_period_end=False):
@@ -91,10 +91,10 @@ class PlanSubscription(Base):
             result = cls.query.filter(cls.customer_id == customer.guid,
                                       cls.plan_id == plan.guid,
                                       cls.is_active == True).one()
-            result.active = False
+            result.is_active = False
             cls.session.commit()
         else:
-            PlanInvoice.prorate_last(customer, plan)
+            return PlanInvoice.prorate_last(customer, plan)
         return True
 
     @classmethod
@@ -172,9 +172,12 @@ class PlanInvoice(Base):
             query = query.filter(PlanSubscription.is_active == True)
         subscription = query.first()
         if subscription and last_only:
+            last = None
             for invoice in subscription.invoices:
                 if invoice.end_dt >= datetime.now(UTC):
-                    return invoice
+                    last = invoice
+                    break
+            return last
         return subscription.invoices
 
     @classmethod
@@ -208,6 +211,7 @@ class PlanInvoice(Base):
                 last_invoice.subscription.is_enrolled = False
                 last_invoice.prorated = True
             cls.session.commit()
+        return last_invoice
 
     @classmethod
     def due(cls, customer):
@@ -217,7 +221,7 @@ class PlanInvoice(Base):
         from models import PlanInvoice
         now = datetime.now(UTC)
         results = PlanInvoice.query.filter(
-            PlanInvoice.customer_id == customer.guid,
+            PlanSubscription.customer_id == customer.guid,
             PlanInvoice.remaining_balance_cents != 0,
             PlanInvoice.due_dt <= now,
         ).all()

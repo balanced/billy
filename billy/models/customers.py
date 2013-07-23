@@ -118,11 +118,11 @@ class Customer(Base):
             self.coupon_use_count <= self.current_coupon.repeating else False
         return use_coupon
 
-    def can_trial_plan(self, plan_id):
+    def can_trial_plan(self, plan):
         from models import PlanSubscription
         count = PlanSubscription.query.filter(
             PlanSubscription.customer_id == self.guid,
-            PlanSubscription.plan_id == plan_id
+            PlanSubscription.plan_id == plan.guid
         ).count()
         return not bool(count)
 
@@ -138,7 +138,8 @@ class Customer(Base):
         """
         Returns the total outstanding debt for the customer
         """
-        return self.sum_plan_debt(self.plan_invoices_due)
+        from models import PlanInvoice
+        return self.sum_plan_debt(PlanInvoice.due(self))
 
     def is_debtor(self, limit_cents):
         """

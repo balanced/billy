@@ -56,7 +56,7 @@ class PlanSubscription(Base):
         amount_base = plan.price_cents * Decimal(quantity)
         amount_after_coupon = amount_base
         coupon_id = current_coupon.external_id if current_coupon else None
-        if customer.user_coupon and current_coupon:
+        if customer.current_coupon and current_coupon:
             dollars_off = current_coupon.price_off_cents
             percent_off = current_coupon.percent_off_int
             amount_after_coupon -= dollars_off  # BOTH CENTS, safe
@@ -104,8 +104,9 @@ class PlanInvoice(Base):
     subscription_id = Column(Unicode, ForeignKey(PlanSubscription.guid))
     relevant_coupon = Column(Unicode, ForeignKey(Coupon.guid))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
+    start_dt = Column(DateTime(timezone=UTC))
     end_dt = Column(DateTime(timezone=UTC))
-    actual_end_dt = Column(DateTime(timezone=UTC))
+    original_end_dt = Column(DateTime(timezone=UTC))
     due_dt = Column(DateTime(timezone=UTC))
     includes_trial = Column(Boolean)
     amount_base_cents = Column(Integer)
@@ -144,21 +145,28 @@ class PlanInvoice(Base):
         return new_invoice
 
     @classmethod
+    def get_current_invoice(cls, customer, plan):
+        # Todo can probably be cleaner
+        last_invoice = None
+        subscription = PlanSubscription.query.filter(
+            PlanSubscription.customer_id == customer.guid,
+            PlanSubscription.plan_id == plan.guid,
+            PlanSubscription.is_active == True).first()
+        if subscription:
+            for invoice in subscription.invoices:
+                if invoice.end_dt >= datetime.utcnow():
+                    last_invoice = invoice
+                    break
+        return last_invoice
+
+    @classmethod
     def prorate_last(cls, customer, plan):
         """
         Prorates the last invoice when changing a users plan. Only use when
         changing a users plan.
         """
-        from billy.models import PlanInvoice
-
         right_now = datetime.now(UTC)
-        due_invoices = customer.plan_invoices.filter(
-            cls.end_dt >= datetime.utcnow()).all()
-        last_invoice = None
-        # TODO Better query for this.
-        for invoice in due_invoices:
-            if invoice.subscription.plan_id == plan.guid:
-                last_invoice = invoice
+        last_invoice = cls.get_current_invoice(customer, plan)
         if last_invoice:
             true_start = last_invoice.start_dt
             if last_invoice.includes_trial:
@@ -178,8 +186,8 @@ class PlanInvoice(Base):
                 last_invoice.amount_after_coupon_cents = new_after_coupon_amount
                 last_invoice.remaining_balance_cents = new_balance
                 last_invoice.end_dt = right_now
-                last_invoice.subscription.active = False
-                last_invoice.subscription.enrolled = False
+                last_invoice.subscription.is_active = False
+                last_invoice.subscription.is_enrolled = False
                 last_invoice.prorated = True
             cls.session.commit()
 

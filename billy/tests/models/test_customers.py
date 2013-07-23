@@ -372,15 +372,10 @@ class TestPayout(TestCustomer):
 
     def test_change_payout(self):
         with freeze_time('2013-2-15'):
-            self.customer.add_payout(self.payout.external_id)
-            invoice = PayoutInvoice.retrieve(
-                self.customer.external_id, self.group, self.payout.external_id, active_only=True)
+            sub = PayoutSubscription.subscribe(self.customer, self.payout)
+            invoice = sub.invoices[0]
             self.assertEqual(
                 invoice.payout_date, datetime.now(UTC) + self.payout.payout_interval)
-
-    def test_change_payout_dne(self):
-        with self.assertRaises(NoResultFound):
-            self.customer.add_payout('MY)PAYOUT_DNE')
 
     def test_add_payout_first_now(self):
         with freeze_time('2013-2-15'):
@@ -473,13 +468,13 @@ class TestRelations(TestCustomer):
         self.assertTrue(self.customer.coupon)
 
     def test_plan_invoices(self):
-        self.customer.update_plan(self.plan.external_id)
-        self.customer.update_plan(self.plan_2.external_id)
+        PlanSubscription.subscribe(self.customer, self.plan)
+        PlanSubscription.subscribe(self.customer, self.plan_2)
         self.assertEqual(len(self.customer.plan_invoices), 2)
 
     def test_payout_invoices(self):
-        self.customer.add_payout(self.payout.external_id)
-        self.customer.add_payout(self.payout_2.external_id)
+        PayoutSubscription.subscribe(self.customer, self.payout)
+        PayoutSubscription.subscribe(self.customer, self.payout_2)
         self.assertEqual(len(self.customer.payout_invoices), 2)
 
     def test_plan_transactions(self):

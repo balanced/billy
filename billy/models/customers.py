@@ -25,11 +25,11 @@ class Customer(Base):
     # Todo this should be normalized and made a property:
     charge_attempts = Column(Integer, default=0)
 
-    plan_sub = relationship('PlanSubscription', backref='customer')
+    plan_sub = relationship('PlanSubscription', backref='customer',)
     payout_sub = relationship('PayoutSubscription', backref='customer')
 
-    plan_invoices = association_proxy('PlanSubscription', 'invoices')
-    payout_invoices = association_proxy('PayoutSubscription', 'invoices')
+    plan_invoices = association_proxy('plan_sub', 'invoices')
+    payout_invoices = association_proxy('payout_sub', 'invoices')
 
     plan_transactions = relationship('PlanTransaction',
                                      backref='customer')
@@ -122,7 +122,7 @@ class Customer(Base):
         return use_coupon
 
     def can_trial_plan(self, plan_id):
-        from models import PlanSubscription
+        from billy.models import PlanSubscription
         count = PlanSubscription.query.filter(
             PlanSubscription.customer_id == self.guid,
             PlanSubscription.plan_id == plan_id

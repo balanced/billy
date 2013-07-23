@@ -25,11 +25,11 @@ class Customer(Base):
     # Todo this should be normalized and made a property:
     charge_attempts = Column(Integer, default=0)
 
-    plan_sub = relationship('PlanSubscription', backref='customer',)
-    payout_sub = relationship('PayoutSubscription', backref='customer')
+    plan_subs = relationship('PlanSubscription', backref='customer',)
+    payout_subs = relationship('PayoutSubscription', backref='customer')
 
-    plan_invoices = association_proxy('plan_sub', 'invoices')
-    payout_invoices = association_proxy('payout_sub', 'invoices')
+    plan_invoices = association_proxy('plan_subs', 'invoices')
+    payout_invoices = association_proxy('payout_subs', 'invoices')
 
     plan_transactions = relationship('PlanTransaction',
                                      backref='customer')
@@ -107,7 +107,6 @@ class Customer(Base):
 
     @property
     def coupon_use_count(self):
-        from models import PlanInvoice
         count = 0 if not self.current_coupon else self.plan_invoices.filter(
             PlanInvoice.relevant_coupon == self.current_coupon).count()
         return count
@@ -155,9 +154,6 @@ class Customer(Base):
             return False
 
     def clear_plan_debt(self, force=False):
-        from models import PlanTransaction
-        from models import PlanInvoice
-
         now = datetime.now(UTC)
         earliest_due = datetime.now(UTC)
         plan_invoices_due = PlanInvoice.due(self)
@@ -188,14 +184,3 @@ class Customer(Base):
                     raise e
         self.session.commit()
         return self
-
-    @property
-    def plan_subscriptions(self):
-        """
-        Returns a list of invoice objects pertaining to active user
-        subscriptions
-        """
-        from models import PlanSubscription
-        return self.plan_subscriptions.filter(
-            or_(PlanSubscription.is_active == True,
-                PlanSubscription.is_enrolled == True))

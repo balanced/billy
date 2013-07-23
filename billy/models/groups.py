@@ -6,6 +6,7 @@ from sqlalchemy.orm import relationship
 from models import Base
 from utils.generic import api_key_factory, uuid_factory
 
+
 class Group(Base):
     __tablename__ = 'groups'
 

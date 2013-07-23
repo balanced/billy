@@ -7,14 +7,14 @@ from sqlalchemy import (Column, Unicode, ForeignKey, DateTime, Boolean,
                         Integer, Index, or_)
 from sqlalchemy.orm import relationship, validates
 
-from models import Base, Group, Customer, Plan, Coupon
+from models import Base, Customer, Plan, Coupon
 from utils.generic import uuid_factory
 
 
 class PlanSubscription(Base):
     __tablename__ = 'plan_subscription'
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('PLL'))
+    guid = Column(Unicode, primary_key=True, default=uuid_factory('PLS'))
     customer_id = Column(Unicode, ForeignKey(Customer.guid))
     plan_id = Column(Unicode, ForeignKey(Plan.guid))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
@@ -32,16 +32,20 @@ class PlanSubscription(Base):
         result = cls.query.filter(
             cls.customer_id == customer.guid,
             cls.plan_id == plan.guid).first()
-        result = result or cls(customer_id=customer.guid, plan_id=plan.guid)
+        result = result or cls(
+            customer_id=customer.guid, plan_id=plan.guid,
+            # Todo TEMP since default not working for some reason
+            guid=uuid_factory('PLS')())
         result.is_active = True
-        result.enrolled = True
+        result.is_enrolled = True
+        # Todo premature commit might cause issues....
+        cls.session.add(result)
         cls.session.commit()
         return result
 
     @classmethod
     def subscribe(cls, customer, plan, quantity=1,
                   charge_at_period_end=False, start_dt=None):
-        from models import PlanInvoice
         current_coupon = customer.coupon
         start_date = start_dt or datetime.now(UTC)
         due_on = start_date
@@ -79,12 +83,10 @@ class PlanSubscription(Base):
             includes_trial=can_trial
         )
         cls.session.commit()
-        return pi
+        return new_sub
 
     @classmethod
     def unsubscribe(cls, customer, plan, cancel_at_period_end=False):
-        from models import PlanInvoice
-
         if cancel_at_period_end:
             result = cls.query.filter(cls.customer_id == customer.guid,
                                       cls.plan_id == plan.guid,
@@ -94,6 +96,23 @@ class PlanSubscription(Base):
         else:
             PlanInvoice.prorate_last(customer, plan)
         return True
+
+    @classmethod
+    def active_plans(cls, customer):
+        """
+        List of plans that are subscribed and enrolled
+        """
+        return cls.query.filter(cls.customer_id == customer.guid,
+                                cls.is_active == True).all()
+
+    @classmethod
+    def enrolled_plans(cls, customer):
+        """
+        List of plans that are enrolled but sometimes aren't acitve. i.e when
+        you cancel a plan at the end of the period
+        """
+        return cls.query.filter(cls.customer_id == customer.guid,
+                                cls.is_enrolled == True).all()
 
 
 class PlanInvoice(Base):
@@ -144,19 +163,19 @@ class PlanInvoice(Base):
         return new_invoice
 
     @classmethod
-    def get_current_invoice(cls, customer, plan):
+    def retrieve(cls, customer, plan, active_only=False, last_only=False):
         # Todo can probably be cleaner
-        last_invoice = None
-        subscription = PlanSubscription.query.filter(
+        query = PlanSubscription.query.filter(
             PlanSubscription.customer_id == customer.guid,
-            PlanSubscription.plan_id == plan.guid,
-            PlanSubscription.is_active == True).first()
-        if subscription:
+            PlanSubscription.plan_id == plan.guid)
+        if active_only:
+            query = query.filter(PlanSubscription.is_active == True)
+        subscription = query.first()
+        if subscription and last_only:
             for invoice in subscription.invoices:
-                if invoice.end_dt >= datetime.utcnow():
-                    last_invoice = invoice
-                    break
-        return last_invoice
+                if invoice.end_dt >= datetime.now(UTC):
+                    return invoice
+        return subscription.invoices
 
     @classmethod
     def prorate_last(cls, customer, plan):
@@ -165,7 +184,7 @@ class PlanInvoice(Base):
         changing a users plan.
         """
         right_now = datetime.now(UTC)
-        last_invoice = cls.get_current_invoice(customer, plan)
+        last_invoice = cls.retrieve(customer, plan, True, True)
         if last_invoice:
             true_start = last_invoice.start_dt
             if last_invoice.includes_trial:

@@ -13,7 +13,7 @@ from utils.generic import uuid_factory
 class PayoutSubscription(Base):
     __tablename__ = 'payout_subscription'
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('PLL'))
+    guid = Column(Unicode, primary_key=True, default=uuid_factory('POS'))
     customer_id = Column(Unicode, ForeignKey(Customer.guid))
     payout_id = Column(Unicode, ForeignKey(Payout.guid))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
@@ -32,8 +32,7 @@ class PayoutSubscription(Base):
             cls.payout_id == payout.guid).first()
         result = result or cls(
             customer_id=customer.guid, payout_id=payout.guid,
-            # Todo Temp since default not working for some
-            # reason
+            # Todo Temp since default not working for some reason
             guid=uuid_factory('PLL')())
         result.is_active = True
         cls.session.add(result)
@@ -43,8 +42,6 @@ class PayoutSubscription(Base):
 
     @classmethod
     def subscribe(cls, customer, payout, first_now=False, start_dt=None):
-        from models import PayoutInvoice
-
         first_charge = start_dt or datetime.now(UTC)
         balance_to_keep_cents = payout.balance_to_keep_cents
         if not first_now:
@@ -127,8 +124,6 @@ class PayoutInvoice(Base):
                                      start_dt=self.payout_date)
 
     def make_payout(self, force=False):
-        from models import PayoutTransaction
-
         now = datetime.now(UTC)
         current_balance = TRANSACTION_PROVIDER_CLASS.check_balance(
             self.subscription.customer.guid, self.subscription.customer.group_id)

@@ -15,6 +15,7 @@ def create_tables():
     Creates the tables if they dont exists
     """
     Base.metadata.create_all(DB_ENGINE)
+    print "Create tables.... DONE"
 
 
 @manager.command
@@ -26,6 +27,7 @@ def delete_and_replace_tables():
     assert DEBUG
     for table in Base.metadata.sorted_tables:
         table.delete()
+    print "Delete tables.... DONE"
     create_tables()
 
 
@@ -39,9 +41,7 @@ def main_task():
     PlanInvoice.rollover_all()
     PayoutInvoice.make_all_payouts()
     PayoutInvoice.rollover_all()
-
-
-
+    print "Billy task.... DONE"
 
 
 if __name__ == "__main__":

@@ -265,6 +265,7 @@ class TestUpdatePlan(TestCustomer):
             PlanSubscription.subscribe(self.customer, self.plan, 1)
         with freeze_time('2013-01-15'):
              PlanSubscription.subscribe(self.customer, self.plan, 5)
+        import ipdb;ipdb.set_trace()
         invoices = PlanInvoice.retrieve(self.customer, self.plan)
         invoice_old = invoices[0]
         invoice_new = invoices[1]

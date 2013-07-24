@@ -71,7 +71,7 @@ class Customer(Base):
         """
         query = cls.query.filter(cls.external_id == external_id,
                                  cls.group_id == group_id)
-        return query.one()
+        return query.first()
 
     def apply_coupon(self, coupon_eid):
         """

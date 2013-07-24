@@ -72,8 +72,7 @@ class TestRetrieve(TestCustomer):
         self.assertEqual(customer, ret)
 
     def test_retrieve_dne(self):
-        with self.assertRaises(NoResultFound):
-            Customer.retrieve('CUSTOMER_DNE', self.group)
+        self.assertIsNone(Customer.retrieve('CUSTOMER_DNE', self.group))
 
     def test_retrieve_params(self):
         customer = Customer.create(
@@ -161,7 +160,7 @@ class TestCoupon(TestCustomer):
             )
 
     def test_remove_coupon(self):
-        customer = Customer.create(self.external_id, self.group)
+        customer = Customer.create(self.external_id, self.group, 'TESTBALID')
         coupon = Coupon.create(external_id='MY_TEST_COUPON',
                                group_id=self.group,
                                name='My coupon',

@@ -3,10 +3,9 @@
         "path": "/customer/<string:customer_id>/", 
         "methods": [
             "GET", 
-            "POST", 
-            "PUT"
+            "POST"
         ], 
-        "description": "Performs actions on a specific customer"
+        "description": "Methods pertaining to a single customer"
     }, 
     "group": {
         "path": "/auth/", 
@@ -18,8 +17,9 @@
     "customers_index": {
         "path": "/customer/", 
         "methods": [
-            "GET"
+            "GET", 
+            "POST"
         ], 
-        "description": "Returns a list of customers"
+        "description": "Base customer resource used to create a customer or retrieve all your customers"
     }
 }

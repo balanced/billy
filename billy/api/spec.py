@@ -18,20 +18,16 @@ billy_spec = {
         'path': '/auth/',
         'controller': GroupController,
         'methods': get_methods(GroupController),
-        'description': "Base authentication route that converts an API key to"
-                       " a group"
     },
     'customers_index': {
         'path': '/customer/',
         'controller': CustomerIndexController,
         'methods': get_methods(CustomerIndexController),
-        'description': 'Returns a list of customers'
     },
     'customer': {
         'path': '/customer/<string:customer_id>/',
         'controller': CustomerController,
         'methods': get_methods(CustomerController),
-        'description': 'Performs actions on a specific customer'
 
     }
 
@@ -41,6 +37,7 @@ billy_spec = {
 billy_spec_processed = {}
 for resource, spec in billy_spec.iteritems():
     spec = spec.copy()
+    spec['description'] = spec['controller'].__doc__.strip()
     del spec['controller']
     billy_spec_processed[resource] = spec
 

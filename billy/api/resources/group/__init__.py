@@ -8,13 +8,8 @@ from api.lib.auth import get_group_from_api_key
 
 
 class GroupController(Base):
-
     """
-    View to inherit from if authentication is needed. Raises 401 if Api key is
-    inaccurate. Finds API Key in this order:
-        1) HTTP Basic AUTH
-        2) POST parameter
-        3) GET query string parameter
+    Base authentication route that converts an API key to a group
     """
     api_key = None
     group = None
@@ -34,7 +29,7 @@ class GroupController(Base):
 
     def get(self):
         """
-        Get path for auth testing purposes
+        Used to test api_key and authentication
         """
         resp = {
             'AUTH_SUCCESS': True,

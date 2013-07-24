@@ -1,19 +1,16 @@
 from __future__ import unicode_literals
 
 from flask import Flask
-from flask.ext import restful
 
+from api.spec import billy_spec
+from api.resources import Home
+from api import ApiFixed
 from settings import DEBUG
-from api.resources import *
 
 app = Flask(__name__)
-api = restful.Api(app)
-api.handle_error = lambda error: error
-
+api = ApiFixed(app)
 
 api.add_resource(Home, '/')
-api.add_resource(GroupView, '/auth/')
-
-if __name__ == '__main__':
-    app.debug = DEBUG
-    app.run()
+# Register the resources using the spec
+for resource, data in billy_spec.iteritems():
+    api.add_resource(data['controller'], data['path'])

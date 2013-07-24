@@ -44,5 +44,11 @@ def billy_tasks():
     print "Billy task.... DONE"
 
 
+@manager.command
+def run_api():
+    app.debug = DEBUG
+    app.run()
+
+
 if __name__ == "__main__":
     manager.run()

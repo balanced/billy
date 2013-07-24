@@ -27,7 +27,6 @@ class Payout(Base):
 
     subscriptions = relationship('PayoutSubscription', backref='payout')
 
-
     __table_args__ = (UniqueConstraint(external_id, group_id,
                                        name='payout_id_group_unique'),
                       )

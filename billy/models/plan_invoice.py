@@ -246,10 +246,10 @@ class PlanInvoice(Base):
         """
         now = datetime.now(UTC)
         invoices_rollover = cls.query.join(PlanSubscription).filter(
-                                             cls.end_dt <= now,
-                                             PlanSubscription.is_active == True,
-                                             cls.remaining_balance_cents == 0,
-                                             ).all()
+            cls.end_dt <= now,
+            PlanSubscription.is_active == True,
+            cls.remaining_balance_cents == 0,
+        ).all()
         return invoices_rollover
 
     def rollover(self):

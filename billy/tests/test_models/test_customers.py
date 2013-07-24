@@ -234,7 +234,8 @@ class TestUpdatePlan(TestCustomer):
     def test_at_period_end(self):
         PlanSubscription.subscribe(self.customer, self.plan,
                                    quantity=1, charge_at_period_end=True)
-        invoice_new = PlanInvoice.retrieve(self.customer, self.plan, True, True)
+        invoice_new = PlanInvoice.retrieve(
+            self.customer, self.plan, True, True)
         self.assertEqual(invoice_new.end_dt, invoice_new.due_dt)
 
     def test_custom_start_dt(self):
@@ -249,9 +250,11 @@ class TestUpdatePlan(TestCustomer):
 
     def test_can_trial(self):
         with freeze_time('2013-01-01'):
-            invoice_old = PlanSubscription.subscribe(self.customer, self.plan, 1)
+            invoice_old = PlanSubscription.subscribe(
+                self.customer, self.plan, 1)
         with freeze_time('2013-01-15'):
-            invoice_new = PlanSubscription.subscribe(self.customer, self.plan, 5)
+            invoice_new = PlanSubscription.subscribe(
+                self.customer, self.plan, 5)
         self.assertEqual(
             invoice_old.due_dt, invoice_old.start_dt + self.plan.trial_interval)
         self.assertEqual(invoice_new.due_dt, invoice_new.start_dt)
@@ -272,7 +275,7 @@ class TestUpdatePlan(TestCustomer):
             old_invoice = PlanSubscription.subscribe(self.customer, self.plan)
         with freeze_time('2013-01-15'):
             invoice = PlanSubscription.unsubscribe(self.customer,
-                self.plan, cancel_at_period_end=False)
+                                                   self.plan, cancel_at_period_end=False)
             self.assertEqual(invoice.end_dt, datetime.now(UTC))
 
     def test_cancel_at_end(self):

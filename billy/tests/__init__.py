@@ -7,6 +7,7 @@ import sqlalchemy
 from settings import DB_URL, Session
 from models import Base
 
+
 class BalancedTransactionalTestCase(unittest.TestCase):
 
     """

@@ -58,7 +58,7 @@ class PayoutTransaction(TransactionMixin, Base):
     customer_id = Column(Unicode, ForeignKey(Customer.guid))
 
     payout_invoices = relationship(PayoutInvoice,
-                                       backref='transaction')
+                                   backref='transaction')
 
     def execute(self):
         try:

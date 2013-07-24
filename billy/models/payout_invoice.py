@@ -19,8 +19,6 @@ class PayoutSubscription(Base):
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     is_active = Column(Boolean, default=True)
 
-
-
     __table_args__ = (
         Index('unique_payout_sub', payout_id, customer_id,
               postgresql_where=is_active == True,
@@ -131,8 +129,9 @@ class PayoutInvoice(Base):
     @classmethod
     def needs_rollover(cls):
         # Todo: create a better query for this...
-        results = cls.query.join(PayoutSubscription).filter(cls.queue_rollover == True,
-                                   PayoutSubscription.is_active == True).all()
+        results = cls.query.join(
+            PayoutSubscription).filter(cls.queue_rollover == True,
+                                       PayoutSubscription.is_active == True).all()
         return results
 
     def rollover(self):

@@ -109,7 +109,8 @@ class TestRetrieve(TestPayout):
                                )
         payout.delete()
         with self.assertRaises(NoResultFound):
-            Payout.retrieve(self.external_id, self.group.guid, active_only=True)
+            Payout.retrieve(
+                self.external_id, self.group.guid, active_only=True)
 
     def test_list(self):
         Payout.create('MY_TEST_PAYOUT_1', self.group.guid, 'Payout 1', 123456,
@@ -120,26 +121,30 @@ class TestRetrieve(TestPayout):
                       Intervals.MONTH)
         Payout.create('MY_TEST_PAYOUT_4', self.group.guid, 'Payout 4', 628182,
                       Intervals.THREE_MONTHS)
-        Payout.create('MY_TEST_PAYOUT_4', self.group_2.guid, 'Payout 4', 628182,
-                      Intervals.THREE_MONTHS)
-        self.assertEqual(len( Payout.query.join(Group).filter(Group.guid == self.group.guid,
-                                        Payout.active == True).all()), 4)
+        Payout.create(
+            'MY_TEST_PAYOUT_4', self.group_2.guid, 'Payout 4', 628182,
+            Intervals.THREE_MONTHS)
+        self.assertEqual(
+            len(Payout.query.join(Group).filter(Group.guid == self.group.guid,
+                                                Payout.active == True).all()), 4)
 
     def test_list_active_only(self):
         Payout.create('MY_TEST_PAYOUT_1', self.group.guid, 'Payout 1', 123456,
                       Intervals.WEEK)
         Payout.create('MY_TEST_PAYOUT_2', self.group.guid, 'Payout 2', 125828,
                       Intervals.TWO_WEEKS)
-        ret = Payout.create('MY_TEST_PAYOUT_3', self.group.guid, 'Payout 3', 259295,
-                            Intervals.MONTH)
+        ret = Payout.create(
+            'MY_TEST_PAYOUT_3', self.group.guid, 'Payout 3', 259295,
+            Intervals.MONTH)
         Payout.create('MY_TEST_PAYOUT_4', self.group.guid, 'Payout 4', 628182,
                       Intervals.THREE_MONTHS)
-        Payout.create('MY_TEST_PAYOUT_4', self.group_2.guid, 'Payout 4', 628182,
-                      Intervals.THREE_MONTHS)
+        Payout.create(
+            'MY_TEST_PAYOUT_4', self.group_2.guid, 'Payout 4', 628182,
+            Intervals.THREE_MONTHS)
         ret.delete()
         self.assertEqual(len(
             Payout.query.join(Group).filter(Group.guid == self.group.guid,
-                                                    Payout.active == True).all()
+                                            Payout.active == True).all()
         ), 3)
 
 

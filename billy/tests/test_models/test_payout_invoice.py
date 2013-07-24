@@ -22,14 +22,16 @@ class TestPayoutInvoice(BalancedTransactionalTestCase):
         self.group = Group.create('BILLY_TEST_MARKETPLACE')
         self.group_2 = Group.create('BILLY_TEST_MARKETPLACE_2')
         self.customer = Customer.create('MY_TEST_CUSTOMER', self.group.guid)
-        self.customer_2 = Customer.create('MY_TEST_CUSTOMER_2', self.group.guid)
-        self.customer_3 = Customer.create('MY_TEST_CUSTOMER_3', self.group_2.guid)
+        self.customer_2 = Customer.create(
+            'MY_TEST_CUSTOMER_2', self.group.guid)
+        self.customer_3 = Customer.create(
+            'MY_TEST_CUSTOMER_3', self.group_2.guid)
         self.payout = Payout.create('MY_TEST_PAYOUT', self.group.guid,
-                      'Test Payout', 1000, Intervals.TWO_WEEKS)
+                                    'Test Payout', 1000, Intervals.TWO_WEEKS)
         self.payout_2 = Payout.create('MY_TEST_PAYOUT_2', self.group.guid,
-                      'Test Payout 2', 1500, Intervals.MONTH)
+                                      'Test Payout 2', 1500, Intervals.MONTH)
         self.payout_3 = Payout.create('MY_TEST_PAYOUT_3', self.group_2.guid,
-                      'Test Payout 3', 9700, Intervals.MONTH)
+                                      'Test Payout 3', 9700, Intervals.MONTH)
 
 
 class TestCreate(TestPayoutInvoice):
@@ -51,9 +53,8 @@ class TestRetrieve(TestPayoutInvoice):
             subscription_id=inv.subscription.guid,
             payout_date=self.week,
             balanced_to_keep_cents=12345,
-            )
+        )
         self.assertEqual(var.balance_to_keep_cents, 12345)
-
 
     def test_retrieve_params(self):
         inv = PayoutSubscription.subscribe(self.customer, self.payout)
@@ -140,8 +141,8 @@ class TestValidators(TestPayoutInvoice):
 
     def setUp(self):
         super(TestValidators, self).setUp()
-        self.sub_guid = PayoutSubscription.subscribe(self.customer, self.payout).subscription.guid
-
+        self.sub_guid = PayoutSubscription.subscribe(
+            self.customer, self.payout).subscription.guid
 
     def test_balance_to_keep_cents(self):
         with self.assertRaises(ValueError):

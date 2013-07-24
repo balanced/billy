@@ -25,8 +25,10 @@ class TestPlanInvoice(BalancedTransactionalTestCase):
         self.group = Group.create('BILLY_TEST_MARKETPLACE')
         self.group_2 = Group.create('BILLY_TEST_MARKETPLACE_2')
         self.customer = Customer.create('MY_TEST_CUSTOMER', self.group.guid)
-        self.customer_2 = Customer.create('MY_TEST_CUSTOMER_2', self.group.guid)
-        self.customer_group2 = Customer.create('MY_TEST_CUSTOMER_3', self.group_2.guid)
+        self.customer_2 = Customer.create(
+            'MY_TEST_CUSTOMER_2', self.group.guid)
+        self.customer_group2 = Customer.create(
+            'MY_TEST_CUSTOMER_3', self.group_2.guid)
         self.plan = Plan.create(
             external_id=self.plan_id,
             group_id=self.group.guid,
@@ -114,7 +116,7 @@ class TestUtils(TestPlanInvoice):
 
         with freeze_time(str(self.now)):
             sub = PlanSubscription(customer_id=self.customer.guid,
-                                    plan_id=self.plan.guid)
+                                   plan_id=self.plan.guid)
             sub2 = PlanSubscription(customer_id=self.customer.guid,
                                     plan_id=self.plan_2.guid)
             sub3 = PlanSubscription(customer_id=self.customer_2.guid,

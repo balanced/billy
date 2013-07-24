@@ -1,0 +1,25 @@
+{
+    "customer": {
+        "path": "/customer/<string:customer_id>/", 
+        "methods": [
+            "GET", 
+            "POST", 
+            "PUT"
+        ], 
+        "description": "Performs actions on a specific customer"
+    }, 
+    "group": {
+        "path": "/auth/", 
+        "methods": [
+            "GET"
+        ], 
+        "description": "Base authentication route that converts an API key to a group"
+    }, 
+    "customers_index": {
+        "path": "/customer/", 
+        "methods": [
+            "GET"
+        ], 
+        "description": "Returns a list of customers"
+    }
+}

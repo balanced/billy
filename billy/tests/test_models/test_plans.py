@@ -13,10 +13,8 @@ class TestPlan(BalancedTransactionalTestCase):
     def setUp(self):
         super(TestPlan, self).setUp()
         self.external_id = 'MY_TEST_PLAN'
-        self.group = 'BILLY_TEST_MARKETPLACE'
-        self.group_2 = 'BILLY_TEST_MARKETPLACE_2'
-        Group.create(self.group)
-        Group.create(self.group_2)
+        self.group = Group.create('BILLY_TEST_MARKETPLACE')
+        self.group_2 = Group.create('BILLY_TEST_MARKETPLACE_2')
 
 
 class TestCreate(TestPlan):
@@ -24,7 +22,7 @@ class TestCreate(TestPlan):
     def test_create(self):
         Plan.create(
             external_id=self.external_id,
-            group_id=self.group,
+            group_id=self.group.guid,
             name='Starter',
             price_cents=1000,
             plan_interval=Intervals.MONTH,
@@ -34,7 +32,7 @@ class TestCreate(TestPlan):
     def test_create_exists(self):
         Plan.create(
             external_id=self.external_id,
-            group_id=self.group,
+            group_id=self.group.guid,
             name='Starter',
             price_cents=1000,
             plan_interval=Intervals.MONTH,
@@ -43,7 +41,7 @@ class TestCreate(TestPlan):
         with self.assertRaises(IntegrityError):
             Plan.create(
                 external_id=self.external_id,
-                group_id=self.group,
+                group_id=self.group.guid,
                 name='Starter',
                 price_cents=1000,
                 plan_interval=Intervals.MONTH,
@@ -53,7 +51,7 @@ class TestCreate(TestPlan):
     def test_create_semi_colliding(self):
         Plan.create(
             external_id=self.external_id,
-            group_id=self.group,
+            group_id=self.group.guid,
             name='Starter',
             price_cents=1000,
             plan_interval=Intervals.MONTH,
@@ -61,15 +59,15 @@ class TestCreate(TestPlan):
         )
         Plan.create(
             external_id=self.external_id,
-            group_id=self.group_2,
+            group_id=self.group_2.guid,
             name='Starter',
             price_cents=1520,
             plan_interval=Intervals.WEEK,
             trial_interval=Intervals.MONTH
         )
-        ret = Plan.retrieve(self.external_id, self.group)
+        ret = Plan.retrieve(self.external_id, self.group.guid)
         self.assertEqual(ret.price_cents, 1000)
-        ret = Plan.retrieve(self.external_id, self.group_2)
+        ret = Plan.retrieve(self.external_id, self.group_2.guid)
         self.assertEqual(ret.price_cents, 1520)
 
 
@@ -78,28 +76,28 @@ class TestRetrieve(TestPlan):
     def test_create_and_retrieve(self):
         Plan.create(
             external_id=self.external_id,
-            group_id=self.group,
+            group_id=self.group.guid,
             name='Starter',
             price_cents=1000,
             plan_interval=Intervals.MONTH,
             trial_interval=Intervals.WEEK
         )
-        Plan.retrieve(self.external_id, self.group)
+        Plan.retrieve(self.external_id, self.group.guid)
 
     def test_retrieve_dne(self):
         with self.assertRaises(NoResultFound):
-            Plan.retrieve('MY_TEST_PLAN_DNE', self.group)
+            Plan.retrieve('MY_TEST_PLAN_DNE', self.group.guid)
 
     def test_retrieve_params(self):
         Plan.create(
             external_id=self.external_id,
-            group_id=self.group,
+            group_id=self.group.guid,
             name='Premium',
             price_cents=152592,
             plan_interval=Intervals.DAY,
             trial_interval=Intervals.MONTH
         )
-        ret = Plan.retrieve(self.external_id, self.group)
+        ret = Plan.retrieve(self.external_id, self.group.guid)
         self.assertEqual(ret.name, 'Premium')
         self.assertEqual(ret.trial_interval, Intervals.MONTH)
         self.assertEqual(ret.plan_interval, Intervals.DAY)
@@ -109,7 +107,7 @@ class TestRetrieve(TestPlan):
     def test_retrieve_active_only(self):
         var = Plan.create(
             external_id=self.external_id,
-            group_id=self.group,
+            group_id=self.group.guid,
             name='Premium',
             price_cents=152592,
             plan_interval=Intervals.DAY,
@@ -117,33 +115,33 @@ class TestRetrieve(TestPlan):
         )
         var.delete()
         with self.assertRaises(NoResultFound):
-            Plan.retrieve(self.external_id, self.group, active_only=True)
+            Plan.retrieve(self.external_id, self.group.guid, active_only=True)
 
     def test_list(self):
-        Plan.create('MY_TEST_PLAN1', self.group, 'YO1', 1000,
+        Plan.create('MY_TEST_PLAN1', self.group.guid, 'YO1', 1000,
                     Intervals.WEEK, Intervals.DAY)
-        Plan.create('MY_TEST_PLAN2', self.group, 'YO2', 1200,
+        Plan.create('MY_TEST_PLAN2', self.group.guid, 'YO2', 1200,
                     Intervals.TWO_WEEKS, Intervals.MONTH)
-        Plan.create('MY_TEST_PLAN3', self.group, 'YO3', 1300,
+        Plan.create('MY_TEST_PLAN3', self.group.guid, 'YO3', 1300,
                     Intervals.WEEK, Intervals.DAY)
-        Plan.create('MY_TEST_PLAN4', self.group, 'YO4', 1400,
+        Plan.create('MY_TEST_PLAN4', self.group.guid, 'YO4', 1400,
                     Intervals.THREE_MONTHS, Intervals.WEEK)
-        Plan.create('MY_TEST_PLAN4', self.group_2, 'YO4', 1400,
+        Plan.create('MY_TEST_PLAN4', self.group_2.guid, 'YO4', 1400,
                     Intervals.THREE_MONTHS, Intervals.WEEK)
-        results = Plan.list(self.group)
+        results = Plan.list(self.group.guid)
         self.assertEqual(len(results), 4)
 
     def test_list_active_only(self):
-        Plan.create('MY_TEST_PLAN1', self.group, 'YO1', 1000,
+        Plan.create('MY_TEST_PLAN1', self.group.guid, 'YO1', 1000,
                     Intervals.WEEK, Intervals.DAY)
-        Plan.create('MY_TEST_PLAN2', self.group, 'YO2', 1200,
+        Plan.create('MY_TEST_PLAN2', self.group.guid, 'YO2', 1200,
                     Intervals.TWO_WEEKS, Intervals.MONTH)
-        to_cancel = Plan.create('MY_TEST_PLAN3', self.group, 'YO3', 1300,
+        to_cancel = Plan.create('MY_TEST_PLAN3', self.group.guid, 'YO3', 1300,
                                 Intervals.WEEK, Intervals.DAY)
-        Plan.create('MY_TEST_PLAN4', self.group, 'YO4', 1400,
+        Plan.create('MY_TEST_PLAN4', self.group.guid, 'YO4', 1400,
                     Intervals.THREE_MONTHS, Intervals.WEEK)
         to_cancel.delete()
-        results = Plan.list(self.group, active_only=True)
+        results = Plan.list(self.group.guid, active_only=True)
         self.assertEqual(len(results), 3)
 
 
@@ -152,27 +150,27 @@ class TestUpdateDelete(TestPlan):
     def test_update(self):
         plan = Plan.create(
             external_id=self.external_id,
-            group_id=self.group,
+            group_id=self.group.guid,
             name='Premium',
             price_cents=152592,
             plan_interval=Intervals.DAY,
             trial_interval=Intervals.MONTH
         )
         plan.update(name='Starter')
-        ret = Plan.retrieve(self.external_id, self.group)
+        ret = Plan.retrieve(self.external_id, self.group.guid)
         self.assertEqual(ret.name, 'Starter')
 
     def test_delete(self):
         plan = Plan.create(
             external_id=self.external_id,
-            group_id=self.group,
+            group_id=self.group.guid,
             name='Premium',
             price_cents=152592,
             plan_interval=Intervals.DAY,
             trial_interval=Intervals.MONTH
         )
         plan.delete()
-        ret = Plan.retrieve(self.external_id, self.group)
+        ret = Plan.retrieve(self.external_id, self.group.guid)
         self.assertFalse(ret.active)
 
 
@@ -182,7 +180,7 @@ class TestValidators(TestPlan):
         with self.assertRaises(ValueError):
             Plan.create(
                 external_id=self.external_id,
-                group_id=self.group,
+                group_id=self.group.guid,
                 name='Premium',
                 price_cents=-20,
                 plan_interval=Intervals.DAY,
@@ -193,7 +191,7 @@ class TestValidators(TestPlan):
         with self.assertRaises(StatementError):
             Plan.create(
                 external_id=self.external_id,
-                group_id=self.group,
+                group_id=self.group.guid,
                 name='Premium',
                 price_cents=20,
                 plan_interval=Intervals.DAY,
@@ -204,7 +202,7 @@ class TestValidators(TestPlan):
         with self.assertRaises(StatementError):
             Plan.create(
                 external_id=self.external_id,
-                group_id=self.group,
+                group_id=self.group.guid,
                 name='Premium',
                 price_cents=20,
                 plan_interval="HEY",

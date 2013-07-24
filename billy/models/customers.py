@@ -155,6 +155,7 @@ class Customer(Base):
             return False
 
     def clear_plan_debt(self, force=False):
+        from models import PlanInvoice, PlanTransaction
         now = datetime.now(UTC)
         earliest_due = datetime.now(UTC)
         plan_invoices_due = PlanInvoice.due(self)

@@ -337,16 +337,14 @@ class TestPayout(TestCustomer):
 
     def test_change_payout(self):
         with freeze_time('2013-2-15'):
-            sub = PayoutSubscription.subscribe(self.customer, self.payout)
-            invoice = sub.invoices[0]
+            invoice = PayoutSubscription.subscribe(self.customer, self.payout)
             self.assertEqual(
                 invoice.payout_date, datetime.now(UTC) + self.payout.payout_interval)
 
     def test_add_payout_first_now(self):
         with freeze_time('2013-2-15'):
-            sub = PayoutSubscription.subscribe(
+            invoice = PayoutSubscription.subscribe(
                 self.customer, self.payout, True)
-            invoice = sub.invoices[0]
             self.assertEqual(invoice.payout_date, datetime.now(UTC))
 
     def add_payout_not_first_now(self):
@@ -382,9 +380,9 @@ class TestPayout(TestCustomer):
                                        cancel_scheduled=True)
         invoice = PayoutSubscription.query.filter(
             PayoutSubscription.customer_id == self.customer.guid,
-            PayoutSubscription.payout_id == self.payout.guid).one()
+            PayoutSubscription.payout_id == self.payout.guid).one().invoices[0]
         self.assertTrue(invoice.completed)
-        self.assertFalse(sub.is_active)
+        self.assertFalse(invoice.subscription.is_active)
 
 
 class TestRelations(TestCustomer):

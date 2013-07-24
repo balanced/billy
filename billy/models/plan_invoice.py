@@ -245,8 +245,9 @@ class PlanInvoice(Base):
         Returns a list of PlanInvoice objects that need a rollover
         """
         now = datetime.now(UTC)
-        invoices_rollover = cls.query.filter(cls.end_dt <= now,
-                                             cls.active == True,
+        invoices_rollover = cls.query.join(PlanSubscription).filter(
+                                             cls.end_dt <= now,
+                                             PlanSubscription.is_active == True,
                                              cls.remaining_balance_cents == 0,
                                              ).all()
         return invoices_rollover
@@ -256,7 +257,7 @@ class PlanInvoice(Base):
         Rollover the invoice
         """
         customer = self.subscription.customer
-        plan = self.subscription
+        plan = self.subscription.plan
         PlanSubscription.subscribe(
             customer=customer,
             plan=plan,

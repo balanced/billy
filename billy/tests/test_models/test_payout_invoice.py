@@ -35,9 +35,9 @@ class TestPayoutInvoice(BalancedTransactionalTestCase):
 class TestCreate(TestPayoutInvoice):
 
     def test_create(self):
-        sub = PayoutSubscription.subscribe(self.customer, self.payout)
+        invoice = PayoutSubscription.subscribe(self.customer, self.payout)
         PayoutInvoice.create(
-            subscription_id=sub.guid,
+            subscription_id=invoice.subscription.guid,
             payout_date=self.week,
             balanced_to_keep_cents=5000
         )
@@ -46,9 +46,9 @@ class TestCreate(TestPayoutInvoice):
 class TestRetrieve(TestPayoutInvoice):
 
     def test_create_and_retrieve(self):
-        sub = PayoutSubscription.subscribe(self.customer, self.payout)
+        inv = PayoutSubscription.subscribe(self.customer, self.payout)
         var = PayoutInvoice.create(
-            subscription_id=sub.guid,
+            subscription_id=inv.subscription.guid,
             payout_date=self.week,
             balanced_to_keep_cents=12345,
             )
@@ -56,9 +56,9 @@ class TestRetrieve(TestPayoutInvoice):
 
 
     def test_retrieve_params(self):
-        sub = PayoutSubscription.subscribe(self.customer, self.payout)
+        inv = PayoutSubscription.subscribe(self.customer, self.payout)
         var = PayoutInvoice.create(
-            subscription_id=sub.guid,
+            subscription_id=inv.subscription.guid,
             payout_date=self.week,
             balanced_to_keep_cents=12345
         )
@@ -140,7 +140,7 @@ class TestValidators(TestPayoutInvoice):
 
     def setUp(self):
         super(TestValidators, self).setUp()
-        self.sub_guid = PayoutSubscription.subscribe(self.customer, self.payout).guid
+        self.sub_guid = PayoutSubscription.subscribe(self.customer, self.payout).subscription.guid
 
 
     def test_balance_to_keep_cents(self):

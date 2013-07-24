@@ -48,9 +48,9 @@ class TestPlanInvoice(BalancedTransactionalTestCase):
 class TestCreate(TestPlanInvoice):
 
     def test_create(self):
-        sub = PlanSubscription.subscribe(self.customer, self.plan)
+        inv = PlanSubscription.subscribe(self.customer, self.plan)
         PlanInvoice.create(
-            subscription_id=sub.guid,
+            subscription_id=inv.subscription.guid,
             relevant_coupon=None,
             start_dt=self.now,
             end_dt=self.month,
@@ -68,9 +68,9 @@ class TestCreate(TestPlanInvoice):
 class TestRetrieve(TestPlanInvoice):
 
     def test_create_and_retrieve(self):
-        sub = PlanSubscription.subscribe(self.customer, self.plan)
+        inv = PlanSubscription.subscribe(self.customer, self.plan)
         PlanInvoice.create(
-            subscription_id=sub.guid,
+            subscription_id=inv.subscription.guid,
             relevant_coupon=None,
             start_dt=self.now,
             end_dt=self.month,
@@ -84,149 +84,45 @@ class TestRetrieve(TestPlanInvoice):
             includes_trial=False,
         )
         res = PlanInvoice.retrieve(
-            self.customer, self.plan, active_only=True)
+            self.customer, self.plan, active_only=True, last_only=True)
         self.assertEqual(res.amount_base_cents, 1000)
 
     def test_retrieve_params(self):
-        sub = PlanSubscription.subscribe(self.customer, self.plan)
-        PlanInvoice.create(
-            subscription_id=sub.guid,
-            relevant_coupon=None,
-            start_dt=self.now,
-            end_dt=self.month,
-            due_dt=self.week,
-            amount_base_cents=1000,
-            amount_after_coupon_cents=800,
-            amount_paid_cents=200,
-            remaining_balance_cents=600,
-            quantity=10,
-            charge_at_period_end=False,
-            includes_trial=False,
-        )
-        res = PlanInvoice.retrieve(
-            self.customer, self.plan, active_only=True)
-        self.assertEqual(res.customer_id, self.customer)
-        self.assertTrue(res.active)
-        self.assertEqual(res.relevant_plan, self.plan_id)
-        self.assertEqual(res.relevant_coupon, None)
-        self.assertEqual(res.start_dt, self.now)
-        self.assertEqual(res.due_dt, self.week)
-        self.assertEqual(res.end_dt, self.month)
-        self.assertEqual(res.amount_base_cents, 1000)
-        self.assertEqual(res.amount_after_coupon_cents, 800)
-        self.assertEqual(res.amount_paid_cents, 200)
-        self.assertEqual(res.remaining_balance_cents, 600)
-        self.assertEqual(res.quantity, 10)
-        self.assertFalse(res.charge_at_period_end)
-        self.assertFalse(res.includes_trial)
-
-    def test_retrieve_active_only(self):
-        ret = PlanInvoice.create(
-            customer_id=self.customer,
-            group_id=self.group,
-            relevant_plan=self.plan_id,
-            relevant_coupon=None,
-            start_dt=self.now,
-            end_dt=self.month,
-            due_dt=self.week,
-            amount_base_cents=1000,
-            amount_after_coupon_cents=800,
-            amount_paid_cents=200,
-            remaining_balance_cents=600,
-            quantity=10,
-            charge_at_period_end=False,
-            includes_trial=False,
-        )
-        ret.active = False
-        ret.session.commit()
-        with self.assertRaises(NoResultFound):
-            PlanInvoice.retrieve(
-                self.customer, self.group, self.plan_id, active_only=True)
-
-    def test_list(self):
-        PlanInvoice.create(
-            customer_id=self.customer,
-            group_id=self.group,
-            relevant_plan=self.plan_id,
-            relevant_coupon=None,
-            start_dt=self.now,
-            end_dt=self.month,
-            due_dt=self.week,
-            amount_base_cents=2000,
-            amount_after_coupon_cents=800,
-            amount_paid_cents=200,
-            remaining_balance_cents=600,
-            quantity=10,
-            charge_at_period_end=False,
-            includes_trial=False,
-        )
-        PlanInvoice.create(
-            customer_id=self.customer_2,
-            group_id=self.group,
-            relevant_plan=self.plan_id,
-            relevant_coupon=None,
-            start_dt=self.now,
-            end_dt=self.month,
-            due_dt=self.week,
-            amount_base_cents=1000,
-            amount_after_coupon_cents=800,
-            amount_paid_cents=200,
-            remaining_balance_cents=600,
-            quantity=10,
-            charge_at_period_end=False,
-            includes_trial=False,
-        )
-        list = PlanInvoice.list(self.group)
-        self.assertEqual(len(list), 2)
-
-    def test_list_active_only(self):
-        PlanInvoice.create(
-            customer_id=self.customer,
-            group_id=self.group,
-            relevant_plan=self.plan_id,
-            relevant_coupon=None,
-            start_dt=self.now,
-            end_dt=self.month,
-            due_dt=self.week,
-            amount_base_cents=2000,
-            amount_after_coupon_cents=800,
-            amount_paid_cents=200,
-            remaining_balance_cents=600,
-            quantity=10,
-            charge_at_period_end=False,
-            includes_trial=False,
-        )
-        two = PlanInvoice.create(
-            customer_id=self.customer_2,
-            group_id=self.group,
-            relevant_plan=self.plan_id,
-            relevant_coupon=None,
-            start_dt=self.now,
-            end_dt=self.month,
-            due_dt=self.week,
-            amount_base_cents=1000,
-            amount_after_coupon_cents=800,
-            amount_paid_cents=200,
-            remaining_balance_cents=600,
-            quantity=10,
-            charge_at_period_end=False,
-            includes_trial=False,
-        )
-        two.active = False
-        two.session.commit()
-        list = PlanInvoice.list(self.group, active_only=True)
-        self.assertEqual(len(list), 1)
+        with freeze_time(str(self.now)):
+            inv = PlanSubscription.subscribe(self.customer, self.plan,
+                                             quantity=10)
+        self.assertEqual(inv.subscription.customer, self.customer)
+        self.assertTrue(inv.subscription.is_active)
+        self.assertEqual(inv.subscription.plan, self.plan)
+        self.assertEqual(inv.relevant_coupon, None)
+        self.assertEqual(inv.start_dt, self.now)
+        self.assertEqual(inv.due_dt, self.week)
+        self.assertEqual(inv.end_dt, self.month + Intervals.WEEK)
+        self.assertEqual(inv.amount_base_cents, 10000)
+        self.assertEqual(inv.amount_after_coupon_cents, 10000)
+        self.assertEqual(inv.amount_paid_cents, 0)
+        self.assertEqual(inv.remaining_balance_cents, 10000)
+        self.assertEqual(inv.quantity, 10)
+        self.assertFalse(inv.charge_at_period_end)
+        self.assertTrue(inv.includes_trial)
 
 
 class TestUtils(TestPlanInvoice):
 
     def setUp(self):
         super(TestUtils, self).setUp()
+
         with freeze_time(str(self.now)):
+            sub = PlanSubscription(customer_id=self.customer.guid,
+                                    plan_id=self.plan.guid)
+            sub2 = PlanSubscription(customer_id=self.customer.guid,
+                                    plan_id=self.plan_2.guid)
+            sub3 = PlanSubscription(customer_id=self.customer_2.guid,
+                                    plan_id=self.plan.guid)
+            PlanSubscription.session.add_all([sub, sub2, sub3])
+            PlanSubscription.session.commit()
             PlanInvoice.create(
-                customer_id=self.customer,
-                group_id=self.group,
-                relevant_plan=self.plan_id,
+                subscription_id=sub.guid,
                 relevant_coupon=None,
                 start_dt=self.now,
                 end_dt=self.month,
@@ -240,9 +136,7 @@ class TestUtils(TestPlanInvoice):
                 includes_trial=False,
             )
             PlanInvoice.create(
-                customer_id=self.customer,
-                group_id=self.group,
-                relevant_plan=self.plan_id_2,
+                subscription_id=sub2.guid,
                 relevant_coupon=None,
                 start_dt=self.now,
                 end_dt=self.month,
@@ -256,9 +150,7 @@ class TestUtils(TestPlanInvoice):
                 includes_trial=False,
             )
             PlanInvoice.create(
-                customer_id=self.customer_2,
-                group_id=self.group,
-                relevant_plan=self.plan_id,
+                subscription_id=sub3.guid,
                 relevant_coupon=None,
                 start_dt=self.now,
                 end_dt=self.month,
@@ -313,12 +205,15 @@ class TestUtils(TestPlanInvoice):
 
 class TestValidators(TestPlanInvoice):
 
+    def setUp(self):
+        super(TestValidators, self).setUp()
+        self.sub_guid = PlanSubscription.subscribe(
+            self.customer, self.plan).subscription.guid
+
     def test_amount_base_cents(self):
         with self.assertRaises(ValueError):
             PlanInvoice.create(
-                customer_id=self.customer,
-                group_id=self.group,
-                relevant_plan=self.plan_id,
+                subscription_id=self.sub_guid,
                 relevant_coupon=None,
                 start_dt=self.now,
                 end_dt=self.month,
@@ -335,9 +230,7 @@ class TestValidators(TestPlanInvoice):
     def test_amount_after_coupon_cents(self):
         with self.assertRaises(ValueError):
             PlanInvoice.create(
-                customer_id=self.customer,
-                group_id=self.group,
-                relevant_plan=self.plan_id,
+                subscription_id=self.sub_guid,
                 relevant_coupon=None,
                 start_dt=self.now,
                 end_dt=self.month,
@@ -354,9 +247,7 @@ class TestValidators(TestPlanInvoice):
     def test_amount_paid_cents(self):
         with self.assertRaises(ValueError):
             PlanInvoice.create(
-                customer_id=self.customer,
-                group_id=self.group,
-                relevant_plan=self.plan_id,
+                subscription_id=self.sub_guid,
                 relevant_coupon=None,
                 start_dt=self.now,
                 end_dt=self.month,
@@ -373,9 +264,7 @@ class TestValidators(TestPlanInvoice):
     def test_quantity(self):
         with self.assertRaises(ValueError):
             PlanInvoice.create(
-                customer_id=self.customer,
-                group_id=self.group,
-                relevant_plan=self.plan_id,
+                subscription_id=self.sub_guid,
                 relevant_coupon=None,
                 start_dt=self.now,
                 end_dt=self.month,

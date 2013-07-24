@@ -19,6 +19,8 @@ class PayoutSubscription(Base):
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     is_active = Column(Boolean, default=True)
 
+
+
     __table_args__ = (
         Index('unique_payout_sub', payout_id, customer_id,
               postgresql_where=is_active == True,
@@ -58,7 +60,6 @@ class PayoutSubscription(Base):
     @classmethod
     def unsubscribe(cls, customer, payout, cancel_scheduled=False):
         from models import PayoutInvoice
-
         current_sub = cls.query.filter(cls.customer_id == customer.guid,
                                        cls.payout_id == payout.guid,
                                        cls.is_active == True
@@ -82,6 +83,7 @@ class PayoutInvoice(Base):
     balance_to_keep_cents = Column(Integer)
     amount_payed_out = Column(Integer)
     completed = Column(Boolean, default=False)
+    queue_rollover = Column(Boolean, default=False)
     balance_at_exec = Column(Integer)
     cleared_by_txn = Column(Unicode, ForeignKey('payout_transactions.guid'))
     attempts_made = Column(Integer, default=0)
@@ -102,6 +104,24 @@ class PayoutInvoice(Base):
         return new_invoice
 
     @classmethod
+    def retrieve(cls, customer, payout, active_only=False, last_only=False):
+        # Todo can probably be cleaner
+        query = PayoutSubscription.query.filter(
+            PayoutSubscription.customer_id == customer.guid,
+            PayoutSubscription.payout_id == payout.guid)
+        if active_only:
+            query = query.filter(PayoutSubscription.is_active == True)
+        subscription = query.first()
+        if subscription and last_only:
+            last = None
+            for invoice in subscription.invoices:
+                if invoice.payout_date >= datetime.now(UTC):
+                    last = invoice
+                    break
+            return last
+        return subscription.invoices
+
+    @classmethod
     def needs_payout_made(cls):
         now = datetime.now(UTC)
         return cls.query.filter(cls.payout_date <= now,
@@ -111,19 +131,21 @@ class PayoutInvoice(Base):
     @classmethod
     def needs_rollover(cls):
         # Todo: create a better query for this...
-        results = cls.query.filter(cls.completed == True).all()
-        return results.subscriptions.filter(
-            PayoutSubscription.is_active == True).all()
+        results = cls.query.join(PayoutSubscription).filter(cls.queue_rollover == True,
+                                   PayoutSubscription.is_active == True).all()
+        return results
 
     def rollover(self):
         self.subscription.is_active = False
+        self.queue_rollover = False
         self.session.flush()
         PayoutSubscription.subscribe(self.subscription.customer,
-                                     self.subscription.plan,
+                                     self.subscription.payout,
                                      first_now=False,
                                      start_dt=self.payout_date)
 
     def make_payout(self, force=False):
+        from models import PayoutTransaction
         now = datetime.now(UTC)
         current_balance = TRANSACTION_PROVIDER_CLASS.check_balance(
             self.subscription.customer.guid, self.subscription.customer.group_id)
@@ -137,13 +159,14 @@ class PayoutInvoice(Base):
             if when_to_payout <= now:
                 payout_amount = current_balance - self.balance_to_keep_cents
                 transaction = PayoutTransaction.create(
-                    self.customer_id, payout_amount)
+                    self.subscription.customer_id, payout_amount)
                 try:
                     transaction.execute()
                     self.cleared_by = transaction.guid
                     self.balance_at_exec = current_balance
                     self.amount_payed_out = payout_amount
                     self.completed = True
+                    self.queue_rollover = True
                 except Exception, e:
                     self.attempts_made += 1
                     self.session.commit()

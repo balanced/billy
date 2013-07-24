@@ -32,13 +32,14 @@ class PlanTransaction(TransactionMixin, Base):
     __tablename__ = "plan_transactions"
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PAT'))
-    plan_invoices = relationship(PlanInvoice, backref='transaction')
     customer_id = Column(Unicode, ForeignKey(Customer.guid))
+
+    plan_invoices = relationship(PlanInvoice, backref='transaction')
 
     def execute(self):
             try:
                 external_id = TRANSACTION_PROVIDER_CLASS.create_charge(
-                    self.customer_id, self.group_id,
+                    self.customer.guid, self.customer.group_id,
                     self.amount_cents)
                 self.status = Status.COMPLETE
                 self.external_id = external_id
@@ -54,14 +55,15 @@ class PayoutTransaction(TransactionMixin, Base):
     __tablename__ = 'payout_transactions'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POT'))
-    payout_invoices = relationship(PayoutInvoice,
-                                   backref='transaction')
     customer_id = Column(Unicode, ForeignKey(Customer.guid))
+
+    payout_invoices = relationship(PayoutInvoice,
+                                       backref='transaction')
 
     def execute(self):
         try:
             external_id = TRANSACTION_PROVIDER_CLASS.make_payout(
-                self.customer_id, self.group_id,
+                self.customer.guid, self.customer.group_id,
                 self.amount_cents)
             self.status = Status.COMPLETE
             self.external_id = external_id

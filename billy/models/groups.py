@@ -15,8 +15,8 @@ class Group(Base):
     api_key = Column(Unicode, unique=True, default=api_key_factory())
     coupons = relationship('Coupon', backref='group')
     customers = relationship('Customer', backref='group')
-    plans = relationship('Plan', backref='group')
-    payouts = relationship('Payout', backref='group')
+    plans = relationship('Plan', backref='group', lazy='dynamic')
+    payouts = relationship('Payout', backref='group', lazy='dynamic')
 
     @classmethod
     def create(cls, external_id, **kwargs):

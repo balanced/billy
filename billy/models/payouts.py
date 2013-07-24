@@ -4,7 +4,7 @@ from datetime import datetime
 from pytz import UTC
 from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, \
     ForeignKey, UniqueConstraint
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import validates, relationship
 
 from models import *
 from models.base import RelativeDelta
@@ -24,6 +24,9 @@ class Payout(Base):
     deleted_at = Column(DateTime(timezone=UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_interval = Column(RelativeDelta)
+
+    subscriptions = relationship('PayoutSubscription', backref='payout')
+
 
     __table_args__ = (UniqueConstraint(external_id, group_id,
                                        name='payout_id_group_unique'),
@@ -80,18 +83,6 @@ class Payout(Base):
         self.updated_at = datetime.now(UTC)
         self.session.commit()
         return self
-
-    @classmethod
-    def list(cls, group_id, active_only=False):
-        """
-        Returns a list of payouts currently in the database
-        :param group_id: The group id/uri
-        :returns: A list of Payout objects
-        """
-        query = cls.query.filter(cls.group_id == group_id)
-        if active_only:
-            query = query.filter(cls.active == True)
-        return query.all()
 
     def delete(self):
         """

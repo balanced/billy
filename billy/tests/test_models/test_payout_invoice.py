@@ -21,11 +21,11 @@ class TestPayoutInvoice(BalancedTransactionalTestCase):
         self.month = self.now + Intervals.MONTH
         self.group = Group.create('BILLY_TEST_MARKETPLACE')
         self.group_2 = Group.create('BILLY_TEST_MARKETPLACE_2')
-        self.customer = Customer.create('MY_TEST_CUSTOMER', self.group.guid)
+        self.customer = Customer.create('MY_TEST_CUSTOMER', self.group.guid, 'TESTBALID')
         self.customer_2 = Customer.create(
-            'MY_TEST_CUSTOMER_2', self.group.guid)
+            'MY_TEST_CUSTOMER_2', self.group.guid, 'TESTBALID')
         self.customer_3 = Customer.create(
-            'MY_TEST_CUSTOMER_3', self.group_2.guid)
+            'MY_TEST_CUSTOMER_3', self.group_2.guid, 'TESTBALID')
         self.payout = Payout.create('MY_TEST_PAYOUT', self.group.guid,
                                     'Test Payout', 1000, Intervals.TWO_WEEKS)
         self.payout_2 = Payout.create('MY_TEST_PAYOUT_2', self.group.guid,

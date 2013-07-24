@@ -27,28 +27,33 @@ class TestCreate(TestCustomer):
     def test_create(self):
         Customer.create(
             external_id=self.external_id,
-            group_id=self.group
+            group_id=self.group,
+            balanced_id='TESTBALID'
         )
 
     def test_create_exists(self):
         Customer.create(
             external_id=self.external_id,
-            group_id=self.group
+            group_id=self.group,
+            balanced_id='TESTBALID'
         )
         with self.assertRaises(IntegrityError):
             Customer.create(
                 external_id=self.external_id,
-                group_id=self.group
+                group_id=self.group,
+                balanced_id='TESTBALID'
             )
 
     def test_create_semi_colliding(self):
         Customer.create(
             external_id=self.external_id,
-            group_id=self.group
+            group_id=self.group,
+            balanced_id='TESTBALID'
         )
         Customer.create(
             external_id=self.external_id,
-            group_id=self.group_2
+            group_id=self.group_2,
+            balanced_id='TESTBALID'
         )
         first = Customer.retrieve(self.external_id, self.group)
         second = Customer.retrieve(self.external_id, self.group_2)
@@ -60,7 +65,8 @@ class TestRetrieve(TestCustomer):
     def test_create_and_retrieve(self):
         customer = Customer.create(
             external_id=self.external_id,
-            group_id=self.group
+            group_id=self.group,
+            balanced_id='TESTBALID'
         )
         ret = Customer.retrieve(self.external_id, self.group)
         self.assertEqual(customer, ret)
@@ -72,17 +78,20 @@ class TestRetrieve(TestCustomer):
     def test_retrieve_params(self):
         customer = Customer.create(
             external_id=self.external_id,
-            group_id=self.group
+            group_id=self.group,
+            balanced_id='TESTBALID'
         )
         ret = Customer.retrieve(self.external_id, self.group)
-        self.assertEqual(customer, ret)
+        self.assertEqual(customer.balanced_id, ret.balanced_id)
+        self.assertEqual(customer.external_id, ret.external_id)
+        self.assertEqual(customer.group_id, ret.group_id)
 
     def test_list(self):
-        Customer.create('MY_TEST_CUS_1', self.group)
-        Customer.create('MY_TEST_CUS_2', self.group)
-        Customer.create('MY_TEST_CUS_3', self.group)
-        Customer.create('MY_TEST_CUS_4', self.group)
-        Customer.create('MY_TEST_CUS_1', self.group_2)
+        Customer.create('MY_TEST_CUS_1', self.group, 'TESTBALID')
+        Customer.create('MY_TEST_CUS_2', self.group, 'TESTBALID')
+        Customer.create('MY_TEST_CUS_3', self.group, 'TESTBALID')
+        Customer.create('MY_TEST_CUS_4', self.group, 'TESTBALID')
+        Customer.create('MY_TEST_CUS_1', self.group_2,'TESTBALID')
         self.assertEqual(len(self.group_obj.customers), 4)
 
 
@@ -91,7 +100,8 @@ class TestCoupon(TestCustomer):
     def test_apply_coupon(self):
         customer = Customer.create(
             external_id=self.external_id,
-            group_id=self.group
+            group_id=self.group,
+            balanced_id='TESTBALID'
         )
         coupon = Coupon.create(external_id=self.external_id,
                                group_id=self.group,
@@ -113,18 +123,17 @@ class TestCoupon(TestCustomer):
                                max_redeem=3,
                                repeating=-1,
                                )
-        Customer.create('MY_TEST_CUS_1', self.group).apply_coupon(coupon
+        Customer.create('MY_TEST_CUS_1', self.group, 'TESTBALID').apply_coupon(coupon
                                                                   .external_id)
         self.assertEqual(coupon.count_redeemed, 1)
-        Customer.create('MY_TEST_CUS_2', self.group).apply_coupon(coupon
+        Customer.create('MY_TEST_CUS_2', self.group, 'TESTBALID').apply_coupon(coupon
                                                                   .external_id)
         self.assertEqual(coupon.count_redeemed, 2)
-        customer = Customer.create('MY_TEST_CUS_3', self.group).apply_coupon(
-            coupon
-            .external_id)
+        customer = Customer.create('MY_TEST_CUS_3', self.group, 'TESTBALID').apply_coupon(
+            coupon.external_id)
         self.assertEqual(coupon.count_redeemed, 3)
         with self.assertRaises(ValueError):
-            Customer.create('MY_TEST_CUS_4', self.group).apply_coupon(
+            Customer.create('MY_TEST_CUS_4', self.group, 'TESTBALID').apply_coupon(
                 coupon
                 .external_id)
         customer.remove_coupon()
@@ -142,12 +151,12 @@ class TestCoupon(TestCustomer):
                                )
         coupon.delete()
         with self.assertRaises(NoResultFound):
-            Customer.create('MY_TEST_CUS_3', self.group).apply_coupon(coupon
+            Customer.create('MY_TEST_CUS_3', self.group, 'TESTBALID').apply_coupon(coupon
                                                                       .external_id)
 
     def test_apply_coupon_dne(self):
         with self.assertRaises(NoResultFound):
-            Customer.create(self.external_id, self.group).apply_coupon(
+            Customer.create(self.external_id, self.group, 'TESTBALID').apply_coupon(
                 'TEST_COUPON_DNE'
             )
 
@@ -167,7 +176,7 @@ class TestCoupon(TestCustomer):
         self.assertIsNone(customer.current_coupon)
 
     def test_remove_coupon_empty(self):
-        customer = Customer.create(self.external_id, self.group)
+        customer = Customer.create(self.external_id, self.group, 'TESTBALID')
         customer.remove_coupon()
 
 
@@ -177,7 +186,8 @@ class TestUpdatePlan(TestCustomer):
         super(TestUpdatePlan, self).setUp()
         self.customer = Customer.create(
             external_id=self.external_id,
-            group_id=self.group
+            group_id=self.group,
+            balanced_id='TESTBALID'
         )
         self.plan = Plan.create(
             external_id='MY_TEST_PLAN',
@@ -328,7 +338,8 @@ class TestPayout(TestCustomer):
         super(TestPayout, self).setUp()
         self.customer = Customer.create(
             external_id=self.external_id,
-            group_id=self.group
+            group_id=self.group,
+            balanced_id='TESTBALID'
         )
         self.payout = Payout.create(
             external_id='MY_TEST_PAYOUT',
@@ -394,7 +405,8 @@ class TestRelations(TestCustomer):
         super(TestRelations, self).setUp()
         self.customer = Customer.create(
             external_id=self.external_id,
-            group_id=self.group
+            group_id=self.group,
+            balanced_id='TESTBALID'
         )
         self.plan = Plan.create(
             external_id='MY_TEST_PLAN',

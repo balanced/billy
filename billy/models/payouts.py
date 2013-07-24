@@ -4,20 +4,19 @@ from datetime import datetime
 from pytz import UTC
 from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, \
     ForeignKey, UniqueConstraint
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import validates, relationship
 
-from billy.models import *
-from billy.models.base import RelativeDelta
-from billy.utils.models import uuid_factory
-from billy.utils.billy_action import ActionCatalog
+from models import *
+from models.base import RelativeDelta
+from utils.generic import uuid_factory
 
 
 class Payout(Base):
     __tablename__ = 'payouts'
 
-    guid = Column(Unicode, index=True, default=uuid_factory('PO'))
-    external_id = Column(Unicode, primary_key=True)
-    group_id = Column(Unicode, ForeignKey(Group.external_id), primary_key=True)
+    guid = Column(Unicode, primary_key=True, default=uuid_factory('PO'))
+    external_id = Column(Unicode)
+    group_id = Column(Unicode, ForeignKey(Group.guid))
     name = Column(Unicode)
     balance_to_keep_cents = Column(Integer)
     active = Column(Boolean, default=True)
@@ -25,6 +24,8 @@ class Payout(Base):
     deleted_at = Column(DateTime(timezone=UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_interval = Column(RelativeDelta)
+
+    subscriptions = relationship('PayoutSubscription', backref='payout')
 
     __table_args__ = (UniqueConstraint(external_id, group_id,
                                        name='payout_id_group_unique'),
@@ -52,7 +53,6 @@ class Payout(Base):
             name=name,
             balance_to_keep_cents=balance_to_keep_cents,
             payout_interval=payout_interval)
-        new_payout.event = ActionCatalog.PAYOUT_CREATE
         cls.session.add(new_payout)
         cls.session.commit()
         return new_payout
@@ -80,21 +80,8 @@ class Payout(Base):
         """
         self.name = name
         self.updated_at = datetime.now(UTC)
-        self.event = ActionCatalog.PAYOUT_UPDATE
         self.session.commit()
         return self
-
-    @classmethod
-    def list(cls, group_id, active_only=False):
-        """
-        Returns a list of payouts currently in the database
-        :param group_id: The group id/uri
-        :returns: A list of Payout objects
-        """
-        query = cls.query.filter(cls.group_id == group_id)
-        if active_only:
-            query = query.filter(cls.active == True)
-        return query.all()
 
     def delete(self):
         """
@@ -108,7 +95,6 @@ class Payout(Base):
         self.active = False
         self.updated_at = datetime.now(UTC)
         self.deleted_at = datetime.now(UTC)
-        self.event = ActionCatalog.PAYOUT_DELETE
         self.session.commit()
         return self
 

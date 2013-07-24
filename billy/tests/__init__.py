@@ -3,16 +3,9 @@ import unittest
 import os
 
 import datetime
-from pytz import UTC
 import sqlalchemy
-
-from billy.settings import DB_URL, Session
-from billy.models.base import Base
-
-BASE_PATH = os.path.abspath(os.path.join(
-    os.path.basename(__file__), '..'))
-SCRIPTS_PATH = os.path.join(BASE_PATH, 'scripts')
-PACKAGE_PATH = os.path.join(BASE_PATH, 'balanced_service')
+from settings import DB_URL, Session
+from models import Base
 
 
 class BalancedTransactionalTestCase(unittest.TestCase):

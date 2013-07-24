@@ -6,9 +6,8 @@ from sqlalchemy import Boolean, Column, DateTime, Integer, ForeignKey, \
     Unicode, UniqueConstraint
 from sqlalchemy.orm import relationship, validates
 
-from billy.models import *
-from billy.utils.models import uuid_factory
-from billy.utils.billy_action import ActionCatalog
+from models import *
+from utils.generic import uuid_factory
 
 
 class Coupon(Base):
@@ -16,7 +15,7 @@ class Coupon(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     external_id = Column(Unicode)
-    group_id = Column(Unicode, ForeignKey(Group.external_id))
+    group_id = Column(Unicode, ForeignKey(Group.guid))
     name = Column(Unicode)
     price_off_cents = Column(Integer)
     percent_off_int = Column(Integer)
@@ -28,9 +27,9 @@ class Coupon(Base):
     deleted_at = Column(DateTime(timezone=UTC))
     customers = relationship('Customer', backref='coupon')
 
-    __table_args__ = (UniqueConstraint(external_id, group_id,
-                                       name='coupon_id_group_unique'),
-                      )
+    __table_args__ = (
+        UniqueConstraint(external_id, group_id, name='coupon_id_group_unique'),
+    )
 
     @classmethod
     def create(cls, external_id, group_id, name, price_off_cents,
@@ -61,7 +60,6 @@ class Coupon(Base):
             max_redeem=max_redeem,
             repeating=repeating,
             expire_at=expire_at)
-        new_coupon.event = ActionCatalog.COUPON_CREATE
         cls.session.add(new_coupon)
         cls.session.commit()
         return new_coupon
@@ -103,7 +101,6 @@ class Coupon(Base):
         if new_repeating:
             self.repeating = new_repeating
         self.updated_at = datetime.now(UTC)
-        self.event = ActionCatalog.COUPON_UPDATE
         self.session.commit()
 
     def delete(self):
@@ -116,7 +113,6 @@ class Coupon(Base):
         self.active = False
         self.updated_at = datetime.now(UTC)
         self.deleted_at = datetime.now(UTC)
-        self.event = ActionCatalog.COUPON_DELETE
         self.session.commit()
         return self
 
@@ -138,9 +134,9 @@ class Coupon(Base):
         The number of unique customers that are using the coupon
         """
         # Todo remove this.
-        from billy.models import Customer
+        from models import Customer
         return Customer.query.filter(Customer.current_coupon == self
-                                     .external_id).count()
+                                     .guid).count()
 
     @classmethod
     def expire_coupons(cls):
@@ -151,7 +147,6 @@ class Coupon(Base):
         to_expire = cls.query.filter(cls.expire_at < now).all()
         for coupon in to_expire:
             coupon.active = False
-            coupon.event = ActionCatalog.COUPON_EXPIRE
         cls.session.commit()
 
     @validates('max_redeem')

@@ -4,12 +4,11 @@ from datetime import datetime
 from pytz import UTC
 from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, \
     ForeignKey, UniqueConstraint
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import validates, relationship
 
-from billy.models.base import Base, RelativeDelta
-from billy.models.groups import Group
-from billy.utils.models import uuid_factory
-from billy.utils.billy_action import ActionCatalog
+from models.base import Base, RelativeDelta
+from models.groups import Group
+from utils.generic import uuid_factory
 
 
 class Plan(Base):
@@ -17,7 +16,7 @@ class Plan(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PL'))
     external_id = Column(Unicode)
-    group_id = Column(Unicode, ForeignKey(Group.external_id))
+    group_id = Column(Unicode, ForeignKey(Group.guid))
     name = Column(Unicode)
     price_cents = Column(Integer)
     active = Column(Boolean, default=True)
@@ -26,6 +25,8 @@ class Plan(Base):
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     trial_interval = Column(RelativeDelta)
     plan_interval = Column(RelativeDelta)
+
+    subscriptions = relationship('PlanSubscription', backref='plan')
 
     __table_args__ = (UniqueConstraint(external_id, group_id,
                                        name='plan_id_group_unique'),
@@ -54,7 +55,6 @@ class Plan(Base):
             plan_interval=plan_interval,
             trial_interval=trial_interval
         )
-        new_plan.event = ActionCatalog.PLAN_CREATE
         cls.session.add(new_plan)
         cls.session.commit()
         return new_plan
@@ -97,7 +97,6 @@ class Plan(Base):
         """
         self.name = name
         self.updated_at = datetime.now(UTC)
-        self.event = ActionCatalog.PLAN_UPDATE
         self.session.commit()
         return self
 
@@ -112,7 +111,6 @@ class Plan(Base):
         self.active = False
         self.updated_at = datetime.now(UTC)
         self.deleted_at = datetime.now(UTC)
-        self.event = ActionCatalog.PLAN_DELETE
         self.session.commit()
         return self
 

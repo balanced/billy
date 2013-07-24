@@ -3,87 +3,121 @@ from datetime import datetime
 from pytz import UTC
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
     Integer, ForeignKeyConstraint, Index
-from sqlalchemy.orm import relationship, validates
+from sqlalchemy.orm import relationship, validates, backref
 
-from billy.models import Base, Group, Customer, Payout
-from billy.settings import RETRY_DELAY_PAYOUT, TRANSACTION_PROVIDER_CLASS
-from billy.utils.billy_action import ActionCatalog
-from billy.utils.models import uuid_factory
+from models import Base, Group, Customer, Payout
+from settings import RETRY_DELAY_PAYOUT, TRANSACTION_PROVIDER_CLASS
+from utils.generic import uuid_factory
+
+
+class PayoutSubscription(Base):
+    __tablename__ = 'payout_subscription'
+
+    guid = Column(Unicode, primary_key=True, default=uuid_factory('POS'))
+    customer_id = Column(Unicode, ForeignKey(Customer.guid))
+    payout_id = Column(Unicode, ForeignKey(Payout.guid))
+    created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
+    is_active = Column(Boolean, default=True)
+
+    __table_args__ = (
+        Index('unique_payout_sub', payout_id, customer_id,
+              postgresql_where=is_active == True,
+              unique=True),
+    )
+
+    @classmethod
+    def create_or_activate(cls, customer, payout):
+        result = cls.query.filter(
+            cls.customer_id == customer.guid,
+            cls.payout_id == payout.guid).first()
+        result = result or cls(
+            customer_id=customer.guid, payout_id=payout.guid,
+            # Todo Temp since default not working for some reason
+            guid=uuid_factory('PLL')())
+        result.is_active = True
+        cls.session.add(result)
+        # Todo premature commit might cause issues....
+        cls.session.commit()
+        return result
+
+    @classmethod
+    def subscribe(cls, customer, payout, first_now=False, start_dt=None):
+        first_charge = start_dt or datetime.now(UTC)
+        balance_to_keep_cents = payout.balance_to_keep_cents
+        if not first_now:
+            first_charge += payout.payout_interval
+        new_sub = cls.create_or_activate(customer, payout)
+        invoice = PayoutInvoice.create(new_sub.guid,
+                                       first_charge,
+                                       balance_to_keep_cents,
+                                       )
+        cls.session.add(invoice)
+        cls.session.commit()
+        return invoice
+
+    @classmethod
+    def unsubscribe(cls, customer, payout, cancel_scheduled=False):
+        from models import PayoutInvoice
+        current_sub = cls.query.filter(cls.customer_id == customer.guid,
+                                       cls.payout_id == payout.guid,
+                                       cls.is_active == True
+                                       ).one()
+        current_sub.is_active = False
+        if cancel_scheduled:
+            in_process = current_sub.invoices.filter(
+                PayoutInvoice.completed == False).one()
+            in_process.completed = True
+        cls.session.commit()
+        return True
 
 
 class PayoutInvoice(Base):
     __tablename__ = 'payout_invoices'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POI'))
-    customer_id = Column(Unicode)
-    group_id = Column(Unicode, ForeignKey(Group.external_id))
-    relevant_payout = Column(Unicode)
+    subscription_id = Column(Unicode, ForeignKey(PayoutSubscription.guid))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_date = Column(DateTime(timezone=UTC))
     balance_to_keep_cents = Column(Integer)
     amount_payed_out = Column(Integer)
     completed = Column(Boolean, default=False)
-    active = Column(Boolean, default=True)
+    queue_rollover = Column(Boolean, default=False)
     balance_at_exec = Column(Integer)
-    cleared_by = Column(Unicode, ForeignKey('payout_transactions.guid'))
+    cleared_by_txn = Column(Unicode, ForeignKey('payout_transactions.guid'))
     attempts_made = Column(Integer, default=0)
 
-    payout = relationship('Payout', backref='invoices',
-                          foreign_keys=[relevant_payout, group_id])
-
-    __table_args__ = (
-        # Customer foreign key
-        ForeignKeyConstraint(
-            [customer_id, group_id],
-            [Customer.external_id, Customer.group_id]),
-        # Payout foreign key
-        ForeignKeyConstraint(
-            [relevant_payout, group_id],
-            [Payout.external_id, Payout.group_id]),
-        Index('unique_payout_invoice', relevant_payout, group_id, customer_id,
-              postgresql_where=active == True, unique=True)
-
-    )
+    subscription = relationship('PayoutSubscription',
+                                backref=backref('invoices', lazy='dynamic'))
 
     @classmethod
-    def create(cls, customer_id, group_id, relevant_payout,
+    def create(cls, subscription_id,
                payout_date, balanced_to_keep_cents):
         new_invoice = cls(
-            customer_id=customer_id,
-            group_id=group_id,
-            relevant_payout=relevant_payout,
+            subscription_id=subscription_id,
             payout_date=payout_date,
             balance_to_keep_cents=balanced_to_keep_cents,
         )
-        new_invoice.event = ActionCatalog.POI_CREATE
         cls.session.add(new_invoice)
         cls.session.commit()
         return new_invoice
 
     @classmethod
-    def retrieve(cls, customer_id, group_id, relevant_payout=None,
-                 active_only=False, only_incomplete=False):
-        query = cls.query.filter(cls.customer_id == customer_id,
-                                 cls.group_id == group_id)
-        if relevant_payout:
-            query = query.filter(cls.relevant_payout == relevant_payout)
+    def retrieve(cls, customer, payout, active_only=False, last_only=False):
+        # Todo can probably be cleaner
+        query = PayoutSubscription.query.filter(
+            PayoutSubscription.customer_id == customer.guid,
+            PayoutSubscription.payout_id == payout.guid)
         if active_only:
-            query = query.filter(cls.active == True)
-        if only_incomplete:
-            query = query.filter(cls.completed == False)
-        return query.one()
-
-    @classmethod
-    def list(cls, group_id, relevant_payout=None,
-             customer_id=None, active_only=False):
-        query = cls.query.filter(cls.group_id == group_id)
-        if customer_id:
-            query = query.filter(cls.customer_id == customer_id)
-        if active_only:
-            query = query.filter(cls.active == True)
-        if relevant_payout:
-            query = query.filter(cls.relevant_payout == relevant_payout)
-        return query.all()
+            query = query.filter(PayoutSubscription.is_active == True)
+        subscription = query.first()
+        if subscription and last_only:
+            last = None
+            for invoice in subscription.invoices:
+                if invoice.payout_date >= datetime.now(UTC):
+                    last = invoice
+                    break
+            return last
+        return subscription.invoices
 
     @classmethod
     def needs_payout_made(cls):
@@ -94,24 +128,29 @@ class PayoutInvoice(Base):
 
     @classmethod
     def needs_rollover(cls):
-        return cls.query.filter(cls.completed == True,
-                                cls.active == True).all()
+        # Todo: create a better query for this...
+        results = cls.query.join(
+            PayoutSubscription).filter(cls.queue_rollover == True,
+                                       PayoutSubscription.is_active == True).all()
+        return results
 
     def rollover(self):
-        self.active = False
-        self.event = ActionCatalog.POI_ROLLOVER
+        self.subscription.is_active = False
+        self.queue_rollover = False
         self.session.flush()
-        self.customer.add_payout(self.relevant_payout, first_now=False,
-                                 start_dt=self.payout_date)
+        PayoutSubscription.subscribe(self.subscription.customer,
+                                     self.subscription.payout,
+                                     first_now=False,
+                                     start_dt=self.payout_date)
 
     def make_payout(self, force=False):
-        from billy.models import PayoutTransaction
+        from models import PayoutTransaction
         now = datetime.now(UTC)
         current_balance = TRANSACTION_PROVIDER_CLASS.check_balance(
-            self.customer_id, self.group_id)
+            self.subscription.customer.guid, self.subscription.customer.group_id)
         payout_date = self.payout_date
         if len(RETRY_DELAY_PAYOUT) < self.attempts_made and not force:
-            self.active = False
+            self.subscription.is_active = False
         else:
             retry_delay = sum(RETRY_DELAY_PAYOUT[:self.attempts_made])
             when_to_payout = payout_date + retry_delay if retry_delay else \
@@ -119,16 +158,15 @@ class PayoutInvoice(Base):
             if when_to_payout <= now:
                 payout_amount = current_balance - self.balance_to_keep_cents
                 transaction = PayoutTransaction.create(
-                    self.customer_id, self.group_id, payout_amount)
+                    self.subscription.customer_id, payout_amount)
                 try:
                     transaction.execute()
                     self.cleared_by = transaction.guid
                     self.balance_at_exec = current_balance
                     self.amount_payed_out = payout_amount
                     self.completed = True
-                    self.event = ActionCatalog.POI_MAKE_PAYOUT
+                    self.queue_rollover = True
                 except Exception, e:
-                    self.event = ActionCatalog.POI_PAYOUT_ATTEMPT
                     self.attempts_made += 1
                     self.session.commit()
                     raise e

@@ -359,9 +359,8 @@ class TestPayout(TestCustomer):
 
     def test_add_payout_custom_start_dt(self):
         start_dt = datetime(2013, 4, 5, tzinfo=UTC)
-        sub = PayoutSubscription.subscribe(
+        invoice = PayoutSubscription.subscribe(
             self.customer, self.payout, True, start_dt)
-        invoice = sub.invoices[0]
         self.assertEqual(invoice.payout_date, start_dt)
 
     def test_cancel_payout(self):
@@ -378,14 +377,13 @@ class TestPayout(TestCustomer):
                 PayoutSubscription.is_active == True).one()
 
     def test_cancel_payout_already_scheduled(self):
-        sub = PayoutSubscription.subscribe(self.customer, self.payout)
-        test_exists = sub.invoices[0]
+        invoice = PayoutSubscription.subscribe(self.customer, self.payout)
         PayoutSubscription.unsubscribe(self.customer, self.payout,
                                        cancel_scheduled=True)
-        sub = PayoutSubscription.query.filter(
+        invoice = PayoutSubscription.query.filter(
             PayoutSubscription.customer_id == self.customer.guid,
             PayoutSubscription.payout_id == self.payout.guid).one()
-        self.assertTrue(sub.invoices[0].completed)
+        self.assertTrue(invoice.completed)
         self.assertFalse(sub.is_active)
 
 

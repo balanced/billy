@@ -7,8 +7,8 @@ from pytz import UTC
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from models import Group, Customer, Plan, PlanInvoice
-from models.utils.intervals import Intervals
+from models import Group, Customer, Plan, PlanSubscription, PlanInvoice
+from utils.intervals import Intervals
 from tests import BalancedTransactionalTestCase
 
 
@@ -16,33 +16,28 @@ class TestPlanInvoice(BalancedTransactionalTestCase):
 
     def setUp(self):
         super(TestPlanInvoice, self).setUp()
-        self.customer = 'MY_TEST_CUSTOMER'
-        self.customer_2 = 'MY_TEST_CUSTOMER_2'
-        self.customer_group2 = 'MY_TEST_CUSTOMER_3'
-        self.group = 'BILLY_TEST_MARKETPLACE'
-        self.group_2 = 'BILLY_TEST_MARKETPLACE_2'
         self.plan_id = 'MY_TEST_PLAN'
         self.plan_id_2 = 'MY_TEST_PLAN_2'
         self.now = datetime.now(UTC)
         self.week = self.now + Intervals.WEEK
         self.two_weeks = self.now + Intervals.WEEK
         self.month = self.now + Intervals.MONTH
-        Group.create(self.group)
-        Group.create(self.group_2)
-        Customer.create(self.customer, self.group)
-        Customer.create(self.customer_2, self.group)
-        Customer.create(self.customer_group2, self.group_2)
-        Plan.create(
+        self.group = Group.create('BILLY_TEST_MARKETPLACE')
+        self.group_2 = Group.create('BILLY_TEST_MARKETPLACE_2')
+        self.customer = Customer.create('MY_TEST_CUSTOMER', self.group.guid)
+        self.customer_2 = Customer.create('MY_TEST_CUSTOMER_2', self.group.guid)
+        self.customer_group2 = Customer.create('MY_TEST_CUSTOMER_3', self.group_2.guid)
+        self.plan = Plan.create(
             external_id=self.plan_id,
-            group_id=self.group,
+            group_id=self.group.guid,
             name='Starter',
             price_cents=1000,
             plan_interval=Intervals.MONTH,
             trial_interval=Intervals.WEEK
         )
-        Plan.create(
+        self.plan_2 = Plan.create(
             external_id=self.plan_id_2,
-            group_id=self.group,
+            group_id=self.group.guid,
             name='Starter',
             price_cents=15000,
             plan_interval=Intervals.MONTH,
@@ -53,119 +48,9 @@ class TestPlanInvoice(BalancedTransactionalTestCase):
 class TestCreate(TestPlanInvoice):
 
     def test_create(self):
+        sub = PlanSubscription.subscribe(self.customer, self.plan)
         PlanInvoice.create(
-            customer_id=self.customer,
-            group_id=self.group,
-            relevant_plan=self.plan_id,
-            relevant_coupon=None,
-            start_dt=self.now,
-            end_dt=self.month,
-            due_dt=self.week,
-            amount_base_cents=1000,
-            amount_after_coupon_cents=1000,
-            amount_paid_cents=1000,
-            remaining_balance_cents=1000,
-            quantity=10,
-            charge_at_period_end=False,
-            includes_trial=False,
-        )
-
-    def test_create_exists(self):
-        PlanInvoice.create(
-            customer_id=self.customer,
-            group_id=self.group,
-            relevant_plan=self.plan_id,
-            relevant_coupon=None,
-            start_dt=self.now,
-            end_dt=self.month,
-            due_dt=self.week,
-            amount_base_cents=1000,
-            amount_after_coupon_cents=1000,
-            amount_paid_cents=1000,
-            remaining_balance_cents=1000,
-            quantity=10,
-            charge_at_period_end=False,
-            includes_trial=False,
-        )
-        with self.assertRaises(IntegrityError):
-            PlanInvoice.create(
-                customer_id=self.customer,
-                group_id=self.group,
-                relevant_plan=self.plan_id,
-                relevant_coupon=None,
-                start_dt=self.now,
-                end_dt=self.month,
-                due_dt=self.week,
-                amount_base_cents=1000,
-                amount_after_coupon_cents=1000,
-                amount_paid_cents=1000,
-                remaining_balance_cents=1000,
-                quantity=10,
-                charge_at_period_end=False,
-                includes_trial=False,
-            )
-
-    def test_create_customer_dne(self):
-        with self.assertRaises(IntegrityError):
-            PlanInvoice.create(
-                customer_id='CUST_DNE',
-                group_id=self.group,
-                relevant_plan=self.plan_id,
-                relevant_coupon=None,
-                start_dt=self.now,
-                end_dt=self.month,
-                due_dt=self.week,
-                amount_base_cents=1000,
-                amount_after_coupon_cents=1000,
-                amount_paid_cents=1000,
-                remaining_balance_cents=1000,
-                quantity=10,
-                charge_at_period_end=False,
-                includes_trial=False,
-            )
-
-    def test_create_plan_dne(self):
-        with self.assertRaises(IntegrityError):
-            PlanInvoice.create(
-                customer_id=self.customer,
-                group_id=self.group,
-                relevant_plan='PLAN_DNE',
-                relevant_coupon=None,
-                start_dt=self.now,
-                end_dt=self.month,
-                due_dt=self.week,
-                amount_base_cents=1000,
-                amount_after_coupon_cents=1000,
-                amount_paid_cents=1000,
-                remaining_balance_cents=1000,
-                quantity=10,
-                charge_at_period_end=False,
-                includes_trial=False,
-            )
-
-    def test_create_exist_inactive(self):
-        var = PlanInvoice.create(
-            customer_id=self.customer,
-            group_id=self.group,
-            relevant_plan=self.plan_id,
-            relevant_coupon=None,
-            start_dt=self.now,
-            end_dt=self.month,
-            due_dt=self.week,
-            amount_base_cents=1000,
-            amount_after_coupon_cents=1000,
-            amount_paid_cents=1000,
-            remaining_balance_cents=1000,
-            quantity=10,
-            charge_at_period_end=False,
-            includes_trial=False,
-        )
-        var.active = False
-        var.session.flush()
-        PlanInvoice.create(
-            customer_id=self.customer,
-            group_id=self.group,
-            relevant_plan=self.plan_id,
+            subscription_id=sub.guid,
             relevant_coupon=None,
             start_dt=self.now,
             end_dt=self.month,
@@ -183,10 +68,9 @@ class TestCreate(TestPlanInvoice):
 class TestRetrieve(TestPlanInvoice):
 
     def test_create_and_retrieve(self):
+        sub = PlanSubscription.subscribe(self.customer, self.plan)
         PlanInvoice.create(
-            customer_id=self.customer,
-            group_id=self.group,
-            relevant_plan=self.plan_id,
+            subscription_id=sub.guid,
             relevant_coupon=None,
             start_dt=self.now,
             end_dt=self.month,
@@ -200,19 +84,13 @@ class TestRetrieve(TestPlanInvoice):
             includes_trial=False,
         )
         res = PlanInvoice.retrieve(
-            self.customer, self.group, self.plan_id, active_only=True)
+            self.customer, self.plan, active_only=True)
         self.assertEqual(res.amount_base_cents, 1000)
 
-    def test_retrieve_dne(self):
-        with self.assertRaises(NoResultFound):
-            PlanInvoice.retrieve(
-                'CUSTOMER_DNE', self.group, self.plan_id, active_only=True)
-
     def test_retrieve_params(self):
+        sub = PlanSubscription.subscribe(self.customer, self.plan)
         PlanInvoice.create(
-            customer_id=self.customer,
-            group_id=self.group,
-            relevant_plan=self.plan_id,
+            subscription_id=sub.guid,
             relevant_coupon=None,
             start_dt=self.now,
             end_dt=self.month,
@@ -226,7 +104,7 @@ class TestRetrieve(TestPlanInvoice):
             includes_trial=False,
         )
         res = PlanInvoice.retrieve(
-            self.customer, self.group, self.plan_id, active_only=True)
+            self.customer, self.plan, active_only=True)
         self.assertEqual(res.customer_id, self.customer)
         self.assertTrue(res.active)
         self.assertEqual(res.relevant_plan, self.plan_id)

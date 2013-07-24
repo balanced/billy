@@ -55,7 +55,7 @@ class PayoutSubscription(Base):
                                        )
         cls.session.add(invoice)
         cls.session.commit()
-        return new_sub
+        return invoice
 
     @classmethod
     def unsubscribe(cls, customer, payout, cancel_scheduled=False):

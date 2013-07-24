@@ -1,51 +1,21 @@
-#IN ACTIVE DEVELOPMENT! DO NOT USE!!!!
 # Billy
 
 Billy - The Open Source Recurring Billing System, powered by Balanced
 
-## Proposal for Billy
+(In active development. Consider it pre-alpha)
 
-Since Balanced is a dual-sided payments platform, `Billy` must support:
+## Running It
 
-  - credit card charges
-  - bank payments
-  - bank deposits
+There are three major parts to billy: the models, the api, and the web layer.
+This library currently has the API and the models.
 
-These operations should be scheduled at an arbitrary frequency. Some
-customers might want a recurring payout schedule for 7 days and a
-recurring charge plan that's monthly.
+1. Create a pgsql DB called 'billy' with 'test' user and no password
+2. Install requirements ```pip install -r requirements.txt```
+3. Create the tables: ```python manage.py create_tables```
+4. To run the api server run: ```python manage.py runserver```
+5. Cron job this hourly: ```python manage.py billy_tasks```
 
-`Billy` must be flexible enough to support scheduling changes, where
-appropriate business logic is executed.
-
-This essentially boils down to a scheduling problem, that will
-have a large number of business rules on transition.
-
-Given a `timer`, we subscribe to this timer with a `scheduler`, and that
-`scheduler` contains a `task`.
-
-All `tasks` are wrapped with a `scheduler`, which control the `tasks`
-scheduling and exposes information such as when the time of next run
-is scheduled, as well as if a `task` is retryable. A `scheduler` may schedule
-other `tasks`.
-
-All `tasks` are audited and generate events, which are called
-`AuditEvents`. These `AuditEvents` are essentially line-items for an
-`AuditFeed`. `AuditFeeds` are generated for a scheduler, or its
-`frequency` execution, and are more commonly known as `invoices`. `Invoices`
-are essentially the sum of all `AuditEvents`, or operations, that have
-happened for a particular `task` during its scheduled period of
-execution.
-
-Here are some common tasks:
-
-- `DebitTask` - Invokes a method that does some calculation dynamically to charge an account for a computed price.
-
-- `FixedDebitTask` - What's commonly known as a plan, is a `DebitTask` with a FIXED price.
-
-- `PayoutTask` - Invokes a method that does some calculation dynamically to issue a bank payout to an account for a computed amount.
-
-- `FixedPayoutTask` - What's commonly known as payroll, is a `PayoutTask` with a FIXED price.
+Congrats. You've got recurring billing.
 
 ## Glossary
 

@@ -32,7 +32,7 @@ def delete_and_replace_tables():
 
 
 @manager.command
-def main_task():
+def billy_tasks():
     """
     The main billy task that does EVERYTHING cron related.
     """

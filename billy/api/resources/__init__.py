@@ -1,3 +1,3 @@
 from base import Base
-from group import GroupView
-from home import Home
+from api.resources.group.controller import GroupView
+from api.resources.base.home import Home

@@ -10,11 +10,17 @@ def get_methods(controller):
     method_list = []
     for method in methods:
         if hasattr(controller, method.lower()):
-            doc = getattr(controller, method.lower()).__doc__.strip()
-            method_list.append({
-                'method': method,
-                'description': doc,
-            })
+            try:
+                doc = getattr(controller, method.lower()).__doc__.strip()
+                method_list.append({
+                    'method': method,
+                    'description': doc,
+                })
+            except AttributeError, e:
+                print "ERROR {} has no doc.".format(getattr(controller,
+                                                      method.lower()))
+                raise e
+
     return method_list
 
 

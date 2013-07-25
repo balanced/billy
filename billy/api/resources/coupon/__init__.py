@@ -49,5 +49,16 @@ class CouponController(GroupController):
             raise BillyExc['404_COUPON_NOT_FOUND']
         return coupon
 
+    def delete(self, coupon_id):
+        """
+        Deletes a coupon by marking it inactive. Does not effect users already
+        on the coupon.
+        """
+        coupon = Coupon.retrieve(coupon_id, self.group.guid)
+        if not coupon:
+            raise BillyExc['404_COUPON_NOT_FOUND']
+        coupon.delete()
+        return None
+
 
 

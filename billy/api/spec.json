@@ -14,6 +14,20 @@
         "methods": [
             {
                 "method": "GET", 
+                "description": "Retrieve a single coupon"
+            }, 
+            {
+                "method": "DELETE", 
+                "description": "Deletes a coupon by marking it inactive. Does not effect users already\n        on the coupon."
+            }
+        ], 
+        "description": "Methods pertaining to a single coupon"
+    }, 
+    "coupon_index": {
+        "path": "/coupon/", 
+        "methods": [
+            {
+                "method": "GET", 
                 "description": "Return a list of coupon pertaining to a group"
             }, 
             {
@@ -22,16 +36,6 @@
             }
         ], 
         "description": "Base coupon resource used to create a coupon or retrieve all your coupons"
-    }, 
-    "coupon_index": {
-        "path": "/coupon/", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Retrieve a single coupon"
-            }
-        ], 
-        "description": "Methods pertaining to a single coupon"
     }, 
     "group": {
         "path": "/auth/", 

@@ -4,7 +4,7 @@ errors = {
     # GENERIC ERRORS
     '400': {
         'status': 400,
-        'message': 'Please check your request parameters.'
+        'error_message': 'Please check your request parameters.'
     },
 
     # GROUP ERRORS
@@ -24,10 +24,53 @@ errors = {
                          'PUT instead.'
     },
 
+    # COUPON ERRORS
+    '404_COUPON_NOT_FOUND': {
+        'status': 404,
+        'error_message': 'The coupon you requested was not found.'
+    },
+    '409_COUPON_ALREADY_EXISTS': {
+        'status': 409,
+        'error_message': 'Cannot perform POST on an existing coupon. Use '
+                         'PUT instead.'
+    },
+
+
+    # FIELD ERRORS
+    # Todo Temp place holders until validators are fed into the error_messages
     '400_CUSTOMER_ID': {
         'status': 400,
         'error_message': 'Invalid customer_id. Please check.'
-    }
+    },
+    '400_COUPON_ID': {
+        'status': 400,
+        'error_message': 'Invalid coupon_id. Please check.'
+    },
+    '400_NAME': {
+        'status': 400,
+        'error_message': 'Invalid name. Please check.'
+    },
+    '400_MAX_REDEEM': {
+        'status': 400,
+        'error_message': 'Invalid max_redeem. Please check.'
+    },
+    '400_REPEATING': {
+        'status': 400,
+        'error_message': 'Invalid repeating. Please check.'
+    },
+    '400_EXPIRE_AT': {
+        'status': 400,
+        'error_message': 'Invalid expire_at. Please check.'
+    },
+    '400_PERCENT_OFF_INT': {
+        'status': 400,
+        'error_message': 'Invalid percent_off_int. Please check.'
+    },
+    '400_PRICE_OFF_CENTS': {
+        'status': 400,
+        'error_message': 'Invalid price_off_cents. Please check.'
+    },
+
 
 }
 

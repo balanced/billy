@@ -11,40 +11,44 @@ from view import customer_view
 
 
 class CustomerIndexController(GroupController):
+    """
+    Base customer resource used to create a customer or retrieve all your
+    customers
+    """
+
+    @marshal_with(customer_view)
     def get(self):
+        """
+        Return a list of customers pertaining to a group
+        """
         return self.group.customers
 
-
-class CustomerController(CustomerIndexController):
-    customer = None
-
-    def __init__(self):
-        super(CustomerController, self).__init__()
-        self.pull_customer_object()
-
-    def pull_customer_object(self):
-        customer_id = self.param_from_request('customer_id')
-        self.customer = Customer.retrieve(customer_id, self.group.guid)
-        if request.method in ['GET', 'PUT'] and not self.customer:
-            raise BillyExc['404_CUSTOMER_NOT_FOUND']
-        if request.method == 'POST' and self.customer:
-            raise BillyExc['409_CUSTOMER_ALREADY_EXISTS']
-
-
     @marshal_with(customer_view)
-    def get(self, customer_id):
-        import ipdb;ipdb.set_trace()
-        return self.customer
-
-    @marshal_with(customer_view)
-    def post(self, customer_id):
-        customer_form = CustomerCreateForm(request.form,
-                                           customer_id=customer_id)
+    def post(self):
+        """
+        Create a customer
+        """
+        customer_form = CustomerCreateForm(request.form)
         if customer_form.validate():
             return customer_form.save(self.group)
         else:
-            if customer_form.errors.get('customer_id'):
-                raise BillyExc['400_CUSTOMER_ID']
-            else:
-                raise BillyExc['400']
+            self.form_error(customer_form.errors)
+
+
+class CustomerController(GroupController):
+    """
+    Methods pertaining to a single customer
+    """
+
+    @marshal_with(customer_view)
+    def get(self, customer_id):
+        """
+        Retrieve a single customer
+        """
+        customer = Customer.retrieve(customer_id, self.group.guid)
+        if not customer:
+            raise BillyExc['404_CUSTOMER_NOT_FOUND']
+        return customer
+
+
 

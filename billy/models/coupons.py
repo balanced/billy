@@ -77,7 +77,7 @@ class Coupon(Base):
                                  cls.group_id == group_id)
         if active_only:
             query = query.filter(cls.active == True)
-        return query.one()
+        return query.first()
 
     def update(self, new_name=None,
                new_max_redeem=None, new_expire_at=None, new_repeating=None):
@@ -151,7 +151,7 @@ class Coupon(Base):
 
     @validates('max_redeem')
     def validate_max_redeem(self, key, address):
-        if not address > 0 or address == -1:
+        if not (address > 0 or address == -1):
             raise ValueError('{} must be greater than 0 or -1'.format(key))
         return address
 

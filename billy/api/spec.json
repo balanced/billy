@@ -2,23 +2,58 @@
     "customer": {
         "path": "/customer/<string:customer_id>/", 
         "methods": [
-            "GET", 
-            "POST"
+            {
+                "method": "GET", 
+                "description": "Retrieve a single customer"
+            }
         ], 
         "description": "Methods pertaining to a single customer"
+    }, 
+    "coupon": {
+        "path": "/coupon/<string:coupon_id>/", 
+        "methods": [
+            {
+                "method": "GET", 
+                "description": "Return a list of coupon pertaining to a group"
+            }, 
+            {
+                "method": "POST", 
+                "description": "Create a coupon"
+            }
+        ], 
+        "description": "Base coupon resource used to create a coupon or retrieve all your coupons"
+    }, 
+    "coupon_index": {
+        "path": "/coupon/", 
+        "methods": [
+            {
+                "method": "GET", 
+                "description": "Retrieve a single coupon"
+            }
+        ], 
+        "description": "Methods pertaining to a single coupon"
     }, 
     "group": {
         "path": "/auth/", 
         "methods": [
-            "GET"
+            {
+                "method": "GET", 
+                "description": "Used to test api_key and authentication"
+            }
         ], 
         "description": "Base authentication route that converts an API key to a group"
     }, 
     "customers_index": {
         "path": "/customer/", 
         "methods": [
-            "GET", 
-            "POST"
+            {
+                "method": "GET", 
+                "description": "Return a list of customers pertaining to a group"
+            }, 
+            {
+                "method": "POST", 
+                "description": "Create a customer"
+            }
         ], 
         "description": "Base customer resource used to create a customer or retrieve all your customers"
     }

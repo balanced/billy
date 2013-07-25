@@ -32,17 +32,13 @@ class CustomerIndexController(GroupController):
         if customer_form.validate():
             return customer_form.save(self.group)
         else:
-            if customer_form.errors.get('customer_id'):
-                raise BillyExc['400_CUSTOMER_ID']
-            else:
-                raise BillyExc['400']
+            self.form_error(customer_form.errors)
 
 
 class CustomerController(GroupController):
     """
     Methods pertaining to a single customer
     """
-    customer = None
 
     @marshal_with(customer_view)
     def get(self, customer_id):

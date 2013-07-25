@@ -27,6 +27,8 @@ class GroupController(Base):
             raise BillyExc['401']
         return result
 
+
+
     def get(self):
         """
         Used to test api_key and authentication

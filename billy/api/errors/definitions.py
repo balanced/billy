@@ -34,6 +34,10 @@ errors = {
         'error_message': 'Cannot perform POST on an existing coupon. Use '
                          'PUT instead.'
     },
+    '409_COUPON_MAX_REDEEM': {
+        'status': 409,
+        'error_message': 'The coupon has already been redeemed maximum times'
+    },
 
 
     # FIELD ERRORS

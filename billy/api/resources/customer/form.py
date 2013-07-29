@@ -23,3 +23,20 @@ class CustomerCreateForm(Form):
             return customer
         except IntegrityError:
             raise BillyExc['409_CUSTOMER_ALREADY_EXISTS']
+
+
+class CustomerUpdateForm(Form):
+    coupon_id = TextField('Coupon ID')
+
+
+    def save(self, customer):
+        try:
+            return customer.apply_coupon(self.coupon_id.data)
+        except ValueError:
+            raise BillyExc['409_COUPON_MAX_REDEEM']
+        except NameError:
+            raise BillyExc['404_COUPON_NOT_FOUND']
+
+
+
+

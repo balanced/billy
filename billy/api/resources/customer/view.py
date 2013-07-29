@@ -9,5 +9,6 @@ customer_view = {
     'balanced_id' : fields.String(),
     'last_debt_clear' : fields.DateTime(),
     'charge_attempts' : fields.Integer(),
+    'current_coupon' : fields.String(attribute='coupon.external_id')
 
 }

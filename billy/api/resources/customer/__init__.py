@@ -6,7 +6,7 @@ from flask.ext.restful import marshal_with
 from api.errors import BillyExc
 from api.resources.group import GroupController
 from models import Customer
-from form import CustomerCreateForm
+from form import CustomerCreateForm, CustomerUpdateForm
 from view import customer_view
 
 
@@ -49,6 +49,18 @@ class CustomerController(GroupController):
         if not customer:
             raise BillyExc['404_CUSTOMER_NOT_FOUND']
         return customer
+
+    @marshal_with(customer_view)
+    def put(self, customer_id):
+        """
+        Update a customer, currently limited to updating their coupon.
+        """
+        customer = Customer.retrieve(customer_id, self.group.guid)
+        if not customer:
+            raise BillyExc['404_CUSTOMER_NOT_FOUND']
+        customer_form = CustomerUpdateForm(request.form)
+        if customer_form.validate():
+            return customer_form.save(customer)
 
 
 

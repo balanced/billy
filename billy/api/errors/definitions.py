@@ -39,6 +39,12 @@ errors = {
         'error_message': 'The coupon has already been redeemed maximum times'
     },
 
+    # PLAN ERRORS
+    '404_PLAN_NOT_FOUND': {
+        'status': 404,
+        'error_message': 'The plan you requested was not found.'
+    },
+
 
     # FIELD ERRORS
     # Todo Temp place holders until validators are fed into the error_messages

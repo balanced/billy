@@ -57,3 +57,41 @@ class CouponCreateForm(Form):
             return coupon
         except IntegrityError:
             raise BillyExc['409_COUPON_ALREADY_EXISTS']
+
+
+class CouponUpdateForm(Form):
+    name = TextField('Name',
+                     [validators.Length(min=3, max=150)], default=None)
+
+    max_redeem = IntegerField('Max Redemptions', default=None)
+
+    repeating = IntegerField('Repeating', default=None)
+
+    expire_at = DateTimeField('Expire at', default=None)
+
+
+    def validate_max_redeem(self, field):
+        if not (field.data > 0 or field.data == -1):
+            raise ValidationError('max_redeem must be -1 or greater than 0')
+
+    def validate_repeating(self, field):
+        if not (field.data > 0 or field.data == -1):
+            raise ValidationError('repeating must be -1 or greater than 0')
+
+    def validate_percent_off_int(self, field):
+        if not 0 <= field.data <= 100:
+            raise ValidationError('percent_off_int must be between 0 and 100')
+
+    def validate_price_off_cents(self, field):
+        if not field.data >= 0:
+            raise ValidationError('price_off_cents must be between >= 0')
+
+
+    def save(self, coupon):
+        try:
+            return coupon.update(new_name = self.name.data,
+                          new_max_redeem=self.max_redeem.data,
+                          new_expire_at=self.expire_at.data,
+                          new_repeating=self.repeating.data)
+        except IntegrityError:
+            raise BillyExc['409_COUPON_ALREADY_EXISTS']

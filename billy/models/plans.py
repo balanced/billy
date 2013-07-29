@@ -117,5 +117,5 @@ class Plan(Base):
     @validates('price_cents')
     def validate_price_off_cents(self, key, address):
         if not address > 0:
-            raise ValueError("{} must be greater than 0.".format(key))
+            raise ValueError("400_PRICE_OFF_CENTS")
         return address

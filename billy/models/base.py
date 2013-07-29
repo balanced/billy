@@ -25,13 +25,11 @@ class RelativeDelta(TypeDecorator):
             'months': inter.months,
             'days': inter.days,
             'hours': inter.hours,
-            'minutes': inter.minutes
         }
 
     def to_relativedelta(self, param):
         return relativedelta(years=param['years'], months=param['months'],
-                             days=param['days'], hours=param['hours'],
-                             minutes=param['minutes'])
+                             days=param['days'], hours=param['hours'])
 
     def process_bind_param(self, value, dialect):
         if not isinstance(value, relativedelta):

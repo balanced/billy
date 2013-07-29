@@ -149,3 +149,29 @@ class Coupon(Base):
         for coupon in to_expire:
             coupon.active = False
         cls.session.commit()
+
+    @validates('max_redeem')
+    def validate_max_redeem(self, key, address):
+        if not (address > 0 or address == -1):
+            raise ValueError('400_MAX_REDEEM')
+        return address
+
+    @validates('repeating')
+    def validate_repeating(self, key, address):
+        if not (address > 0 or address == -1):
+            raise ValueError('400_REPEATING')
+        return address
+
+    @validates('percent_off_int')
+    def validate_percent_off_int(self, key, address):
+        if not 0 < address <= 100:
+            raise ValueError('400_PERCENT_OFF_INT')
+        return address
+
+    @validates('price_off_cents')
+    def validate_price_off_cents(self, key, address):
+        if not address >= 0:
+            raise ValueError('400_PRICE_OFF_CENTS')
+        return address
+
+

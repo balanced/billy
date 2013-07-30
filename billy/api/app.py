@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from flask import Flask
 
 from api.spec import billy_spec
-from api.resources import Home
+from api.resources.base import Home
 from api import ApiFixed
 from settings import DEBUG
 

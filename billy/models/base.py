@@ -25,21 +25,18 @@ class RelativeDelta(TypeDecorator):
             'months': inter.months,
             'days': inter.days,
             'hours': inter.hours,
-            'minutes': inter.minutes
         }
 
     def to_relativedelta(self, param):
         return relativedelta(years=param['years'], months=param['months'],
-                             days=param['days'], hours=param['hours'],
-                             minutes=param['minutes'])
+                             days=param['days'], hours=param['hours'])
 
     def process_bind_param(self, value, dialect):
-        if not isinstance(value, relativedelta):
+        if value and not isinstance(value, relativedelta):
             raise ValueError("Accepts only relativedelta types")
-        if value is not None:
+        if value:
             data_json = self.from_relativedelta(value)
             value = ujson.dumps(data_json)
-
         return value
 
     def process_result_value(self, value, dialect):

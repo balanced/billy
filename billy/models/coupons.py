@@ -102,6 +102,7 @@ class Coupon(Base):
             self.repeating = new_repeating
         self.updated_at = datetime.now(UTC)
         self.session.commit()
+        return self
 
     def delete(self):
         """
@@ -152,23 +153,23 @@ class Coupon(Base):
     @validates('max_redeem')
     def validate_max_redeem(self, key, address):
         if not (address > 0 or address == -1):
-            raise ValueError('{} must be greater than 0 or -1'.format(key))
+            raise ValueError('400_MAX_REDEEM')
         return address
 
     @validates('repeating')
     def validate_repeating(self, key, address):
         if not (address > 0 or address == -1):
-            raise ValueError('{} must be greater than 0 or -1'.format(key))
+            raise ValueError('400_REPEATING')
         return address
 
     @validates('percent_off_int')
     def validate_percent_off_int(self, key, address):
         if not 0 < address <= 100:
-            raise ValueError('{} must be between 0 and 100'.format(key))
+            raise ValueError('400_PERCENT_OFF_INT')
         return address
 
     @validates('price_off_cents')
     def validate_price_off_cents(self, key, address):
         if not address >= 0:
-            raise ValueError('{} must be greater than 0'.format(key))
+            raise ValueError('400_PRICE_OFF_CENTS')
         return address

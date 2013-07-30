@@ -39,10 +39,16 @@ errors = {
         'error_message': 'The coupon has already been redeemed maximum times'
     },
 
+
     # PLAN ERRORS
     '404_PLAN_NOT_FOUND': {
         'status': 404,
         'error_message': 'The plan you requested was not found.'
+    },
+    '409_PLAN_ALREADY_EXISTS': {
+        'status': 409,
+        'error_message': 'Cannot perform POST on an existing plan. Use '
+                         'PUT instead.'
     },
 
 
@@ -79,6 +85,18 @@ errors = {
     '400_PRICE_OFF_CENTS': {
         'status': 400,
         'error_message': 'Invalid price_off_cents. Please check.'
+    },
+    '400_PRICE_CENTS': {
+            'status': 400,
+            'error_message': 'Invalid price_off_cents. Please check.'
+        },
+    '400_TRIAL_INTERVAL': {
+            'status': 400,
+            'error_message': 'Invalid price_off_cents. Please check.'
+    },
+    '400_PLAN_INTERVAL': {
+            'status': 400,
+            'error_message': 'Invalid price_off_cents. Please check.'
     },
 
 

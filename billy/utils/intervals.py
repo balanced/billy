@@ -1,7 +1,10 @@
 from __future__ import unicode_literals
 
 from dateutil.relativedelta import relativedelta
+from flask.ext.restful import fields
 import json
+from wtforms import Field, TextField
+
 
 class Intervals(object):
     """
@@ -54,4 +57,14 @@ def interval_matcher(string):
                 hours=int(data.get('hours', 0)),
             )
         except (ValueError, TypeError):
-            return None
+            raise ValueError
+
+
+class IntervalViewField(fields.Raw):
+    def format(self, inter):
+        return {
+            'years': inter.years,
+            'months': inter.months,
+            'days': inter.days,
+            'hours': inter.hours,
+        }

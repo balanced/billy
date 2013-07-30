@@ -21,12 +21,12 @@ class PlanIndexController(GroupController):
         """
         Return a list of plans pertaining to a group
         """
-        return self.group.plans
+        return self.group.plans.all()
 
     @marshal_with(plan_view)
     def post(self):
         """
-        Create a coupon
+        Create a plan
         """
         plan_form = PlanCreateForm(request.form)
         if plan_form.validate():
@@ -63,6 +63,8 @@ class PlanController(GroupController):
         plan_form = PlanUpdateForm(request.form)
         if plan_form.validate():
             return plan_form.save(self.plan)
+        else:
+            self.form_error(plan_form.errors)
 
     def delete(self, plan_id):
         """

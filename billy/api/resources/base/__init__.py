@@ -60,3 +60,13 @@ class Base(restful.Resource):
                 raise BillyExc[exc_key]
         else:
             raise BillyExc['400']
+
+
+class Home(Base):
+
+    def get(self):
+        return {
+            "Welcome to billy":
+            "Checkout here {}".format(
+            'https://www.github.com/balanced/billy')
+        }

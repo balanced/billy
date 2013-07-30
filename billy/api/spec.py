@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from api.resources.group import GroupController
 from api.resources.customer import CustomerIndexController, CustomerController
 from api.resources.coupon import CouponIndexController, CouponController
+from api.resources.plan import PlanIndexController, PlanController
 
 
 def get_methods(controller):
@@ -18,7 +19,7 @@ def get_methods(controller):
                 })
             except AttributeError, e:
                 print "ERROR {} has no doc.".format(getattr(controller,
-                                                      method.lower()))
+                                                            method.lower()))
                 raise e
 
     return method_list
@@ -48,6 +49,14 @@ billy_spec = {
     'coupon': {
         'path': '/coupon/<string:coupon_id>/',
         'controller': CouponController,
+    },
+    'plan_index': {
+        'path': '/plan/',
+        'controller': PlanIndexController,
+    },
+    'plan': {
+        'path': '/plan/<string:plan_id>/',
+        'controller': PlanController,
     }
 
 

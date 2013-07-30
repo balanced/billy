@@ -2,16 +2,16 @@ from __future__ import unicode_literals
 
 from flask.ext.restful import fields
 
-coupon_view = {
-    # Todo: figure out why coupon_id isnt showing...
-    'coupon_id' : fields.String(attribute='external_id'),
+from utils.intervals import IntervalViewField
+
+plan_view = {
+    # Todo: figure out why some arent showing...
+    'plan_id' : fields.String(attribute='external_id'),
     'created_at' : fields.DateTime(),
     'name' : fields.String(),
-    'expire_at' : fields.DateTime(),
-    'price_off_cents' : fields.Integer(),
-    'percent_off_int' : fields.Integer(),
-    'max_redeem' : fields.Integer(),
-    'repeating' : fields.Integer(),
+    'price_cents' : fields.Integer(),
     'active' : fields.Boolean(),
+    'plan_interval' : IntervalViewField(),
+    'trial_interval' : IntervalViewField(),
 
 }

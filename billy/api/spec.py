@@ -226,12 +226,12 @@ billy_spec = {
 
 }
 
-billy_spec_processed = {'resources' : {}, 'errors': {}}
+billy_spec_processed = {'resources': {}, 'errors': {}}
 for resource, spec in billy_spec.iteritems():
     spec['methods'] = get_methods(spec['controller'])
     spec['description'] = get_doc(spec['controller'])
     spec['view'] = get_view(spec.get('view'))
-    spec_new = process_forms(spec)
+    spec_new = process_forms(spec.copy())
     del spec_new['controller']
     if 'form' in spec_new:
         del spec_new['form']

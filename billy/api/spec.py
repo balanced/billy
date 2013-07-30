@@ -1,22 +1,32 @@
 from __future__ import unicode_literals
 
+from flask.ext.restful import fields
+
 from api.resources.group import GroupController
-from api.resources.customer import CustomerIndexController, CustomerController
-from api.resources.coupon import CouponIndexController, CouponController
-from api.resources.plan import PlanIndexController, PlanController
-from api.resources.payout import PayoutIndexController, PayoutController
+from api.resources.customer import (CustomerIndexController,
+                                    CustomerController, customer_view)
+from api.resources.coupon import (CouponIndexController, CouponController,
+                                  coupon_view)
+from api.resources.plan import (PlanIndexController, PlanController, plan_view)
+from api.resources.payout import (PayoutIndexController, PayoutController,
+                                  payout_view)
 from api.resources.plan_subscription import (PlanSubIndexController,
-                                             PlanSubController)
+                                             PlanSubController, plan_sub_view)
 from api.resources.payout_subscription import (PayoutSubIndexController,
-                                               PayoutSubController)
+                                               PayoutSubController,
+                                               payout_sub_view)
 from api.resources.plan_invoice import (PlanInvController,
-                                        PlanInvIndexController)
+                                        PlanInvIndexController, plan_inv_view)
 from api.resources.payout_invoice import (PayoutInvController,
-                                          PayoutInvIndexController)
+                                          PayoutInvIndexController,
+                                          payout_inv_view)
 from api.resources.plan_transaction import (PlanTransIndexController,
-                                            PlanTransController)
+                                            PlanTransController,
+                                            plan_trans_view)
 from api.resources.payout_transaction import (PayoutTransIndexController,
-                                              PayoutTransController)
+                                              PayoutTransController,
+                                              payout_trans_view)
+from utils.intervals import IntervalViewField
 
 
 def get_methods(controller):
@@ -38,6 +48,21 @@ def get_methods(controller):
     return method_list
 
 
+def get_view(view):
+    field_map = {
+        fields.String: 'STRING',
+        fields.DateTime: 'DATETIME',
+        fields.Integer: 'INTEGER',
+        fields.Boolean: "BOOLEAN",
+        IntervalViewField: 'INTERVAL',
+    }
+    if not view:
+        return view
+    data = {key: {'type': field_map[type(value)]} for key, value in
+            view.iteritems()}
+    return data
+
+
 def get_doc(obj):
     return None if not obj.__doc__ else ' '.join(obj.__doc__.split()).strip()
 
@@ -50,82 +75,120 @@ billy_spec = {
     'customers_index': {
         'path': '/customer/',
         'controller': CustomerIndexController,
+        'view': customer_view
     },
     'customer': {
         'path': '/customer/<string:customer_id>/',
         'controller': CustomerController,
+        'view': customer_view
     },
     'coupon_index': {
         'path': '/coupon/',
         'controller': CouponIndexController,
+        'view': coupon_view
+
     },
     'coupon': {
         'path': '/coupon/<string:coupon_id>/',
         'controller': CouponController,
+        'view': coupon_view
+
     },
     'plan_index': {
         'path': '/plan/',
         'controller': PlanIndexController,
+        'view': plan_view
+
     },
     'plan': {
         'path': '/plan/<string:plan_id>/',
         'controller': PlanController,
+        'view': plan_view
+
     },
     'payout_index': {
         'path': '/payout/',
         'controller': PayoutIndexController,
+        'view': payout_view
+
     },
     'payout': {
         'path': '/payout/<string:payout_id>/',
         'controller': PayoutController,
+        'view': payout_view
+
     },
     'plan_subscription_index': {
         'path': '/plan_subscription/',
         'controller': PlanSubIndexController,
+        'view': plan_sub_view
+
     },
     'plan_subscription': {
         'path': '/plan_subscription/<string:plan_sub_id>/',
         'controller': PlanSubController,
+        'view': plan_sub_view
+
     },
     'payout_subscription_index': {
         'path': '/payout_subscription/',
         'controller': PayoutSubIndexController,
+        'view': payout_sub_view
+
     },
     'payout_subscription': {
         'path': '/payout_subscription/<string:payout_sub_id>/',
         'controller': PayoutSubController,
+        'view': payout_sub_view
+
     },
     'plan_invoice_index': {
         'path': '/plan_invoice/',
         'controller': PlanInvIndexController,
+        'view': plan_inv_view,
+
     },
     'plan_invoice': {
         'path': '/plan_invoice/<string:plan_inv_id>/',
         'controller': PlanInvController,
+        'view': plan_inv_view
+
     },
     'payout_invoice_index': {
         'path': '/payout_invoice/',
         'controller': PayoutInvIndexController,
+        'view': payout_inv_view
+
     },
     'payout_invoice': {
         'path': '/payout_invoice/<string:payout_inv_id>/',
         'controller': PayoutInvController,
+        'view': payout_inv_view
+
     },
     'plan_transaction_index': {
         'path': '/plan_transaction/',
         'controller': PlanTransIndexController,
+        'view': plan_trans_view
+
     },
     'plan_transaction': {
         'path': '/plan_transaction/<string:plan_trans_id>/',
         'controller': PlanTransController,
+        'view': plan_trans_view
+
     },
     'payout_transaction_index': {
         'path': '/payout_transaction/',
         'controller': PayoutTransIndexController,
+        'view': payout_trans_view
+
     },
     'payout_transaction': {
         'path': '/payout_transaction/<string:payout_trans_id>/',
         'controller': PayoutTransController,
+        'view': payout_trans_view
+
     },
 
 }
@@ -134,6 +197,7 @@ billy_spec_processed = {}
 for resource, spec in billy_spec.iteritems():
     spec['methods'] = get_methods(spec['controller'])
     spec['description'] = get_doc(spec['controller'])
+    spec['view'] = get_view(spec.get('view'))
     spec = spec.copy()
     del spec['controller']
     billy_spec_processed[resource] = spec

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>AlchemyModelDependency</ID>
+  <OriginalElement>#billy</OriginalElement>
+  <nodes>
+    <node x="156.66666666666674" y="211.16666666666663">models.transactions.PlanTransaction</node>
+    <node x="-266.6666666666665" y="-169.0000000000001">models.payouts.Payout</node>
+    <node x="-1105.3333333333328" y="-204.00000000000006">models.coupons.Coupon</node>
+    <node x="153.33333333333326" y="385.33333333333303">models.transactions.PayoutTransaction</node>
+    <node x="-523.8333333333331" y="210.9999999999999">models.plan_invoice.PlanInvoice</node>
+    <node x="-336.33333333333314" y="-314.66666666666663">models.groups.Group</node>
+    <node x="-1032.8333333333333" y="291.99999999999966">models.payout_invoice.PayoutInvoice</node>
+    <node x="-674.8333333333331" y="-191.83333333333331">models.plans.Plan</node>
+    <node x="132.16666666666674" y="-134.33333333333337">models.customers.Customer</node>
+  </nodes>
+  <notes />
+  <edges />
+  <settings layout="Hierarchic Group" zoom="0.6000000000000001" x="73.16666666666652" y="23.833333333333258" />
+  <SelectedNodes />
+  <Categories>
+    <Category>Fields</Category>
+  </Categories>
+</Diagram>
+

@@ -13,6 +13,38 @@
         ], 
         "description": "Methods pertaining to a single customer"
     }, 
+    "payout": {
+        "path": "/payout/<string:payout_id>/", 
+        "methods": [
+            {
+                "method": "GET", 
+                "description": "Retrieve a single payout"
+            }, 
+            {
+                "method": "PUT", 
+                "description": "Update the name of a payout"
+            }, 
+            {
+                "method": "DELETE", 
+                "description": "Deletes a payout by marking it inactive. Does not effect users already\n        on the payout."
+            }
+        ], 
+        "description": "Methods pertaining to a single payout"
+    }, 
+    "payout_index": {
+        "path": "/payout/", 
+        "methods": [
+            {
+                "method": "GET", 
+                "description": "Return a list of payouts pertaining to a group"
+            }, 
+            {
+                "method": "POST", 
+                "description": "Create a payout"
+            }
+        ], 
+        "description": "Base Payout resource used to create a payout or retrieve all your payouts"
+    }, 
     "group": {
         "path": "/auth/", 
         "methods": [

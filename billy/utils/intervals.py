@@ -7,6 +7,7 @@ from wtforms import Field, TextField
 
 
 class Intervals(object):
+
     """
     A class to represent and create relativedelta objects which will be used
     to define the plan intervals. Plan intervals MUST be defined using this
@@ -61,6 +62,7 @@ def interval_matcher(string):
 
 
 class IntervalViewField(fields.Raw):
+
     def format(self, inter):
         return {
             'years': inter.years,

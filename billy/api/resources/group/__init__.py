@@ -8,6 +8,7 @@ from api.lib.auth import get_group_from_api_key
 
 
 class GroupController(Base):
+
     """
     Base authentication route that converts an API key to a group
     """
@@ -26,8 +27,6 @@ class GroupController(Base):
         if not result:
             raise BillyExc['401']
         return result
-
-
 
     def get(self):
         """

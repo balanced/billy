@@ -11,6 +11,7 @@ from view import payout_view
 
 
 class PayoutIndexController(GroupController):
+
     """
     Base Payout resource used to create a payout or retrieve all your
     payouts
@@ -36,6 +37,7 @@ class PayoutIndexController(GroupController):
 
 
 class PayoutController(GroupController):
+
     """
     Methods pertaining to a single payout
     """
@@ -53,7 +55,6 @@ class PayoutController(GroupController):
         Retrieve a single payout
         """
         return self.payout
-
 
     @marshal_with(payout_view)
     def put(self, payout_id):
@@ -73,6 +74,3 @@ class PayoutController(GroupController):
         """
         self.payout.delete()
         return None
-
-
-

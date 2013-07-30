@@ -21,7 +21,6 @@ class PlanCreateForm(Form):
 
     trial_interval = TextField('Trial Interval', default=None)
 
-
     def save(self, group_obj):
         try:
             try:
@@ -41,7 +40,7 @@ class PlanCreateForm(Form):
                                price_cents=self.price_cents.data,
                                plan_interval=plan_int,
                                trial_interval=trial_int,
-            )
+                               )
         except IntegrityError:
             raise BillyExc['409_PLAN_ALREADY_EXISTS']
         except ValueError, e:

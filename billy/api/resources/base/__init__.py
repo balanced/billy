@@ -7,6 +7,7 @@ from api.errors import BillyExc
 
 
 class Base(restful.Resource):
+
     """
     Base view class to do what you want with
     """
@@ -16,17 +17,16 @@ class Base(restful.Resource):
         api_key = auth.get('password') if auth else \
             request.headers.get('Authorization')
         api_key = api_key or request.form.get('api_key') or \
-                  request.args.get('api_key')
+            request.args.get('api_key')
         return api_key
 
     def param_from_request(self, param):
         return request.view_args.get(param) or \
-               request.args.get(param) or request.form.get(param)
-
+            request.args.get(param) or request.form.get(param)
 
     def dispatch_request(self, *args, **kwargs):
         # Taken from flask
-        #noinspection PyUnresolvedReferences
+        # noinspection PyUnresolvedReferences
         meth = getattr(self, request.method.lower(), None)
         if meth is None and request.method == 'HEAD':
             meth = getattr(self, 'get', None)
@@ -42,7 +42,7 @@ class Base(restful.Resource):
 
         representations = self.representations or {}
 
-        #noinspection PyUnresolvedReferences
+        # noinspection PyUnresolvedReferences
         for mediatype in self.mediatypes():
             if mediatype in representations:
                 data, code, headers = unpack(resp)
@@ -51,7 +51,6 @@ class Base(restful.Resource):
                 return resp
 
         return resp
-
 
     def form_error(self, errors):
         last_key = None

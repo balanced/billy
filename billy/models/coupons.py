@@ -173,5 +173,3 @@ class Coupon(Base):
         if not address >= 0:
             raise ValueError('400_PRICE_OFF_CENTS')
         return address
-
-

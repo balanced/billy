@@ -11,6 +11,7 @@ from view import coupon_view
 
 
 class CouponIndexController(GroupController):
+
     """
     Base coupon resource used to create a coupon or retrieve all your
     coupons
@@ -36,6 +37,7 @@ class CouponIndexController(GroupController):
 
 
 class CouponController(GroupController):
+
     """
     Methods pertaining to a single coupon
     """
@@ -70,6 +72,3 @@ class CouponController(GroupController):
         """
         self.coupon.delete()
         return None
-
-
-

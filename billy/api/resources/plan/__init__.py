@@ -11,6 +11,7 @@ from view import plan_view
 
 
 class PlanIndexController(GroupController):
+
     """
     Base Plan resource used to create a plan or retrieve all your
     plans
@@ -36,6 +37,7 @@ class PlanIndexController(GroupController):
 
 
 class PlanController(GroupController):
+
     """
     Methods pertaining to a single plan
     """
@@ -53,7 +55,6 @@ class PlanController(GroupController):
         Retrieve a single plan
         """
         return self.plan
-
 
     @marshal_with(plan_view)
     def put(self, plan_id):
@@ -73,6 +74,3 @@ class PlanController(GroupController):
         """
         self.plan.delete()
         return None
-
-
-

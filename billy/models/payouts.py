@@ -29,7 +29,7 @@ class Payout(Base):
 
     __table_args__ = (UniqueConstraint(external_id, group_id,
                                        name='payout_id_group_unique'),
-    )
+                      )
 
     @classmethod
     def create(cls, external_id, group_id, name,

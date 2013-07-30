@@ -11,6 +11,7 @@ from view import customer_view
 
 
 class CustomerIndexController(GroupController):
+
     """
     Base customer resource used to create a customer or retrieve all your
     customers
@@ -36,9 +37,11 @@ class CustomerIndexController(GroupController):
 
 
 class CustomerController(GroupController):
+
     """
     Methods pertaining to a single customer
     """
+
     def __init__(self):
         super(CustomerController, self).__init__()
         customer_id = request.view_args.values()[0]
@@ -61,5 +64,3 @@ class CustomerController(GroupController):
         customer_form = CustomerUpdateForm(request.form)
         if customer_form.validate():
             return customer_form.save(self.customer)
-
-

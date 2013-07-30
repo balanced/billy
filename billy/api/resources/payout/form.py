@@ -16,10 +16,9 @@ class PayoutCreateForm(Form):
                       validators.Length(min=3, max=150)])
 
     balance_to_keep_cents = IntegerField('Balance to Keep Cents',
-                                          [validators.Required()])
+                                         [validators.Required()])
 
     payout_interval = TextField('Payout Interval', [validators.Required()])
-
 
     def save(self, group_obj):
         try:
@@ -33,7 +32,7 @@ class PayoutCreateForm(Form):
                                  balance_to_keep_cents=self
                                  .balance_to_keep_cents.data,
                                  payout_interval=payout_int,
-            )
+                                 )
         except IntegrityError:
             raise BillyExc['409_PAYOUT_ALREADY_EXISTS']
         except ValueError, e:

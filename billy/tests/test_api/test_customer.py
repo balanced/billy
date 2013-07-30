@@ -4,11 +4,13 @@ from . import BaseTestCase
 
 
 class CustomerIndexTests(BaseTestCase):
+
     def test_list_customers(self):
         pass
 
 
 class CustomerGetTests(CustomerIndexTests):
+
     def test_with_customer(self):
         pass
 
@@ -20,6 +22,7 @@ class CustomerGetTests(CustomerIndexTests):
 
 
 class CustomerPostTests(CustomerIndexTests):
+
     def test_with_customer(self):
         pass
 
@@ -31,6 +34,7 @@ class CustomerPostTests(CustomerIndexTests):
 
 
 class CustomerPutTests(CustomerIndexTests):
+
     def test_with_customer(self):
         pass
 

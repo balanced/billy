@@ -22,7 +22,7 @@ class PlanSubIndexController(GroupController):
         """
         Return a list of plans subscriptions pertaining to a group
         """
-        return PlanSubscription.query.filter(Group.guid == self.group.guid)
+        return PlanSubscription.query.filter(Group.guid == self.group.guid).all()
 
     @marshal_with(plan_sub_view)
     def post(self):
@@ -47,16 +47,17 @@ class PlanSubIndexController(GroupController):
             self.form_error(plan_form.errors)
 
 
-class PlanController(GroupController):
+class PlanSubController(GroupController):
 
     """
-    Methods pertaining to a single plan
+    Methods pertaining to a single plan subscription
     """
 
     def __init__(self):
-        super(PlanController, self).__init__()
+        super(PlanSubController, self).__init__()
         plan_sub_id = request.view_args.values()[0]
-        self.subscription = PlanSubscription.filter(PlanSubscription.guid == plan_sub_id).frist()
+        self.subscription = PlanSubscription.query.filter(
+            PlanSubscription.guid == plan_sub_id).first()
         if not self.subscription:
             raise BillyExc['404_PLAN_NOT_FOUND']
 

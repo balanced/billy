@@ -1,7 +1,8 @@
 from __future__ import unicode_literals
 
 from sqlalchemy.orm.exc import *
-from wtforms import (Form, TextField, IntegerField, validators, DateTimeField, BooleanField)
+from wtforms import (
+    Form, TextField, IntegerField, validators, DateTimeField, BooleanField)
 
 from api.errors import BillyExc
 from models import Customer, Plan, PlanSubscription
@@ -9,10 +10,9 @@ from models import Customer, Plan, PlanSubscription
 
 class PlanSubCreateForm(Form):
     customer_id = TextField('Customer ID', [validators.Required(),
-                                    validators.Length(min=5, max=150)])
+                                            validators.Length(min=5, max=150)])
     plan_id = TextField('Plan ID', [validators.Required(),
                                     validators.Length(min=5, max=150)])
-
 
     quantity = IntegerField('Quantity', default=1)
 
@@ -29,21 +29,20 @@ class PlanSubCreateForm(Form):
             if not plan:
                 raise BillyExc['404_PLAN_NOT_FOUND']
             return PlanSubscription.subscribe(customer, plan,
-                                       quantity=self.quantity.data,
-                                       charge_at_period_end=self.charge_at_period_end.data,
-                                       start_dt=self.start_dt.data).subscription
+                                              quantity=self.quantity.data,
+                                              charge_at_period_end=self.charge_at_period_end.data,
+                                              start_dt=self.start_dt.data).subscription
         except ValueError, e:
             raise BillyExc[e.message]
 
 
 class PlanSubDeleteForm(Form):
     customer_id = TextField('Customer ID', [validators.Required(),
-                                    validators.Length(min=5, max=150)])
+                                            validators.Length(min=5, max=150)])
     plan_id = TextField('Plan ID', [validators.Required(),
                                     validators.Length(min=5, max=150)])
 
     cancel_at_period_end = BooleanField('Cancel at period end?', default=False)
-
 
     def save(self, group_obj):
         try:
@@ -54,7 +53,7 @@ class PlanSubDeleteForm(Form):
             if not plan:
                 raise BillyExc['404_PLAN_NOT_FOUND']
             return PlanSubscription.unsubscribe(customer, plan,
-               cancel_at_period_end=self.cancel_at_period_end.data).subscription
+                                                cancel_at_period_end=self.cancel_at_period_end.data).subscription
         except NoResultFound:
             raise BillyExc['404_PLAN_SUB_NOT_FOUND']
         except ValueError, e:

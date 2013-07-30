@@ -51,7 +51,7 @@ class PlanSubscription(Base):
         due_on = start_date
         can_trial = customer.can_trial_plan(plan)
         end_date = start_date + plan.plan_interval
-        if can_trial:
+        if can_trial and plan.trial_interval:
             end_date += plan.trial_interval
             due_on += plan.trial_interval
         if charge_at_period_end:
@@ -190,7 +190,7 @@ class PlanInvoice(Base):
         last_invoice = cls.retrieve(customer, plan, True, True)
         if last_invoice:
             true_start = last_invoice.start_dt
-            if last_invoice.includes_trial:
+            if last_invoice.includes_trial and plan.trial_interval:
                 true_start = true_start + plan.trial_interval
             if last_invoice:
                 time_total = Decimal(

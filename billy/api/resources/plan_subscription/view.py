@@ -9,8 +9,8 @@ plan_sub_view = {
     'id': fields.String(attribute='guid'),
     'created_at': fields.DateTime(),
     'plan_id': fields.String(attribute='plan.external_id'),
-    'customer_id': fields.Integer(attribute='customer.external_id'),
+    'customer_id': fields.String(attribute='customer.external_id'),
     'is_active': fields.Boolean(),
     'is_enrolled': fields.Boolean(),
-    'invoices': fields.List()
+    # Todo add invoices field
 }

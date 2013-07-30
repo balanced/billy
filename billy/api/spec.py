@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from flask.ext.restful import fields
 from wtforms import fields as wtfields
 
+from api.errors.definitions import errors
 from resources import *
 from utils.intervals import IntervalViewField
 
@@ -225,7 +226,7 @@ billy_spec = {
 
 }
 
-billy_spec_processed = {}
+billy_spec_processed = {'resources' : {}, 'errors': {}}
 for resource, spec in billy_spec.iteritems():
     spec['methods'] = get_methods(spec['controller'])
     spec['description'] = get_doc(spec['controller'])
@@ -234,7 +235,8 @@ for resource, spec in billy_spec.iteritems():
     del spec_new['controller']
     if 'form' in spec_new:
         del spec_new['form']
-    billy_spec_processed[resource] = spec_new
+    billy_spec_processed['resources'][resource] = spec_new
+    billy_spec_processed['errors'] = errors
 
 if __name__ == '__main__':
     import json

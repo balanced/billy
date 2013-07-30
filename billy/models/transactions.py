@@ -3,9 +3,8 @@ from __future__ import unicode_literals
 from pytz import UTC
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Integer
 from sqlalchemy.orm import relationship
-from sqlalchemy.schema import ForeignKeyConstraint
 
-from models import Base, Group, Customer, PlanInvoice, PayoutInvoice
+from models import Base, Customer, PlanInvoice, PayoutInvoice
 from utils.generic import uuid_factory, Status
 from settings import TRANSACTION_PROVIDER_CLASS
 

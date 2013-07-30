@@ -47,58 +47,86 @@ def get_doc(obj):
 billy_spec = {
     'group': {
         'path': '/auth/',
-        'controller': GroupController,
+        'controller': GroupController
     },
     'customers_index': {
         'path': '/customer/',
         'controller': CustomerIndexController,
-        'view': customer_view
+        'view': customer_view,
+        'form': {
+            'post': CustomerCreateForm
+        }
     },
     'customer': {
         'path': '/customer/<string:customer_id>/',
         'controller': CustomerController,
-        'view': customer_view
+        'view': customer_view,
+        'form': {
+            'put': CustomerUpdateForm
+        }
     },
     'coupon_index': {
         'path': '/coupon/',
         'controller': CouponIndexController,
-        'view': coupon_view
+        'view': coupon_view,
+        'form': {
+            'post': CouponCreateForm
+        }
 
     },
     'coupon': {
         'path': '/coupon/<string:coupon_id>/',
         'controller': CouponController,
-        'view': coupon_view
+        'view': coupon_view,
+        'form': {
+            'put': CouponUpdateForm
+        }
 
     },
     'plan_index': {
         'path': '/plan/',
         'controller': PlanIndexController,
-        'view': plan_view
+        'view': plan_view,
+        'form': {
+            'post': PlanCreateForm
+        }
 
     },
     'plan': {
         'path': '/plan/<string:plan_id>/',
         'controller': PlanController,
-        'view': plan_view
+        'view': plan_view,
+        'form': {
+            'put': PlanUpdateForm
+        }
 
     },
     'payout_index': {
         'path': '/payout/',
         'controller': PayoutIndexController,
-        'view': payout_view
+        'view': payout_view,
+        'form': {
+            'post': PayoutCreateForm
+        }
 
     },
     'payout': {
         'path': '/payout/<string:payout_id>/',
         'controller': PayoutController,
-        'view': payout_view
+        'view': payout_view,
+        'form': {
+            'put': PayoutUpdateForm
+        }
 
     },
     'plan_subscription_index': {
         'path': '/plan_subscription/',
         'controller': PlanSubIndexController,
-        'view': plan_sub_view
+        'view': plan_sub_view,
+        'form': {
+            'post': PlanSubCreateForm,
+            'delete': PlanSubDeleteForm
+        }
 
     },
     'plan_subscription': {
@@ -110,7 +138,11 @@ billy_spec = {
     'payout_subscription_index': {
         'path': '/payout_subscription/',
         'controller': PayoutSubIndexController,
-        'view': payout_sub_view
+        'view': payout_sub_view,
+        'form': {
+            'post': PayoutSubCreateForm,
+            'delete': PlanSubDeleteForm
+        }
 
     },
     'payout_subscription': {

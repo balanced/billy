@@ -54,12 +54,13 @@ class Base(restful.Resource):
 
 
     def form_error(self, errors):
+        last_key = None
         for key, value in errors.iteritems():
+            last_key = key
             exc_key = '400_{}'.format(key.upper())
             if BillyExc.get(exc_key):
                 raise BillyExc[exc_key]
-        else:
-            raise BillyExc['400']
+        raise ValueError('Error for {} not defined!'.format(last_key))
 
 
 class Home(Base):

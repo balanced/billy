@@ -29,7 +29,7 @@ class Payout(Base):
 
     __table_args__ = (UniqueConstraint(external_id, group_id,
                                        name='payout_id_group_unique'),
-                      )
+    )
 
     @classmethod
     def create(cls, external_id, group_id, name,
@@ -101,5 +101,5 @@ class Payout(Base):
     @validates('balance_to_keep_cents')
     def validate_balance_to_keep(self, key, address):
         if not address > 0:
-            raise ValueError("{} must be greater than 0".format(key))
+            raise ValueError("400_BALANCE_TO_KEEP_CENTS")
         return address

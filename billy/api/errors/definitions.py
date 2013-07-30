@@ -51,6 +51,16 @@ errors = {
                          'PUT instead.'
     },
 
+    # Payout ERRORS
+    '404_PAYOUT_NOT_FOUND': {
+        'status': 404,
+        'error_message': 'The payout you requested was not found.'
+    },
+    '409_PAYOUT_ALREADY_EXISTS': {
+        'status': 409,
+        'error_message': 'Cannot perform POST on an existing payout. Use '
+                         'PUT instead.'
+    },
 
     # FIELD ERRORS
     # Todo Temp place holders until validators are fed into the error_messages
@@ -59,6 +69,14 @@ errors = {
         'error_message': 'Invalid customer_id. Please check.'
     },
     '400_COUPON_ID': {
+        'status': 400,
+        'error_message': 'Invalid coupon_id. Please check.'
+    },
+    '400_PLAN_ID': {
+        'status': 400,
+        'error_message': 'Invalid coupon_id. Please check.'
+    },
+    '400_PAYOUT_ID': {
         'status': 400,
         'error_message': 'Invalid coupon_id. Please check.'
     },
@@ -87,18 +105,25 @@ errors = {
         'error_message': 'Invalid price_off_cents. Please check.'
     },
     '400_PRICE_CENTS': {
-            'status': 400,
-            'error_message': 'Invalid price_off_cents. Please check.'
-        },
+        'status': 400,
+        'error_message': 'Invalid price_cents. Please check.'
+    },
     '400_TRIAL_INTERVAL': {
-            'status': 400,
-            'error_message': 'Invalid price_off_cents. Please check.'
+        'status': 400,
+        'error_message': 'Invalid trial_interval. Please check.'
     },
     '400_PLAN_INTERVAL': {
-            'status': 400,
-            'error_message': 'Invalid price_off_cents. Please check.'
+        'status': 400,
+        'error_message': 'Invalid plan_interval. Please check.'
     },
-
+    '400_PAYOUT_INTERVAL': {
+        'status': 400,
+        'error_message': 'Invalid payout_interval. Please check.'
+    },
+    '400_BALANCE_TO_KEEP_CENTS': {
+        'status': 400,
+        'error_message': 'Invalid balance_to_keep_cents. Please check.'
+    },
 
 }
 

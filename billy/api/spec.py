@@ -4,6 +4,7 @@ from api.resources.group import GroupController
 from api.resources.customer import CustomerIndexController, CustomerController
 from api.resources.coupon import CouponIndexController, CouponController
 from api.resources.plan import PlanIndexController, PlanController
+from api.resources.payout import PayoutIndexController, PayoutController
 
 
 def get_methods(controller):
@@ -57,8 +58,15 @@ billy_spec = {
     'plan': {
         'path': '/plan/<string:plan_id>/',
         'controller': PlanController,
+    },
+    'payout_index': {
+        'path': '/payout/',
+        'controller': PayoutIndexController,
+    },
+    'payout': {
+        'path': '/payout/<string:payout_id>/',
+        'controller': PayoutController,
     }
-
 
 }
 

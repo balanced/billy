@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from flask.ext.restful import fields
+from wtforms import fields as wtfields
 
 from resources import *
 from utils.intervals import IntervalViewField
@@ -8,15 +9,14 @@ from utils.intervals import IntervalViewField
 
 def get_methods(controller):
     methods = ['GET', 'POST', 'PUT', 'DELETE']
-    method_list = []
+    method_list = {}
     for method in methods:
         if hasattr(controller, method.lower()):
             try:
                 doc = getattr(controller, method.lower()).__doc__.strip()
-                method_list.append({
-                    'method': method,
+                method_list[method] = {
                     'description': doc,
-                })
+                }
             except AttributeError, e:
                 print "ERROR {} has no doc.".format(getattr(controller,
                                                             method.lower()))
@@ -42,6 +42,29 @@ def get_view(view):
 
 def get_doc(obj):
     return None if not obj.__doc__ else ' '.join(obj.__doc__.split()).strip()
+
+
+def process_forms(spec_item):
+    """
+    Processes the forms in the spec items.
+    """
+
+    def process_form_class(form_class):
+        field_map = {
+            wtfields.TextField: 'STRING',
+            wtfields.IntegerField: "INTEGER",
+            wtfields.DateTimeField: "DATETIME",
+            wtfields.BooleanField: "BOOLEAN"
+        }
+        return [{'name':name, 'type': field_map[type(field_class)]} for
+                name, field_class in form_class()._fields.iteritems()]
+
+    form = spec.get('form', {})
+    for method, form_class in form.iteritems():
+        method = method.upper()
+        assert method in spec['methods'], "Method not in methods!"
+        spec['methods'][method]['form_fields'] = process_form_class(form_class)
+    return spec_item
 
 
 billy_spec = {
@@ -207,9 +230,11 @@ for resource, spec in billy_spec.iteritems():
     spec['methods'] = get_methods(spec['controller'])
     spec['description'] = get_doc(spec['controller'])
     spec['view'] = get_view(spec.get('view'))
-    spec = spec.copy()
-    del spec['controller']
-    billy_spec_processed[resource] = spec
+    spec_new = process_forms(spec)
+    del spec_new['controller']
+    if 'form' in spec_new:
+        del spec_new['form']
+    billy_spec_processed[resource] = spec_new
 
 if __name__ == '__main__':
     import json

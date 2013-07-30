@@ -1,5 +1,6 @@
 {
     "customer": {
+        "description": "Methods pertaining to a single customer", 
         "path": "/customer/<string:customer_id>/", 
         "view": {
             "balanced_id": {
@@ -21,19 +22,23 @@
                 "type": "STRING"
             }
         }, 
-        "description": "Methods pertaining to a single customer", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Retrieve a single customer"
+        "methods": {
+            "PUT": {
+                "description": "Update a customer, currently limited to updating their coupon.", 
+                "form_fields": [
+                    {
+                        "type": "STRING", 
+                        "name": "coupon_id"
+                    }
+                ]
             }, 
-            {
-                "method": "PUT", 
-                "description": "Update a customer, currently limited to updating their coupon."
+            "GET": {
+                "description": "Retrieve a single customer"
             }
-        ]
+        }
     }, 
     "payout": {
+        "description": "Methods pertaining to a single payout", 
         "path": "/payout/<string:payout_id>/", 
         "view": {
             "name": {
@@ -55,23 +60,26 @@
                 "type": "STRING"
             }
         }, 
-        "description": "Methods pertaining to a single payout", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Retrieve a single payout"
+        "methods": {
+            "PUT": {
+                "description": "Update the name of a payout", 
+                "form_fields": [
+                    {
+                        "type": "STRING", 
+                        "name": "name"
+                    }
+                ]
             }, 
-            {
-                "method": "PUT", 
-                "description": "Update the name of a payout"
-            }, 
-            {
-                "method": "DELETE", 
+            "DELETE": {
                 "description": "Deletes a payout by marking it inactive. Does not effect users already\n        on the payout."
+            }, 
+            "GET": {
+                "description": "Retrieve a single payout"
             }
-        ]
+        }
     }, 
     "payout_index": {
+        "description": "Base Payout resource used to create a payout or retrieve all your payouts", 
         "path": "/payout/", 
         "view": {
             "name": {
@@ -93,30 +101,45 @@
                 "type": "STRING"
             }
         }, 
-        "description": "Base Payout resource used to create a payout or retrieve all your payouts", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Return a list of payouts pertaining to a group"
+        "methods": {
+            "POST": {
+                "description": "Create a payout", 
+                "form_fields": [
+                    {
+                        "type": "INTEGER", 
+                        "name": "balance_to_keep_cents"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "payout_interval"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "name"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "payout_id"
+                    }
+                ]
             }, 
-            {
-                "method": "POST", 
-                "description": "Create a payout"
+            "GET": {
+                "description": "Return a list of payouts pertaining to a group"
             }
-        ]
+        }
     }, 
     "group": {
         "path": "/auth/", 
-        "description": "Base authentication route that converts an API key to a group", 
-        "methods": [
-            {
-                "method": "GET", 
+        "view": null, 
+        "methods": {
+            "GET": {
                 "description": "Used to test api_key and authentication"
             }
-        ], 
-        "view": null
+        }, 
+        "description": "Base authentication route that converts an API key to a group"
     }, 
     "customers_index": {
+        "description": "Base customer resource used to create a customer or retrieve all your customers", 
         "path": "/customer/", 
         "view": {
             "balanced_id": {
@@ -138,19 +161,27 @@
                 "type": "STRING"
             }
         }, 
-        "description": "Base customer resource used to create a customer or retrieve all your customers", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Return a list of customers pertaining to a group"
+        "methods": {
+            "POST": {
+                "description": "Create a customer", 
+                "form_fields": [
+                    {
+                        "type": "STRING", 
+                        "name": "balanced_id"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "customer_id"
+                    }
+                ]
             }, 
-            {
-                "method": "POST", 
-                "description": "Create a customer"
+            "GET": {
+                "description": "Return a list of customers pertaining to a group"
             }
-        ]
+        }
     }, 
     "coupon": {
+        "description": "Methods pertaining to a single coupon", 
         "path": "/coupon/<string:coupon_id>/", 
         "view": {
             "name": {
@@ -181,23 +212,38 @@
                 "type": "DATETIME"
             }
         }, 
-        "description": "Methods pertaining to a single coupon", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Retrieve a single coupon"
+        "methods": {
+            "PUT": {
+                "description": "Update a customer, currently limited to updating their coupon.", 
+                "form_fields": [
+                    {
+                        "type": "INTEGER", 
+                        "name": "repeating"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "name"
+                    }, 
+                    {
+                        "type": "DATETIME", 
+                        "name": "expire_at"
+                    }, 
+                    {
+                        "type": "INTEGER", 
+                        "name": "max_redeem"
+                    }
+                ]
             }, 
-            {
-                "method": "PUT", 
-                "description": "Update a customer, currently limited to updating their coupon."
-            }, 
-            {
-                "method": "DELETE", 
+            "DELETE": {
                 "description": "Deletes a coupon by marking it inactive. Does not effect users already\n        on the coupon."
+            }, 
+            "GET": {
+                "description": "Retrieve a single coupon"
             }
-        ]
+        }
     }, 
     "plan_subscription_index": {
+        "description": "Base PlanSubscription resource used to create a plan subscription or retrieve all your plan subscriptions", 
         "path": "/plan_subscription/", 
         "view": {
             "plan_id": {
@@ -219,24 +265,62 @@
                 "type": "STRING"
             }
         }, 
-        "description": "Base PlanSubscription resource used to create a plan subscription or retrieve all your plan subscriptions", 
-        "methods": [
-            {
-                "method": "GET", 
+        "methods": {
+            "POST": {
+                "description": "Create or update a plan subscription", 
+                "form_fields": [
+                    {
+                        "type": "DATETIME", 
+                        "name": "start_dt"
+                    }, 
+                    {
+                        "type": "BOOLEAN", 
+                        "name": "charge_at_period_end"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "customer_id"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "plan_id"
+                    }, 
+                    {
+                        "type": "INTEGER", 
+                        "name": "quantity"
+                    }
+                ]
+            }, 
+            "DELETE": {
+                "description": "Unsubscribe from the plan", 
+                "form_fields": [
+                    {
+                        "type": "BOOLEAN", 
+                        "name": "cancel_at_period_end"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "customer_id"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "plan_id"
+                    }
+                ]
+            }, 
+            "GET": {
                 "description": "Return a list of plans subscriptions pertaining to a group"
-            }, 
-            {
-                "method": "POST", 
-                "description": "Create or update a plan subscription"
-            }, 
-            {
-                "method": "DELETE", 
-                "description": "Unsubscribe from the plan"
             }
-        ]
+        }
     }, 
     "payout_subscription": {
         "path": "/payout_subscription/<string:payout_sub_id>/", 
+        "description": "Methods pertaining to a single payout subscription", 
+        "methods": {
+            "GET": {
+                "description": "Retrieve a single subscription"
+            }
+        }, 
         "view": {
             "created_at": {
                 "type": "DATETIME"
@@ -253,17 +337,16 @@
             "payout_id": {
                 "type": "STRING"
             }
-        }, 
-        "description": "Methods pertaining to a single payout subscription", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Retrieve a single subscription"
-            }
-        ]
+        }
     }, 
     "plan_subscription": {
         "path": "/plan_subscription/<string:plan_sub_id>/", 
+        "description": "Methods pertaining to a single plan subscription", 
+        "methods": {
+            "GET": {
+                "description": "Retrieve a single subscription"
+            }
+        }, 
         "view": {
             "plan_id": {
                 "type": "STRING"
@@ -283,17 +366,16 @@
             "id": {
                 "type": "STRING"
             }
-        }, 
-        "description": "Methods pertaining to a single plan subscription", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Retrieve a single subscription"
-            }
-        ]
+        }
     }, 
     "payout_invoice_index": {
         "path": "/payout_invoice/", 
+        "description": "Base PayoutInvoice resource used to create a payout invoice or retrieve all your payout invoices", 
+        "methods": {
+            "GET": {
+                "description": "Return a list of payout invoices pertaining to a group"
+            }
+        }, 
         "view": {
             "payout_id": {
                 "type": "STRING"
@@ -325,17 +407,16 @@
             "balance_at_exec": {
                 "type": "INTEGER"
             }
-        }, 
-        "description": "Base PayoutInvoice resource used to create a payout invoice or retrieve all your payout invoices", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Return a list of payout invoices pertaining to a group"
-            }
-        ]
+        }
     }, 
     "payout_transaction": {
         "path": "/payout_transaction/<string:payout_trans_id>/", 
+        "description": "Methods pertaining to a single payout transaction", 
+        "methods": {
+            "GET": {
+                "description": "Retrieve a single transaction"
+            }
+        }, 
         "view": {
             "status": {
                 "type": "STRING"
@@ -358,17 +439,16 @@
             "id": {
                 "type": "STRING"
             }
-        }, 
-        "description": "Methods pertaining to a single payout transaction", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Retrieve a single transaction"
-            }
-        ]
+        }
     }, 
     "plan_transaction_index": {
         "path": "/plan_transaction/", 
+        "description": "Base Plan Transaction resource used to create a plan transaction or retrieve all your plan transactions", 
+        "methods": {
+            "GET": {
+                "description": "Return a list of plan transactions pertaining to a group"
+            }
+        }, 
         "view": {
             "status": {
                 "type": "STRING"
@@ -391,17 +471,16 @@
             "id": {
                 "type": "STRING"
             }
-        }, 
-        "description": "Base Plan Transaction resource used to create a plan transaction or retrieve all your plan transactions", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Return a list of plan transactions pertaining to a group"
-            }
-        ]
+        }
     }, 
     "plan_transaction": {
         "path": "/plan_transaction/<string:plan_trans_id>/", 
+        "description": "Methods pertaining to a single plan transaction", 
+        "methods": {
+            "GET": {
+                "description": "Retrieve a single transaction"
+            }
+        }, 
         "view": {
             "status": {
                 "type": "STRING"
@@ -424,16 +503,10 @@
             "id": {
                 "type": "STRING"
             }
-        }, 
-        "description": "Methods pertaining to a single plan transaction", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Retrieve a single transaction"
-            }
-        ]
+        }
     }, 
     "plan": {
+        "description": "Methods pertaining to a single plan", 
         "path": "/plan/<string:plan_id>/", 
         "view": {
             "price_cents": {
@@ -458,24 +531,32 @@
                 "type": "INTERVAL"
             }
         }, 
-        "description": "Methods pertaining to a single plan", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Retrieve a single plan"
+        "methods": {
+            "PUT": {
+                "description": "Update the name of a plan", 
+                "form_fields": [
+                    {
+                        "type": "STRING", 
+                        "name": "name"
+                    }
+                ]
             }, 
-            {
-                "method": "PUT", 
-                "description": "Update the name of a plan"
-            }, 
-            {
-                "method": "DELETE", 
+            "DELETE": {
                 "description": "Deletes a plan by marking it inactive. Does not effect users already\n        on the plan."
+            }, 
+            "GET": {
+                "description": "Retrieve a single plan"
             }
-        ]
+        }
     }, 
     "plan_invoice_index": {
         "path": "/plan_invoice/", 
+        "description": "Base PlanInvoice resource used to create a plan invoice or retrieve all your plan invoices", 
+        "methods": {
+            "GET": {
+                "description": "Return a list of plans invoices pertaining to a group"
+            }
+        }, 
         "view": {
             "amount_base_cents": {
                 "type": "INTEGER"
@@ -531,17 +612,16 @@
             "quantity": {
                 "type": "INTEGER"
             }
-        }, 
-        "description": "Base PlanInvoice resource used to create a plan invoice or retrieve all your plan invoices", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Return a list of plans invoices pertaining to a group"
-            }
-        ]
+        }
     }, 
     "plan_invoice": {
         "path": "/plan_invoice/<string:plan_inv_id>/", 
+        "description": "Methods pertaining to a single plan invoice", 
+        "methods": {
+            "GET": {
+                "description": "Retrieve a single invoice"
+            }
+        }, 
         "view": {
             "amount_base_cents": {
                 "type": "INTEGER"
@@ -597,16 +677,10 @@
             "quantity": {
                 "type": "INTEGER"
             }
-        }, 
-        "description": "Methods pertaining to a single plan invoice", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Retrieve a single invoice"
-            }
-        ]
+        }
     }, 
     "plan_index": {
+        "description": "Base Plan resource used to create a plan or retrieve all your plans", 
         "path": "/plan/", 
         "view": {
             "price_cents": {
@@ -631,19 +705,39 @@
                 "type": "INTERVAL"
             }
         }, 
-        "description": "Base Plan resource used to create a plan or retrieve all your plans", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Return a list of plans pertaining to a group"
+        "methods": {
+            "POST": {
+                "description": "Create a plan", 
+                "form_fields": [
+                    {
+                        "type": "INTEGER", 
+                        "name": "price_cents"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "plan_interval"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "plan_id"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "name"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "trial_interval"
+                    }
+                ]
             }, 
-            {
-                "method": "POST", 
-                "description": "Create a plan"
+            "GET": {
+                "description": "Return a list of plans pertaining to a group"
             }
-        ]
+        }
     }, 
     "coupon_index": {
+        "description": "Base coupon resource used to create a coupon or retrieve all your coupons", 
         "path": "/coupon/", 
         "view": {
             "name": {
@@ -674,20 +768,53 @@
                 "type": "DATETIME"
             }
         }, 
-        "description": "Base coupon resource used to create a coupon or retrieve all your coupons", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Return a list of coupon pertaining to a group"
+        "methods": {
+            "POST": {
+                "description": "Create a coupon", 
+                "form_fields": [
+                    {
+                        "type": "STRING", 
+                        "name": "name"
+                    }, 
+                    {
+                        "type": "INTEGER", 
+                        "name": "price_off_cents"
+                    }, 
+                    {
+                        "type": "INTEGER", 
+                        "name": "max_redeem"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "coupon_id"
+                    }, 
+                    {
+                        "type": "INTEGER", 
+                        "name": "repeating"
+                    }, 
+                    {
+                        "type": "INTEGER", 
+                        "name": "percent_off_int"
+                    }, 
+                    {
+                        "type": "DATETIME", 
+                        "name": "expire_at"
+                    }
+                ]
             }, 
-            {
-                "method": "POST", 
-                "description": "Create a coupon"
+            "GET": {
+                "description": "Return a list of coupon pertaining to a group"
             }
-        ]
+        }
     }, 
     "payout_invoice": {
         "path": "/payout_invoice/<string:payout_inv_id>/", 
+        "description": "Methods pertaining to a single payout invoice", 
+        "methods": {
+            "GET": {
+                "description": "Retrieve a single invoice"
+            }
+        }, 
         "view": {
             "payout_id": {
                 "type": "STRING"
@@ -719,17 +846,16 @@
             "balance_at_exec": {
                 "type": "INTEGER"
             }
-        }, 
-        "description": "Methods pertaining to a single payout invoice", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Retrieve a single invoice"
-            }
-        ]
+        }
     }, 
     "payout_transaction_index": {
         "path": "/payout_transaction/", 
+        "description": "Base Payout Transaction resource used to create a payout transaction or retrieve all your payout transactions", 
+        "methods": {
+            "GET": {
+                "description": "Return a list of payout transactions pertaining to a group"
+            }
+        }, 
         "view": {
             "status": {
                 "type": "STRING"
@@ -752,16 +878,10 @@
             "id": {
                 "type": "STRING"
             }
-        }, 
-        "description": "Base Payout Transaction resource used to create a payout transaction or retrieve all your payout transactions", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Return a list of payout transactions pertaining to a group"
-            }
-        ]
+        }
     }, 
     "payout_subscription_index": {
+        "description": "Base PayoutSubscription resource used to create a payout subscription or retrieve all your payout subscriptions", 
         "path": "/payout_subscription/", 
         "view": {
             "created_at": {
@@ -780,20 +900,48 @@
                 "type": "STRING"
             }
         }, 
-        "description": "Base PayoutSubscription resource used to create a payout subscription or retrieve all your payout subscriptions", 
-        "methods": [
-            {
-                "method": "GET", 
+        "methods": {
+            "POST": {
+                "description": "Create or update a payout subscription", 
+                "form_fields": [
+                    {
+                        "type": "DATETIME", 
+                        "name": "start_dt"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "customer_id"
+                    }, 
+                    {
+                        "type": "BOOLEAN", 
+                        "name": "first_now"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "payout_id"
+                    }
+                ]
+            }, 
+            "DELETE": {
+                "description": "Unsubscribe from the payout", 
+                "form_fields": [
+                    {
+                        "type": "BOOLEAN", 
+                        "name": "cancel_at_period_end"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "customer_id"
+                    }, 
+                    {
+                        "type": "STRING", 
+                        "name": "plan_id"
+                    }
+                ]
+            }, 
+            "GET": {
                 "description": "Return a list of payout subscriptions pertaining to a group"
-            }, 
-            {
-                "method": "POST", 
-                "description": "Create or update a payout subscription"
-            }, 
-            {
-                "method": "DELETE", 
-                "description": "Unsubscribe from the payout"
             }
-        ]
+        }
     }
 }

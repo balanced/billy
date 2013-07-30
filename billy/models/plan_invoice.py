@@ -302,6 +302,6 @@ class PlanInvoice(Base):
     @validates('quantity')
     def validate_quantity(self, key, value):
         if not value > 0:
-            raise ValueError('{} must be greater than 0'.format(key))
+            raise ValueError('400_QUANTITY')
         else:
             return value

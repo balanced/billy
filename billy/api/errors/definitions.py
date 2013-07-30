@@ -62,6 +62,12 @@ errors = {
                          'PUT instead.'
     },
 
+    # Plan Subscription Errors
+    '404_PLAN_SUB_NOT_FOUND': {
+        'status': 404,
+        'error_message': 'The payout you requested was not found.'
+    },
+
     # FIELD ERRORS
     # Todo Temp place holders until validators are fed into the error_messages
     '400_CUSTOMER_ID': {
@@ -123,6 +129,10 @@ errors = {
     '400_BALANCE_TO_KEEP_CENTS': {
         'status': 400,
         'error_message': 'Invalid balance_to_keep_cents. Please check.'
+    },
+    '400_QUANTITY': {
+        'status': 400,
+        'error_message': 'Invalid quantity. Please check.'
     },
 
 }

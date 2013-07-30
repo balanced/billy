@@ -1,2 +1,0 @@
-#Todo find strategy to convert commits to flush
-#Todo Convert try/except blocks to constraints

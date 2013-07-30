@@ -1,4 +1,18 @@
 {
+    "customer": {
+        "path": "/customer/<string:customer_id>/", 
+        "methods": [
+            {
+                "method": "GET", 
+                "description": "Retrieve a single customer"
+            }, 
+            {
+                "method": "PUT", 
+                "description": "Update a customer, currently limited to updating their coupon."
+            }
+        ], 
+        "description": "Methods pertaining to a single customer"
+    }, 
     "payout": {
         "path": "/payout/<string:payout_id>/", 
         "methods": [
@@ -16,20 +30,6 @@
             }
         ], 
         "description": "Methods pertaining to a single payout"
-    }, 
-    "customer": {
-        "path": "/customer/<string:customer_id>/", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Retrieve a single customer"
-            }, 
-            {
-                "method": "PUT", 
-                "description": "Update a customer, currently limited to updating their coupon."
-            }
-        ], 
-        "description": "Methods pertaining to a single customer"
     }, 
     "payout_index": {
         "path": "/payout/", 
@@ -125,6 +125,16 @@
         ], 
         "description": "Methods pertaining to a single plan subscription"
     }, 
+    "payout_invoice_index": {
+        "path": "/payout_invoice/", 
+        "methods": [
+            {
+                "method": "GET", 
+                "description": "Return a list of payout invoices pertaining to a group"
+            }
+        ], 
+        "description": "Base PayoutInvoice resource used to create a payout invoice or retrieve all your payout invoices"
+    }, 
     "plan": {
         "path": "/plan/<string:plan_id>/", 
         "methods": [
@@ -190,6 +200,16 @@
             }
         ], 
         "description": "Base coupon resource used to create a coupon or retrieve all your coupons"
+    }, 
+    "payout_invoice": {
+        "path": "/payout_invoice/<string:payout_inv_id>/", 
+        "methods": [
+            {
+                "method": "GET", 
+                "description": "Retrieve a single invoice"
+            }
+        ], 
+        "description": "Methods pertaining to a single payout invoice"
     }, 
     "payout_subscription_index": {
         "path": "/payout_subscription/", 

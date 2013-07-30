@@ -22,6 +22,4 @@ plan_inv_view = {
     'quantity': fields.Integer(),
     'remaining_balance_cents': fields.Integer(),
     'cleared_by_txn': fields.String(),
-
-    # Todo add invoices field
 }

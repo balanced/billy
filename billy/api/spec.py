@@ -11,6 +11,9 @@ from api.resources.payout_subscription import (PayoutSubIndexController,
                                                PayoutSubController)
 from api.resources.plan_invoice import (PlanInvController,
                                         PlanInvIndexController)
+from api.resources.payout_invoice import (PayoutInvController,
+                                          PayoutInvIndexController)
+
 
 def get_methods(controller):
     methods = ['GET', 'POST', 'PUT', 'DELETE']
@@ -95,6 +98,14 @@ billy_spec = {
     'plan_invoice': {
         'path': '/plan_invoice/<string:plan_inv_id>/',
         'controller': PlanInvController,
+    },
+    'payout_invoice_index': {
+        'path': '/payout_invoice/',
+        'controller': PayoutInvIndexController,
+    },
+    'payout_invoice': {
+        'path': '/payout_invoice/<string:payout_inv_id>/',
+        'controller': PayoutInvController,
     },
 
 }

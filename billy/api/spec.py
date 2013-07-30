@@ -5,7 +5,10 @@ from api.resources.customer import CustomerIndexController, CustomerController
 from api.resources.coupon import CouponIndexController, CouponController
 from api.resources.plan import PlanIndexController, PlanController
 from api.resources.payout import PayoutIndexController, PayoutController
-from api.resources.plan_subscription import PlanSubIndexController, PlanSubController
+from api.resources.plan_subscription import (PlanSubIndexController,
+    PlanSubController)
+from api.resources.payout_subscription import (PayoutSubIndexController,
+    PayoutSubController)
 
 
 def get_methods(controller):
@@ -75,6 +78,14 @@ billy_spec = {
     'plan_subscription': {
         'path': '/plan_subscription/<string:plan_sub_id>/',
         'controller': PlanSubController,
+    },
+    'payout_subscription_index': {
+        'path': '/payout_subscription/',
+        'controller': PayoutSubIndexController,
+    },
+    'payout_subscription': {
+        'path': '/payout_subscription/<string:payout_sub_id>/',
+        'controller': PayoutSubController,
     },
 
 }

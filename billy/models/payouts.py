@@ -70,7 +70,7 @@ class Payout(Base):
                                  cls.group_id == group_id)
         if active_only:
             query = query.filter(cls.active == True)
-        return query.one()
+        return query.first()
 
     def update(self, name):
         """

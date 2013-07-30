@@ -2,13 +2,12 @@ from __future__ import unicode_literals
 
 from flask.ext.restful import fields
 
-plan_sub_view = {
+payout_sub_view = {
     # Todo: figure out why some arent showing...
     'id': fields.String(attribute='guid'),
     'created_at': fields.DateTime(),
-    'plan_id': fields.String(attribute='plan.external_id'),
+    'payout_id': fields.String(attribute='payout.external_id'),
     'customer_id': fields.String(attribute='customer.external_id'),
     'is_active': fields.Boolean(),
-    'is_enrolled': fields.Boolean(),
     # Todo add invoices field
 }

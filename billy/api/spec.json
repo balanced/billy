@@ -1,18 +1,4 @@
 {
-    "customer": {
-        "path": "/customer/<string:customer_id>/", 
-        "methods": [
-            {
-                "method": "GET", 
-                "description": "Retrieve a single customer"
-            }, 
-            {
-                "method": "PUT", 
-                "description": "Update a customer, currently limited to updating their coupon."
-            }
-        ], 
-        "description": "Methods pertaining to a single customer"
-    }, 
     "payout": {
         "path": "/payout/<string:payout_id>/", 
         "methods": [
@@ -30,6 +16,20 @@
             }
         ], 
         "description": "Methods pertaining to a single payout"
+    }, 
+    "customer": {
+        "path": "/customer/<string:customer_id>/", 
+        "methods": [
+            {
+                "method": "GET", 
+                "description": "Retrieve a single customer"
+            }, 
+            {
+                "method": "PUT", 
+                "description": "Update a customer, currently limited to updating their coupon."
+            }
+        ], 
+        "description": "Methods pertaining to a single customer"
     }, 
     "payout_index": {
         "path": "/payout/", 
@@ -87,6 +87,44 @@
         ], 
         "description": "Methods pertaining to a single coupon"
     }, 
+    "plan_subscription_index": {
+        "path": "/plan_subscription/", 
+        "methods": [
+            {
+                "method": "GET", 
+                "description": "Return a list of plans subscriptions pertaining to a group"
+            }, 
+            {
+                "method": "POST", 
+                "description": "Create or update a plan subscription"
+            }, 
+            {
+                "method": "DELETE", 
+                "description": "Unsubscribe from the plan"
+            }
+        ], 
+        "description": "Base PlanSubscription resource used to create a plan subscription or retrieve all your plan subscriptions"
+    }, 
+    "payout_subscription": {
+        "path": "/payout_subscription/<string:payout_sub_id>/", 
+        "methods": [
+            {
+                "method": "GET", 
+                "description": "Retrieve a single subscription"
+            }
+        ], 
+        "description": "Methods pertaining to a single payout subscription"
+    }, 
+    "plan_subscription": {
+        "path": "/plan_subscription/<string:plan_sub_id>/", 
+        "methods": [
+            {
+                "method": "GET", 
+                "description": "Retrieve a single subscription"
+            }
+        ], 
+        "description": "Methods pertaining to a single plan subscription"
+    }, 
     "plan": {
         "path": "/plan/<string:plan_id>/", 
         "methods": [
@@ -132,5 +170,23 @@
             }
         ], 
         "description": "Base coupon resource used to create a coupon or retrieve all your coupons"
+    }, 
+    "payout_subscription_index": {
+        "path": "/payout_subscription/", 
+        "methods": [
+            {
+                "method": "GET", 
+                "description": "Return a list of payout subscriptions pertaining to a group"
+            }, 
+            {
+                "method": "POST", 
+                "description": "Create or update a payout subscription"
+            }, 
+            {
+                "method": "DELETE", 
+                "description": "Unsubscribe from the payout"
+            }
+        ], 
+        "description": "Base PayoutSubscription resource used to create a payout subscription or retrieve all your payout subscriptions"
     }
 }

@@ -68,6 +68,12 @@ errors = {
         'error_message': 'The payout you requested was not found.'
     },
 
+    # Plan Subscription Errors
+    '404_PAYOUT_SUB_NOT_FOUND': {
+        'status': 404,
+        'error_message': 'The payout you requested was not found.'
+    },
+
     # FIELD ERRORS
     # Todo Temp place holders until validators are fed into the error_messages
     '400_CUSTOMER_ID': {

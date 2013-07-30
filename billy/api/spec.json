@@ -143,6 +143,26 @@
         ], 
         "description": "Methods pertaining to a single plan"
     }, 
+    "plan_invoice_index": {
+        "path": "/plan_invoice/", 
+        "methods": [
+            {
+                "method": "GET", 
+                "description": "Return a list of plans invoices pertaining to a group"
+            }
+        ], 
+        "description": "Base PlanInvoice resource used to create a plan invoice or retrieve all your plan invoices"
+    }, 
+    "plan_invoice": {
+        "path": "/plan_invoice/<string:plan_inv_id>/", 
+        "methods": [
+            {
+                "method": "GET", 
+                "description": "Retrieve a single invoice"
+            }
+        ], 
+        "description": "Methods pertaining to a single plan invoice"
+    }, 
     "plan_index": {
         "path": "/plan/", 
         "methods": [

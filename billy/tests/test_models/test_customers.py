@@ -90,7 +90,7 @@ class TestRetrieve(TestCustomer):
         Customer.create('MY_TEST_CUS_2', self.group, 'TESTBALID')
         Customer.create('MY_TEST_CUS_3', self.group, 'TESTBALID')
         Customer.create('MY_TEST_CUS_4', self.group, 'TESTBALID')
-        Customer.create('MY_TEST_CUS_1', self.group_2,'TESTBALID')
+        Customer.create('MY_TEST_CUS_1', self.group_2, 'TESTBALID')
         self.assertEqual(len(self.group_obj.customers), 4)
 
 
@@ -123,10 +123,10 @@ class TestCoupon(TestCustomer):
                                repeating=-1,
                                )
         Customer.create('MY_TEST_CUS_1', self.group, 'TESTBALID').apply_coupon(coupon
-                                                                  .external_id)
+                                                                               .external_id)
         self.assertEqual(coupon.count_redeemed, 1)
         Customer.create('MY_TEST_CUS_2', self.group, 'TESTBALID').apply_coupon(coupon
-                                                                  .external_id)
+                                                                               .external_id)
         self.assertEqual(coupon.count_redeemed, 2)
         customer = Customer.create('MY_TEST_CUS_3', self.group, 'TESTBALID').apply_coupon(
             coupon.external_id)
@@ -151,7 +151,7 @@ class TestCoupon(TestCustomer):
         coupon.delete()
         with self.assertRaises(NoResultFound):
             Customer.create('MY_TEST_CUS_3', self.group, 'TESTBALID').apply_coupon(coupon
-                                                                      .external_id)
+                                                                                   .external_id)
 
     def test_apply_coupon_dne(self):
         with self.assertRaises(NoResultFound):

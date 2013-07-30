@@ -24,7 +24,8 @@ class TestPlanInvoice(BalancedTransactionalTestCase):
         self.month = self.now + Intervals.MONTH
         self.group = Group.create('BILLY_TEST_MARKETPLACE')
         self.group_2 = Group.create('BILLY_TEST_MARKETPLACE_2')
-        self.customer = Customer.create('MY_TEST_CUSTOMER', self.group.guid, 'TESTBALID')
+        self.customer = Customer.create(
+            'MY_TEST_CUSTOMER', self.group.guid, 'TESTBALID')
         self.customer_2 = Customer.create(
             'MY_TEST_CUSTOMER_2', self.group.guid, 'TESTBALID')
         self.customer_group2 = Customer.create(

@@ -86,6 +86,8 @@ class Customer(Base):
 
         coupon = Coupon.retrieve(coupon_eid, self.group_id,
                                  active_only=True)
+        if not coupon:
+            raise NameError('Coupon not found.')
         if coupon.max_redeem != -1 and coupon.count_redeemed >= \
                 coupon.max_redeem:
             raise ValueError('Coupon already redeemed maximum times. See '

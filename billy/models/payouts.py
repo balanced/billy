@@ -70,7 +70,7 @@ class Payout(Base):
                                  cls.group_id == group_id)
         if active_only:
             query = query.filter(cls.active == True)
-        return query.one()
+        return query.first()
 
     def update(self, name):
         """
@@ -101,5 +101,5 @@ class Payout(Base):
     @validates('balance_to_keep_cents')
     def validate_balance_to_keep(self, key, address):
         if not address > 0:
-            raise ValueError("{} must be greater than 0".format(key))
+            raise ValueError("400_BALANCE_TO_KEEP_CENTS")
         return address

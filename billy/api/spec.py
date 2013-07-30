@@ -13,6 +13,10 @@ from api.resources.plan_invoice import (PlanInvController,
                                         PlanInvIndexController)
 from api.resources.payout_invoice import (PayoutInvController,
                                           PayoutInvIndexController)
+from api.resources.plan_transaction import (PlanTransIndexController,
+                                            PlanTransController)
+from api.resources.payout_transaction import (PayoutTransIndexController,
+                                              PayoutTransController)
 
 
 def get_methods(controller):
@@ -106,6 +110,22 @@ billy_spec = {
     'payout_invoice': {
         'path': '/payout_invoice/<string:payout_inv_id>/',
         'controller': PayoutInvController,
+    },
+    'plan_transaction_index': {
+        'path': '/plan_transaction/',
+        'controller': PlanTransIndexController,
+    },
+    'plan_transaction': {
+        'path': '/plan_transaction/<string:plan_trans_id>/',
+        'controller': PlanTransController,
+    },
+    'payout_transaction_index': {
+        'path': '/payout_transaction/',
+        'controller': PayoutTransIndexController,
+    },
+    'payout_transaction': {
+        'path': '/payout_transaction/<string:payout_trans_id>/',
+        'controller': PayoutTransController,
     },
 
 }

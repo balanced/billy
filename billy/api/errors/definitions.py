@@ -86,6 +86,19 @@ errors = {
         'error_message': 'The payout invoice you requested was not found.'
     },
 
+
+    # Plan Invoice Errors
+    '404_PLAN_TRANS_NOT_FOUND': {
+        'status': 404,
+        'error_message': 'The plan transaction you requested was not found.'
+    },
+
+    # Payout Invoice Errors
+    '404_PAYOUT_TRANS_NOT_FOUND': {
+        'status': 404,
+        'error_message': 'The payout transaction you requested was not found.'
+    },
+
     # FIELD ERRORS
     # Todo Temp place holders until validators are fed into the error_messages
     '400_CUSTOMER_ID': {

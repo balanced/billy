@@ -23,7 +23,9 @@ class TestCustomers(BaseTestCase):
 
 class TestCreateCustomer(TestCustomers):
     def test_create(self):
-        self.client.get(self.url_index, user=self.test_user)
+        resp =self.client.post(self.url_index, user=self.test_user, data=self.good_customer)
+        self.assertEqual(resp.status_code, 200)
+
 
     def test_create_bad_params(self):
         pass

@@ -38,7 +38,8 @@ class GroupController(Base):
         """
         result = Group.query.filter(Group.api_key == api_key).first()
         if not result and api_key == TEST_API_KEY:
-            return Group.create('MY_TEST_GROUP', api_key=TEST_API_KEY)
+            return Group.create('MY_TEST_GROUP', provider='dummy',
+                                api_key=TEST_API_KEY)
         return result
 
     def get(self):

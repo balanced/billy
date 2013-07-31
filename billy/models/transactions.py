@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship
 
 from models import Base, Customer, PlanInvoice, PayoutInvoice
 from utils.generic import uuid_factory, Status
-from settings import TRANSACTION_PROVIDER_CLASS
+from provider import provider_map
 
 
 class TransactionMixin(object):
@@ -36,18 +36,20 @@ class PlanTransaction(TransactionMixin, Base):
     plan_invoices = relationship(PlanInvoice, backref='transaction')
 
     def execute(self):
-            try:
-                external_id = TRANSACTION_PROVIDER_CLASS.create_charge(
-                    self.customer.guid, self.customer.group_id,
-                    self.amount_cents)
-                self.status = Status.COMPLETE
-                self.external_id = external_id
-            except Exception, e:
-                self.status = Status.ERROR
-                self.session.commit()
-                raise e
-            self.customer.charge_attempts = 0
+        try:
+            transaction_class = provider_map[self.customer.group.provider](
+                self.customer.group.provider_api_key)
+            external_id = transaction_class.create_charge(
+                self.customer.guid, self.customer.group_id,
+                self.amount_cents)
+            self.status = Status.COMPLETE
+            self.external_id = external_id
+        except Exception, e:
+            self.status = Status.ERROR
             self.session.commit()
+            raise e
+        self.customer.charge_attempts = 0
+        self.session.commit()
 
 
 class PayoutTransaction(TransactionMixin, Base):
@@ -61,7 +63,9 @@ class PayoutTransaction(TransactionMixin, Base):
 
     def execute(self):
         try:
-            external_id = TRANSACTION_PROVIDER_CLASS.make_payout(
+            transaction_class = provider_map[self.customer.group.provider](
+                            self.customer.group.provider_api_key)
+            external_id = transaction_class.make_payout(
                 self.customer.guid, self.customer.group_id,
                 self.amount_cents)
             self.status = Status.COMPLETE

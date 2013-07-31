@@ -24,10 +24,11 @@ class Group(Base):
     payouts = relationship('Payout', backref='group', lazy='dynamic')
 
     @classmethod
-    def create(cls, external_id, provider, provider_api_key, is_test=True):
+    def create(cls, external_id, provider, provider_api_key, is_test=True,
+               **kwargs):
         new_group = cls(external_id=external_id, provider=provider,
                         provider_api_key=provider_api_key,
-                        is_test=is_test)
+                        is_test=is_test, **kwargs)
         cls.session.add(new_group)
         cls.session.commit()
         return new_group

@@ -6,7 +6,7 @@ from utils.generic import uuid_factory
 
 class BalancedProvider(object):
 
-    is_test_mode = False
+    is_test_mode = True
 
     def __init__(self, api_key):
         self.api_key = api_key

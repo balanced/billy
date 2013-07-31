@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 
-from flask import request
-
 from api.resources import Base
 from api.errors import BillyExc
 from models import Group
@@ -31,14 +29,16 @@ class GroupController(Base):
 
     def get_group_from_api_key(self, api_key):
         """
-        Takes an API key and grabs the Group associated with it. If the test API key
-        is used and the test group doesnt exists it creates one and returns it.
+        Takes an API key and grabs the Group associated with it.
+        If the test API key is used and the test group doesnt exists it creates
+        one and returns it.
         :param api_key: The API key
         :return:
         """
         result = Group.query.filter(Group.api_key == api_key).first()
         if not result and api_key == TEST_API_KEY:
             return Group.create('MY_TEST_GROUP', provider='dummy',
+                                provider_api_key='SOME_API_KEY',
                                 api_key=TEST_API_KEY)
         return result
 

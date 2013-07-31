@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import os
 
-DEBUG_MODE = os.environ.get('DEBUG_MODE', 'PROD')
+DEBUG_MODE = os.environ.get('DEBUG_MODE', 'dev')
 DEBUG = True if DEBUG_MODE.lower() == 'dev' else False
 
 

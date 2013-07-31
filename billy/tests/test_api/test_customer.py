@@ -23,13 +23,16 @@ class TestCustomers(BaseTestCase):
 
 class TestCreateCustomer(TestCustomers):
     def test_create(self):
-        import ipdb;ipdb.set_trace()
-        resp =self.client.post(self.url_index, user=self.test_users[0], data=self.good_customer)
+        resp = self.client.post(self.url_index, user=self.test_users[0],
+                                data=self.good_customer)
         self.assertEqual(resp.status_code, 200)
 
 
     def test_create_bad_params(self):
-        pass
+        # TEST BAD customer_id
+        customer = self.good_customer
+        customer['customer_id'] = None
+        import ipdb;ipdb.set_trace()
 
 
     def test_create_collision(self):

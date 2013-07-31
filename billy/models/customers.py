@@ -17,7 +17,7 @@ class Customer(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     external_id = Column(Unicode, nullable=False)
-    balanced_id = Column(Unicode, nullable=False)
+    provider_id = Column(Unicode, nullable=False)
     group_id = Column(Unicode, ForeignKey(Group.guid))
     current_coupon = Column(Unicode, ForeignKey(Coupon.guid))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
@@ -43,7 +43,7 @@ class Customer(Base):
     )
 
     @classmethod
-    def create(cls, external_id, group_id, balanced_id):
+    def create(cls, external_id, group_id, provider_id):
         """
         Creates a customer for the group_id.
         :param external_id: A unique id/uri for the customer
@@ -54,7 +54,7 @@ class Customer(Base):
         """
         new_customer = cls(
             external_id=external_id,
-            balanced_id=balanced_id,
+            provider_id=provider_id,
             group_id=group_id
         )
         cls.session.add(new_customer)

@@ -3,11 +3,10 @@ from __future__ import unicode_literals
 from api.resources import Base
 from api.errors import BillyExc
 from models import Group
-from settings import TEST_API_KEY
+from settings import TEST_API_KEYS
 
 
 class GroupController(Base):
-
     """
     Base authentication route that converts an API key to a group
     """
@@ -36,10 +35,11 @@ class GroupController(Base):
         :return:
         """
         result = Group.query.filter(Group.api_key == api_key).first()
-        if not result and api_key == TEST_API_KEY:
-            return Group.create('MY_TEST_GROUP', provider='dummy',
-                                provider_api_key='SOME_API_KEY',
-                                api_key=TEST_API_KEY)
+        if not result and api_key in TEST_API_KEYS:
+            return Group.create(
+                'MY_TEST_GROUP_{}'.format(TEST_API_KEYS.index(api_key)),
+                provider='DUMMY', provider_api_key='SOME_API_KEY',
+                api_key=api_key)
         return result
 
     def get(self):

@@ -6,8 +6,9 @@ from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
 from sqlalchemy.orm import relationship, validates, backref
 
 from models import Base, Group, Customer, Payout
-from settings import RETRY_DELAY_PAYOUT, TRANSACTION_PROVIDER_CLASS
+from settings import RETRY_DELAY_PAYOUT
 from utils.generic import uuid_factory
+from provider import provider_map
 
 
 class PayoutSubscription(Base):
@@ -50,7 +51,7 @@ class PayoutSubscription(Base):
         invoice = PayoutInvoice.create(new_sub.guid,
                                        first_charge,
                                        balance_to_keep_cents,
-                                       )
+        )
         cls.session.add(invoice)
         cls.session.commit()
         return invoice
@@ -58,10 +59,11 @@ class PayoutSubscription(Base):
     @classmethod
     def unsubscribe(cls, customer, payout, cancel_scheduled=False):
         from models import PayoutInvoice
+
         current_sub = cls.query.filter(cls.customer_id == customer.guid,
                                        cls.payout_id == payout.guid,
                                        cls.is_active == True
-                                       ).one()
+        ).one()
         current_sub.is_active = False
         if cancel_scheduled:
             in_process = current_sub.invoices.filter(
@@ -124,14 +126,15 @@ class PayoutInvoice(Base):
         now = datetime.now(UTC)
         return cls.query.filter(cls.payout_date <= now,
                                 cls.completed == False
-                                ).all()
+        ).all()
 
     @classmethod
     def needs_rollover(cls):
         # Todo: create a better query for this...
         results = cls.query.join(
             PayoutSubscription).filter(cls.queue_rollover == True,
-                                       PayoutSubscription.is_active == True).all()
+                                       PayoutSubscription.is_active == True)\
+            .all()
         return results
 
     def rollover(self):
@@ -145,9 +148,14 @@ class PayoutInvoice(Base):
 
     def make_payout(self, force=False):
         from models import PayoutTransaction
+
         now = datetime.now(UTC)
-        current_balance = TRANSACTION_PROVIDER_CLASS.check_balance(
-            self.subscription.customer.guid, self.subscription.customer.group_id)
+        transaction_class = provider_map[
+            self.subscription.customer.group.provider](
+            self.customer.group.provider_api_key)
+        current_balance = transaction_class.check_balance(
+            self.subscription.customer.guid,
+            self.subscription.customer.group_id)
         payout_date = self.payout_date
         if len(RETRY_DELAY_PAYOUT) < self.attempts_made and not force:
             self.subscription.is_active = False

@@ -23,7 +23,8 @@ class TestCustomers(BaseTestCase):
 
 class TestCreateCustomer(TestCustomers):
     def test_create(self):
-        resp =self.client.post(self.url_index, user=self.test_user, data=self.good_customer)
+        import ipdb;ipdb.set_trace()
+        resp =self.client.post(self.url_index, user=self.test_users[0], data=self.good_customer)
         self.assertEqual(resp.status_code, 200)
 
 

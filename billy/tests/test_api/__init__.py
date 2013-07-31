@@ -22,7 +22,7 @@ class ClientResponse(Response):
 class TestClient(Client):
     def _add_headers(self, user, kwargs):
         if user and user.api_key:
-            kwargs.get('headers', {})['Authorization'] = \
+            kwargs.setdefault('headers', {})['Authorization'] = \
                 'Basic {}'.format(b64encode(':{}'.format(user.api_key)))
         return kwargs
 

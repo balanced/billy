@@ -15,8 +15,8 @@ class PlanSubscription(Base):
     __tablename__ = 'plan_subscription'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PLS'))
-    customer_id = Column(Unicode, ForeignKey(Customer.guid))
-    plan_id = Column(Unicode, ForeignKey(Plan.guid))
+    customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
+    plan_id = Column(Unicode, ForeignKey(Plan.guid), nullable=False)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     is_enrolled = Column(Boolean, default=True)
     is_active = Column(Boolean, default=True)
@@ -119,22 +119,24 @@ class PlanInvoice(Base):
     __tablename__ = 'plan_invoices'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PLI'))
-    subscription_id = Column(Unicode, ForeignKey(PlanSubscription.guid))
-    relevant_coupon = Column(Unicode, ForeignKey(Coupon.guid))
+    subscription_id = Column(Unicode, ForeignKey(PlanSubscription.guid),
+                             nullable=False)
+    relevant_coupon = Column(Unicode, ForeignKey(Coupon.guid), nullable=False)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
-    start_dt = Column(DateTime(timezone=UTC))
-    end_dt = Column(DateTime(timezone=UTC))
+    start_dt = Column(DateTime(timezone=UTC), nullable=False)
+    end_dt = Column(DateTime(timezone=UTC), nullable=False)
     original_end_dt = Column(DateTime(timezone=UTC))
-    due_dt = Column(DateTime(timezone=UTC))
+    due_dt = Column(DateTime(timezone=UTC), nullable=False)
     includes_trial = Column(Boolean)
-    amount_base_cents = Column(Integer)
-    amount_after_coupon_cents = Column(Integer)
-    amount_paid_cents = Column(Integer)
-    remaining_balance_cents = Column(Integer)
-    quantity = Column(Integer)
+    amount_base_cents = Column(Integer, nullable=False)
+    amount_after_coupon_cents = Column(Integer, nullable=False)
+    amount_paid_cents = Column(Integer, nullable=False)
+    remaining_balance_cents = Column(Integer, nullable=False)
+    quantity = Column(Integer, nullable=False)
     prorated = Column(Boolean)
     charge_at_period_end = Column(Boolean)
-    cleared_by_txn = Column(Unicode, ForeignKey('plan_transactions.guid'))
+    cleared_by_txn = Column(Unicode, ForeignKey('plan_transactions.guid'),
+                            nullable=False)
 
     subscription = relationship('PlanSubscription', backref='invoices')
 
@@ -219,6 +221,7 @@ class PlanInvoice(Base):
         Returns a list of invoices that are due for a customer
         """
         from models import PlanInvoice
+
         now = datetime.now(UTC)
         results = PlanInvoice.query.filter(
             PlanSubscription.customer_id == customer.guid,

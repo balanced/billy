@@ -37,3 +37,8 @@ class Group(Base):
     def retrieve(cls, external_id):
         # Used one() instead get() to raise error if not found...
         return cls.query.filter(cls.external_id == external_id).one()
+
+
+    def delete(self):
+        pass
+

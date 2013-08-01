@@ -18,7 +18,7 @@ class Customer(Base):
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     external_id = Column(Unicode, nullable=False)
     provider_id = Column(Unicode, nullable=False)
-    group_id = Column(Unicode, ForeignKey(Group.guid))
+    group_id = Column(Unicode, ForeignKey(Group.guid), nullable=False)
     current_coupon = Column(Unicode, ForeignKey(Coupon.guid))
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))

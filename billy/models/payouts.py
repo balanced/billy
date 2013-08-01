@@ -15,15 +15,15 @@ class Payout(Base):
     __tablename__ = 'payouts'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PO'))
-    external_id = Column(Unicode)
-    group_id = Column(Unicode, ForeignKey(Group.guid))
-    name = Column(Unicode)
-    balance_to_keep_cents = Column(Integer)
+    external_id = Column(Unicode, nullable=False)
+    group_id = Column(Unicode, ForeignKey(Group.guid), nullable=False)
+    name = Column(Unicode, nullable=False)
+    balance_to_keep_cents = Column(Integer, nullable=False)
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     deleted_at = Column(DateTime(timezone=UTC))
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
-    payout_interval = Column(RelativeDelta)
+    payout_interval = Column(RelativeDelta, nullable=False)
 
     subscriptions = relationship('PayoutSubscription', backref='payout')
 

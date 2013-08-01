@@ -10,10 +10,10 @@ from provider import provider_map
 
 
 class TransactionMixin(object):
-    provider_txn_id = Column(Unicode)
+    provider_txn_id = Column(Unicode, nullable=False)
     created_at = Column(DateTime(timezone=UTC))
-    amount_cents = Column(Integer)
-    status = Column(Unicode)
+    amount_cents = Column(Integer, nullable=False)
+    status = Column(Unicode, nullable=False)
 
     @classmethod
     def create(cls, customer_id, amount_cents):
@@ -31,7 +31,7 @@ class PlanTransaction(TransactionMixin, Base):
     __tablename__ = "plan_transactions"
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PAT'))
-    customer_id = Column(Unicode, ForeignKey(Customer.guid))
+    customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
 
     plan_invoices = relationship(PlanInvoice, backref='transaction')
 
@@ -56,7 +56,7 @@ class PayoutTransaction(TransactionMixin, Base):
     __tablename__ = 'payout_transactions'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POT'))
-    customer_id = Column(Unicode, ForeignKey(Customer.guid))
+    customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
 
     payout_invoices = relationship(PayoutInvoice,
                                    backref='transaction')

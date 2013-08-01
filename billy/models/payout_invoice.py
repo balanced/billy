@@ -15,8 +15,8 @@ class PayoutSubscription(Base):
     __tablename__ = 'payout_subscription'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POS'))
-    customer_id = Column(Unicode, ForeignKey(Customer.guid))
-    payout_id = Column(Unicode, ForeignKey(Payout.guid))
+    customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
+    payout_id = Column(Unicode, ForeignKey(Payout.guid), nullable=False)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     is_active = Column(Boolean, default=True)
 
@@ -77,15 +77,17 @@ class PayoutInvoice(Base):
     __tablename__ = 'payout_invoices'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POI'))
-    subscription_id = Column(Unicode, ForeignKey(PayoutSubscription.guid))
+    subscription_id = Column(Unicode, ForeignKey(PayoutSubscription.guid),
+                             nullable=False)
     created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_date = Column(DateTime(timezone=UTC))
     balance_to_keep_cents = Column(Integer)
     amount_payed_out = Column(Integer)
     completed = Column(Boolean, default=False)
     queue_rollover = Column(Boolean, default=False)
-    balance_at_exec = Column(Integer)
-    cleared_by_txn = Column(Unicode, ForeignKey('payout_transactions.guid'))
+    balance_at_exec = Column(Integer, nullable=False)
+    cleared_by_txn = Column(Unicode, ForeignKey('payout_transactions.guid'),
+                            nullable=False)
     attempts_made = Column(Integer, default=0)
 
     subscription = relationship('PayoutSubscription',
@@ -133,7 +135,7 @@ class PayoutInvoice(Base):
         # Todo: create a better query for this...
         results = cls.query.join(
             PayoutSubscription).filter(cls.queue_rollover == True,
-                                       PayoutSubscription.is_active == True)\
+                                       PayoutSubscription.is_active == True) \
             .all()
         return results
 

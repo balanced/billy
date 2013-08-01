@@ -9,7 +9,7 @@ class TestCustomers(BaseTestCase):
         'customer_id': 'MY_TEST_CUSTOMER',
         'provider_id': 'MY_DUMMY_PROVIDER'
     }
-
+    schema = 'customer.json'
     controller = CustomerController
     index_controller = CustomerIndexController
 
@@ -26,13 +26,14 @@ class TestCreateCustomer(TestCustomers):
         resp = self.client.post(self.url_index, user=self.test_users[0],
                                 data=self.good_customer)
         self.assertEqual(resp.status_code, 200)
+        self.check_schema(resp, self.schema)
 
 
     def test_create_bad_params(self):
         # TEST BAD customer_id
-        customer = self.good_customer
+        pass
+        customer = self.good_customer.copy()
         customer['customer_id'] = None
-        import ipdb;ipdb.set_trace()
 
 
     def test_create_collision(self):

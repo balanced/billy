@@ -2,8 +2,10 @@ from __future__ import unicode_literals
 
 from base64 import b64encode
 import json
+import os
 
 from flask import url_for, Response
+import jsonschema
 from unittest import TestCase
 from werkzeug.test import Client
 
@@ -45,6 +47,9 @@ class TestClient(Client):
 
 
 class BaseTestCase(TestCase):
+
+    json_schema_validator = jsonschema.Draft3Validator
+
     def setUp(self):
         super(BaseTestCase, self).setUp()
         self.api_key = TEST_API_KEYS[0]
@@ -67,8 +72,18 @@ class BaseTestCase(TestCase):
     def check_error(self, resp, error_expected):
         self.assertEqual(resp.json, True)
 
-    def check_schema(self, resp, schema):
-        pass
+    @classmethod
+    def schemas_path(cls, file_name):
+        base_path = os.path.dirname(__file__)
+
+        return os.path.join(base_path, '../schemas/', file_name)
+
+    @classmethod
+    def check_schema(cls, resp, schema_path):
+        with open(cls.schemas_path(schema_path)) as schema_file:
+            schema = json.load(schema_file)
+        cls.json_schema_validator(schema).validate(resp.json)
+
 
     def tearDown(self):
         super(BaseTestCase, self).tearDown()

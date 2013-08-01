@@ -28,6 +28,7 @@ class TestCreateCustomer(TestCustomers):
         self.check_schema(resp, self.schema)
 
 
+
     def test_create_bad_params(self):
         # TEST BAD customer_id
         pass

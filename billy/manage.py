@@ -14,6 +14,7 @@ def create_tables():
     """
     Creates the tables if they dont exists
     """
+    print '#'*10, 'Base.metadata', Base.metadata
     Base.metadata.create_all(DB_ENGINE)
     print "Create tables.... DONE"
 

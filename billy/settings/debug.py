@@ -7,20 +7,17 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from billy.utils.intervals import Intervals
 
 DB_SETTINGS = {
-    'driver': 'postgresql',
-    'host': 'localhost',
-    'port': 5432,
-    'user': 'test',
-    'password': 'test',
+    'driver': 'sqlite',
+    'host': '//billy.db',
     'db_name': 'billy',
 }
 
-DB_URL = URL(DB_SETTINGS['driver'], username=DB_SETTINGS['user'],
-             host=DB_SETTINGS['host'],
-             password=DB_SETTINGS['password'], port=DB_SETTINGS['port'],
-             database=DB_SETTINGS['db_name'])
+DB_URL = URL(DB_SETTINGS['driver'], 
+             host=DB_SETTINGS['host'])
 
-DB_ENGINE = create_engine(DB_URL)
+DB_URL = 'sqlite:///billy.db'
+
+DB_ENGINE = create_engine(DB_URL, echo=True)
 Session = scoped_session(sessionmaker(bind=DB_ENGINE))
 
 # A list of attempt invervals, [ATTEMPT n DELAY INTERVAL,...]

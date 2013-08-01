@@ -8,6 +8,7 @@ from unittest import TestCase
 from werkzeug.test import Client
 
 from api.app import app
+from api.resources import GroupController
 from settings import TEST_API_KEYS
 
 
@@ -59,11 +60,17 @@ class BaseTestCase(TestCase):
         self.ctx = app.test_request_context()
         self.ctx.push()
 
-    def url_for(self, *args, **kwargs):
-        return url_for(*args, **kwargs)
+    def url_for(self, controller, **kwargs):
+        controller = controller.__name__.lower()
+        return url_for(controller, **kwargs)
 
     def check_error(self, resp, error_expected):
         self.assertEqual(resp.json, True)
 
     def check_schema(self, resp, schema):
         pass
+
+    def tearDown(self):
+        super(BaseTestCase, self).tearDown()
+        for each_user in self.test_users:
+            self.client.delete(self.url_for(GroupController), user=each_user)

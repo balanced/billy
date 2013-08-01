@@ -42,5 +42,6 @@ class Group(Base):
 
 
     def delete(self):
-        pass
+        self.session.delete(self)
+        self.session.commit()
 

@@ -15,10 +15,9 @@ class TestCustomers(BaseTestCase):
 
     def setUp(self):
         super(TestCustomers, self).setUp()
-        self.url_index = self.url_for(
-            str(self.index_controller.__name__.lower()))
-        self.url_single = lambda customer_id: self.url_for(
-            str(self.controller.__name__.lower()), customer_id=customer_id)
+        self.url_index = self.url_for(self.index_controller)
+        self.url_single = lambda customer_id: self.url_for(self.controller,
+                                                       customer_id=customer_id)
 
 
 class TestCreateCustomer(TestCustomers):

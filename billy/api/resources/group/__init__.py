@@ -54,6 +54,9 @@ class GroupController(Base):
 
 
     def delete(self):
+        """
+        Deletes a group. ONLY deletion of test groups allowed.
+        """
         if self.group.is_test:
             self.group.delete()
         else:

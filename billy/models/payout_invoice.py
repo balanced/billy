@@ -91,7 +91,9 @@ class PayoutInvoice(Base):
     attempts_made = Column(Integer, default=0)
 
     subscription = relationship('PayoutSubscription',
-                                backref=backref('invoices', lazy='dynamic'))
+                                backref=backref('invoices', lazy='dynamic',
+                                                cascade='delete'),
+    )
 
     @classmethod
     def create(cls, subscription_id,

@@ -25,11 +25,12 @@ class Payout(Base):
     updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
     payout_interval = Column(RelativeDelta, nullable=False)
 
-    subscriptions = relationship('PayoutSubscription', backref='payout')
+    subscriptions = relationship('PayoutSubscription', backref='payout',
+                                 cascade='delete')
 
     __table_args__ = (UniqueConstraint(external_id, group_id,
                                        name='payout_id_group_unique'),
-                      )
+    )
 
     @classmethod
     def create(cls, external_id, group_id, name,

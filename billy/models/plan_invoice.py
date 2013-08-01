@@ -5,7 +5,7 @@ from decimal import Decimal
 from pytz import UTC
 from sqlalchemy import (Column, Unicode, ForeignKey, DateTime, Boolean,
                         Integer, Index, or_)
-from sqlalchemy.orm import relationship, validates
+from sqlalchemy.orm import relationship, validates, backref
 
 from models import Base, Customer, Plan, Coupon
 from utils.generic import uuid_factory
@@ -138,7 +138,8 @@ class PlanInvoice(Base):
     cleared_by_txn = Column(Unicode, ForeignKey('plan_transactions.guid'),
                             nullable=False)
 
-    subscription = relationship('PlanSubscription', backref='invoices')
+    subscription = relationship('PlanSubscription',
+                                backref=backref('invoices', cascade='delete'))
 
     @classmethod
     def create(cls, subscription_id, relevant_coupon, start_dt, end_dt, due_dt,

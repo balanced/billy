@@ -26,16 +26,17 @@ class Customer(Base):
     # Todo this should be normalized and made a property:
     charge_attempts = Column(Integer, default=0)
 
-    plan_subs = relationship('PlanSubscription', backref='customer',)
-    payout_subs = relationship('PayoutSubscription', backref='customer')
-
+    plan_subs = relationship('PlanSubscription', backref='customer',
+                             cascade='delete')
+    payout_subs = relationship('PayoutSubscription', backref='customer',
+                               cascade='delete')
     plan_invoices = association_proxy('plan_subs', 'invoices')
     payout_invoices = association_proxy('payout_subs', 'invoices')
 
     plan_transactions = relationship('PlanTransaction',
-                                     backref='customer')
+                                     backref='customer', cascade='delete')
     payout_transactions = relationship('PayoutTransaction',
-                                       backref='customer')
+                                       backref='customer', cascade='delete')
 
     __table_args__ = (
         UniqueConstraint(
@@ -119,11 +120,12 @@ class Customer(Base):
     def can_use_coupon(self):
         use_coupon = self.current_coupon or True \
             if self.current_coupon.repeating == -1 or \
-            self.coupon_use_count <= self.current_coupon.repeating else False
+               self.coupon_use_count <= self.current_coupon.repeating else False
         return use_coupon
 
     def can_trial_plan(self, plan):
         from models import PlanSubscription
+
         count = PlanSubscription.query.filter(
             PlanSubscription.customer_id == self.guid,
             PlanSubscription.plan_id == plan.guid
@@ -143,6 +145,7 @@ class Customer(Base):
         Returns the total outstanding debt for the customer
         """
         from models import PlanInvoice
+
         return self.sum_plan_debt(PlanInvoice.due(self))
 
     def is_debtor(self, limit_cents):
@@ -160,12 +163,13 @@ class Customer(Base):
 
     def clear_plan_debt(self, force=False):
         from models import PlanInvoice, PlanTransaction
+
         now = datetime.now(UTC)
         earliest_due = datetime.now(UTC)
         plan_invoices_due = PlanInvoice.due(self)
         for plan_invoice in plan_invoices_due:
             earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \
-                earliest_due else earliest_due
+                                                  earliest_due else earliest_due
             # Cancel a users plan if max retries reached
         if len(RETRY_DELAY_PLAN) < self.charge_attempts and not force:
             for plan_invoice in plan_invoices_due:

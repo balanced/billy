@@ -18,10 +18,12 @@ class Group(Base):
                       nullable=False)
     provider_api_key = Column(Unicode, nullable=False)
     is_test = Column(Boolean, default=True)
-    coupons = relationship('Coupon', backref='group')
-    customers = relationship('Customer', backref='group')
-    plans = relationship('Plan', backref='group', lazy='dynamic')
-    payouts = relationship('Payout', backref='group', lazy='dynamic')
+    coupons = relationship('Coupon', backref='group', cascade='delete')
+    customers = relationship('Customer', backref='group', cascade='delete')
+    plans = relationship('Plan', backref='group', lazy='dynamic',
+                         cascade='delete')
+    payouts = relationship('Payout', backref='group', lazy='dynamic',
+                           cascade='delete')
 
     @classmethod
     def create(cls, external_id, provider, provider_api_key, is_test=True,

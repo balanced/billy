@@ -26,7 +26,8 @@ class Plan(Base):
     trial_interval = Column(RelativeDelta)
     plan_interval = Column(RelativeDelta)
 
-    subscriptions = relationship('PlanSubscription', backref='plan')
+    subscriptions = relationship('PlanSubscription', backref='plan',
+                                 cascade='delete')
 
     __table_args__ = (UniqueConstraint(external_id, group_id,
                                        name='plan_id_group_unique'),

@@ -1,0 +1,33 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "string",
+            "required": true
+        },
+        "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "required": true
+        },
+        "provider_id": {
+            "type": "string",
+            "required": true
+        },
+        "last_debt_clear": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "required": true
+        },
+        "charge_attempts": {
+            "type": "integer",
+            "required": true
+        },
+        "current_coupon": {
+            "type": ["string", "null"],
+            "required": true
+        }
+    },
+    "additionalProperties": false
+}

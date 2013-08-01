@@ -33,7 +33,8 @@ class PlanTransaction(TransactionMixin, Base):
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PAT'))
     customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
 
-    plan_invoices = relationship(PlanInvoice, backref='transaction')
+    plan_invoices = relationship(PlanInvoice, backref='transaction',
+                                 cascade='delete')
 
     def execute(self):
         try:
@@ -59,12 +60,12 @@ class PayoutTransaction(TransactionMixin, Base):
     customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
 
     payout_invoices = relationship(PayoutInvoice,
-                                   backref='transaction')
+                                   backref='transaction', cascade='delete')
 
     def execute(self):
         try:
             transaction_class = provider_map[self.customer.group.provider](
-                            self.customer.group.provider_api_key)
+                self.customer.group.provider_api_key)
             external_id = transaction_class.make_payout(
                 self.customer.guid, self.customer.group_id,
                 self.amount_cents)

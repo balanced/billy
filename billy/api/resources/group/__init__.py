@@ -51,3 +51,11 @@ class GroupController(Base):
             'GROUP_ID': '{}'.format(self.group.external_id)
         }
         return resp
+
+
+    def delete(self):
+        if self.group.is_test:
+            self.group.delete()
+        else:
+            raise BillyExc['405_DELETE_NON_TEST_GROUP']
+

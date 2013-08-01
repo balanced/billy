@@ -12,6 +12,10 @@ errors = {
         'status': 401,
         'error_message': 'UnAuthorized: Invalid API Key'
     },
+    '405_DELETE_NON_TEST_GROUP': {
+        'status': 405,
+        'error_message': 'Cannot delete a non-test group.'
+    },
 
     # CUSTOMER ERRORS
     '404_CUSTOMER_NOT_FOUND': {

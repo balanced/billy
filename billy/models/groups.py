@@ -18,6 +18,7 @@ class Group(Base):
                       nullable=False)
     provider_api_key = Column(Unicode, nullable=False)
     is_test = Column(Boolean, default=True)
+
     coupons = relationship('Coupon', backref='group', cascade='delete')
     customers = relationship('Customer', backref='group', cascade='delete')
     plans = relationship('Plan', backref='group', lazy='dynamic',

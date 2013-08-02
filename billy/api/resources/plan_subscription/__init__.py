@@ -6,7 +6,7 @@ from flask.ext.restful import marshal_with
 from api.errors import BillyExc
 from api.resources.group import GroupController
 from form import PlanSubCreateForm, PlanSubDeleteForm
-from models import Customer, Group, PlanSubscription
+from models import Customer, Company, PlanSubscription
 from view import plan_sub_view
 
 
@@ -21,8 +21,8 @@ class PlanSubIndexController(GroupController):
         """
         Return a list of plans subscriptions pertaining to a group
         """
-        return PlanSubscription.query.join(Customer).join(Group).filter(
-            Group.guid == self.group.guid).all()
+        return PlanSubscription.query.join(Customer).join(Company).filter(
+            Company.guid == self.group.guid).all()
 
     @marshal_with(plan_sub_view)
     def post(self):

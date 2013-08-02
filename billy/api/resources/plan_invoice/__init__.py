@@ -5,7 +5,7 @@ from flask.ext.restful import marshal_with
 
 from api.errors import BillyExc
 from api.resources.group import GroupController
-from models import Group, Customer, PlanInvoice, PlanSubscription
+from models import Company, Customer, PlanInvoice, PlanSubscription
 from view import plan_inv_view
 
 
@@ -21,7 +21,7 @@ class PlanInvIndexController(GroupController):
         Return a list of plans invoices pertaining to a group
         """
         return PlanInvoice.query.join(PlanSubscription).join(Customer).join(
-            Group).filter(Group.guid == self.group.guid).all()
+            Company).filter(Company.guid == self.group.guid).all()
 
 
 class PlanInvController(GroupController):

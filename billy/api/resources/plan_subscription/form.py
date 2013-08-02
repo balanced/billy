@@ -5,13 +5,13 @@ from wtforms import (
     Form, TextField, IntegerField, validators, DateTimeField, BooleanField)
 
 from api.errors import BillyExc
-from models import Customer, Plan, PlanSubscription
+from models import Customer, ChargePlan, PlanSubscription
 
 
 class PlanSubCreateForm(Form):
     customer_id = TextField('Customer ID', [validators.Required(),
                                             validators.Length(min=5, max=150)])
-    plan_id = TextField('Plan ID', [validators.Required(),
+    plan_id = TextField('ChargePlan ID', [validators.Required(),
                                     validators.Length(min=5, max=150)])
 
     quantity = IntegerField('Quantity', default=1)
@@ -25,7 +25,7 @@ class PlanSubCreateForm(Form):
             customer = Customer.retrieve(self.customer_id.data, group_obj.guid)
             if not customer:
                 raise BillyExc['404_CUSTOMER_NOT_FOUND']
-            plan = Plan.retrieve(self.plan_id.data, group_obj.guid)
+            plan = ChargePlan.retrieve(self.plan_id.data, group_obj.guid)
             if not plan:
                 raise BillyExc['404_PLAN_NOT_FOUND']
             return PlanSubscription.subscribe(customer, plan,
@@ -39,7 +39,7 @@ class PlanSubCreateForm(Form):
 class PlanSubDeleteForm(Form):
     customer_id = TextField('Customer ID', [validators.Required(),
                                             validators.Length(min=5, max=150)])
-    plan_id = TextField('Plan ID', [validators.Required(),
+    plan_id = TextField('ChargePlan ID', [validators.Required(),
                                     validators.Length(min=5, max=150)])
 
     cancel_at_period_end = BooleanField('Cancel at period end?', default=False)
@@ -49,7 +49,7 @@ class PlanSubDeleteForm(Form):
             customer = Customer.retrieve(self.customer_id.data, group_obj.guid)
             if not customer:
                 raise BillyExc['404_CUSTOMER_NOT_FOUND']
-            plan = Plan.retrieve(self.plan_id.data, group_obj.guid)
+            plan = ChargePlan.retrieve(self.plan_id.data, group_obj.guid)
             if not plan:
                 raise BillyExc['404_PLAN_NOT_FOUND']
             return PlanSubscription.unsubscribe(customer, plan,

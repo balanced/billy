@@ -11,6 +11,13 @@ class DummyProcessor(object):
     def __init__(self, api_key):
         self.api_key = api_key
 
+    def get_company_id(self):
+        """
+        Returns the id of the company with the processor, this is a form of
+        authentication
+        """
+        return uuid_factory('MP')()
+
     def check_balance(self, customer, group):
         """
         Returns balance

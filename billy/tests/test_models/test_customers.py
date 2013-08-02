@@ -17,9 +17,9 @@ class TestCustomer(BalancedTransactionalTestCase):
     def setUp(self):
         super(TestCustomer, self).setUp()
         self.external_id = 'MY_TEST_CUSTOMER'
-        self.group_obj = Group.create('BILLY_TEST_MARKETPLACE')
+        self.group_obj = Company.create('BILLY_TEST_MARKETPLACE')
         self.group = self.group_obj.guid
-        self.group_2 = Group.create('BILLY_TEST_MARKETPLACE_2').guid
+        self.group_2 = Company.create('BILLY_TEST_MARKETPLACE_2').guid
 
 
 class TestCreate(TestCustomer):
@@ -188,7 +188,7 @@ class TestUpdatePlan(TestCustomer):
             group_id=self.group,
             balanced_id='TESTBALID'
         )
-        self.plan = Plan.create(
+        self.plan = ChargePlan.create(
             external_id='MY_TEST_PLAN',
             group_id=self.group,
             name='Starter',
@@ -196,7 +196,7 @@ class TestUpdatePlan(TestCustomer):
             plan_interval=Intervals.MONTH,
             trial_interval=Intervals.WEEK
         )
-        self.plan_2 = Plan.create(
+        self.plan_2 = ChargePlan.create(
             external_id='MY_TEST_PLAN_2',
             group_id=self.group,
             name='Starter',
@@ -211,13 +211,13 @@ class TestUpdatePlan(TestCustomer):
             invoice = PlanInvoice.retrieve(self.customer, self.plan,
                                            last_only=True)
             self.assertEqual(invoice.subscription.plan, self.plan)
-            self.assertEqual(invoice.start_dt, datetime.now(UTC))
+            self.assertEqual(invoice.start_dt, datetime.utcnow())
             should_end = datetime.now(
                 UTC) + self.plan.plan_interval + self.plan.trial_interval
             self.assertEqual(invoice.end_dt, should_end)
             self.assertEqual(invoice.original_end_dt, should_end)
             self.assertEqual(
-                invoice.due_dt, datetime.now(UTC) + self.plan.trial_interval)
+                invoice.due_dt, datetime.utcnow() + self.plan.trial_interval)
             self.assertEqual(invoice.amount_base_cents, self.plan.price_cents)
             self.assertEqual(
                 invoice.amount_after_coupon_cents, self.plan.price_cents)
@@ -227,10 +227,10 @@ class TestUpdatePlan(TestCustomer):
 
     def test_update_qty(self):
         with freeze_time('2013-01-01'):
-            first = datetime.now(UTC)
+            first = datetime.utcnow()
             invoice_old = PlanSubscription.subscribe(self.customer, self.plan)
         with freeze_time('2013-01-15'):
-            second = datetime.now(UTC)
+            second = datetime.utcnow()
             invoice_new = PlanSubscription.subscribe(self.customer, self.plan,
                                                      quantity=5)
         ratio = (second - (first + self.plan.trial_interval)).total_seconds() / rel_delta_to_sec(
@@ -285,7 +285,7 @@ class TestUpdatePlan(TestCustomer):
         with freeze_time('2013-01-15'):
             invoice = PlanSubscription.unsubscribe(self.customer,
                                                    self.plan, cancel_at_period_end=False)
-            self.assertEqual(invoice.end_dt, datetime.now(UTC))
+            self.assertEqual(invoice.end_dt, datetime.utcnow())
 
     def test_cancel_at_end(self):
         with freeze_time('2013-01-01'):
@@ -299,7 +299,7 @@ class TestUpdatePlan(TestCustomer):
             self.assertEqual(sub.is_active, False)
         with freeze_time('2013-01-17'):
             invoice_new = PlanSubscription.subscribe(self.customer, self.plan)
-            self.assertEqual(invoice_old.end_dt, datetime.now(UTC))
+            self.assertEqual(invoice_old.end_dt, datetime.utcnow())
             self.assertEqual(invoice_old.prorated, True)
 
     def test_can_trial_plan(self):
@@ -352,13 +352,13 @@ class TestPayout(TestCustomer):
         with freeze_time('2013-2-15'):
             invoice = PayoutSubscription.subscribe(self.customer, self.payout)
             self.assertEqual(
-                invoice.payout_date, datetime.now(UTC) + self.payout.payout_interval)
+                invoice.payout_date, datetime.utcnow() + self.payout.payout_interval)
 
     def test_add_payout_first_now(self):
         with freeze_time('2013-2-15'):
             invoice = PayoutSubscription.subscribe(
                 self.customer, self.payout, True)
-            self.assertEqual(invoice.payout_date, datetime.now(UTC))
+            self.assertEqual(invoice.payout_date, datetime.utcnow())
 
     def add_payout_not_first_now(self):
         with freeze_time('2013-2-15'):
@@ -366,7 +366,7 @@ class TestPayout(TestCustomer):
             invoice = PayoutInvoice.retrieve(
                 self.customer.external_id, self.group, self.payout.external_id, active_only=True)
             self.assertEqual(
-                invoice.payout_date, datetime.now(UTC) + self.payout.payout_interval)
+                invoice.payout_date, datetime.utcnow() + self.payout.payout_interval)
 
     def test_add_payout_custom_start_dt(self):
         start_dt = datetime(2013, 4, 5, tzinfo=UTC)
@@ -407,7 +407,7 @@ class TestRelations(TestCustomer):
             group_id=self.group,
             balanced_id='TESTBALID'
         )
-        self.plan = Plan.create(
+        self.plan = ChargePlan.create(
             external_id='MY_TEST_PLAN',
             group_id=self.group,
             name='Starter',
@@ -415,7 +415,7 @@ class TestRelations(TestCustomer):
             plan_interval=Intervals.MONTH,
             trial_interval=Intervals.WEEK
         )
-        self.plan_2 = Plan.create(
+        self.plan_2 = ChargePlan.create(
             external_id='MY_TEST_PLAN_2',
             group_id=self.group,
             name='Starter',

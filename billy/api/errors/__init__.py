@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 from datetime import datetime
 
 from flask import jsonify, make_response, abort as flask_abort
-from pytz import UTC
 from werkzeug.exceptions import HTTPException
 
 from definitions import error_definitions
@@ -18,7 +17,7 @@ class FlaskErrorDict(dict):
             'status': self.bound_error['status'],
             'error_code': self.bound_error['error_code'],
             'error_message': self.bound_error['error_message'],
-            'server_time': datetime.now(UTC)
+            'server_time': datetime.utcnow()
         }
         resp = make_response((jsonify(data), self.bound_error['status']))
         return HTTPException(response=resp)

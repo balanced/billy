@@ -5,7 +5,7 @@ from flask.ext.restful import marshal_with
 
 from api.errors import BillyExc
 from api.resources.group import GroupController
-from models import Group, Customer, PayoutTransaction
+from models import Company, Customer, PayoutTransaction
 from view import payout_trans_view
 
 
@@ -21,7 +21,7 @@ class PayoutTransIndexController(GroupController):
         Return a list of payout transactions pertaining to a group
         """
         return PayoutTransaction.query.join(Customer).join(
-            Group).filter(Group.guid == self.group.guid).all()
+            Company).filter(Company.guid == self.group.guid).all()
 
 
 class PayoutTransController(GroupController):

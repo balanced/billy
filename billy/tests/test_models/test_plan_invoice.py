@@ -7,7 +7,7 @@ from pytz import UTC
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from models import Group, Customer, Plan, PlanSubscription, PlanInvoice
+from models import Company, Customer, ChargePlan, PlanSubscription, PlanInvoice
 from utils.intervals import Intervals
 from tests import BalancedTransactionalTestCase
 
@@ -18,19 +18,19 @@ class TestPlanInvoice(BalancedTransactionalTestCase):
         super(TestPlanInvoice, self).setUp()
         self.plan_id = 'MY_TEST_PLAN'
         self.plan_id_2 = 'MY_TEST_PLAN_2'
-        self.now = datetime.now(UTC)
+        self.now = datetime.utcnow()
         self.week = self.now + Intervals.WEEK
         self.two_weeks = self.now + Intervals.WEEK
         self.month = self.now + Intervals.MONTH
-        self.group = Group.create('BILLY_TEST_MARKETPLACE')
-        self.group_2 = Group.create('BILLY_TEST_MARKETPLACE_2')
+        self.group = Company.create('BILLY_TEST_MARKETPLACE')
+        self.group_2 = Company.create('BILLY_TEST_MARKETPLACE_2')
         self.customer = Customer.create(
             'MY_TEST_CUSTOMER', self.group.guid, 'TESTBALID')
         self.customer_2 = Customer.create(
             'MY_TEST_CUSTOMER_2', self.group.guid, 'TESTBALID')
         self.customer_group2 = Customer.create(
             'MY_TEST_CUSTOMER_3', self.group_2.guid, 'TESTBALID')
-        self.plan = Plan.create(
+        self.plan = ChargePlan.create(
             external_id=self.plan_id,
             group_id=self.group.guid,
             name='Starter',
@@ -38,7 +38,7 @@ class TestPlanInvoice(BalancedTransactionalTestCase):
             plan_interval=Intervals.MONTH,
             trial_interval=Intervals.WEEK
         )
-        self.plan_2 = Plan.create(
+        self.plan_2 = ChargePlan.create(
             external_id=self.plan_id_2,
             group_id=self.group.guid,
             name='Starter',

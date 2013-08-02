@@ -52,7 +52,7 @@ class TestCreateCustomer(TestCustomers):
                                 data=sample_customer)
         self.assertErrorMatches(resp, '409_CUSTOMER_ALREADY_EXISTS')
 
-        # Create on different Group. Should work.
+        # Create on different Company. Should work.
         resp = self.client.post(self.url_index, user=self.test_users[1],
                                 data=sample_customer)
         self.assertEqual(resp.status_code, 201)

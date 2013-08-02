@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from api.resources import Base
 from api.errors import BillyExc
-from models import Group
+from models import Company
 from settings import TEST_API_KEYS
 
 
@@ -28,17 +28,17 @@ class GroupController(Base):
 
     def get_group_from_api_key(self, api_key):
         """
-        Takes an API key and grabs the Group associated with it.
+        Takes an API key and grabs the Company associated with it.
         If the test API key is used and the test group doesnt exists it creates
         one and returns it.
         :param api_key: The API key
         :return:
         """
-        result = Group.query.filter(Group.api_key == api_key).first()
+        result = Company.query.filter(Company.api_key == api_key).first()
         if not result and api_key in TEST_API_KEYS:
-            return Group.create(
+            return Company.create(
                 'MY_TEST_GROUP_{}'.format(TEST_API_KEYS.index(api_key)),
-                provider='DUMMY', provider_api_key='SOME_API_KEY',
+                processor_type='DUMMY', processor_api_key='SOME_API_KEY',
                 api_key=api_key)
         return result
 

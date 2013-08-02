@@ -5,7 +5,7 @@ from flask.ext.restful import marshal_with
 
 from api.errors import BillyExc
 from api.resources.group import GroupController
-from models import Group, Customer, PayoutInvoice, PayoutSubscription
+from models import Company, Customer, PayoutInvoice, PayoutSubscription
 from view import payout_inv_view
 
 
@@ -21,7 +21,7 @@ class PayoutInvIndexController(GroupController):
         Return a list of payout invoices pertaining to a group
         """
         return PayoutInvoice.query.join(PayoutSubscription).join(Customer).join(
-            Group).filter(Group.guid == self.group.guid).all()
+            Company).filter(Company.guid == self.group.guid).all()
 
 
 class PayoutInvController(GroupController):

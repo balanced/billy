@@ -6,7 +6,7 @@ from flask.ext.restful import marshal_with
 from api.errors import BillyExc
 from api.resources.group import GroupController
 from form import PayoutSubCreateForm, PayoutSubDeleteForm
-from models import Customer, Group, PayoutSubscription
+from models import Customer, Company, PayoutSubscription
 from view import payout_sub_view
 
 
@@ -21,8 +21,8 @@ class PayoutSubIndexController(GroupController):
         """
         Return a list of payout subscriptions pertaining to a group
         """
-        return PayoutSubscription.query.join(Customer).join(Group).filter(
-            Group.guid == self.group.guid).all()
+        return PayoutSubscription.query.join(Customer).join(Company).filter(
+            Company.guid == self.group.guid).all()
 
     @marshal_with(payout_sub_view)
     def post(self):

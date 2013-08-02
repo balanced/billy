@@ -6,7 +6,7 @@ from pytz import UTC
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from models import Coupon, Group
+from models import Coupon, Company
 from tests import BalancedTransactionalTestCase
 
 
@@ -15,8 +15,8 @@ class TestCoupon(BalancedTransactionalTestCase):
     def setUp(self):
         super(TestCoupon, self).setUp()
         self.external_id = "MY_TEST_COUPON"
-        self.group = Group.create('BILLY_TEST_MARKETPLACE').guid
-        self.group_2 = Group.create('BILLY_TEST_MARKETPLACE_2').guid
+        self.group = Company.create('BILLY_TEST_MARKETPLACE').guid
+        self.group_2 = Company.create('BILLY_TEST_MARKETPLACE_2').guid
 
     def test_redeem_count(self):
         pass  # Todo
@@ -71,7 +71,7 @@ class TestCoupon(BalancedTransactionalTestCase):
 class TestCreate(TestCoupon):
 
     def test_create(self):
-        now = datetime.now(UTC)
+        now = datetime.utcnow()
         coupon = Coupon.create(external_id=self.external_id,
                                group_id=self.group,
                                name='My Coupon',
@@ -83,7 +83,7 @@ class TestCreate(TestCoupon):
         self.assertIsInstance(coupon, Coupon)
 
     def test_create_existing(self):
-        now = datetime.now(UTC)
+        now = datetime.utcnow()
         Coupon.create(external_id=self.external_id,
                       group_id=self.group,
                       name='My Coupon',
@@ -107,7 +107,7 @@ class TestCreate(TestCoupon):
         """
         Collides on external_id but not marketplace. Should work.
         """
-        now = datetime.now(UTC)
+        now = datetime.utcnow()
         Coupon.create(external_id=self.external_id,
                       group_id=self.group,
                       name='My coupon',
@@ -130,7 +130,7 @@ class TestCreate(TestCoupon):
         self.assertEqual(ret.price_off_cents, 120)
 
     def test_create_no_expire(self):
-        now = datetime.now(UTC)
+        now = datetime.utcnow()
         Coupon.create(external_id=self.external_id,
                       group_id=self.group,
                       name='My coupon',
@@ -165,7 +165,7 @@ class TestRetrieve(TestCoupon):
 
     def test_retrieve_params(self):
         with freeze_time('2016-7-1'):
-            now = datetime.now(UTC)
+            now = datetime.utcnow()
             coupon = Coupon.create(external_id=self.external_id,
                                    group_id=self.group,
                                    name='My coupon',
@@ -233,7 +233,7 @@ class TestRetrieve(TestCoupon):
 class TestUpdateDelete(TestCoupon):
 
     def test_update(self):
-        now = datetime.now(UTC)
+        now = datetime.utcnow()
         coup = Coupon.create(external_id='MY_TEST_COUPON1',
                              group_id=self.group,
                              name='My coupon',

@@ -15,7 +15,7 @@ class Coupon(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     external_id = Column(Unicode, nullable=False)
-    group_id = Column(Unicode, ForeignKey(Group.guid), nullable=False)
+    company_id = Column(Unicode, ForeignKey(Company.guid), nullable=False)
     name = Column(Unicode, nullable=False)
     price_off_cents = Column(Integer)
     percent_off_int = Column(Integer)
@@ -23,65 +23,29 @@ class Coupon(Base):
     max_redeem = Column(Integer)
     repeating = Column(Integer)
     active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
+    created_at = Column(DateTime(timezone=UTC), default=datetime.utcnow)
     deleted_at = Column(DateTime(timezone=UTC))
-    customers = relationship('Customer', backref='coupon')
+
+    customers = relationship('Customer', backref='coupon', lazy='dynamic')
 
     __table_args__ = (
-        UniqueConstraint(external_id, group_id, name='coupon_id_group_unique'),
+        UniqueConstraint(external_id, company_id,
+                         name='coupon_id_group_unique'),
     )
 
-    @classmethod
-    def create(cls, external_id, group_id, name, price_off_cents,
-               percent_off_int, max_redeem, repeating, expire_at=None):
-        """
-        Creates a coupon that can be later applied to a customer.
-        :param external_id: A unique id for the coupon
-        :param group_id: The group uri/id this coupon is
-        associated with
-        :param name: A display name for the coupon
-        :param price_off_cents: In CENTS the $ amount off on each invoice. $1
-        .00 == 100
-        :param percent_off_int: The percent to reduce off each invoice. 25%
-        == 25
-        :param expire_at: Datetime in which after the coupon will no longer work
-        :param max_redeem: The number of unique users that can redeem this
-        coupon, -1 for unlimited
-        :param repeating: The maximum number of invoices it applies to. -1
-        for all/forever
-        :return: The new coupon object
-        """
-        new_coupon = cls(
-            external_id=external_id,
-            group_id=group_id,
-            name=name,
-            price_off_cents=price_off_cents,
-            percent_off_int=percent_off_int,
-            max_redeem=max_redeem,
-            repeating=repeating,
-            expire_at=expire_at)
-        cls.session.add(new_coupon)
-        try:
-            cls.session.commit()
-        except:
-            cls.session.rollback()
-            raise
-        return new_coupon
 
-    @classmethod
-    def retrieve(cls, external_id, group_id, active_only=False):
+    def redeem(self, customer):
         """
-        This method retrieves a single coupon.
-        :param external_id: the unique external_id
-        :param group_id: the group/marketplace to associate with
-        :param active_only: only returns active coupons
-        :returns: Single coupon
+        Applies the coupon to a customer
         """
-        query = cls.query.filter(cls.external_id == external_id,
-                                 cls.group_id == group_id)
-        if active_only:
-            query = query.filter(cls.active == True)
-        return query.first()
+        if self.max_redeem != -1 and self.count_redeemed >= \
+                self.max_redeem:
+            raise ValueError('Coupon already redeemed maximum times. See '
+                             'max_redeem')
+        customer.current_coupon = self.guid
+        customer.updated_at = datetime.utcnow()
+        self.session.commit()
+        return self
 
     def update(self, new_name=None,
                new_max_redeem=None, new_expire_at=None, new_repeating=None):
@@ -104,11 +68,11 @@ class Coupon(Base):
             self.expire_at = new_expire_at
         if new_repeating:
             self.repeating = new_repeating
-        self.updated_at = datetime.now(UTC)
+        self.updated_at = datetime.utcnow()
         self.session.commit()
         return self
 
-    def delete(self):
+    def disable(self):
         """
         Deletes the coupon. Coupons are not deleted from the database,
         but are instead marked as inactive so no
@@ -116,39 +80,25 @@ class Coupon(Base):
         plan
         """
         self.active = False
-        self.updated_at = datetime.now(UTC)
-        self.deleted_at = datetime.now(UTC)
+        self.updated_at = datetime.utcnow()
+        self.deleted_at = datetime.utcnow()
         self.session.commit()
         return self
-
-    @classmethod
-    def list(cls, group_id, active_only=False):
-        """
-        Returns a list of coupons currently in the database
-        :param group_id: The group/marketplace id/uri
-        :returns: A list of Coupon objects
-        """
-        query = cls.query.filter(cls.group_id == group_id)
-        if active_only:
-            query = query.filter(cls.active == True)
-        return query.all()
 
     @property
     def count_redeemed(self):
         """
         The number of unique customers that are using the coupon
         """
-        # Todo remove this.
-        from models import Customer
-        return Customer.query.filter(Customer.current_coupon == self
-                                     .guid).count()
+        return self.customer.count()
+
 
     @classmethod
     def expire_coupons(cls):
         """
         Expires all expired coupons (TASK)
         """
-        now = datetime.now(UTC)
+        now = datetime.utcnow()
         to_expire = cls.query.filter(cls.expire_at < now).all()
         for coupon in to_expire:
             coupon.active = False

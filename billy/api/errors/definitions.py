@@ -66,7 +66,7 @@ error_definitions = {
                          'PUT instead.'
     },
 
-    # Plan Subscription Errors
+    # ChargePlan Subscription Errors
     '404_PLAN_SUB_NOT_FOUND': {
         'status': 404,
         'error_message': 'The plan subscription you requested was not found.'
@@ -78,7 +78,7 @@ error_definitions = {
         'error_message': 'The payout subscription you requested was not found.'
     },
 
-    # Plan Invoice Errors
+    # ChargePlan Invoice Errors
     '404_PLAN_INV_NOT_FOUND': {
         'status': 404,
         'error_message': 'The plan invoice you requested was not found.'
@@ -91,7 +91,7 @@ error_definitions = {
     },
 
 
-    # Plan Invoice Errors
+    # ChargePlan Invoice Errors
     '404_PLAN_TRANS_NOT_FOUND': {
         'status': 404,
         'error_message': 'The plan transaction you requested was not found.'

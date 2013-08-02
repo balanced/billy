@@ -7,7 +7,7 @@ from sqlalchemy import (Column, Unicode, ForeignKey, DateTime, Boolean,
                         Integer, Index, or_)
 from sqlalchemy.orm import relationship, validates, backref
 
-from models import Base, Customer, Plan, Coupon
+from models import Base, Customer, ChargePlan, Coupon
 from utils.generic import uuid_factory
 
 
@@ -16,8 +16,8 @@ class PlanSubscription(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PLS'))
     customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
-    plan_id = Column(Unicode, ForeignKey(Plan.guid), nullable=False)
-    created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
+    plan_id = Column(Unicode, ForeignKey(ChargePlan.guid), nullable=False)
+    created_at = Column(DateTime(timezone=UTC), default=datetime.utcnow())
     is_enrolled = Column(Boolean, default=True)
     is_active = Column(Boolean, default=True)
 
@@ -47,7 +47,7 @@ class PlanSubscription(Base):
     def subscribe(cls, customer, plan, quantity=1,
                   charge_at_period_end=False, start_dt=None):
         current_coupon = customer.coupon
-        start_date = start_dt or datetime.now(UTC)
+        start_date = start_dt or datetime.utcnow()
         due_on = start_date
         can_trial = customer.can_trial_plan(plan)
         end_date = start_date + plan.plan_interval
@@ -122,7 +122,7 @@ class PlanInvoice(Base):
     subscription_id = Column(Unicode, ForeignKey(PlanSubscription.guid),
                              nullable=False)
     relevant_coupon = Column(Unicode, ForeignKey(Coupon.guid), nullable=False)
-    created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
+    created_at = Column(DateTime(timezone=UTC), default=datetime.utcnow)
     start_dt = Column(DateTime(timezone=UTC), nullable=False)
     end_dt = Column(DateTime(timezone=UTC), nullable=False)
     original_end_dt = Column(DateTime(timezone=UTC))
@@ -177,7 +177,7 @@ class PlanInvoice(Base):
         if subscription and last_only:
             last = None
             for invoice in subscription.invoices:
-                if invoice.end_dt >= datetime.now(UTC):
+                if invoice.end_dt >= datetime.utcnow():
                     last = invoice
                     break
             return last
@@ -189,7 +189,7 @@ class PlanInvoice(Base):
         Prorates the last invoice when changing a users plan. Only use when
         changing a users plan.
         """
-        right_now = datetime.now(UTC)
+        right_now = datetime.utcnow()
         last_invoice = cls.retrieve(customer, plan, True, True)
         if last_invoice:
             true_start = last_invoice.start_dt
@@ -223,7 +223,7 @@ class PlanInvoice(Base):
         """
         from models import PlanInvoice
 
-        now = datetime.now(UTC)
+        now = datetime.utcnow()
         results = PlanInvoice.query.filter(
             PlanSubscription.customer_id == customer.guid,
             PlanInvoice.remaining_balance_cents != 0,
@@ -236,7 +236,7 @@ class PlanInvoice(Base):
         """
         Returns a list of customer objects that need to clear their plan debt
         """
-        now = datetime.now(UTC)
+        now = datetime.utcnow()
         results = cls.query.filter(
             cls.remaining_balance_cents > 0,
             cls.due_dt <= now).all()
@@ -248,7 +248,7 @@ class PlanInvoice(Base):
         """
         Returns a list of PlanInvoice objects that need a rollover
         """
-        now = datetime.now(UTC)
+        now = datetime.utcnow()
         invoices_rollover = cls.query.join(PlanSubscription).filter(
             cls.end_dt <= now,
             PlanSubscription.is_active == True,

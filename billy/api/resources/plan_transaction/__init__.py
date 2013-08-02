@@ -5,13 +5,13 @@ from flask.ext.restful import marshal_with
 
 from api.errors import BillyExc
 from api.resources.group import GroupController
-from models import Group, Customer, PlanTransaction
+from models import Company, Customer, PlanTransaction
 from view import plan_trans_view
 
 
 class PlanTransIndexController(GroupController):
     """
-    Base Plan Transaction resource used to create a plan transaction or
+    Base ChargePlan Transaction resource used to create a plan transaction or
     retrieve all your plan transactions
     """
 
@@ -21,7 +21,7 @@ class PlanTransIndexController(GroupController):
         Return a list of plan transactions pertaining to a group
         """
         return PlanTransaction.query.join(Customer).join(
-            Group).filter(Group.guid == self.group.guid).all()
+            Company).filter(Company.guid == self.group.guid).all()
 
 
 class PlanTransController(GroupController):

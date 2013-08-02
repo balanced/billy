@@ -5,6 +5,5 @@ from dummy import DummyProcessor
 
 processor_map = {
     'BALANCED': BalancedProcessor,
-    'DUMMY': DummyProcessor
-
+    'DUMMY': DummyProcessor,
 }

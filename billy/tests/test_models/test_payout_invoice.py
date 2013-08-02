@@ -6,7 +6,7 @@ from pytz import UTC
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from models import Group, Customer, Payout, PayoutInvoice, PayoutSubscription
+from models import Company, Customer, Payout, PayoutInvoice, PayoutSubscription
 from utils.intervals import Intervals
 from tests import BalancedTransactionalTestCase
 
@@ -15,12 +15,12 @@ class TestPayoutInvoice(BalancedTransactionalTestCase):
 
     def setUp(self):
         super(TestPayoutInvoice, self).setUp()
-        self.now = datetime.now(UTC)
+        self.now = datetime.utcnow()
         self.week = self.now + Intervals.WEEK
         self.two_weeks = self.now + Intervals.TWO_WEEKS
         self.month = self.now + Intervals.MONTH
-        self.group = Group.create('BILLY_TEST_MARKETPLACE')
-        self.group_2 = Group.create('BILLY_TEST_MARKETPLACE_2')
+        self.group = Company.create('BILLY_TEST_MARKETPLACE')
+        self.group_2 = Company.create('BILLY_TEST_MARKETPLACE_2')
         self.customer = Customer.create(
             'MY_TEST_CUSTOMER', self.group.guid, 'TESTBALID')
         self.customer_2 = Customer.create(

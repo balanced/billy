@@ -16,13 +16,13 @@ class Payout(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PO'))
     external_id = Column(Unicode, nullable=False)
-    group_id = Column(Unicode, ForeignKey(Group.guid), nullable=False)
+    group_id = Column(Unicode, ForeignKey(Company.guid), nullable=False)
     name = Column(Unicode, nullable=False)
     balance_to_keep_cents = Column(Integer, nullable=False)
     active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
+    created_at = Column(DateTime(timezone=UTC), default=datetime.utcnow)
     deleted_at = Column(DateTime(timezone=UTC))
-    updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
+    updated_at = Column(DateTime(timezone=UTC), default=datetime.utcnow)
     payout_interval = Column(RelativeDelta, nullable=False)
 
     subscriptions = relationship('PayoutSubscription', backref='payout',
@@ -80,7 +80,7 @@ class Payout(Base):
         :return: The updated Payout object (self)
         """
         self.name = name
-        self.updated_at = datetime.now(UTC)
+        self.updated_at = datetime.utcnow()
         self.session.commit()
         return self
 
@@ -94,8 +94,8 @@ class Payout(Base):
         :returns: the deleted Payout object (self)
         """
         self.active = False
-        self.updated_at = datetime.now(UTC)
-        self.deleted_at = datetime.now(UTC)
+        self.updated_at = datetime.utcnow()
+        self.deleted_at = datetime.utcnow()
         self.session.commit()
         return self
 

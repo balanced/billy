@@ -16,13 +16,13 @@ class Customer(Base):
     __tablename__ = 'customers'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
+    company_id = Column(Unicode, ForeignKey(Company.guid), nullable=False)
     external_id = Column(Unicode, nullable=False)
-    provider_id = Column(Unicode, nullable=False)
-    group_id = Column(Unicode, ForeignKey(Group.guid), nullable=False)
+    processor_id = Column(Unicode, nullable=False)
     current_coupon = Column(Unicode, ForeignKey(Coupon.guid))
-    created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
-    updated_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
-    last_debt_clear = Column(DateTime(timezone=UTC))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+    last_debt_clear = Column(DateTime)
     # Todo this should be normalized and made a property:
     charge_attempts = Column(Integer, default=0)
 
@@ -40,66 +40,9 @@ class Customer(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            external_id, group_id, name='customerid_group_unique'),
+            external_id, company_id, name='customerid_group_unique'),
     )
 
-    @classmethod
-    def create(cls, external_id, group_id, provider_id):
-        """
-        Creates a customer for the group_id.
-        :param external_id: A unique id/uri for the customer
-        :param group_id: a group/group_id id/uri the user should be placed
-        in (matches balanced payments group_id)
-        :return: Customer Object if success or raises error if not
-        :raise AlreadyExistsError: if customer already exists
-        """
-        new_customer = cls(
-            external_id=external_id,
-            provider_id=provider_id,
-            group_id=group_id
-        )
-        cls.session.add(new_customer)
-        try:
-            cls.session.commit()
-        except:
-            cls.session.rollback()
-            raise
-        return new_customer
-
-    @classmethod
-    def retrieve(cls, external_id, group_id):
-        """
-        This method retrieves a single plan.
-        :param external_id: A unique id/uri for the customer
-        :param group_id: a group id/uri the user should be placed
-        in (matches balanced payments group_id)
-        :return: Customer Object if success or raises error if not
-        :raise NotFoundError:  if plan not found.
-        """
-        query = cls.query.filter(cls.external_id == external_id,
-                                 cls.group_id == group_id)
-        return query.first()
-
-    def apply_coupon(self, coupon_eid):
-        """
-        Adds a coupon to the user.
-        :param coupon_eid: A retrieved coupon class
-        :return: Self
-        :raise: LimitReachedError if coupon max redeemed.
-        """
-        from models import Coupon
-        coupon = Coupon.retrieve(coupon_eid, self.group_id,
-                                 active_only=True)
-        if not coupon:
-            raise NameError('Coupon not found.')
-        if coupon.max_redeem != -1 and coupon.count_redeemed >= \
-                coupon.max_redeem:
-            raise ValueError('Coupon already redeemed maximum times. See '
-                             'max_redeem')
-        self.current_coupon = coupon.guid
-        self.updated_at = datetime.now(UTC)
-        self.session.commit()
-        return self
 
     def remove_coupon(self):
         """
@@ -109,49 +52,43 @@ class Customer(Base):
         if not self.current_coupon:
             return self
         self.current_coupon = None
-        self.updated_at = datetime.now(UTC)
+        self.updated_at = datetime.utcnow()
         self.session.commit()
         return self
 
     @property
     def coupon_use_count(self):
+        """
+        The number of times the current coupon has been used
+        """
         count = 0 if not self.current_coupon else self.plan_invoices.filter(
             PlanInvoice.relevant_coupon == self.current_coupon).count()
         return count
 
     @property
     def can_use_coupon(self):
+        """
+        Whether or not a coupon can be applied to an invoice
+        """
         use_coupon = self.current_coupon or True \
             if self.current_coupon.repeating == -1 or \
                self.coupon_use_count <= self.current_coupon.repeating else False
         return use_coupon
 
-    def can_trial_plan(self, plan):
-        from models import PlanSubscription
 
-        count = PlanSubscription.query.filter(
-            PlanSubscription.customer_id == self.guid,
-            PlanSubscription.plan_id == plan.guid
-        ).count()
-        return not bool(count)
-
-    def sum_plan_debt(self, plan_invoices_due):
+    @property
+    def charge_debt(self):
+        """
+        Returns the total outstanding debt for the customer
+        """
         total_overdue = 0
-        for invoice in plan_invoices_due:
+        for invoice in PlanInvoice.due(self):
             rem_bal = invoice.remaining_balance_cents
             total_overdue += rem_bal if rem_bal else 0
         return total_overdue
 
-    @property
-    def plan_debt(self):
-        """
-        Returns the total outstanding debt for the customer
-        """
-        from models import PlanInvoice
 
-        return self.sum_plan_debt(PlanInvoice.due(self))
-
-    def is_debtor(self, limit_cents):
+    def is_charge_debtor(self, limit_cents):
         """
         Tells whether a customer is a debtor based on the provided limit
         :param limit_cents: Amount in cents which marks a user as a debtor. i
@@ -164,11 +101,14 @@ class Customer(Base):
         else:
             return False
 
-    def clear_plan_debt(self, force=False):
+    def clear_charge_debt(self, force=False):
+        """
+        Clears the charge debt of the customer.
+        """
         from models import PlanInvoice, PlanTransaction
 
-        now = datetime.now(UTC)
-        earliest_due = datetime.now(UTC)
+        now = datetime.utcnow()
+        earliest_due = datetime.utcnow()
         plan_invoices_due = PlanInvoice.due(self)
         for plan_invoice in plan_invoices_due:
             earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \

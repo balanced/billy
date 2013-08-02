@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from models import Payout, Group
+from models import Payout, Company
 from tests import BalancedTransactionalTestCase
 from utils import Intervals
 
@@ -13,8 +13,8 @@ class TestPayout(BalancedTransactionalTestCase):
     def setUp(self):
         super(TestPayout, self).setUp()
         self.external_id = 'MY_TEST_PAYOUT'
-        self.group = Group.create('BILLY_TEST_MARKETPLACE')
-        self.group_2 = Group.create('BILLY_TEST_MARKETPLACE_2')
+        self.group = Company.create('BILLY_TEST_MARKETPLACE')
+        self.group_2 = Company.create('BILLY_TEST_MARKETPLACE_2')
 
 
 class TestCreate(TestPayout):
@@ -125,7 +125,7 @@ class TestRetrieve(TestPayout):
             'MY_TEST_PAYOUT_4', self.group_2.guid, 'Payout 4', 628182,
             Intervals.THREE_MONTHS)
         self.assertEqual(
-            len(Payout.query.join(Group).filter(Group.guid == self.group.guid,
+            len(Payout.query.join(Company).filter(Company.guid == self.group.guid,
                                                 Payout.active == True).all()), 4)
 
     def test_list_active_only(self):
@@ -143,7 +143,7 @@ class TestRetrieve(TestPayout):
             Intervals.THREE_MONTHS)
         ret.delete()
         self.assertEqual(len(
-            Payout.query.join(Group).filter(Group.guid == self.group.guid,
+            Payout.query.join(Company).filter(Company.guid == self.group.guid,
                                             Payout.active == True).all()
         ), 3)
 

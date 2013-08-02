@@ -5,7 +5,7 @@ from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
     Integer, ForeignKeyConstraint, Index
 from sqlalchemy.orm import relationship, validates, backref
 
-from models import Base, Group, Customer, Payout
+from models import Base, Company, Customer, Payout
 from settings import RETRY_DELAY_PAYOUT
 from utils.generic import uuid_factory
 from processor import processor_map
@@ -17,7 +17,7 @@ class PayoutSubscription(Base):
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POS'))
     customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
     payout_id = Column(Unicode, ForeignKey(Payout.guid), nullable=False)
-    created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
+    created_at = Column(DateTime(timezone=UTC), default=datetime.utcnow())
     is_active = Column(Boolean, default=True)
 
     __table_args__ = (
@@ -43,7 +43,7 @@ class PayoutSubscription(Base):
 
     @classmethod
     def subscribe(cls, customer, payout, first_now=False, start_dt=None):
-        first_charge = start_dt or datetime.now(UTC)
+        first_charge = start_dt or datetime.utcnow()
         balance_to_keep_cents = payout.balance_to_keep_cents
         if not first_now:
             first_charge += payout.payout_interval
@@ -79,7 +79,7 @@ class PayoutInvoice(Base):
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POI'))
     subscription_id = Column(Unicode, ForeignKey(PayoutSubscription.guid),
                              nullable=False)
-    created_at = Column(DateTime(timezone=UTC), default=datetime.now(UTC))
+    created_at = Column(DateTime(timezone=UTC), default=datetime.utcnow())
     payout_date = Column(DateTime(timezone=UTC))
     balance_to_keep_cents = Column(Integer)
     amount_payed_out = Column(Integer)
@@ -119,7 +119,7 @@ class PayoutInvoice(Base):
         if subscription and last_only:
             last = None
             for invoice in subscription.invoices:
-                if invoice.payout_date >= datetime.now(UTC):
+                if invoice.payout_date >= datetime.utcnow():
                     last = invoice
                     break
             return last
@@ -127,7 +127,7 @@ class PayoutInvoice(Base):
 
     @classmethod
     def needs_payout_made(cls):
-        now = datetime.now(UTC)
+        now = datetime.utcnow()
         return cls.query.filter(cls.payout_date <= now,
                                 cls.completed == False
         ).all()
@@ -153,7 +153,7 @@ class PayoutInvoice(Base):
     def make_payout(self, force=False):
         from models import PayoutTransaction
 
-        now = datetime.now(UTC)
+        now = datetime.utcnow()
         transaction_class = processor_map[
             self.subscription.customer.group.provider](
             self.customer.group.provider_api_key)

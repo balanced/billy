@@ -5,7 +5,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 from utils.intervals import Intervals
-from provider.dummy import DummyProvider
+from processor.dummy import DummyProcessor
 
 
 DB_SETTINGS = {

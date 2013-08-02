@@ -4,7 +4,7 @@ from sqlalchemy import Unicode, Column, Enum, Boolean
 from sqlalchemy.orm import relationship
 
 from models import Base
-from provider import provider_map
+from processor import processor_map
 from utils.generic import api_key_factory, uuid_factory
 
 
@@ -14,7 +14,7 @@ class Group(Base):
     guid = Column(Unicode, primary_key=True, default=uuid_factory('GR'))
     external_id = Column(Unicode, unique=True)
     api_key = Column(Unicode, unique=True, default=api_key_factory())
-    provider = Column(Enum(*provider_map.keys(), name='provider_enum'),
+    provider = Column(Enum(*processor_map.keys(), name='provider_enum'),
                       nullable=False)
     provider_api_key = Column(Unicode, nullable=False)
     is_test = Column(Boolean, default=True)

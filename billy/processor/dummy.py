@@ -4,7 +4,7 @@ import random
 from utils.generic import uuid_factory
 
 
-class BalancedProvider(object):
+class DummyProcessor(object):
 
     is_test_mode = True
 

@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship
 
 from models import Base, Customer, PlanInvoice, PayoutInvoice
 from utils.generic import uuid_factory, Status
-from provider import provider_map
+from processor import processor_map
 
 
 class TransactionMixin(object):
@@ -38,7 +38,7 @@ class PlanTransaction(TransactionMixin, Base):
 
     def execute(self):
         try:
-            transaction_class = provider_map[self.customer.group.provider](
+            transaction_class = processor_map[self.customer.group.provider](
                 self.customer.group.provider_api_key)
             external_id = transaction_class.create_charge(
                 self.customer.guid, self.customer.group_id,
@@ -64,7 +64,7 @@ class PayoutTransaction(TransactionMixin, Base):
 
     def execute(self):
         try:
-            transaction_class = provider_map[self.customer.group.provider](
+            transaction_class = processor_map[self.customer.group.provider](
                 self.customer.group.provider_api_key)
             external_id = transaction_class.make_payout(
                 self.customer.guid, self.customer.group_id,

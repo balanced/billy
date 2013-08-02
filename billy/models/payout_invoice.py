@@ -8,7 +8,7 @@ from sqlalchemy.orm import relationship, validates, backref
 from models import Base, Group, Customer, Payout
 from settings import RETRY_DELAY_PAYOUT
 from utils.generic import uuid_factory
-from provider import provider_map
+from processor import processor_map
 
 
 class PayoutSubscription(Base):
@@ -154,7 +154,7 @@ class PayoutInvoice(Base):
         from models import PayoutTransaction
 
         now = datetime.now(UTC)
-        transaction_class = provider_map[
+        transaction_class = processor_map[
             self.subscription.customer.group.provider](
             self.customer.group.provider_api_key)
         current_balance = transaction_class.check_balance(

@@ -36,7 +36,7 @@ class TestCreateCustomer(TestCustomers):
                                 data=data)
         self.assertErrorMatches(resp, '400_CUSTOMER_ID')
 
-        #Test bad provider id:
+        #Test bad processor id:
         data = sample_customer.copy()
         data['provider_id'] = None
         resp = self.client.post(self.url_index, user=self.test_users[0],

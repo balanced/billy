@@ -134,4 +134,12 @@ class TestUpdate(TestCustomers):
 
 
         # Apply another groups coupon
-
+        coupon_url = self.url_for(CouponIndexController)
+        resp = self.client.post(coupon_url, user=self.test_users[1],
+                         data=sample_coupon)
+        self.assertEqual(resp.status_code, 200)
+        data = {'coupon_id': sample_coupon['coupon_id']}
+        resp1 = self.client.put(self.url_single(sample_customer['customer_id']),
+                               data=data,
+                               user=self.test_users[0])
+        self.assertErrorMatches(resp1, '404_COUPON_NOT_FOUND')

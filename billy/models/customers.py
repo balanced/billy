@@ -59,7 +59,11 @@ class Customer(Base):
             group_id=group_id
         )
         cls.session.add(new_customer)
-        cls.session.commit()
+        try:
+            cls.session.commit()
+        except:
+            cls.session.rollback()
+            raise
         return new_customer
 
     @classmethod
@@ -84,7 +88,6 @@ class Customer(Base):
         :raise: LimitReachedError if coupon max redeemed.
         """
         from models import Coupon
-
         coupon = Coupon.retrieve(coupon_eid, self.group_id,
                                  active_only=True)
         if not coupon:

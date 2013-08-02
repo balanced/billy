@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from flask.ext.restful import fields
+from utils import fields
 
 coupon_view = {
     # Todo: figure out why coupon_id isnt showing...

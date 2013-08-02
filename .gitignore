@@ -37,4 +37,5 @@ nosetests.xml
 
 .idea
 venv-billy
+scratch.py
 

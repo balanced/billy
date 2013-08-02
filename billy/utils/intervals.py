@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 from dateutil.relativedelta import relativedelta
-from flask.ext.restful import fields
+from utils import fields
 import json
 from wtforms import Field, TextField
 

@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from flask.ext.restful import fields
+from utils import fields
 
 from utils.intervals import IntervalViewField
 

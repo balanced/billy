@@ -61,7 +61,11 @@ class Coupon(Base):
             repeating=repeating,
             expire_at=expire_at)
         cls.session.add(new_coupon)
-        cls.session.commit()
+        try:
+            cls.session.commit()
+        except:
+            cls.session.rollback()
+            raise
         return new_coupon
 
     @classmethod
@@ -164,7 +168,7 @@ class Coupon(Base):
 
     @validates('percent_off_int')
     def validate_percent_off_int(self, key, address):
-        if not 0 < address <= 100:
+        if not 0 <= address <= 100:
             raise ValueError('400_PERCENT_OFF_INT')
         return address
 

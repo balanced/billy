@@ -45,10 +45,10 @@ class PlanTransaction(TransactionMixin, Base):
                 self.amount_cents)
             self.status = Status.COMPLETE
             self.external_id = external_id
-        except Exception, e:
+        except:
             self.status = Status.ERROR
             self.session.commit()
-            raise e
+            raise
         self.customer.charge_attempts = 0
         self.session.commit()
 
@@ -71,8 +71,8 @@ class PayoutTransaction(TransactionMixin, Base):
                 self.amount_cents)
             self.status = Status.COMPLETE
             self.external_id = external_id
-        except Exception, e:
+        except:
             self.status = Status.ERROR
             self.session.commit()
-            raise e
+            raise
         self.session.commit()

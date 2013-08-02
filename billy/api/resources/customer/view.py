@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from flask.ext.restful import fields
+from utils import fields
 
 customer_view = {
     # Todo: figure out why some attributes arent showing...

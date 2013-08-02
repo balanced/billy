@@ -31,7 +31,7 @@ class CustomerIndexController(GroupController):
         """
         customer_form = CustomerCreateForm(request.form)
         if customer_form.validate():
-            return customer_form.save(self.group)
+            return customer_form.save(self.group), 201
         else:
             self.form_error(customer_form.errors)
 
@@ -64,3 +64,5 @@ class CustomerController(GroupController):
         customer_form = CustomerUpdateForm(request.form)
         if customer_form.validate():
             return customer_form.save(self.customer)
+        else:
+            self.form_error(customer_form.errors)

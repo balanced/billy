@@ -17,9 +17,9 @@ class CouponCreateForm(Form):
                      [validators.Required(),
                       validators.Length(min=3, max=150)])
 
-    price_off_cents = IntegerField('Price off cents', [validators.Required()])
+    price_off_cents = IntegerField('Price off cents')
 
-    percent_off_int = IntegerField('Percent off', [validators.Required()])
+    percent_off_int = IntegerField('Percent off')
 
     max_redeem = IntegerField('Max Redemptions')
 

@@ -5,7 +5,7 @@ from flask import jsonify, make_response, abort as flask_abort
 from pytz import UTC
 from werkzeug.exceptions import HTTPException
 
-from definitions import errors
+from definitions import error_definitions
 
 
 class FlaskErrorDict(dict):
@@ -32,4 +32,4 @@ class FlaskErrorDict(dict):
         return self[item]
 
 
-BillyExc = FlaskErrorDict(errors)
+BillyExc = FlaskErrorDict(error_definitions)

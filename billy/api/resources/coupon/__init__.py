@@ -64,6 +64,8 @@ class CouponController(GroupController):
         coupon_form = CouponUpdateForm(request.form)
         if coupon_form.validate():
             return coupon_form.save(self.coupon)
+        else:
+            self.form_error(coupon_form.errors)
 
     def delete(self, coupon_id):
         """

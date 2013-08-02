@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-errors = {
+error_definitions = {
     # GENERIC ERRORS
     '400': {
         'status': 400,
@@ -109,6 +109,10 @@ errors = {
         'status': 400,
         'error_message': 'Invalid customer_id. Please check.'
     },
+    '400_PROVIDER_ID': {
+        'status': 400,
+        'error_message': 'Invalid provider_id. Please check.'
+    },
     '400_COUPON_ID': {
         'status': 400,
         'error_message': 'Invalid coupon_id. Please check.'
@@ -172,5 +176,5 @@ errors = {
 
 }
 
-for key in errors.keys():
-    errors[key]['error_code'] = key
+for key in error_definitions.keys():
+    error_definitions[key]['error_code'] = key

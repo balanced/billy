@@ -10,6 +10,7 @@ from unittest import TestCase
 from werkzeug.test import Client
 
 from api.app import app
+from api.errors import error_definitions
 from api.resources import GroupController
 from settings import TEST_API_KEYS
 
@@ -47,7 +48,6 @@ class TestClient(Client):
 
 
 class BaseTestCase(TestCase):
-
     json_schema_validator = jsonschema.Draft3Validator
 
     def setUp(self):
@@ -64,28 +64,31 @@ class BaseTestCase(TestCase):
             i, value in enumerate(TEST_API_KEYS)]
         self.ctx = app.test_request_context()
         self.ctx.push()
+        for each_user in self.test_users:
+            self.client.delete(self.url_for(GroupController), user=each_user)
 
     def url_for(self, controller, **kwargs):
         controller = controller.__name__.lower()
         return url_for(controller, **kwargs)
 
-    def check_error(self, resp, error_expected):
-        self.assertEqual(resp.json, True)
+    def assertErrorMatches(self, resp, error_expected):
+        definition = error_definitions[error_expected]
+        resp_body = resp.json()
+        self.assertEqual(resp.status_code, definition['status'])
+        self.assertEqual(resp_body['status'], definition['status'])
+        self.assertEqual(resp_body['error_message'],
+                         definition['error_message'])
+        self.assertEqual(resp_body['error_code'], error_expected)
 
     @classmethod
     def schemas_path(cls, file_name):
         base_path = os.path.dirname(__file__)
-
         return os.path.join(base_path, '../schemas/', file_name)
 
     @classmethod
-    def check_schema(cls, resp, schema_path):
+    def assertSchema(cls, to_check, schema_path):
+        if isinstance(to_check, ClientResponse):
+            to_check = to_check.json()
         with open(cls.schemas_path(schema_path)) as schema_file:
             schema = json.load(schema_file)
-        cls.json_schema_validator(schema).validate(resp.json)
-
-
-    def tearDown(self):
-        super(BaseTestCase, self).tearDown()
-        for each_user in self.test_users:
-            self.client.delete(self.url_for(GroupController), user=each_user)
+        cls.json_schema_validator(schema).validate(to_check)

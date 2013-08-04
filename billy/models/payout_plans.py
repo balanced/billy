@@ -20,9 +20,9 @@ class Payout(Base):
     name = Column(Unicode, nullable=False)
     balance_to_keep_cents = Column(Integer, nullable=False)
     active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=UTC), default=datetime.utcnow)
-    deleted_at = Column(DateTime(timezone=UTC))
-    updated_at = Column(DateTime(timezone=UTC), default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    deleted_at = Column(DateTime)
+    updated_at = Column(DateTime, default=datetime.utcnow)
     payout_interval = Column(RelativeDelta, nullable=False)
 
     subscriptions = relationship('PayoutSubscription', backref='payout',

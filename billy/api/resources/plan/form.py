@@ -21,6 +21,11 @@ class PlanCreateForm(Form):
 
     trial_interval = TextField('Trial Interval', default=None)
 
+    def validate_price_cents(self, key, address):
+        if not address > 0:
+            raise ValueError("400_PRICE_CENTS")
+        return address
+
     def save(self, group_obj):
         try:
             try:

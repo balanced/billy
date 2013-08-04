@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 from datetime import datetime
 
-from pytz import UTC
 from sqlalchemy import Column, Unicode, DateTime, Integer, or_
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -27,22 +26,28 @@ class Customer(Base):
     charge_attempts = Column(Integer, default=0)
 
     plan_subs = relationship('PlanSubscription', backref='customer',
-                             cascade='delete')
+                             cascade='delete', lazy='dynamic')
     payout_subs = relationship('PayoutSubscription', backref='customer',
-                               cascade='delete')
+                               cascade='delete', lazy='dynamic')
     plan_invoices = association_proxy('plan_subs', 'invoices')
     payout_invoices = association_proxy('payout_subs', 'invoices')
 
     plan_transactions = relationship('PlanTransaction',
-                                     backref='customer', cascade='delete')
+                                     backref='customer', cascade='delete',
+                                    lazy='dynamic'
+                                    )
     payout_transactions = relationship('PayoutTransaction',
-                                       backref='customer', cascade='delete')
+                                       backref='customer', cascade='delete',
+                                       lazy='dynamic')
 
     __table_args__ = (
         UniqueConstraint(
             external_id, company_id, name='customerid_group_unique'),
     )
 
+    def update_api_key(self):
+        # Todo
+        pass
 
     def remove_coupon(self):
         """
@@ -66,9 +71,10 @@ class Customer(Base):
         return count
 
     @property
-    def can_use_coupon(self):
+    def can_use_current_coupon(self):
         """
-        Whether or not a coupon can be applied to an invoice
+        Whether or not a coupon can be applied to an invoice this is for
+        scenarios where
         """
         use_coupon = self.current_coupon or True \
             if self.current_coupon.repeating == -1 or \
@@ -77,7 +83,7 @@ class Customer(Base):
 
 
     @property
-    def charge_debt(self):
+    def total_charge_debt(self):
         """
         Returns the total outstanding debt for the customer
         """
@@ -88,7 +94,7 @@ class Customer(Base):
         return total_overdue
 
 
-    def is_charge_debtor(self, limit_cents):
+    def is_debtor(self, limit_cents):
         """
         Tells whether a customer is a debtor based on the provided limit
         :param limit_cents: Amount in cents which marks a user as a debtor. i

@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from sqlalchemy import Unicode, Column, Enum, Boolean
 from sqlalchemy.orm import relationship
 
-from models import Base, Customer, Coupon
+from models import Base, Customer, Coupon, ChargePlan
 from processor import processor_map
 from utils.generic import api_key_factory, uuid_factory
 
@@ -43,7 +43,7 @@ class Company(Base):
         return new_company
 
 
-    def create_customer(self, external_id, provider_id):
+    def add_customer(self, external_id, provider_id):
         """
         Creates a new customer under the company.
         """
@@ -61,7 +61,7 @@ class Company(Base):
         return new_customer
 
 
-    def create_coupon(self, external_id, name, price_off_cents,
+    def add_coupon(self, external_id, name, price_off_cents,
                       percent_off_int, max_redeem, repeating, expire_at=None):
         """
         Creates a new coupon for the company
@@ -83,6 +83,22 @@ class Company(Base):
             raise
         return new_coupon
 
+    def add_charge_plan(self, external_id, name, price_cents,
+                   plan_interval, trial_interval):
+        """
+        Creates a charge plan under the company
+        """
+        new_plan = ChargePlan(
+            external_id=external_id,
+            group_id=self.guid,
+            name=name,
+            price_cents=price_cents,
+            plan_interval=plan_interval,
+            trial_interval=trial_interval
+        )
+        self.session.add(new_plan)
+        self.session.commit()
+        return new_plan
 
     def delete(self, force=False):
         if not self.is_test and not force:

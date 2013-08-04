@@ -17,6 +17,15 @@ This library currently has the API and the models.
 
 Congrats. You've got recurring billing.
 
-## Api Spec
+## Models
 
-Checkout api/spec.json, which is generated using api/spec.py
+The models should have all the methods necessary to bill recuringly. Generally,
+modifactions to the underlying data should be done via the model methods not,
+directly. This is to ensure that all the accounting is handled correctly.
+
+To see how they work check out the interface tests
+(tests/models/test_interface.py)
+
+## Api
+
+Check out the spec at api/spec.json, which is generated using api/spec.py

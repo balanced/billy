@@ -17,7 +17,7 @@ class PayoutSubscription(Base):
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POS'))
     customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
     payout_id = Column(Unicode, ForeignKey(Payout.guid), nullable=False)
-    created_at = Column(DateTime(timezone=UTC), default=datetime.utcnow())
+    created_at = Column(DateTime, default=datetime.utcnow)
     is_active = Column(Boolean, default=True)
 
     __table_args__ = (
@@ -79,7 +79,7 @@ class PayoutInvoice(Base):
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POI'))
     subscription_id = Column(Unicode, ForeignKey(PayoutSubscription.guid),
                              nullable=False)
-    created_at = Column(DateTime(timezone=UTC), default=datetime.utcnow())
+    created_at = Column(DateTime, default=datetime.utcnow)
     payout_date = Column(DateTime(timezone=UTC))
     balance_to_keep_cents = Column(Integer)
     amount_payed_out = Column(Integer)

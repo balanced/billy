@@ -27,6 +27,27 @@ class CouponCreateForm(Form):
 
     expire_at = DateTimeField('Expire at', default=None)
 
+
+    def validate_max_redeem(self, key, address):
+        if not (address > 0 or address == -1):
+            raise ValueError('400_MAX_REDEEM')
+        return address
+
+    def validate_repeating(self, key, address):
+        if not (address > 0 or address == -1):
+            raise ValueError('400_REPEATING')
+        return address
+
+    def validate_percent_off_int(self, key, address):
+        if not 0 <= address <= 100:
+            raise ValueError('400_PERCENT_OFF_INT')
+        return address
+
+    def validate_price_off_cents(self, key, address):
+        if not address >= 0:
+            raise ValueError('400_PRICE_OFF_CENTS')
+        return address
+
     def save(self, group_obj):
         try:
             coupon = Coupon.create(external_id=self.coupon_id.data,

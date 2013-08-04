@@ -11,13 +11,13 @@ from models import Base, Customer, ChargePlan, Coupon
 from utils.generic import uuid_factory
 
 
-class PlanSubscription(Base):
-    __tablename__ = 'plan_subscription'
+class ChargeSubscription(Base):
+    __tablename__ = 'charge_subscription'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PLS'))
     customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
     plan_id = Column(Unicode, ForeignKey(ChargePlan.guid), nullable=False)
-    created_at = Column(DateTime(timezone=UTC), default=datetime.utcnow())
+    created_at = Column(DateTime, default=datetime.utcnow)
     is_enrolled = Column(Boolean, default=True)
     is_active = Column(Boolean, default=True)
 
@@ -121,7 +121,7 @@ class PlanInvoice(Base):
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PLI'))
     subscription_id = Column(Unicode, ForeignKey(PlanSubscription.guid),
                              nullable=False)
-    relevant_coupon = Column(Unicode, ForeignKey(Coupon.guid), nullable=False)
+    coupon = Column(Unicode, ForeignKey(Coupon.guid), nullable=False)
     created_at = Column(DateTime(timezone=UTC), default=datetime.utcnow)
     start_dt = Column(DateTime(timezone=UTC), nullable=False)
     end_dt = Column(DateTime(timezone=UTC), nullable=False)

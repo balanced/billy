@@ -1,10 +1,9 @@
 from __future__ import unicode_literals
 from datetime import datetime
 
-from pytz import UTC
 from sqlalchemy import Boolean, Column, DateTime, Integer, ForeignKey, \
-    Unicode, UniqueConstraint
-from sqlalchemy.orm import relationship, validates
+    Unicode, UniqueConstraint, CheckConstraint
+from sqlalchemy.orm import relationship
 
 from models import *
 from utils.generic import uuid_factory
@@ -17,14 +16,17 @@ class Coupon(Base):
     external_id = Column(Unicode, nullable=False)
     company_id = Column(Unicode, ForeignKey(Company.guid), nullable=False)
     name = Column(Unicode, nullable=False)
-    price_off_cents = Column(Integer)
-    percent_off_int = Column(Integer)
-    expire_at = Column(DateTime(timezone=UTC))
-    max_redeem = Column(Integer)
-    repeating = Column(Integer)
+    price_off_cents = Column(Integer, CheckConstraint('price_off_cents >= 0'))
+    percent_off_int = Column(Integer, CheckConstraint(
+        'percent_off_int >= 0 OR percent_off_int <= 100'))
+    expire_at = Column(DateTime)
+    max_redeem = Column(Integer,
+                        CheckConstraint('max_redeem == -1 OR max_redeem >= 0'))
+    repeating = Column(Integer,
+                       CheckConstraint('repeating == -1 OR repeating >= 0'))
     active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=UTC), default=datetime.utcnow)
-    deleted_at = Column(DateTime(timezone=UTC))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    deleted_at = Column(DateTime)
 
     customers = relationship('Customer', backref='coupon', lazy='dynamic')
 
@@ -86,7 +88,7 @@ class Coupon(Base):
         return self
 
     @property
-    def count_redeemed(self):
+    def count_customers(self):
         """
         The number of unique customers that are using the coupon
         """
@@ -104,26 +106,3 @@ class Coupon(Base):
             coupon.active = False
         cls.session.commit()
 
-    @validates('max_redeem')
-    def validate_max_redeem(self, key, address):
-        if not (address > 0 or address == -1):
-            raise ValueError('400_MAX_REDEEM')
-        return address
-
-    @validates('repeating')
-    def validate_repeating(self, key, address):
-        if not (address > 0 or address == -1):
-            raise ValueError('400_REPEATING')
-        return address
-
-    @validates('percent_off_int')
-    def validate_percent_off_int(self, key, address):
-        if not 0 <= address <= 100:
-            raise ValueError('400_PERCENT_OFF_INT')
-        return address
-
-    @validates('price_off_cents')
-    def validate_price_off_cents(self, key, address):
-        if not address >= 0:
-            raise ValueError('400_PRICE_OFF_CENTS')
-        return address

@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import Column, Unicode, DateTime, Integer, or_
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
@@ -25,29 +26,82 @@ class Customer(Base):
     # Todo this should be normalized and made a property:
     charge_attempts = Column(Integer, default=0)
 
-    plan_subs = relationship('PlanSubscription', backref='customer',
-                             cascade='delete', lazy='dynamic')
-    payout_subs = relationship('PayoutSubscription', backref='customer',
-                               cascade='delete', lazy='dynamic')
-    plan_invoices = association_proxy('plan_subs', 'invoices')
-    payout_invoices = association_proxy('payout_subs', 'invoices')
+    charge_subscriptions = relationship('ChargeSubscription',
+                                        backref='customer',
+                                        cascade='delete', lazy='dynamic')
+    payout_subscriptions = relationship('PayoutSubscription',
+                                        backref='customer',
+                                        cascade='delete', lazy='dynamic')
+    charge_invoices = association_proxy('charge_subscriptions', 'invoices')
+    payout_invoices = association_proxy('payout_subscriptions', 'invoices')
 
-    plan_transactions = relationship('PlanTransaction',
+    charge_transactions = relationship('ChargeTransaction',
                                      backref='customer', cascade='delete',
-                                    lazy='dynamic'
-                                    )
+                                     lazy='dynamic'
+    )
     payout_transactions = relationship('PayoutTransaction',
                                        backref='customer', cascade='delete',
                                        lazy='dynamic')
 
     __table_args__ = (
         UniqueConstraint(
-            external_id, company_id, name='customerid_group_unique'),
+            external_id, company_id, name='customerid_company_unique'),
     )
 
-    def update_api_key(self):
-        # Todo
-        pass
+    def update(self, processor_id):
+        if self.company.processor_class.can_add_customer(processor_id):
+            self.processor_id = processor_id
+            try:
+                self.session.commit()
+            except:
+                self.session.rollback()
+                raise
+        return self
+
+    def subscribe_to_charge_plan(self, plan, quantity=1,
+                                 charge_at_period_end=False, start_dt=None):
+        current_coupon = self.coupon
+        start_date = start_dt or datetime.utcnow()
+        due_on = start_date
+        can_trial = plan.can_customer_trial(self)
+        end_date = start_date + plan.plan_interval
+        if can_trial and plan.trial_interval:
+            end_date += plan.trial_interval
+            due_on += plan.trial_interval
+        if charge_at_period_end:
+            due_on = end_date
+        amount_base = plan.price_cents * Decimal(quantity)
+        amount_after_coupon = amount_base
+        coupon_id = current_coupon.guid if current_coupon else None
+        if self.current_coupon and current_coupon:
+            dollars_off = current_coupon.price_off_cents
+            percent_off = current_coupon.percent_off_int
+            amount_after_coupon -= dollars_off  # BOTH CENTS, safe
+            amount_after_coupon -= int(
+                amount_after_coupon * Decimal(percent_off) / Decimal(100))
+        balance = amount_after_coupon
+        new_sub = ChargeSubscription.create_or_activate(self, plan)
+        ChargePlanInvoice.prorate_last(self, plan)
+        pi = ChargePlanInvoice.create(
+            subscription_id=new_sub.guid,
+            relevant_coupon=coupon_id,
+            start_dt=start_date,
+            end_dt=end_date,
+            due_dt=due_on,
+            amount_base_cents=amount_base,
+            amount_after_coupon_cents=amount_after_coupon,
+            amount_paid_cents=0,
+            remaining_balance_cents=balance,
+            quantity=quantity,
+            charge_at_period_end=charge_at_period_end,
+            includes_trial=can_trial
+        )
+        try:
+            self.session.commit()
+        except:
+            self.session.rollback()
+            raise
+        return pi
 
     def remove_coupon(self):
         """
@@ -67,7 +121,7 @@ class Customer(Base):
         The number of times the current coupon has been used
         """
         count = 0 if not self.current_coupon else self.plan_invoices.filter(
-            PlanInvoice.relevant_coupon == self.current_coupon).count()
+            ChargePlanInvoice.relevant_coupon == self.current_coupon).count()
         return count
 
     @property
@@ -88,7 +142,7 @@ class Customer(Base):
         Returns the total outstanding debt for the customer
         """
         total_overdue = 0
-        for invoice in PlanInvoice.due(self):
+        for invoice in ChargePlanInvoice.due(self):
             rem_bal = invoice.remaining_balance_cents
             total_overdue += rem_bal if rem_bal else 0
         return total_overdue
@@ -111,11 +165,11 @@ class Customer(Base):
         """
         Clears the charge debt of the customer.
         """
-        from models import PlanInvoice, PlanTransaction
+        from models import ChargePlanInvoice, ChargeTransaction
 
         now = datetime.utcnow()
         earliest_due = datetime.utcnow()
-        plan_invoices_due = PlanInvoice.due(self)
+        plan_invoices_due = ChargePlanInvoice.due(self)
         for plan_invoice in plan_invoices_due:
             earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \
                                                   earliest_due else earliest_due
@@ -130,7 +184,7 @@ class Customer(Base):
                 earliest_due
             if when_to_charge <= now:
                 sum_debt = self.sum_plan_debt(plan_invoices_due)
-                transaction = PlanTransaction.create(self.guid, sum_debt)
+                transaction = ChargeTransaction.create(self.guid, sum_debt)
                 try:
                     transaction.execute()
                     for each in plan_invoices_due:

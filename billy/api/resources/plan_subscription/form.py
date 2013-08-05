@@ -5,7 +5,7 @@ from wtforms import (
     Form, TextField, IntegerField, validators, DateTimeField, BooleanField)
 
 from api.errors import BillyExc
-from models import Customer, ChargePlan, PlanSubscription
+from models import Customer, ChargePlan, ChargeSubscription
 
 
 class PlanSubCreateForm(Form):
@@ -28,7 +28,7 @@ class PlanSubCreateForm(Form):
             plan = ChargePlan.retrieve(self.plan_id.data, group_obj.guid)
             if not plan:
                 raise BillyExc['404_PLAN_NOT_FOUND']
-            return PlanSubscription.subscribe(customer, plan,
+            return ChargeSubscription.subscribe(customer, plan,
                                               quantity=self.quantity.data,
                                               charge_at_period_end=self.charge_at_period_end.data,
                                               start_dt=self.start_dt.data).subscription
@@ -52,7 +52,7 @@ class PlanSubDeleteForm(Form):
             plan = ChargePlan.retrieve(self.plan_id.data, group_obj.guid)
             if not plan:
                 raise BillyExc['404_PLAN_NOT_FOUND']
-            return PlanSubscription.unsubscribe(customer, plan,
+            return ChargeSubscription.unsubscribe(customer, plan,
                                                 cancel_at_period_end=self.cancel_at_period_end.data).subscription
         except NoResultFound:
             raise BillyExc['404_PLAN_SUB_NOT_FOUND']

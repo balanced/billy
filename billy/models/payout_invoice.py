@@ -5,7 +5,7 @@ from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
     Integer, ForeignKeyConstraint, Index
 from sqlalchemy.orm import relationship, validates, backref
 
-from models import Base, Company, Customer, Payout
+from models import Base, Company, Customer, PayoutPlan
 from settings import RETRY_DELAY_PAYOUT
 from utils.generic import uuid_factory
 from processor import processor_map
@@ -16,7 +16,7 @@ class PayoutSubscription(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POS'))
     customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
-    payout_id = Column(Unicode, ForeignKey(Payout.guid), nullable=False)
+    payout_id = Column(Unicode, ForeignKey(PayoutPlan.guid), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     is_active = Column(Boolean, default=True)
 

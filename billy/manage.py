@@ -37,8 +37,8 @@ def billy_tasks():
     The main billy task that does EVERYTHING cron related.
     """
     Coupon.expire_coupons()
-    PlanInvoice.clear_all_plan_debt()
-    PlanInvoice.rollover_all()
+    ChargePlanInvoice.clear_all_plan_debt()
+    ChargePlanInvoice.rollover_all()
     PayoutInvoice.make_all_payouts()
     PayoutInvoice.rollover_all()
     print "Billy task.... DONE"

@@ -55,7 +55,7 @@ error_definitions = {
                          'PUT instead.'
     },
 
-    # Payout ERRORS
+    # PayoutPlan ERRORS
     '404_PAYOUT_NOT_FOUND': {
         'status': 404,
         'error_message': 'The payout you requested was not found.'
@@ -72,7 +72,7 @@ error_definitions = {
         'error_message': 'The plan subscription you requested was not found.'
     },
 
-    # Payout Subscription Errors
+    # PayoutPlan Subscription Errors
     '404_PAYOUT_SUB_NOT_FOUND': {
         'status': 404,
         'error_message': 'The payout subscription you requested was not found.'
@@ -84,7 +84,7 @@ error_definitions = {
         'error_message': 'The plan invoice you requested was not found.'
     },
 
-    # Payout Invoice Errors
+    # PayoutPlan Invoice Errors
     '404_PAYOUT_INV_NOT_FOUND': {
         'status': 404,
         'error_message': 'The payout invoice you requested was not found.'
@@ -97,7 +97,7 @@ error_definitions = {
         'error_message': 'The plan transaction you requested was not found.'
     },
 
-    # Payout Invoice Errors
+    # PayoutPlan Invoice Errors
     '404_PAYOUT_TRANS_NOT_FOUND': {
         'status': 404,
         'error_message': 'The payout transaction you requested was not found.'

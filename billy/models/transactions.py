@@ -4,7 +4,7 @@ from pytz import UTC
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Integer
 from sqlalchemy.orm import relationship
 
-from models import Base, Customer, PlanInvoice, PayoutInvoice
+from models import Base, Customer, ChargePlanInvoice, PayoutInvoice
 from utils.generic import uuid_factory, Status
 from processor import processor_map
 
@@ -27,13 +27,13 @@ class TransactionMixin(object):
         return new_transaction
 
 
-class PlanTransaction(TransactionMixin, Base):
-    __tablename__ = "plan_transactions"
+class ChargeTransaction(TransactionMixin, Base):
+    __tablename__ = "charge_transactions"
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PAT'))
     customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
 
-    plan_invoices = relationship(PlanInvoice, backref='transaction',
+    invoices = relationship(ChargePlanInvoice, backref='transaction',
                                  cascade='delete')
 
     def execute(self):
@@ -59,7 +59,7 @@ class PayoutTransaction(TransactionMixin, Base):
     guid = Column(Unicode, primary_key=True, default=uuid_factory('POT'))
     customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
 
-    payout_invoices = relationship(PayoutInvoice,
+    invoices = relationship(PayoutInvoice,
                                    backref='transaction', cascade='delete')
 
     def execute(self):

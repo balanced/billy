@@ -273,7 +273,7 @@
                     "description": "Return a list of payouts pertaining to a group"
                 }
             },
-            "description": "Base Payout resource used to create a payout or retrieve all your payouts",
+            "description": "Base PayoutPlan resource used to create a payout or retrieve all your payouts",
             "path": "/payout/",
             "view": {
                 "name": {
@@ -458,7 +458,7 @@
                     "description": "Return a list of plans subscriptions pertaining to a group"
                 }
             },
-            "description": "Base PlanSubscription resource used to create a plan subscription or retrieve all your plan subscriptions",
+            "description": "Base ChargeSubscription resource used to create a plan subscription or retrieve all your plan subscriptions",
             "path": "/plan_subscription/",
             "view": {
                 "plan_id": {
@@ -775,7 +775,7 @@
                     "type": "INTEGER"
                 }
             },
-            "description": "Base PlanInvoice resource used to create a plan invoice or retrieve all your plan invoices",
+            "description": "Base ChargePlanInvoice resource used to create a plan invoice or retrieve all your plan invoices",
             "methods": {
                 "GET": {
                     "description": "Return a list of plans invoices pertaining to a group"
@@ -1041,7 +1041,7 @@
                     "type": "STRING"
                 }
             },
-            "description": "Base Payout Transaction resource used to create a payout transaction or retrieve all your payout transactions",
+            "description": "Base PayoutPlan Transaction resource used to create a payout transaction or retrieve all your payout transactions",
             "methods": {
                 "GET": {
                     "description": "Return a list of payout transactions pertaining to a group"

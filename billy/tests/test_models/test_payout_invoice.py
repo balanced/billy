@@ -6,7 +6,7 @@ from pytz import UTC
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from models import Company, Customer, Payout, PayoutInvoice, PayoutSubscription
+from models import Company, Customer, PayoutPlan, PayoutInvoice, PayoutSubscription
 from utils.intervals import Intervals
 from tests import BalancedTransactionalTestCase
 
@@ -27,12 +27,12 @@ class TestPayoutInvoice(BalancedTransactionalTestCase):
             'MY_TEST_CUSTOMER_2', self.group.guid, 'TESTBALID')
         self.customer_3 = Customer.create(
             'MY_TEST_CUSTOMER_3', self.group_2.guid, 'TESTBALID')
-        self.payout = Payout.create('MY_TEST_PAYOUT', self.group.guid,
-                                    'Test Payout', 1000, Intervals.TWO_WEEKS)
-        self.payout_2 = Payout.create('MY_TEST_PAYOUT_2', self.group.guid,
-                                      'Test Payout 2', 1500, Intervals.MONTH)
-        self.payout_3 = Payout.create('MY_TEST_PAYOUT_3', self.group_2.guid,
-                                      'Test Payout 3', 9700, Intervals.MONTH)
+        self.payout = PayoutPlan.create('MY_TEST_PAYOUT', self.group.guid,
+                                    'Test PayoutPlan', 1000, Intervals.TWO_WEEKS)
+        self.payout_2 = PayoutPlan.create('MY_TEST_PAYOUT_2', self.group.guid,
+                                      'Test PayoutPlan 2', 1500, Intervals.MONTH)
+        self.payout_3 = PayoutPlan.create('MY_TEST_PAYOUT_3', self.group_2.guid,
+                                      'Test PayoutPlan 3', 9700, Intervals.MONTH)
 
 
 class TestCreate(TestPayoutInvoice):

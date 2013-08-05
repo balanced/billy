@@ -5,7 +5,7 @@ from flask.ext.restful import marshal_with
 
 from api.errors import BillyExc
 from api.resources.group import GroupController
-from models import Company, Customer, PlanTransaction
+from models import Company, Customer, ChargeTransaction
 from view import plan_trans_view
 
 
@@ -20,7 +20,7 @@ class PlanTransIndexController(GroupController):
         """
         Return a list of plan transactions pertaining to a group
         """
-        return PlanTransaction.query.join(Customer).join(
+        return ChargeTransaction.query.join(Customer).join(
             Company).filter(Company.guid == self.group.guid).all()
 
 
@@ -32,8 +32,8 @@ class PlanTransController(GroupController):
     def __init__(self):
         super(PlanTransController, self).__init__()
         plan_trans_id = request.view_args.values()[0]
-        self.trans = PlanTransaction.query.filter(
-            PlanTransaction.guid == plan_trans_id).first()
+        self.trans = ChargeTransaction.query.filter(
+            ChargeTransaction.guid == plan_trans_id).first()
         if not self.trans:
             raise BillyExc['404_PLAN_TRANS_NOT_FOUND']
 

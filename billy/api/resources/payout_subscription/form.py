@@ -5,13 +5,13 @@ from wtforms import (
     Form, TextField, IntegerField, validators, DateTimeField, BooleanField)
 
 from api.errors import BillyExc
-from models import Customer, Payout, PayoutSubscription
+from models import Customer, PayoutPlan, PayoutSubscription
 
 
 class PayoutSubCreateForm(Form):
     customer_id = TextField('Customer ID', [validators.Required(),
                                             validators.Length(min=5, max=150)])
-    payout_id = TextField('Payout ID', [validators.Required(),
+    payout_id = TextField('PayoutPlan ID', [validators.Required(),
                                         validators.Length(min=5, max=150)])
 
     first_now = BooleanField('Charge at period end?', default=False)
@@ -23,7 +23,7 @@ class PayoutSubCreateForm(Form):
             customer = Customer.retrieve(self.customer_id.data, group_obj.guid)
             if not customer:
                 raise BillyExc['404_CUSTOMER_NOT_FOUND']
-            payout = Payout.retrieve(self.payout_id.data, group_obj.guid)
+            payout = PayoutPlan.retrieve(self.payout_id.data, group_obj.guid)
             if not payout:
                 raise BillyExc['404_PAYOUT_NOT_FOUND']
             return PayoutSubscription.subscribe(customer, payout,
@@ -37,7 +37,7 @@ class PayoutSubCreateForm(Form):
 class PayoutSubDeleteForm(Form):
     customer_id = TextField('Customer ID', [validators.Required(),
                                             validators.Length(min=5, max=150)])
-    payout_id = TextField('Payout ID', [validators.Required(),
+    payout_id = TextField('PayoutPlan ID', [validators.Required(),
                                         validators.Length(min=5, max=150)])
 
     cancel_scheduled = BooleanField('Cancel scheduled?', default=False)
@@ -47,7 +47,7 @@ class PayoutSubDeleteForm(Form):
             customer = Customer.retrieve(self.customer_id.data, group_obj.guid)
             if not customer:
                 raise BillyExc['404_CUSTOMER_NOT_FOUND']
-            payout = Payout.retrieve(self.payout_id.data, group_obj.guid)
+            payout = PayoutPlan.retrieve(self.payout_id.data, group_obj.guid)
             if not payout:
                 raise BillyExc['404_PLAN_NOT_FOUND']
             return PayoutSubscription.unsubscribe(customer, payout,

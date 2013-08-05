@@ -207,8 +207,8 @@ class TestUpdatePlan(TestCustomer):
 
     def test_update_first(self):
         with freeze_time('2013-02-01'):
-            PlanSubscription.subscribe(self.customer, self.plan)
-            invoice = PlanInvoice.retrieve(self.customer, self.plan,
+            ChargeSubscription.subscribe(self.customer, self.plan)
+            invoice = ChargePlanInvoice.retrieve(self.customer, self.plan,
                                            last_only=True)
             self.assertEqual(invoice.subscription.plan, self.plan)
             self.assertEqual(invoice.start_dt, datetime.utcnow())
@@ -228,10 +228,10 @@ class TestUpdatePlan(TestCustomer):
     def test_update_qty(self):
         with freeze_time('2013-01-01'):
             first = datetime.utcnow()
-            invoice_old = PlanSubscription.subscribe(self.customer, self.plan)
+            invoice_old = ChargeSubscription.subscribe(self.customer, self.plan)
         with freeze_time('2013-01-15'):
             second = datetime.utcnow()
-            invoice_new = PlanSubscription.subscribe(self.customer, self.plan,
+            invoice_new = ChargeSubscription.subscribe(self.customer, self.plan,
                                                      quantity=5)
         ratio = (second - (first + self.plan.trial_interval)).total_seconds() / rel_delta_to_sec(
             self.plan.plan_interval)
@@ -241,15 +241,15 @@ class TestUpdatePlan(TestCustomer):
             Decimal(ratio), places=1)
 
     def test_at_period_end(self):
-        PlanSubscription.subscribe(self.customer, self.plan,
+        ChargeSubscription.subscribe(self.customer, self.plan,
                                    quantity=1, charge_at_period_end=True)
-        invoice_new = PlanInvoice.retrieve(
+        invoice_new = ChargePlanInvoice.retrieve(
             self.customer, self.plan, True, True)
         self.assertEqual(invoice_new.end_dt, invoice_new.due_dt)
 
     def test_custom_start_dt(self):
         dt = datetime(2013, 2, 1, tzinfo=UTC)
-        invoice_new = PlanSubscription.subscribe(self.customer, self.plan,
+        invoice_new = ChargeSubscription.subscribe(self.customer, self.plan,
                                                  start_dt=dt)
         self.assertEqual(invoice_new.start_dt, dt)
         self.assertEqual(
@@ -259,10 +259,10 @@ class TestUpdatePlan(TestCustomer):
 
     def test_can_trial(self):
         with freeze_time('2013-01-01'):
-            invoice_old = PlanSubscription.subscribe(
+            invoice_old = ChargeSubscription.subscribe(
                 self.customer, self.plan, 1)
         with freeze_time('2013-01-15'):
-            invoice_new = PlanSubscription.subscribe(
+            invoice_new = ChargeSubscription.subscribe(
                 self.customer, self.plan, 5)
         self.assertEqual(
             invoice_old.due_dt, invoice_old.start_dt + self.plan.trial_interval)
@@ -275,57 +275,57 @@ class TestUpdatePlan(TestCustomer):
             'MY_TEST_COUPON', self.group, 'Yo', price_off_cents=price_off,
             percent_off_int=percent_off, max_redeem=5, repeating=2)
         self.customer.apply_coupon(new_coupon.external_id)
-        invoice = PlanSubscription.subscribe(self.customer, self.plan)
+        invoice = ChargeSubscription.subscribe(self.customer, self.plan)
         self.assertEqual(invoice.remaining_balance_cents, (
             self.plan.price_cents - 500) * Decimal(percent_off) / 100)
 
     def test_cancel_now(self):
         with freeze_time('2013-01-01'):
-            old_invoice = PlanSubscription.subscribe(self.customer, self.plan)
+            old_invoice = ChargeSubscription.subscribe(self.customer, self.plan)
         with freeze_time('2013-01-15'):
-            invoice = PlanSubscription.unsubscribe(self.customer,
+            invoice = ChargeSubscription.unsubscribe(self.customer,
                                                    self.plan, cancel_at_period_end=False)
             self.assertEqual(invoice.end_dt, datetime.utcnow())
 
     def test_cancel_at_end(self):
         with freeze_time('2013-01-01'):
-            invoice_old = PlanSubscription.subscribe(self.customer, self.plan)
+            invoice_old = ChargeSubscription.subscribe(self.customer, self.plan)
         with freeze_time('2013-01-15'):
-            PlanSubscription.unsubscribe(self.customer, self.plan,
+            ChargeSubscription.unsubscribe(self.customer, self.plan,
                                          cancel_at_period_end=True)
-            sub = PlanSubscription.query.filter(
-                PlanSubscription.customer_id == self.customer.guid,
-                PlanSubscription.plan_id == self.plan.guid).first()
+            sub = ChargeSubscription.query.filter(
+                ChargeSubscription.customer_id == self.customer.guid,
+                ChargeSubscription.plan_id == self.plan.guid).first()
             self.assertEqual(sub.is_active, False)
         with freeze_time('2013-01-17'):
-            invoice_new = PlanSubscription.subscribe(self.customer, self.plan)
+            invoice_new = ChargeSubscription.subscribe(self.customer, self.plan)
             self.assertEqual(invoice_old.end_dt, datetime.utcnow())
             self.assertEqual(invoice_old.prorated, True)
 
     def test_can_trial_plan(self):
         with freeze_time('2013-01-01'):
-            invoice_old = PlanSubscription.subscribe(self.customer, self.plan)
+            invoice_old = ChargeSubscription.subscribe(self.customer, self.plan)
         with freeze_time('2013-01-15'):
-            invoice_new = PlanSubscription.subscribe(self.customer, self.plan)
+            invoice_new = ChargeSubscription.subscribe(self.customer, self.plan)
         self.assertTrue(invoice_old.includes_trial)
         self.assertFalse(invoice_new.includes_trial)
 
     def test_active_plans(self):
-        PlanSubscription.subscribe(self.customer, self.plan)
-        self.assertEqual(len(PlanSubscription.active_plans(self.customer)), 1)
-        PlanSubscription.subscribe(self.customer, self.plan_2, quantity=3)
-        self.assertEqual(len(PlanSubscription.active_plans(self.customer)), 2)
+        ChargeSubscription.subscribe(self.customer, self.plan)
+        self.assertEqual(len(ChargeSubscription.active_plans(self.customer)), 1)
+        ChargeSubscription.subscribe(self.customer, self.plan_2, quantity=3)
+        self.assertEqual(len(ChargeSubscription.active_plans(self.customer)), 2)
 
     def test_current_debt(self):
         with freeze_time('2013-01-01'):
-            PlanSubscription.subscribe(self.customer, self.plan)
+            ChargeSubscription.subscribe(self.customer, self.plan)
             self.assertEqual(self.customer.plan_debt, 0)
         with freeze_time('2013-01-09'):
             self.assertEqual(self.customer.plan_debt, 1000)
 
     def test_is_debtor(self):
         with freeze_time('2013-01-01'):
-            PlanSubscription.subscribe(self.customer, self.plan)
+            ChargeSubscription.subscribe(self.customer, self.plan)
             self.assertEqual(self.customer.plan_debt, 0)
         with freeze_time('2013-01-09'):
             self.assertTrue(self.customer.is_debtor(900))
@@ -340,7 +340,7 @@ class TestPayout(TestCustomer):
             group_id=self.group,
             balanced_id='TESTBALID'
         )
-        self.payout = Payout.create(
+        self.payout = PayoutPlan.create(
             external_id='MY_TEST_PAYOUT',
             group_id=self.group,
             name='Pay me out!',
@@ -423,14 +423,14 @@ class TestRelations(TestCustomer):
             plan_interval=Intervals.TWO_WEEKS,
             trial_interval=Intervals.MONTH
         )
-        self.payout = Payout.create(
+        self.payout = PayoutPlan.create(
             external_id='MY_TEST_PAYOUT',
             group_id=self.group,
             name='Pay me out!',
             balance_to_keep_cents=5000,
             payout_interval=Intervals.TWO_WEEKS
         )
-        self.payout_2 = Payout.create(
+        self.payout_2 = PayoutPlan.create(
             external_id='MY_TEST_PAYOUT_2',
             group_id=self.group,
             name='Pay me out!',
@@ -445,8 +445,8 @@ class TestRelations(TestCustomer):
         self.assertTrue(self.customer.coupon)
 
     def test_plan_invoices(self):
-        PlanSubscription.subscribe(self.customer, self.plan)
-        PlanSubscription.subscribe(self.customer, self.plan_2)
+        ChargeSubscription.subscribe(self.customer, self.plan)
+        ChargeSubscription.subscribe(self.customer, self.plan_2)
         self.assertEqual(len(self.customer.plan_invoices), 2)
 
     def test_payout_invoices(self):

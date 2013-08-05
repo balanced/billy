@@ -22,7 +22,7 @@ class ChargeSubscription(Base):
     is_active = Column(Boolean, default=True)
 
     __table_args__ = (
-        Index('unique_plan_sub', plan_id, customer_id,
+        Index('unique_charge_sub', plan_id, customer_id,
               postgresql_where=is_active == True,
               unique=True),
     )
@@ -44,48 +44,6 @@ class ChargeSubscription(Base):
         return result
 
     @classmethod
-    def subscribe(cls, customer, plan, quantity=1,
-                  charge_at_period_end=False, start_dt=None):
-        current_coupon = customer.coupon
-        start_date = start_dt or datetime.utcnow()
-        due_on = start_date
-        can_trial = customer.can_trial_plan(plan)
-        end_date = start_date + plan.plan_interval
-        if can_trial and plan.trial_interval:
-            end_date += plan.trial_interval
-            due_on += plan.trial_interval
-        if charge_at_period_end:
-            due_on = end_date
-        amount_base = plan.price_cents * Decimal(quantity)
-        amount_after_coupon = amount_base
-        coupon_id = current_coupon.guid if current_coupon else None
-        if customer.current_coupon and current_coupon:
-            dollars_off = current_coupon.price_off_cents
-            percent_off = current_coupon.percent_off_int
-            amount_after_coupon -= dollars_off  # BOTH CENTS, safe
-            amount_after_coupon -= int(
-                amount_after_coupon * Decimal(percent_off) / Decimal(100))
-        balance = amount_after_coupon
-        new_sub = cls.create_or_activate(customer, plan)
-        PlanInvoice.prorate_last(customer, plan)
-        pi = PlanInvoice.create(
-            subscription_id=new_sub.guid,
-            relevant_coupon=coupon_id,
-            start_dt=start_date,
-            end_dt=end_date,
-            due_dt=due_on,
-            amount_base_cents=amount_base,
-            amount_after_coupon_cents=amount_after_coupon,
-            amount_paid_cents=0,
-            remaining_balance_cents=balance,
-            quantity=quantity,
-            charge_at_period_end=charge_at_period_end,
-            includes_trial=can_trial
-        )
-        cls.session.commit()
-        return pi
-
-    @classmethod
     def unsubscribe(cls, customer, plan, cancel_at_period_end=False):
         if cancel_at_period_end:
             result = cls.query.filter(cls.customer_id == customer.guid,
@@ -94,7 +52,7 @@ class ChargeSubscription(Base):
             result.is_active = False
             cls.session.commit()
         else:
-            return PlanInvoice.prorate_last(customer, plan)
+            return ChargePlanInvoice.prorate_last(customer, plan)
         return True
 
     @classmethod
@@ -115,11 +73,11 @@ class ChargeSubscription(Base):
                                 cls.is_enrolled == True).all()
 
 
-class PlanInvoice(Base):
-    __tablename__ = 'plan_invoices'
+class ChargePlanInvoice(Base):
+    __tablename__ = 'charge_plan_invoices'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PLI'))
-    subscription_id = Column(Unicode, ForeignKey(PlanSubscription.guid),
+    subscription_id = Column(Unicode, ForeignKey(ChargeSubscription.guid),
                              nullable=False)
     coupon = Column(Unicode, ForeignKey(Coupon.guid), nullable=False)
     created_at = Column(DateTime(timezone=UTC), default=datetime.utcnow)
@@ -138,7 +96,7 @@ class PlanInvoice(Base):
     cleared_by_txn = Column(Unicode, ForeignKey('plan_transactions.guid'),
                             nullable=False)
 
-    subscription = relationship('PlanSubscription',
+    subscription = relationship('ChargeSubscription',
                                 backref=backref('invoices', cascade='delete'))
 
     @classmethod
@@ -168,11 +126,11 @@ class PlanInvoice(Base):
     @classmethod
     def retrieve(cls, customer, plan, active_only=False, last_only=False):
         # Todo can probably be cleaner
-        query = PlanSubscription.query.filter(
-            PlanSubscription.customer_id == customer.guid,
-            PlanSubscription.plan_id == plan.guid)
+        query = ChargeSubscription.query.filter(
+            ChargeSubscription.customer_id == customer.guid,
+            ChargeSubscription.plan_id == plan.guid)
         if active_only:
-            query = query.filter(PlanSubscription.is_active == True)
+            query = query.filter(ChargeSubscription.is_active == True)
         subscription = query.first()
         if subscription and last_only:
             last = None
@@ -221,13 +179,13 @@ class PlanInvoice(Base):
         """
         Returns a list of invoices that are due for a customer
         """
-        from models import PlanInvoice
+        from models import ChargePlanInvoice
 
         now = datetime.utcnow()
-        results = PlanInvoice.query.filter(
-            PlanSubscription.customer_id == customer.guid,
-            PlanInvoice.remaining_balance_cents != 0,
-            PlanInvoice.due_dt <= now,
+        results = ChargePlanInvoice.query.filter(
+            ChargeSubscription.customer_id == customer.guid,
+            ChargePlanInvoice.remaining_balance_cents != 0,
+            ChargePlanInvoice.due_dt <= now,
         ).all()
         return results
 
@@ -246,12 +204,12 @@ class PlanInvoice(Base):
     @classmethod
     def need_rollover(cls):
         """
-        Returns a list of PlanInvoice objects that need a rollover
+        Returns a list of ChargePlanInvoice objects that need a rollover
         """
         now = datetime.utcnow()
-        invoices_rollover = cls.query.join(PlanSubscription).filter(
+        invoices_rollover = cls.query.join(ChargeSubscription).filter(
             cls.end_dt <= now,
-            PlanSubscription.is_active == True,
+            ChargeSubscription.is_active == True,
             cls.remaining_balance_cents == 0,
         ).all()
         return invoices_rollover
@@ -262,7 +220,7 @@ class PlanInvoice(Base):
         """
         customer = self.subscription.customer
         plan = self.subscription.plan
-        PlanSubscription.subscribe(
+        ChargeSubscription.subscribe(
             customer=customer,
             plan=plan,
             quantity=self.quantity,

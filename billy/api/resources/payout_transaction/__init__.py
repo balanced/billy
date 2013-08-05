@@ -11,7 +11,7 @@ from view import payout_trans_view
 
 class PayoutTransIndexController(GroupController):
     """
-    Base Payout Transaction resource used to create a payout transaction or
+    Base PayoutPlan Transaction resource used to create a payout transaction or
     retrieve all your payout transactions
     """
 

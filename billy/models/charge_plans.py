@@ -5,8 +5,8 @@ from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, \
     ForeignKey, UniqueConstraint, CheckConstraint
 from sqlalchemy.orm import validates, relationship
 
-from models.base import Base, RelativeDelta
-from models.company import Company
+from models import Base, Company, ChargeSubscription
+from models.base import RelativeDelta
 from utils.generic import uuid_factory
 
 
@@ -15,7 +15,7 @@ class ChargePlan(Base):
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PL'))
     external_id = Column(Unicode, nullable=False)
-    group_id = Column(Unicode, ForeignKey(Company.guid), nullable=False)
+    company_id = Column(Unicode, ForeignKey(Company.guid), nullable=False)
     name = Column(Unicode, nullable=False)
     price_cents = Column(Integer, CheckConstraint('price_cents >= 0'),
                          nullable=False)
@@ -26,11 +26,11 @@ class ChargePlan(Base):
     trial_interval = Column(RelativeDelta)
     plan_interval = Column(RelativeDelta)
 
-    subscriptions = relationship('PlanSubscription', backref='plan',
+    subscriptions = relationship('ChargeSubscription', backref='charge_plan',
                                  cascade='delete')
 
-    __table_args__ = (UniqueConstraint(external_id, group_id,
-                                       name='plan_id_group_unique'),
+    __table_args__ = (UniqueConstraint(external_id, company_id,
+                                       name='plan_id_company_unique'),
     )
 
     def update(self, name):
@@ -44,7 +44,7 @@ class ChargePlan(Base):
 
     def disable(self):
         """
-        Disables a plan
+        Disables a charge plan. Does not effect current subscribers.
         """
         self.active = False
         self.updated_at = datetime.utcnow()
@@ -55,13 +55,11 @@ class ChargePlan(Base):
 
     def can_customer_trial(self, customer):
         """
-        Whether a customer can trial a charge_plan
+        Whether a customer can trial a charge plan
         """
-        from models import PlanSubscription
-
-        count = PlanSubscription.query.filter(
-            PlanSubscription.customer_id == customer.guid,
-            PlanSubscription.plan_id == self.guid
+        count = ChargeSubscription.query.filter(
+            ChargeSubscription.customer_id == customer.guid,
+            ChargeSubscription.plan_id == self.guid
         ).count()
         return not bool(count)
 

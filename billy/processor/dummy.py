@@ -5,7 +5,6 @@ from utils.generic import uuid_factory
 
 
 class DummyProcessor(object):
-
     is_test_mode = True
 
     def __init__(self, api_key):
@@ -17,6 +16,12 @@ class DummyProcessor(object):
         authentication
         """
         return uuid_factory('MP')()
+
+    def can_add_customer(self, customer_id):
+        """
+        Checks if customer exists and has a funding instrument
+        """
+        return True
 
     def check_balance(self, customer, group):
         """

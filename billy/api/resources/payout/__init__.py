@@ -5,7 +5,7 @@ from flask.ext.restful import marshal_with
 
 from api.errors import BillyExc
 from api.resources.group import GroupController
-from models import Payout
+from models import PayoutPlan
 from form import PayoutCreateForm, PayoutUpdateForm
 from view import payout_view
 
@@ -13,7 +13,7 @@ from view import payout_view
 class PayoutIndexController(GroupController):
 
     """
-    Base Payout resource used to create a payout or retrieve all your
+    Base PayoutPlan resource used to create a payout or retrieve all your
     payouts
     """
 
@@ -45,7 +45,7 @@ class PayoutController(GroupController):
     def __init__(self):
         super(PayoutController, self).__init__()
         payout_id = request.view_args.values()[0]
-        self.payout = Payout.retrieve(payout_id, self.group.guid)
+        self.payout = PayoutPlan.retrieve(payout_id, self.group.guid)
         if not self.payout:
             raise BillyExc['404_PAYOUT_NOT_FOUND']
 

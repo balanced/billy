@@ -66,7 +66,7 @@ class PayoutInvoice(Base):
     subscription = relationship('PayoutSubscription',
                                 backref=backref('invoices', lazy='dynamic',
                                                 cascade='delete'),
-    )
+                                )
 
     @classmethod
     def create(cls, subscription_id,
@@ -128,7 +128,7 @@ class PayoutInvoice(Base):
         now = datetime.utcnow()
         transaction_class = processor_map[
             self.subscription.customer.group.provider](
-            self.customer.group.provider_api_key)
+                self.customer.group.provider_api_key)
         current_balance = transaction_class.check_balance(
             self.subscription.customer.guid,
             self.subscription.customer.group_id)

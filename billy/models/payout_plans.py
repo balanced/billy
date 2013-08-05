@@ -19,7 +19,7 @@ class PayoutPlan(Base):
     name = Column(Unicode, nullable=False)
     balance_to_keep_cents = Column(Integer,
                                    CheckConstraint('balance_to_keep_cents >= 0'
-                                   ), nullable=False)
+                                                   ), nullable=False)
     active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     deleted_at = Column(DateTime)
@@ -31,8 +31,7 @@ class PayoutPlan(Base):
 
     __table_args__ = (UniqueConstraint(external_id, company_id,
                                        name='payout_id_group_unique'),
-    )
-
+                      )
 
     def update(self, name):
         """
@@ -64,7 +63,7 @@ class PayoutPlan(Base):
         invoice = PayoutInvoice.create(new_sub.guid,
                                        first_charge,
                                        balance_to_keep_cents,
-        )
+                                       )
         self.session.add(invoice)
         try:
             self.session.commit()
@@ -89,4 +88,3 @@ class PayoutPlan(Base):
                     in_process.completed = True
             cls.session.commit()
         return True
-

@@ -22,10 +22,12 @@ class Company(Base):
     coupons = relationship('Coupon', backref='company', lazy='dynamic',
                            cascade='delete', )
     customers = relationship('Customer', backref='company', cascade='delete')
-    charge_plans = relationship('ChargePlan', backref='company', lazy='dynamic',
-                         cascade='delete')
-    payout_plans = relationship('PayoutPlan', backref='company', lazy='dynamic',
-                           cascade='delete')
+    charge_plans = relationship(
+        'ChargePlan', backref='company', lazy='dynamic',
+        cascade='delete')
+    payout_plans = relationship(
+        'PayoutPlan', backref='company', lazy='dynamic',
+        cascade='delete')
 
     @classmethod
     def create(cls, external_id, processor_type, processor_api_key,
@@ -63,7 +65,6 @@ class Company(Base):
                 self.session.rollback()
                 raise
 
-
     def add_customer(self, external_id, provider_id):
         """
         Creates a new customer under the company.
@@ -81,7 +82,6 @@ class Company(Base):
             self.session.rollback()
             raise
         return new_customer
-
 
     def add_coupon(self, external_id, name, price_off_cents,
                    percent_off_int, max_redeem, repeating, expire_at=None):
@@ -164,5 +164,3 @@ class Company(Base):
         Returns the instantiated processor class
         """
         return processor_map[self.processor_type](self.api_key)
-
-

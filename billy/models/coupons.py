@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 from datetime import datetime
 
 from sqlalchemy import (Boolean, Column, DateTime, Integer, ForeignKey,
-    Unicode, UniqueConstraint, CheckConstraint)
+                        Unicode, UniqueConstraint, CheckConstraint)
 from sqlalchemy.orm import relationship
 
 from models import *
@@ -34,7 +34,6 @@ class Coupon(Base):
         UniqueConstraint(external_id, company_id,
                          name='coupon_id_group_unique'),
     )
-
 
     def redeem(self, customer):
         """
@@ -94,7 +93,6 @@ class Coupon(Base):
         """
         return self.customer.count()
 
-
     @classmethod
     def expire_coupons(cls):
         """
@@ -105,4 +103,3 @@ class Coupon(Base):
         for coupon in to_expire:
             coupon.active = False
         cls.session.commit()
-

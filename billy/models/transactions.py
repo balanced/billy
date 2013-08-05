@@ -33,7 +33,7 @@ class ChargeTransaction(TransactionMixin, Base):
     customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
 
     invoices = relationship(ChargePlanInvoice, backref='transaction',
-                                 cascade='delete')
+                            cascade='delete')
 
     def execute(self):
         try:
@@ -57,7 +57,7 @@ class PayoutTransaction(TransactionMixin, Base):
     customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
 
     invoices = relationship(PayoutInvoice,
-                                   backref='transaction', cascade='delete')
+                            backref='transaction', cascade='delete')
 
     def execute(self):
         try:

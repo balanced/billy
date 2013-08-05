@@ -80,12 +80,13 @@ class ChargePlanInvoice(Base):
                                nullable=False)
     amount_after_coupon_cents = Column(Integer, CheckConstraint(
         'amount_after_coupon_cents >= 0'),
-                                       nullable=False)
+        nullable=False)
     amount_paid_cents = Column(Integer,
                                CheckConstraint('amount_paid_cents >= 0'),
                                nullable=False)
     remaining_balance_cents = Column(Integer, nullable=False)
-    quantity = Column(Integer, CheckConstraint('quantity >= 0'), nullable=False)
+    quantity = Column(
+        Integer, CheckConstraint('quantity >= 0'), nullable=False)
     prorated = Column(Boolean)
     charge_at_period_end = Column(Boolean)
     cleared_by_txn = Column(Unicode, ForeignKey('charge_transactions.guid'),

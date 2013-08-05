@@ -32,7 +32,7 @@ class ChargePlan(Base):
 
     __table_args__ = (UniqueConstraint(external_id, company_id,
                                        name='plan_id_company_unique'),
-    )
+                      )
 
     def update(self, name):
         """
@@ -52,7 +52,6 @@ class ChargePlan(Base):
         self.deleted_at = datetime.utcnow()
         self.session.commit()
         return self
-
 
     def subscribe(self, customer, quantity=1,
                   charge_at_period_end=False, start_dt=None):
@@ -128,4 +127,3 @@ class ChargePlan(Base):
             ChargeSubscription.plan_id == self.guid
         ).count()
         return not bool(count)
-

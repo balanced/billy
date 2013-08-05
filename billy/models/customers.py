@@ -37,7 +37,7 @@ class Customer(Base):
     charge_transactions = relationship('ChargeTransaction',
                                        backref='customer', cascade='delete',
                                        lazy='dynamic'
-    )
+                                       )
     payout_transactions = relationship('PayoutTransaction',
                                        backref='customer', cascade='delete',
                                        lazy='dynamic')
@@ -87,9 +87,8 @@ class Customer(Base):
         """
         use_coupon = self.current_coupon or True \
             if self.current_coupon.repeating == -1 or \
-               self.coupon_use_count <= self.current_coupon.repeating else False
+            self.coupon_use_count <= self.current_coupon.repeating else False
         return use_coupon
-
 
     @property
     def total_charge_debt(self):
@@ -101,7 +100,6 @@ class Customer(Base):
             rem_bal = invoice.remaining_balance_cents
             total_overdue += rem_bal if rem_bal else 0
         return total_overdue
-
 
     def is_debtor(self, limit_cents):
         """
@@ -126,16 +124,14 @@ class Customer(Base):
         now = datetime.utcnow()
         return cls.query.join(ChargeSubscription).join(
             ChargePlanInvoice).filter(
-            ChargePlanInvoice.remaining_balance_cents > 0,
-            ChargePlanInvoice.due_dt <= now
-        ).all()
-
+                ChargePlanInvoice.remaining_balance_cents > 0,
+                ChargePlanInvoice.due_dt <= now
+            ).all()
 
     @classmethod
     def clear_charge_debt(cls):
         for customer in cls.needs_plan_debt_cleared():
             customer.clear_charge_debt()
-
 
     def clear_charge_debt(self, force=False):
         """
@@ -148,7 +144,7 @@ class Customer(Base):
         plan_invoices_due = ChargePlanInvoice.all_due(self)
         for plan_invoice in plan_invoices_due:
             earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \
-                                                  earliest_due else earliest_due
+                earliest_due else earliest_due
             # Cancel a users plan if max retries reached
         if len(RETRY_DELAY_PLAN) < self.charge_attempts and not force:
             for plan_invoice in plan_invoices_due:

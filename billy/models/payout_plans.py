@@ -53,3 +53,40 @@ class PayoutPlan(Base):
         self.session.commit()
         return self
 
+    def subscribe(self, customer, first_now=False, start_dt=None):
+        from models import PayoutSubscription
+
+        first_charge = start_dt or datetime.utcnow()
+        balance_to_keep_cents = self.balance_to_keep_cents
+        if not first_now:
+            first_charge += self.payout_interval
+        new_sub = PayoutSubscription.create_or_activate(customer, self)
+        invoice = PayoutInvoice.create(new_sub.guid,
+                                       first_charge,
+                                       balance_to_keep_cents,
+        )
+        self.session.add(invoice)
+        try:
+            self.session.commit()
+        except:
+            self.session.rollback()
+            raise
+        return invoice
+
+    def unsubscribe(self, customer, cancel_scheduled=False):
+        from models import PayoutSubscription, PayoutInvoice
+
+        current_sub = PayoutSubscription.query.filter(
+            PayoutSubscription.customer_id == customer.guid,
+            PayoutSubscription.payout_id == self.guid,
+            PayoutSubscription.is_active == True).first()
+        if current_sub:
+            current_sub.is_active = False
+            if cancel_scheduled:
+                in_process = current_sub.invoices.filter(
+                    PayoutInvoice.completed == False).first()
+                if in_process:
+                    in_process.completed = True
+            cls.session.commit()
+        return True
+

@@ -1,8 +1,8 @@
 from __future__ import unicode_literals
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Integer, ForeignKey, \
-    Unicode, UniqueConstraint, CheckConstraint
+from sqlalchemy import (Boolean, Column, DateTime, Integer, ForeignKey,
+    Unicode, UniqueConstraint, CheckConstraint)
 from sqlalchemy.orm import relationship
 
 from models import *

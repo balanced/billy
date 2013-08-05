@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from sqlalchemy import Unicode, Column, Enum, Boolean
 from sqlalchemy.orm import relationship
 
-from models import Base, Customer, Coupon, ChargePlan, PayoutPlan
+from models import Base
 from processor import processor_map
 from utils.generic import api_key_factory, uuid_factory
 
@@ -68,6 +68,7 @@ class Company(Base):
         """
         Creates a new customer under the company.
         """
+        from models import Customer
         new_customer = Customer(
             external_id=external_id,
             provider_id=provider_id,
@@ -87,6 +88,7 @@ class Company(Base):
         """
         Creates a new coupon for the company
         """
+        from models import Coupon
         new_coupon = Coupon(
             external_id=external_id,
             company_id=self.guid,
@@ -109,6 +111,7 @@ class Company(Base):
         """
         Creates a charge plan under the company
         """
+        from models import ChargePlan
         new_plan = ChargePlan(
             external_id=external_id,
             company_id=self.guid,
@@ -130,6 +133,7 @@ class Company(Base):
         """
         Creates a payout plan under the company
         """
+        from models import PayoutPlan
         new_payout = PayoutPlan(
             external_id=external_id,
             company_id=self.guid,

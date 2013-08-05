@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from pytz import UTC
 from sqlalchemy import (Column, Unicode, ForeignKey, DateTime, Boolean,
-                        Integer, Index, or_)
+                        Integer, Index, CheckConstraint)
 from sqlalchemy.orm import relationship, validates, backref
 
 from models import Base, Customer, ChargePlan, Coupon
@@ -44,21 +44,10 @@ class ChargeSubscription(Base):
         return result
 
     @classmethod
-    def unsubscribe(cls, customer, plan, cancel_at_period_end=False):
-        if cancel_at_period_end:
-            result = cls.query.filter(cls.customer_id == customer.guid,
-                                      cls.plan_id == plan.guid,
-                                      cls.is_active == True).one()
-            result.is_active = False
-            cls.session.commit()
-        else:
-            return ChargePlanInvoice.prorate_last(customer, plan)
-        return True
-
-    @classmethod
-    def active_plans(cls, customer):
+    def renewing_plans(cls, customer):
         """
-        List of plans that are subscribed and enrolled
+        List of plans that are subscribed and enrolled that will renew come
+        the next term
         """
         return cls.query.filter(cls.customer_id == customer.guid,
                                 cls.is_active == True).all()
@@ -66,7 +55,7 @@ class ChargeSubscription(Base):
     @classmethod
     def enrolled_plans(cls, customer):
         """
-        List of plans that are enrolled but sometimes aren't acitve. i.e when
+        List of plans that are enrolled but sometimes aren't active. i.e when
         you cancel a plan at the end of the period
         """
         return cls.query.filter(cls.customer_id == customer.guid,
@@ -86,14 +75,20 @@ class ChargePlanInvoice(Base):
     original_end_dt = Column(DateTime(timezone=UTC))
     due_dt = Column(DateTime(timezone=UTC), nullable=False)
     includes_trial = Column(Boolean)
-    amount_base_cents = Column(Integer, nullable=False)
-    amount_after_coupon_cents = Column(Integer, nullable=False)
-    amount_paid_cents = Column(Integer, nullable=False)
+    amount_base_cents = Column(Integer,
+                               CheckConstraint('amount_base_cents >= 0'),
+                               nullable=False)
+    amount_after_coupon_cents = Column(Integer, CheckConstraint(
+        'amount_after_coupon_cents >= 0'),
+                                       nullable=False)
+    amount_paid_cents = Column(Integer,
+                               CheckConstraint('amount_paid_cents >= 0'),
+                               nullable=False)
     remaining_balance_cents = Column(Integer, nullable=False)
-    quantity = Column(Integer, nullable=False)
+    quantity = Column(Integer, CheckConstraint('quantity >= 0'), nullable=False)
     prorated = Column(Boolean)
     charge_at_period_end = Column(Boolean)
-    cleared_by_txn = Column(Unicode, ForeignKey('plan_transactions.guid'),
+    cleared_by_txn = Column(Unicode, ForeignKey('charge_transactions.guid'),
                             nullable=False)
 
     subscription = relationship('ChargeSubscription',
@@ -125,7 +120,7 @@ class ChargePlanInvoice(Base):
 
     @classmethod
     def retrieve(cls, customer, plan, active_only=False, last_only=False):
-        # Todo can probably be cleaner
+        # Todo clean this up
         query = ChargeSubscription.query.filter(
             ChargeSubscription.customer_id == customer.guid,
             ChargeSubscription.plan_id == plan.guid)
@@ -175,7 +170,7 @@ class ChargePlanInvoice(Base):
         return last_invoice
 
     @classmethod
-    def due(cls, customer):
+    def all_due(cls, customer):
         """
         Returns a list of invoices that are due for a customer
         """
@@ -188,18 +183,6 @@ class ChargePlanInvoice(Base):
             ChargePlanInvoice.due_dt <= now,
         ).all()
         return results
-
-    @classmethod
-    def needs_plan_debt_cleared(cls):
-        """
-        Returns a list of customer objects that need to clear their plan debt
-        """
-        now = datetime.utcnow()
-        results = cls.query.filter(
-            cls.remaining_balance_cents > 0,
-            cls.due_dt <= now).all()
-        # Todo this set comprehension needs a test to avoid customer dupes
-        return set([each.subscription.customer for each in results])
 
     @classmethod
     def need_rollover(cls):
@@ -234,36 +217,3 @@ class ChargePlanInvoice(Base):
         for plan_invoice in to_rollover:
             plan_invoice.rollover()
         return len(to_rollover)
-
-    @classmethod
-    def clear_all_plan_debt(cls):
-        for customer in cls.needs_plan_debt_cleared():
-            customer.clear_plan_debt()
-
-    @validates('amount_base_cents')
-    def validate_amount_base_cents(self, key, value):
-        if not value >= 0:
-            raise ValueError('{} must be greater than 0'.format(key))
-        else:
-            return value
-
-    @validates('amount_after_coupon_cents')
-    def validate_amount_after_coupon_cents(self, key, value):
-        if not value >= 0:
-            raise ValueError('{} must be greater than 0'.format(key))
-        else:
-            return value
-
-    @validates('amount_paid_cents')
-    def validate_amount_paid_cents(self, key, value):
-        if not value >= 0:
-            raise ValueError('{} must be greater than 0'.format(key))
-        else:
-            return value
-
-    @validates('quantity')
-    def validate_quantity(self, key, value):
-        if not value > 0:
-            raise ValueError('400_QUANTITY')
-        else:
-            return value

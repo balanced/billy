@@ -1,8 +1,8 @@
 from datetime import datetime
 
 from pytz import UTC
-from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, \
-    Integer, ForeignKeyConstraint, Index
+from sqlalchemy import (Column, Unicode, ForeignKey, DateTime, Boolean,
+                        Integer, CheckConstraint, Index)
 from sqlalchemy.orm import relationship, validates, backref
 
 from models import Base, Company, Customer, PayoutPlan
@@ -41,37 +41,6 @@ class PayoutSubscription(Base):
         cls.session.commit()
         return result
 
-    @classmethod
-    def subscribe(cls, customer, payout, first_now=False, start_dt=None):
-        first_charge = start_dt or datetime.utcnow()
-        balance_to_keep_cents = payout.balance_to_keep_cents
-        if not first_now:
-            first_charge += payout.payout_interval
-        new_sub = cls.create_or_activate(customer, payout)
-        invoice = PayoutInvoice.create(new_sub.guid,
-                                       first_charge,
-                                       balance_to_keep_cents,
-        )
-        cls.session.add(invoice)
-        cls.session.commit()
-        return invoice
-
-    @classmethod
-    def unsubscribe(cls, customer, payout, cancel_scheduled=False):
-        from models import PayoutInvoice
-
-        current_sub = cls.query.filter(cls.customer_id == customer.guid,
-                                       cls.payout_id == payout.guid,
-                                       cls.is_active == True
-        ).one()
-        current_sub.is_active = False
-        if cancel_scheduled:
-            in_process = current_sub.invoices.filter(
-                PayoutInvoice.completed == False).one()
-            in_process.completed = True
-        cls.session.commit()
-        return True
-
 
 class PayoutInvoice(Base):
     __tablename__ = 'payout_invoices'
@@ -81,14 +50,18 @@ class PayoutInvoice(Base):
                              nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     payout_date = Column(DateTime(timezone=UTC))
-    balance_to_keep_cents = Column(Integer)
-    amount_payed_out = Column(Integer)
+    balance_to_keep_cents = Column(Integer, CheckConstraint(
+        'balance_to_keep_cents >= 0'))
+    amount_payed_out = Column(Integer,
+                              CheckConstraint('amount_payed_out >= 0'), )
     completed = Column(Boolean, default=False)
     queue_rollover = Column(Boolean, default=False)
-    balance_at_exec = Column(Integer, nullable=False)
+    balance_at_exec = Column(Integer, CheckConstraint('balance_at_exec >= 0'),
+                             nullable=False)
     cleared_by_txn = Column(Unicode, ForeignKey('payout_transactions.guid'),
                             nullable=False)
-    attempts_made = Column(Integer, default=0)
+    attempts_made = Column(Integer, CheckConstraint('attempts_made >= 0'),
+                           default=0)
 
     subscription = relationship('PayoutSubscription',
                                 backref=backref('invoices', lazy='dynamic',
@@ -129,8 +102,7 @@ class PayoutInvoice(Base):
     def needs_payout_made(cls):
         now = datetime.utcnow()
         return cls.query.filter(cls.payout_date <= now,
-                                cls.completed == False
-        ).all()
+                                cls.completed == False).all()
 
     @classmethod
     def needs_rollover(cls):
@@ -197,31 +169,3 @@ class PayoutInvoice(Base):
         need_rollover = cls.needs_rollover()
         for payout in need_rollover:
             payout.rollover()
-
-    @validates('balance_to_keep_cents')
-    def validate_balance_to_keep_cents(self, key, value):
-        if not value >= 0:
-            raise ValueError('{} must be >= to 0'.format(key))
-        else:
-            return value
-
-    @validates('amount_payed_out')
-    def validate_amount_payed_out(self, key, value):
-        if not value >= 0:
-            raise ValueError('{} must be >= to 0'.format(key))
-        else:
-            return value
-
-    @validates('balance_at_exec')
-    def validate_balance_at_exec(self, key, value):
-        if not value >= 0:
-            raise ValueError('{} must be >= to 0'.format(key))
-        else:
-            return value
-
-    @validates('attempts_made')
-    def validate_attempts_made(self, key, value):
-        if not value >= 0:
-            raise ValueError('{} must be >= to 0'.format(key))
-        else:
-            return value

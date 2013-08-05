@@ -312,9 +312,9 @@ class TestUpdatePlan(TestCustomer):
 
     def test_active_plans(self):
         ChargeSubscription.subscribe(self.customer, self.plan)
-        self.assertEqual(len(ChargeSubscription.active_plans(self.customer)), 1)
+        self.assertEqual(len(ChargeSubscription.renewing_plans(self.customer)), 1)
         ChargeSubscription.subscribe(self.customer, self.plan_2, quantity=3)
-        self.assertEqual(len(ChargeSubscription.active_plans(self.customer)), 2)
+        self.assertEqual(len(ChargeSubscription.renewing_plans(self.customer)), 2)
 
     def test_current_debt(self):
         with freeze_time('2013-01-01'):

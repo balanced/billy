@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from hashlib import md5
 import random
 
 from utils.generic import uuid_factory
@@ -15,7 +16,9 @@ class DummyProcessor(object):
         Returns the id of the company with the processor, this is a form of
         authentication
         """
-        return uuid_factory('MP')()
+        hash = md5()
+        hash.update(self.api_key)
+        return hash.hexdigest()
 
     def can_add_customer(self, customer_id):
         """

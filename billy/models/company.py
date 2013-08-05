@@ -15,7 +15,7 @@ class Company(Base):
     api_key = Column(Unicode, unique=True, default=api_key_factory())
     processor_type = Column(Enum('BALANCED', 'DUMMY', name='provider_enum'),
                             nullable=False)
-    processor_api_key = Column(Unicode, nullable=False)
+    processor_api_key = Column(Unicode, nullable=False, unique=True)
     processor_company_id = Column(Unicode, nullable=False, unique=True)
     is_test = Column(Boolean, default=True)
 
@@ -24,22 +24,21 @@ class Company(Base):
     customers = relationship('Customer', backref='company', cascade='delete')
     charge_plans = relationship(
         'ChargePlan', backref='company', lazy='dynamic',
-        cascade='delete')
+        cascade='delete, delete-orphan')
     payout_plans = relationship(
         'PayoutPlan', backref='company', lazy='dynamic',
-        cascade='delete')
+        cascade='delete, delete-orphan')
 
     @classmethod
-    def create(cls, external_id, processor_type, processor_api_key,
+    def create(cls, processor_type, processor_api_key,
                is_test=True, **kwargs):
         # Some sort of check api_key thingy.
-        processor_class = processor_map[processor_type]
-        processor_company_id = processor_class.get_comapany_id(
-            processor_api_key)
-        new_company = cls(external_id=external_id,
+        processor_class = processor_map[processor_type.upper()](processor_api_key)
+        processor_company_id = processor_class.get_company_id()
+        new_company = cls(
                           processor_type=processor_type,
                           processor_api_key=processor_api_key,
-                          process_company_id=processor_company_id,
+                          processor_company_id=processor_company_id,
                           is_test=is_test, **kwargs)
         cls.session.add(new_company)
         try:
@@ -53,7 +52,7 @@ class Company(Base):
         """
         Helper method to update a companies API key
         """
-        processor_company_id = self.processor_class.get_company_id(new_api_key)
+        processor_company_id = self.processor_class.get_company(new_api_key)
         if not processor_company_id == self.processor_company_id:
             raise ValueError(
                 'New API key does not match company ID with processor')
@@ -72,8 +71,8 @@ class Company(Base):
         from models import Customer
         new_customer = Customer(
             external_id=external_id,
-            provider_id=provider_id,
-            group_id=self.guid
+            processor_id=provider_id,
+            company_id=self.guid
         )
         self.session.add(new_customer)
         try:

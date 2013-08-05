@@ -33,5 +33,5 @@ Check out the spec at api/spec.json, which is generated using api/spec.py
 
 #### Major Todos:
 - Redo import strucutre
-- Redo commit methods
+- Redo commit/flush/rollback handling.
 - Better transient exception handling.

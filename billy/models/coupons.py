@@ -21,9 +21,9 @@ class Coupon(Base):
         'percent_off_int >= 0 OR percent_off_int <= 100'))
     expire_at = Column(DateTime)
     max_redeem = Column(Integer,
-                        CheckConstraint('max_redeem == -1 OR max_redeem >= 0'))
+                        CheckConstraint('max_redeem = -1 OR max_redeem >= 0'))
     repeating = Column(Integer,
-                       CheckConstraint('repeating == -1 OR repeating >= 0'))
+                       CheckConstraint('repeating = -1 OR repeating >= 0'))
     active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     deleted_at = Column(DateTime)

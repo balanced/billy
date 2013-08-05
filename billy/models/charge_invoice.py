@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 from datetime import datetime
 from decimal import Decimal
 
-from pytz import UTC
 from sqlalchemy import (Column, Unicode, ForeignKey, DateTime, Boolean,
                         Integer, Index, CheckConstraint)
 from sqlalchemy.orm import relationship, validates, backref
@@ -69,28 +68,20 @@ class ChargePlanInvoice(Base):
     subscription_id = Column(Unicode, ForeignKey(ChargeSubscription.guid),
                              nullable=False)
     coupon = Column(Unicode, ForeignKey(Coupon.guid), nullable=False)
-    created_at = Column(DateTime(timezone=UTC), default=datetime.utcnow)
-    start_dt = Column(DateTime(timezone=UTC), nullable=False)
-    end_dt = Column(DateTime(timezone=UTC), nullable=False)
-    original_end_dt = Column(DateTime(timezone=UTC))
-    due_dt = Column(DateTime(timezone=UTC), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    start_dt = Column(DateTime, nullable=False)
+    end_dt = Column(DateTime, nullable=False)
+    original_end_dt = Column(DateTime)
+    due_dt = Column(DateTime, nullable=False)
     includes_trial = Column(Boolean)
-    amount_base_cents = Column(Integer,
-                               CheckConstraint('amount_base_cents >= 0'),
-                               nullable=False)
-    amount_after_coupon_cents = Column(Integer, CheckConstraint(
-        'amount_after_coupon_cents >= 0'),
-        nullable=False)
-    amount_paid_cents = Column(Integer,
-                               CheckConstraint('amount_paid_cents >= 0'),
-                               nullable=False)
+    amount_base_cents = Column(Integer, nullable=False)
+    amount_after_coupon_cents = Column(Integer, nullable=False)
+    amount_paid_cents = Column(Integer, nullable=False)
     remaining_balance_cents = Column(Integer, nullable=False)
-    quantity = Column(
-        Integer, CheckConstraint('quantity >= 0'), nullable=False)
+    quantity = Column(Integer, CheckConstraint('quantity >= 0'), nullable=False)
     prorated = Column(Boolean)
     charge_at_period_end = Column(Boolean)
-    cleared_by_txn = Column(Unicode, ForeignKey('charge_transactions.guid'),
-                            nullable=False)
+    cleared_by_txn = Column(Unicode, ForeignKey('charge_transactions.guid'))
 
     subscription = relationship('ChargeSubscription',
                                 backref=backref('invoices', cascade='delete'))
@@ -102,7 +93,7 @@ class ChargePlanInvoice(Base):
                includes_trial=False):
         new_invoice = cls(
             subscription_id=subscription_id,
-            relevant_coupon=relevant_coupon,
+            coupon=relevant_coupon,
             start_dt=start_dt,
             end_dt=end_dt,
             due_dt=due_dt,

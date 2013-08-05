@@ -5,7 +5,7 @@ from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, \
     ForeignKey, UniqueConstraint, CheckConstraint
 from sqlalchemy.orm import relationship
 
-from models import *
+from models import Base, Company
 from models.base import RelativeDelta
 from utils.generic import uuid_factory
 
@@ -27,7 +27,7 @@ class PayoutPlan(Base):
     payout_interval = Column(RelativeDelta, nullable=False)
 
     subscriptions = relationship('PayoutSubscription', backref='payout',
-                                 cascade='delete')
+                                 cascade='delete, delete-orphan')
 
     __table_args__ = (UniqueConstraint(external_id, company_id,
                                        name='payout_id_group_unique'),
@@ -53,7 +53,7 @@ class PayoutPlan(Base):
         return self
 
     def subscribe(self, customer, first_now=False, start_dt=None):
-        from models import PayoutSubscription
+        from models import PayoutInvoice, PayoutSubscription
 
         first_charge = start_dt or datetime.utcnow()
         balance_to_keep_cents = self.balance_to_keep_cents
@@ -86,5 +86,5 @@ class PayoutPlan(Base):
                     PayoutInvoice.completed == False).first()
                 if in_process:
                     in_process.completed = True
-            cls.session.commit()
+            self.session.commit()
         return True

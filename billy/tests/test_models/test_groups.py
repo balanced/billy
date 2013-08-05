@@ -32,12 +32,6 @@ class TestGroup(BalancedTransactionalTestCase):
             Company.retrieve(self.marketplace)
 
 
-# def TestRelations(TestGroup):
-# Todo
-#     def test_temp(self):
-#         return True
-
-
 if __name__ == '__main__':
     import unittest
     unittest.main()

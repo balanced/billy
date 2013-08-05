@@ -10,7 +10,7 @@ from utils.generic import uuid_factory, Status
 
 class TransactionMixin(object):
     provider_txn_id = Column(Unicode, nullable=False)
-    created_at = Column(DateTime(timezone=UTC))
+    created_at = Column(DateTime)
     amount_cents = Column(Integer, nullable=False)
     status = Column(Unicode, nullable=False)
 

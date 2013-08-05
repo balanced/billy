@@ -6,7 +6,7 @@ from sqlalchemy import (Column, Unicode, Integer, Boolean, DateTime,
                         ForeignKey, UniqueConstraint, CheckConstraint)
 from sqlalchemy.orm import relationship
 
-from models import Base, Company, ChargeSubscription
+from models import Base, Company
 from models.base import RelativeDelta
 from utils.generic import uuid_factory
 
@@ -28,7 +28,7 @@ class ChargePlan(Base):
     plan_interval = Column(RelativeDelta)
 
     subscriptions = relationship('ChargeSubscription', backref='charge_plan',
-                                 cascade='delete')
+                                 cascade='delete, delete-orphan')
 
     __table_args__ = (UniqueConstraint(external_id, company_id,
                                        name='plan_id_company_unique'),
@@ -58,7 +58,7 @@ class ChargePlan(Base):
         """
         Subscribe a customer to a plan
         """
-        from models import ChargePlanInvoice
+        from models import ChargePlanInvoice, ChargeSubscription
 
         current_coupon = customer.coupon
         start_date = start_dt or datetime.utcnow()
@@ -73,7 +73,7 @@ class ChargePlan(Base):
         amount_base = self.price_cents * Decimal(quantity)
         amount_after_coupon = amount_base
         coupon_id = current_coupon.guid if current_coupon else None
-        if self.current_coupon and current_coupon:
+        if customer.current_coupon and current_coupon:
             dollars_off = current_coupon.price_off_cents
             percent_off = current_coupon.percent_off_int
             amount_after_coupon -= dollars_off  # BOTH CENTS, safe
@@ -122,6 +122,7 @@ class ChargePlan(Base):
         """
         Whether a customer can trial a charge plan
         """
+        from models import ChargeSubscription
         count = ChargeSubscription.query.filter(
             ChargeSubscription.customer_id == customer.guid,
             ChargeSubscription.plan_id == self.guid

@@ -49,24 +49,22 @@ class PayoutInvoice(Base):
     subscription_id = Column(Unicode, ForeignKey(PayoutSubscription.guid),
                              nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-    payout_date = Column(DateTime(timezone=UTC))
+    payout_date = Column(DateTime)
     balance_to_keep_cents = Column(Integer, CheckConstraint(
         'balance_to_keep_cents >= 0'))
-    amount_payed_out = Column(Integer,
-                              CheckConstraint('amount_payed_out >= 0'), )
+    amount_payed_out = Column(Integer)
     completed = Column(Boolean, default=False)
     queue_rollover = Column(Boolean, default=False)
-    balance_at_exec = Column(Integer, CheckConstraint('balance_at_exec >= 0'),
-                             nullable=False)
-    cleared_by_txn = Column(Unicode, ForeignKey('payout_transactions.guid'),
-                            nullable=False)
+    balance_at_exec = Column(Integer,
+                             nullable=True)
+    cleared_by_txn = Column(Unicode, ForeignKey('payout_transactions.guid'))
     attempts_made = Column(Integer, CheckConstraint('attempts_made >= 0'),
                            default=0)
 
     subscription = relationship('PayoutSubscription',
                                 backref=backref('invoices', lazy='dynamic',
                                                 cascade='delete'),
-                                )
+    )
 
     @classmethod
     def create(cls, subscription_id,
@@ -128,7 +126,7 @@ class PayoutInvoice(Base):
         now = datetime.utcnow()
         transaction_class = processor_map[
             self.subscription.customer.group.provider](
-                self.customer.group.provider_api_key)
+            self.customer.group.provider_api_key)
         current_balance = transaction_class.check_balance(
             self.subscription.customer.guid,
             self.subscription.customer.group_id)

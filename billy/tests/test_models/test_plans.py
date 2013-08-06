@@ -12,7 +12,7 @@ class TestPlan(BalancedTransactionalTestCase):
 
     def setUp(self):
         super(TestPlan, self).setUp()
-        self.external_id = 'MY_TEST_PLAN'
+        self.your_id = 'MY_TEST_PLAN'
         self.group = Company.create('BILLY_TEST_MARKETPLACE')
         self.group_2 = Company.create('BILLY_TEST_MARKETPLACE_2')
 
@@ -21,7 +21,7 @@ class TestCreate(TestPlan):
 
     def test_create(self):
         ChargePlan.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group.guid,
             name='Starter',
             price_cents=1000,
@@ -31,7 +31,7 @@ class TestCreate(TestPlan):
 
     def test_create_exists(self):
         ChargePlan.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group.guid,
             name='Starter',
             price_cents=1000,
@@ -40,7 +40,7 @@ class TestCreate(TestPlan):
         )
         with self.assertRaises(IntegrityError):
             ChargePlan.create(
-                external_id=self.external_id,
+                your_id=self.your_id,
                 group_id=self.group.guid,
                 name='Starter',
                 price_cents=1000,
@@ -50,7 +50,7 @@ class TestCreate(TestPlan):
 
     def test_create_semi_colliding(self):
         ChargePlan.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group.guid,
             name='Starter',
             price_cents=1000,
@@ -58,16 +58,16 @@ class TestCreate(TestPlan):
             trial_interval=Intervals.WEEK
         )
         ChargePlan.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group_2.guid,
             name='Starter',
             price_cents=1520,
             plan_interval=Intervals.WEEK,
             trial_interval=Intervals.MONTH
         )
-        ret = ChargePlan.retrieve(self.external_id, self.group.guid)
+        ret = ChargePlan.retrieve(self.your_id, self.group.guid)
         self.assertEqual(ret.price_cents, 1000)
-        ret = ChargePlan.retrieve(self.external_id, self.group_2.guid)
+        ret = ChargePlan.retrieve(self.your_id, self.group_2.guid)
         self.assertEqual(ret.price_cents, 1520)
 
 
@@ -75,14 +75,14 @@ class TestRetrieve(TestPlan):
 
     def test_create_and_retrieve(self):
         ChargePlan.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group.guid,
             name='Starter',
             price_cents=1000,
             plan_interval=Intervals.MONTH,
             trial_interval=Intervals.WEEK
         )
-        ChargePlan.retrieve(self.external_id, self.group.guid)
+        ChargePlan.retrieve(self.your_id, self.group.guid)
 
     def test_retrieve_dne(self):
         with self.assertRaises(NoResultFound):
@@ -90,14 +90,14 @@ class TestRetrieve(TestPlan):
 
     def test_retrieve_params(self):
         ChargePlan.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group.guid,
             name='Premium',
             price_cents=152592,
             plan_interval=Intervals.DAY,
             trial_interval=Intervals.MONTH
         )
-        ret = ChargePlan.retrieve(self.external_id, self.group.guid)
+        ret = ChargePlan.retrieve(self.your_id, self.group.guid)
         self.assertEqual(ret.name, 'Premium')
         self.assertEqual(ret.trial_interval, Intervals.MONTH)
         self.assertEqual(ret.plan_interval, Intervals.DAY)
@@ -106,7 +106,7 @@ class TestRetrieve(TestPlan):
 
     def test_retrieve_active_only(self):
         var = ChargePlan.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group.guid,
             name='Premium',
             price_cents=152592,
@@ -115,7 +115,7 @@ class TestRetrieve(TestPlan):
         )
         var.delete()
         with self.assertRaises(NoResultFound):
-            ChargePlan.retrieve(self.external_id, self.group.guid, active_only=True)
+            ChargePlan.retrieve(self.your_id, self.group.guid, active_only=True)
 
     def test_list(self):
         ChargePlan.create('MY_TEST_PLAN1', self.group.guid, 'YO1', 1000,
@@ -149,7 +149,7 @@ class TestUpdateDelete(TestPlan):
 
     def test_update(self):
         plan = ChargePlan.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group.guid,
             name='Premium',
             price_cents=152592,
@@ -157,12 +157,12 @@ class TestUpdateDelete(TestPlan):
             trial_interval=Intervals.MONTH
         )
         plan.update(name='Starter')
-        ret = ChargePlan.retrieve(self.external_id, self.group.guid)
+        ret = ChargePlan.retrieve(self.your_id, self.group.guid)
         self.assertEqual(ret.name, 'Starter')
 
     def test_delete(self):
         plan = ChargePlan.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group.guid,
             name='Premium',
             price_cents=152592,
@@ -170,7 +170,7 @@ class TestUpdateDelete(TestPlan):
             trial_interval=Intervals.MONTH
         )
         plan.delete()
-        ret = ChargePlan.retrieve(self.external_id, self.group.guid)
+        ret = ChargePlan.retrieve(self.your_id, self.group.guid)
         self.assertFalse(ret.active)
 
 
@@ -179,7 +179,7 @@ class TestValidators(TestPlan):
     def test_price_cents(self):
         with self.assertRaises(ValueError):
             ChargePlan.create(
-                external_id=self.external_id,
+                your_id=self.your_id,
                 group_id=self.group.guid,
                 name='Premium',
                 price_cents=-20,
@@ -190,7 +190,7 @@ class TestValidators(TestPlan):
     def test_trial_interval(self):
         with self.assertRaises(StatementError):
             ChargePlan.create(
-                external_id=self.external_id,
+                your_id=self.your_id,
                 group_id=self.group.guid,
                 name='Premium',
                 price_cents=20,
@@ -201,7 +201,7 @@ class TestValidators(TestPlan):
     def test_plan_interval(self):
         with self.assertRaises(StatementError):
             ChargePlan.create(
-                external_id=self.external_id,
+                your_id=self.your_id,
                 group_id=self.group.guid,
                 name='Premium',
                 price_cents=20,

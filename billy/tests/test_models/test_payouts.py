@@ -12,7 +12,7 @@ class TestPayout(BalancedTransactionalTestCase):
 
     def setUp(self):
         super(TestPayout, self).setUp()
-        self.external_id = 'MY_TEST_PAYOUT'
+        self.your_id = 'MY_TEST_PAYOUT'
         self.group = Company.create('BILLY_TEST_MARKETPLACE')
         self.group_2 = Company.create('BILLY_TEST_MARKETPLACE_2')
 
@@ -20,7 +20,7 @@ class TestPayout(BalancedTransactionalTestCase):
 class TestCreate(TestPayout):
 
     def test_create(self):
-        PayoutPlan.create(external_id=self.external_id,
+        PayoutPlan.create(your_id=self.your_id,
                       group_id=self.group.guid,
                       name='PayoutPlan',
                       balance_to_keep_cents=50000,
@@ -28,14 +28,14 @@ class TestCreate(TestPayout):
                       )
 
     def test_create_exists(self):
-        PayoutPlan.create(external_id=self.external_id,
+        PayoutPlan.create(your_id=self.your_id,
                       group_id=self.group.guid,
                       name='PayoutPlan',
                       balance_to_keep_cents=50000,
                       payout_interval=Intervals.TWO_WEEKS
                       )
         with self.assertRaises(IntegrityError):
-            PayoutPlan.create(external_id=self.external_id,
+            PayoutPlan.create(your_id=self.your_id,
                           group_id=self.group.guid,
                           name='PayoutPlan 2',
                           balance_to_keep_cents=20000,
@@ -43,22 +43,22 @@ class TestCreate(TestPayout):
                           )
 
     def test_create_semi_colliding(self):
-        PayoutPlan.create(external_id=self.external_id,
+        PayoutPlan.create(your_id=self.your_id,
                       group_id=self.group.guid,
                       name='PayoutPlan',
                       balance_to_keep_cents=50000,
                       payout_interval=Intervals.TWO_WEEKS
                       )
-        PayoutPlan.create(external_id=self.external_id,
+        PayoutPlan.create(your_id=self.your_id,
                       group_id=self.group_2.guid,
                       name='PayoutPlan 2',
                       balance_to_keep_cents=20000,
                       payout_interval=Intervals.MONTH
                       )
-        ret = PayoutPlan.retrieve(self.external_id, self.group.guid)
+        ret = PayoutPlan.retrieve(self.your_id, self.group.guid)
         self.assertEqual(ret.payout_interval, Intervals.TWO_WEEKS)
         self.assertEqual(ret.balance_to_keep_cents, 50000)
-        ret = PayoutPlan.retrieve(self.external_id, self.group_2.guid)
+        ret = PayoutPlan.retrieve(self.your_id, self.group_2.guid)
         self.assertEqual(ret.payout_interval, Intervals.MONTH)
         self.assertEqual(ret.balance_to_keep_cents, 20000)
 
@@ -66,33 +66,33 @@ class TestCreate(TestPayout):
 class TestRetrieve(TestPayout):
 
     def test_create_and_retrieve(self):
-        PayoutPlan.create(external_id=self.external_id,
+        PayoutPlan.create(your_id=self.your_id,
                       group_id=self.group.guid,
                       name='PayoutPlan',
                       balance_to_keep_cents=50000,
                       payout_interval=Intervals.TWO_WEEKS
                       )
         PayoutPlan.retrieve(
-            external_id="MY_TEST_PAYOUT",
+            your_id="MY_TEST_PAYOUT",
             group_id=self.group.guid
         )
 
     def test_retrieve_dne(self):
         with self.assertRaises(NoResultFound):
             PayoutPlan.retrieve(
-                external_id="MY_TEST_DNE",
+                your_id="MY_TEST_DNE",
                 group_id=self.group.guid
             )
 
     def test_retrieve_params(self):
-        PayoutPlan.create(external_id=self.external_id,
+        PayoutPlan.create(your_id=self.your_id,
                       group_id=self.group.guid,
                       name='PayoutPlan 2',
                       balance_to_keep_cents=123456,
                       payout_interval=Intervals.TWO_WEEKS
                       )
         ret = PayoutPlan.retrieve(
-            external_id="MY_TEST_PAYOUT",
+            your_id="MY_TEST_PAYOUT",
             group_id=self.group.guid
         )
         self.assertEqual(ret.name, 'PayoutPlan 2')
@@ -101,7 +101,7 @@ class TestRetrieve(TestPayout):
         self.assertTrue(ret.guid.startswith('PO'))
 
     def test_retrieve_active_only(self):
-        payout = PayoutPlan.create(external_id=self.external_id,
+        payout = PayoutPlan.create(your_id=self.your_id,
                                group_id=self.group.guid,
                                name='PayoutPlan 2',
                                balance_to_keep_cents=123456,
@@ -110,7 +110,7 @@ class TestRetrieve(TestPayout):
         payout.delete()
         with self.assertRaises(NoResultFound):
             PayoutPlan.retrieve(
-                self.external_id, self.group.guid, active_only=True)
+                self.your_id, self.group.guid, active_only=True)
 
     def test_list(self):
         PayoutPlan.create('MY_TEST_PAYOUT_1', self.group.guid, 'PayoutPlan 1', 123456,
@@ -151,7 +151,7 @@ class TestRetrieve(TestPayout):
 class TestUpdateDelete(TestPayout):
 
     def test_update(self):
-        ret = PayoutPlan.create(external_id=self.external_id,
+        ret = PayoutPlan.create(your_id=self.your_id,
                             group_id=self.group.guid,
                             name='PayoutPlan 1',
                             balance_to_keep_cents=123456,
@@ -159,11 +159,11 @@ class TestUpdateDelete(TestPayout):
                             )
         self.assertEqual(ret.name, 'PayoutPlan 1')
         ret.update('new name')
-        new = PayoutPlan.retrieve(self.external_id, self.group.guid)
+        new = PayoutPlan.retrieve(self.your_id, self.group.guid)
         self.assertEqual(new.name, 'new name')
 
     def test_delete(self):
-        ret = PayoutPlan.create(external_id=self.external_id,
+        ret = PayoutPlan.create(your_id=self.your_id,
                             group_id=self.group.guid,
                             name='PayoutPlan 2',
                             balance_to_keep_cents=123456,
@@ -171,7 +171,7 @@ class TestUpdateDelete(TestPayout):
                             )
         self.assertTrue(ret.active)
         ret.delete()
-        new = PayoutPlan.retrieve(self.external_id, self.group.guid)
+        new = PayoutPlan.retrieve(self.your_id, self.group.guid)
         self.assertFalse(new.active)
 
 
@@ -179,7 +179,7 @@ class TestValidators(TestPayout):
 
     def test_balance_to_keep_cents(self):
         with self.assertRaises(ValueError):
-            PayoutPlan.create(external_id=self.external_id,
+            PayoutPlan.create(your_id=self.your_id,
                           group_id=self.group.guid,
                           name='PayoutPlan 2',
                           balance_to_keep_cents=-1000,
@@ -188,7 +188,7 @@ class TestValidators(TestPayout):
 
     def test_payout_interval(self):
         with self.assertRaises(StatementError):
-            PayoutPlan.create(external_id=self.external_id,
+            PayoutPlan.create(your_id=self.your_id,
                           group_id=self.group.guid,
                           name='PayoutPlan 2',
                           balance_to_keep_cents=1000,

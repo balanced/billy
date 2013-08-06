@@ -6,8 +6,8 @@ plan_inv_view = {
     # Todo: figure out why some arent showing...
     'id': fields.String(attribute='guid'),
     'created_at': fields.DateTime(),
-    'plan_id': fields.String(attribute='subscription.plan.external_id'),
-    'customer_id': fields.String(attribute='subscription.customer.external_id'),
+    'plan_id': fields.String(attribute='subscription.plan.your_id'),
+    'customer_id': fields.String(attribute='subscription.customer.your_id'),
     'subscription_id': fields.String(attribute='subscription.guid'),
     'relevant_coupon': fields.String(),
     'start_dt': fields.DateTime(),

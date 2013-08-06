@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import datetime
 import unittest
 
+
 from models import Company
 
 
@@ -13,9 +14,8 @@ class BaseTestCase(unittest.TestCase):
                                   'BILLY_TEST_COMPANY_2',
                                   'BILLY_TEST_COMPANY_3']
         self.test_companies = []
-        Company.query.filter(
-            Company.api_key == any(self.test_company_keys)).delete()
         for api_key in self.test_company_keys:
+            Company.query.filter(Company.processor_api_key == api_key).delete()
             self.test_companies.append(
                 Company.create('DUMMY', api_key, is_test=True))
 

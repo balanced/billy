@@ -3,62 +3,12 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (Column, Unicode, ForeignKey, DateTime, Boolean,
-                        Integer, Index, CheckConstraint)
-from sqlalchemy.orm import relationship, validates, backref
+                        Integer, CheckConstraint)
+from sqlalchemy.orm import relationship, backref
 
-from models import Base, Customer, ChargePlan, Coupon
+from models import Base, Coupon
+from models.charge_subscription import ChargeSubscription
 from utils.generic import uuid_factory
-
-
-class ChargeSubscription(Base):
-    __tablename__ = 'charge_subscription'
-
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('PLS'))
-    customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
-    plan_id = Column(Unicode, ForeignKey(ChargePlan.guid), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    is_enrolled = Column(Boolean, default=True)
-    is_active = Column(Boolean, default=True)
-
-    __table_args__ = (
-        Index('unique_charge_sub', plan_id, customer_id,
-              postgresql_where=is_active == True,
-              unique=True),
-    )
-
-    @classmethod
-    def create_or_activate(cls, customer, plan):
-        result = cls.query.filter(
-            cls.customer_id == customer.guid,
-            cls.plan_id == plan.guid).first()
-        result = result or cls(
-            customer_id=customer.guid, plan_id=plan.guid,
-            # Todo TEMP since default not working for some reason
-            guid=uuid_factory('PLS')())
-        result.is_active = True
-        result.is_enrolled = True
-        # Todo premature commit might cause issues....
-        cls.session.add(result)
-        cls.session.commit()
-        return result
-
-    @classmethod
-    def renewing_plans(cls, customer):
-        """
-        List of plans that are subscribed and enrolled that will renew come
-        the next term
-        """
-        return cls.query.filter(cls.customer_id == customer.guid,
-                                cls.is_active == True).all()
-
-    @classmethod
-    def enrolled_plans(cls, customer):
-        """
-        List of plans that are enrolled but sometimes aren't active. i.e when
-        you cancel a plan at the end of the period
-        """
-        return cls.query.filter(cls.customer_id == customer.guid,
-                                cls.is_enrolled == True).all()
 
 
 class ChargePlanInvoice(Base):
@@ -67,7 +17,7 @@ class ChargePlanInvoice(Base):
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PLI'))
     subscription_id = Column(Unicode, ForeignKey(ChargeSubscription.guid),
                              nullable=False)
-    coupon = Column(Unicode, ForeignKey(Coupon.guid), nullable=False)
+    coupon_id = Column(Unicode, ForeignKey(Coupon.guid), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     start_dt = Column(DateTime, nullable=False)
     end_dt = Column(DateTime, nullable=False)
@@ -112,7 +62,7 @@ class ChargePlanInvoice(Base):
 
     @classmethod
     def retrieve(cls, customer, plan, active_only=False, last_only=False):
-        # Todo clean this up
+        # Todo clean this up, or reconsider model
         query = ChargeSubscription.query.filter(
             ChargeSubscription.customer_id == customer.guid,
             ChargeSubscription.plan_id == plan.guid)
@@ -155,7 +105,7 @@ class ChargePlanInvoice(Base):
                 last_invoice.amount_after_coupon_cents = new_after_coupon_amount
                 last_invoice.remaining_balance_cents = new_balance
                 last_invoice.end_dt = right_now
-                last_invoice.subscription.is_active = False
+                last_invoice.subscription.should_renew = False
                 last_invoice.subscription.is_enrolled = False
                 last_invoice.prorated = True
             cls.session.commit()

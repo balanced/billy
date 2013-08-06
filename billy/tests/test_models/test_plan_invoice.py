@@ -31,7 +31,7 @@ class TestPlanInvoice(BalancedTransactionalTestCase):
         self.customer_group2 = Customer.create(
             'MY_TEST_CUSTOMER_3', self.group_2.guid, 'TESTBALID')
         self.plan = ChargePlan.create(
-            external_id=self.plan_id,
+            your_id=self.plan_id,
             group_id=self.group.guid,
             name='Starter',
             price_cents=1000,
@@ -39,7 +39,7 @@ class TestPlanInvoice(BalancedTransactionalTestCase):
             trial_interval=Intervals.WEEK
         )
         self.plan_2 = ChargePlan.create(
-            external_id=self.plan_id_2,
+            your_id=self.plan_id_2,
             group_id=self.group.guid,
             name='Starter',
             price_cents=15000,

@@ -37,11 +37,11 @@ class ChargeTransaction(TransactionMixin, Base):
 
     def execute(self):
         try:
-            external_id = self.customer.company.processor_class.create_charge(
+            your_id = self.customer.company.processor.create_charge(
                 self.customer.guid, self.customer.group_id,
                 self.amount_cents)
             self.status = Status.COMPLETE
-            self.external_id = external_id
+            self.your_id = your_id
         except:
             self.status = Status.ERROR
             self.session.commit()
@@ -61,11 +61,11 @@ class PayoutTransaction(TransactionMixin, Base):
 
     def execute(self):
         try:
-            external_id = self.customer.company.processor_class.make_payout(
+            your_id = self.customer.company.processor.make_payout(
                 self.customer.guid, self.customer.group_id,
                 self.amount_cents)
             self.status = Status.COMPLETE
-            self.external_id = external_id
+            self.your_id = your_id
         except:
             self.status = Status.ERROR
             self.session.commit()

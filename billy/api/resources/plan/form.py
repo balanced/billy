@@ -39,7 +39,7 @@ class PlanCreateForm(Form):
                 plan_int = interval_matcher(self.plan_interval.data)
             except ValueError:
                 raise BillyExc['400_PLAN_INTERVAL']
-            return ChargePlan.create(external_id=self.plan_id.data,
+            return ChargePlan.create(your_id=self.plan_id.data,
                                group_id=group_obj.guid,
                                name=self.name.data,
                                price_cents=self.price_cents.data,

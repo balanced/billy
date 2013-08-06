@@ -8,6 +8,7 @@ from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
 from models import *
+from models import ChargeSubscription, PayoutSubscription
 from utils.intervals import Intervals
 from tests import BalancedTransactionalTestCase, rel_delta_to_sec
 
@@ -16,7 +17,7 @@ class TestCustomer(BalancedTransactionalTestCase):
 
     def setUp(self):
         super(TestCustomer, self).setUp()
-        self.external_id = 'MY_TEST_CUSTOMER'
+        self.your_id = 'MY_TEST_CUSTOMER'
         self.group_obj = Company.create('BILLY_TEST_MARKETPLACE')
         self.group = self.group_obj.guid
         self.group_2 = Company.create('BILLY_TEST_MARKETPLACE_2').guid
@@ -26,37 +27,37 @@ class TestCreate(TestCustomer):
 
     def test_create(self):
         Customer.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group,
             balanced_id='TESTBALID'
         )
 
     def test_create_exists(self):
         Customer.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group,
             balanced_id='TESTBALID'
         )
         with self.assertRaises(IntegrityError):
             Customer.create(
-                external_id=self.external_id,
+                your_id=self.your_id,
                 group_id=self.group,
                 balanced_id='TESTBALID'
             )
 
     def test_create_semi_colliding(self):
         Customer.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group,
             balanced_id='TESTBALID'
         )
         Customer.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group_2,
             balanced_id='TESTBALID'
         )
-        first = Customer.retrieve(self.external_id, self.group)
-        second = Customer.retrieve(self.external_id, self.group_2)
+        first = Customer.retrieve(self.your_id, self.group)
+        second = Customer.retrieve(self.your_id, self.group_2)
         self.assertNotEqual(first.guid, second.guid)
 
 
@@ -64,11 +65,11 @@ class TestRetrieve(TestCustomer):
 
     def test_create_and_retrieve(self):
         customer = Customer.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group,
             balanced_id='TESTBALID'
         )
-        ret = Customer.retrieve(self.external_id, self.group)
+        ret = Customer.retrieve(self.your_id, self.group)
         self.assertEqual(customer, ret)
 
     def test_retrieve_dne(self):
@@ -76,13 +77,13 @@ class TestRetrieve(TestCustomer):
 
     def test_retrieve_params(self):
         customer = Customer.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group,
             balanced_id='TESTBALID'
         )
-        ret = Customer.retrieve(self.external_id, self.group)
+        ret = Customer.retrieve(self.your_id, self.group)
         self.assertEqual(customer.balanced_id, ret.balanced_id)
-        self.assertEqual(customer.external_id, ret.external_id)
+        self.assertEqual(customer.your_id, ret.your_id)
         self.assertEqual(customer.group_id, ret.group_id)
 
     def test_list(self):
@@ -98,11 +99,11 @@ class TestCoupon(TestCustomer):
 
     def test_apply_coupon(self):
         customer = Customer.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group,
             balanced_id='TESTBALID'
         )
-        coupon = Coupon.create(external_id=self.external_id,
+        coupon = Coupon.create(your_id=self.your_id,
                                group_id=self.group,
                                name='My coupon',
                                price_off_cents=100,
@@ -110,11 +111,11 @@ class TestCoupon(TestCustomer):
                                max_redeem=5,
                                repeating=-1,
                                )
-        customer.apply_coupon(coupon.external_id)
+        customer.apply_coupon(coupon.your_id)
         self.assertEqual(customer.current_coupon, coupon.guid)
 
     def test_increase_max_redeem(self):
-        coupon = Coupon.create(external_id='MY_TEST_COUPON',
+        coupon = Coupon.create(your_id='MY_TEST_COUPON',
                                group_id=self.group,
                                name='My coupon',
                                price_off_cents=100,
@@ -123,24 +124,24 @@ class TestCoupon(TestCustomer):
                                repeating=-1,
                                )
         Customer.create('MY_TEST_CUS_1', self.group, 'TESTBALID').apply_coupon(coupon
-                                                                               .external_id)
+                                                                               .your_id)
         self.assertEqual(coupon.count_redeemed, 1)
         Customer.create('MY_TEST_CUS_2', self.group, 'TESTBALID').apply_coupon(coupon
-                                                                               .external_id)
+                                                                               .your_id)
         self.assertEqual(coupon.count_redeemed, 2)
         customer = Customer.create('MY_TEST_CUS_3', self.group, 'TESTBALID').apply_coupon(
-            coupon.external_id)
+            coupon.your_id)
         self.assertEqual(coupon.count_redeemed, 3)
         with self.assertRaises(ValueError):
             Customer.create('MY_TEST_CUS_4', self.group, 'TESTBALID').apply_coupon(
                 coupon
-                .external_id)
+                .your_id)
         customer.remove_coupon()
         Customer.retrieve('MY_TEST_CUS_4', self.group).apply_coupon(
-            coupon.external_id)
+            coupon.your_id)
 
     def test_apply_inactive_coupon(self):
-        coupon = Coupon.create(external_id='MY_TEST_COUPON',
+        coupon = Coupon.create(your_id='MY_TEST_COUPON',
                                group_id=self.group,
                                name='My coupon',
                                price_off_cents=100,
@@ -151,17 +152,17 @@ class TestCoupon(TestCustomer):
         coupon.delete()
         with self.assertRaises(NoResultFound):
             Customer.create('MY_TEST_CUS_3', self.group, 'TESTBALID').apply_coupon(coupon
-                                                                                   .external_id)
+                                                                                   .your_id)
 
     def test_apply_coupon_dne(self):
         with self.assertRaises(NoResultFound):
-            Customer.create(self.external_id, self.group, 'TESTBALID').apply_coupon(
+            Customer.create(self.your_id, self.group, 'TESTBALID').apply_coupon(
                 'TEST_COUPON_DNE'
             )
 
     def test_remove_coupon(self):
-        customer = Customer.create(self.external_id, self.group, 'TESTBALID')
-        coupon = Coupon.create(external_id='MY_TEST_COUPON',
+        customer = Customer.create(self.your_id, self.group, 'TESTBALID')
+        coupon = Coupon.create(your_id='MY_TEST_COUPON',
                                group_id=self.group,
                                name='My coupon',
                                price_off_cents=100,
@@ -169,13 +170,13 @@ class TestCoupon(TestCustomer):
                                max_redeem=3,
                                repeating=-1,
                                )
-        customer.apply_coupon(coupon.external_id)
+        customer.apply_coupon(coupon.your_id)
         self.assertEqual(customer.current_coupon, coupon.guid)
         customer.remove_coupon()
         self.assertIsNone(customer.current_coupon)
 
     def test_remove_coupon_empty(self):
-        customer = Customer.create(self.external_id, self.group, 'TESTBALID')
+        customer = Customer.create(self.your_id, self.group, 'TESTBALID')
         customer.remove_coupon()
 
 
@@ -184,12 +185,12 @@ class TestUpdatePlan(TestCustomer):
     def setUp(self):
         super(TestUpdatePlan, self).setUp()
         self.customer = Customer.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group,
             balanced_id='TESTBALID'
         )
         self.plan = ChargePlan.create(
-            external_id='MY_TEST_PLAN',
+            your_id='MY_TEST_PLAN',
             group_id=self.group,
             name='Starter',
             price_cents=1000,
@@ -197,7 +198,7 @@ class TestUpdatePlan(TestCustomer):
             trial_interval=Intervals.WEEK
         )
         self.plan_2 = ChargePlan.create(
-            external_id='MY_TEST_PLAN_2',
+            your_id='MY_TEST_PLAN_2',
             group_id=self.group,
             name='Starter',
             price_cents=500,
@@ -274,7 +275,7 @@ class TestUpdatePlan(TestCustomer):
         new_coupon = Coupon.create(
             'MY_TEST_COUPON', self.group, 'Yo', price_off_cents=price_off,
             percent_off_int=percent_off, max_redeem=5, repeating=2)
-        self.customer.apply_coupon(new_coupon.external_id)
+        self.customer.apply_coupon(new_coupon.your_id)
         invoice = ChargeSubscription.subscribe(self.customer, self.plan)
         self.assertEqual(invoice.remaining_balance_cents, (
             self.plan.price_cents - 500) * Decimal(percent_off) / 100)
@@ -336,12 +337,12 @@ class TestPayout(TestCustomer):
     def setUp(self):
         super(TestPayout, self).setUp()
         self.customer = Customer.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group,
             balanced_id='TESTBALID'
         )
         self.payout = PayoutPlan.create(
-            external_id='MY_TEST_PAYOUT',
+            your_id='MY_TEST_PAYOUT',
             group_id=self.group,
             name='Pay me out!',
             balance_to_keep_cents=5000,
@@ -362,9 +363,9 @@ class TestPayout(TestCustomer):
 
     def add_payout_not_first_now(self):
         with freeze_time('2013-2-15'):
-            self.customer.add_payout(self.payout.external_id)
+            self.customer.add_payout(self.payout.your_id)
             invoice = PayoutInvoice.retrieve(
-                self.customer.external_id, self.group, self.payout.external_id, active_only=True)
+                self.customer.your_id, self.group, self.payout.your_id, active_only=True)
             self.assertEqual(
                 invoice.payout_date, datetime.utcnow() + self.payout.payout_interval)
 
@@ -403,12 +404,12 @@ class TestRelations(TestCustomer):
     def setUp(self):
         super(TestRelations, self).setUp()
         self.customer = Customer.create(
-            external_id=self.external_id,
+            your_id=self.your_id,
             group_id=self.group,
             balanced_id='TESTBALID'
         )
         self.plan = ChargePlan.create(
-            external_id='MY_TEST_PLAN',
+            your_id='MY_TEST_PLAN',
             group_id=self.group,
             name='Starter',
             price_cents=1000,
@@ -416,7 +417,7 @@ class TestRelations(TestCustomer):
             trial_interval=Intervals.WEEK
         )
         self.plan_2 = ChargePlan.create(
-            external_id='MY_TEST_PLAN_2',
+            your_id='MY_TEST_PLAN_2',
             group_id=self.group,
             name='Starter',
             price_cents=500,
@@ -424,14 +425,14 @@ class TestRelations(TestCustomer):
             trial_interval=Intervals.MONTH
         )
         self.payout = PayoutPlan.create(
-            external_id='MY_TEST_PAYOUT',
+            your_id='MY_TEST_PAYOUT',
             group_id=self.group,
             name='Pay me out!',
             balance_to_keep_cents=5000,
             payout_interval=Intervals.TWO_WEEKS
         )
         self.payout_2 = PayoutPlan.create(
-            external_id='MY_TEST_PAYOUT_2',
+            your_id='MY_TEST_PAYOUT_2',
             group_id=self.group,
             name='Pay me out!',
             balance_to_keep_cents=5000,
@@ -441,7 +442,7 @@ class TestRelations(TestCustomer):
     def test_coupons(self):
         coupon = Coupon.create(
             'MY_TEST_COUPON', self.group, 'my coup', 100, 5, 1, 20)
-        self.customer.apply_coupon(coupon.external_id)
+        self.customer.apply_coupon(coupon.your_id)
         self.assertTrue(self.customer.coupon)
 
     def test_plan_invoices(self):

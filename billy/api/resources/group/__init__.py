@@ -48,7 +48,7 @@ class GroupController(Base):
         """
         resp = {
             'AUTH_SUCCESS': True,
-            'GROUP_ID': '{}'.format(self.group.external_id)
+            'GROUP_ID': '{}'.format(self.group.your_id)
         }
         return resp
 

@@ -13,7 +13,7 @@ class Coupon(Base):
     __tablename__ = 'coupons'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
-    external_id = Column(Unicode, nullable=False)
+    your_id = Column(Unicode, nullable=False)
     company_id = Column(Unicode, ForeignKey(Company.guid), nullable=False)
     name = Column(Unicode, nullable=False)
     price_off_cents = Column(Integer, CheckConstraint('price_off_cents >= 0'))
@@ -31,7 +31,7 @@ class Coupon(Base):
     customers = relationship('Customer', backref='coupon', lazy='dynamic')
 
     __table_args__ = (
-        UniqueConstraint(external_id, company_id,
+        UniqueConstraint(your_id, company_id,
                          name='coupon_id_group_unique'),
     )
 
@@ -39,7 +39,7 @@ class Coupon(Base):
         """
         Applies the coupon to a customer
         """
-        if self.max_redeem != -1 and self.count_redeemed >= \
+        if self.max_redeem != -1 and self.count_customers >= \
                 self.max_redeem:
             raise ValueError('Coupon already redeemed maximum times. See '
                              'max_redeem')

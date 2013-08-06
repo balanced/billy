@@ -5,7 +5,7 @@ from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, \
     ForeignKey, UniqueConstraint, CheckConstraint
 from sqlalchemy.orm import relationship
 
-from models import Base, Company
+from models import Base, Company, PayoutSubscription
 from models.base import RelativeDelta
 from utils.generic import uuid_factory
 
@@ -14,7 +14,7 @@ class PayoutPlan(Base):
     __tablename__ = 'payout_plans'
 
     guid = Column(Unicode, primary_key=True, default=uuid_factory('PO'))
-    external_id = Column(Unicode, nullable=False)
+    your_id = Column(Unicode, nullable=False)
     company_id = Column(Unicode, ForeignKey(Company.guid), nullable=False)
     name = Column(Unicode, nullable=False)
     balance_to_keep_cents = Column(Integer,
@@ -29,7 +29,7 @@ class PayoutPlan(Base):
     subscriptions = relationship('PayoutSubscription', backref='payout',
                                  cascade='delete, delete-orphan')
 
-    __table_args__ = (UniqueConstraint(external_id, company_id,
+    __table_args__ = (UniqueConstraint(your_id, company_id,
                                        name='payout_id_group_unique'),
                       )
 
@@ -51,40 +51,3 @@ class PayoutPlan(Base):
         self.deleted_at = datetime.utcnow()
         self.session.commit()
         return self
-
-    def subscribe(self, customer, first_now=False, start_dt=None):
-        from models import PayoutInvoice, PayoutSubscription
-
-        first_charge = start_dt or datetime.utcnow()
-        balance_to_keep_cents = self.balance_to_keep_cents
-        if not first_now:
-            first_charge += self.payout_interval
-        new_sub = PayoutSubscription.create_or_activate(customer, self)
-        invoice = PayoutInvoice.create(new_sub.guid,
-                                       first_charge,
-                                       balance_to_keep_cents,
-                                       )
-        self.session.add(invoice)
-        try:
-            self.session.commit()
-        except:
-            self.session.rollback()
-            raise
-        return invoice
-
-    def unsubscribe(self, customer, cancel_scheduled=False):
-        from models import PayoutSubscription, PayoutInvoice
-
-        current_sub = PayoutSubscription.query.filter(
-            PayoutSubscription.customer_id == customer.guid,
-            PayoutSubscription.payout_id == self.guid,
-            PayoutSubscription.is_active == True).first()
-        if current_sub:
-            current_sub.is_active = False
-            if cancel_scheduled:
-                in_process = current_sub.invoices.filter(
-                    PayoutInvoice.completed == False).first()
-                if in_process:
-                    in_process.completed = True
-            self.session.commit()
-        return True

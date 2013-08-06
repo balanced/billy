@@ -32,7 +32,7 @@ class PayoutCreateForm(Form):
                 payout_int = interval_matcher(self.payout_interval.data)
             except ValueError:
                 raise BillyExc['400_PAYOUT_INTERVAL']
-            return PayoutPlan.create(external_id=self.payout_id.data,
+            return PayoutPlan.create(your_id=self.payout_id.data,
                                  group_id=group_obj.guid,
                                  name=self.name.data,
                                  balance_to_keep_cents=self

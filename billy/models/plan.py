@@ -30,4 +30,3 @@ class PlanModel(object):
         self.session.flush()
         return plan.guid
 
-

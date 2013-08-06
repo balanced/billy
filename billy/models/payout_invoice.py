@@ -42,7 +42,6 @@ class PayoutInvoice(Base):
             balance_to_keep_cents=balanced_to_keep_cents,
         )
         cls.session.add(new_invoice)
-        cls.session.commit()
         return new_invoice
 
     @classmethod
@@ -64,37 +63,36 @@ class PayoutInvoice(Base):
         return subscription.invoices
 
     @classmethod
-    def needs_payout_made(cls):
-        now = datetime.utcnow()
-        return cls.query.filter(cls.payout_date <= now,
-                                cls.completed == False).all()
-
-    @classmethod
-    def needs_rollover(cls):
-        # Todo: create a better query for this...
-        results = cls.query.join(
-            PayoutSubscription).filter(cls.queue_rollover == True,
-                                       PayoutSubscription.is_active == True) \
-            .all()
-        return results
+    def rollover_all(cls):
+        need_rollover = cls.query.join(PayoutSubscription).filter(
+            cls.queue_rollover == True,
+            PayoutSubscription.is_active == True).all()
+        for invoice in need_rollover:
+            invoice.rollover()
 
     def rollover(self):
         self.subscription.is_active = False
         self.queue_rollover = False
-        self.session.flush()
         PayoutSubscription.subscribe(self.subscription.customer,
                                      self.subscription.payout,
                                      first_now=False,
                                      start_dt=self.payout_date)
 
+    @classmethod
+    def make_all_payouts(cls):
+        now = datetime.utcnow()
+        need_payout = cls.query.filter(cls.payout_date <= now,
+                                       cls.completed == False).all()
+        for invoice in need_payout:
+            invoice.make_payout()
+        return True
+
     def make_payout(self, force=False):
         from models import PayoutTransaction
 
         now = datetime.utcnow()
-        transaction_class = processor_map[
-            self.subscription.customer.group.provider](
-                self.customer.group.provider_api_key)
-        current_balance = transaction_class.check_balance(
+        transactor = self.subscription.customer.company.processor
+        current_balance = transactor.check_balance(
             self.subscription.customer.id,
             self.subscription.customer.group_id)
         payout_date = self.payout_date
@@ -121,16 +119,3 @@ class PayoutInvoice(Base):
                     raise e
         self.session.commit()
         return self
-
-    @classmethod
-    def make_all_payouts(cls):
-        payout_invoices = cls.needs_payout_made()
-        for invoice in payout_invoices:
-            invoice.make_payout()
-        return True
-
-    @classmethod
-    def rollover_all(cls):
-        need_rollover = cls.needs_rollover()
-        for payout in need_rollover:
-            payout.rollover()

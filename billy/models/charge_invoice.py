@@ -34,16 +34,19 @@ class ChargePlanInvoice(Base):
     cleared_by_txn = Column(Unicode, ForeignKey('charge_transactions.id'))
 
     subscription = relationship('ChargeSubscription',
-                                backref=backref('invoices', cascade='delete'))
+                                backref=backref('invoices',
+                                                cascade='delete,delete-orphan'),
+                                lazy='dynamic')
 
     @classmethod
     def create(cls, subscription, coupon, start_dt, end_dt, due_dt,
                amount_base_cents, amount_after_coupon_cents, amount_paid_cents,
                remaining_balance_cents, quantity, charge_at_period_end,
                includes_trial=False):
+        coupon_id = coupon and coupon.guid
         new_invoice = cls(
             subscription_id=subscription.id,
-            coupon_id=coupon.id,
+            coupon_id=coupon_id,
             start_dt=start_dt,
             end_dt=end_dt,
             due_dt=due_dt,
@@ -60,59 +63,46 @@ class ChargePlanInvoice(Base):
         return new_invoice
 
     @classmethod
-    def retrieve(cls, customer, plan, active_only=False, last_only=False):
-        # Todo clean this up, or reconsider model
-        query = ChargeSubscription.query.filter(
-            ChargeSubscription.customer_id == customer.id,
-            ChargeSubscription.plan_id == plan.id)
-        if active_only:
-            query = query.filter(ChargeSubscription.is_active == True)
-        subscription = query.first()
-        if subscription and last_only:
-            last = None
-            for invoice in subscription.invoices:
-                if invoice.end_dt >= datetime.utcnow():
-                    last = invoice
-                    break
-            return last
-        return subscription.invoices
-
-    @classmethod
     def prorate_last(cls, customer, plan):
         """
         Prorates the last invoice when changing a users plan. Only use when
         changing a users plan.
         """
-        right_now = datetime.utcnow()
-        last_invoice = cls.retrieve(customer, plan, True, True)
-        if last_invoice:
-            true_start = last_invoice.start_dt
-            if last_invoice.includes_trial and plan.trial_interval:
+        subscription = ChargeSubscription.query.filter(
+            ChargeSubscription.customer_id == customer.id,
+            ChargeSubscription.plan_id == plan.id,
+            ChargeSubscription.is_active == True).first()
+        current_invoice = subscription and subscription.current_invoice
+        if current_invoice:
+            now = datetime.utcnow()
+            true_start = current_invoice.start_dt
+            if current_invoice.includes_trial and plan.trial_interval:
                 true_start = true_start + plan.trial_interval
-            if last_invoice:
+            if current_invoice:
                 time_total = Decimal(
-                    (last_invoice.end_dt - true_start).total_seconds())
+                    (current_invoice.end_dt - true_start).total_seconds())
                 time_used = Decimal(
-                    (right_now - true_start).total_seconds())
+                    (now - true_start).total_seconds())
                 percent_used = time_used / time_total
-                new_base_amount = last_invoice.amount_base_cents * percent_used
+                new_base_amount = current_invoice.amount_base_cents * \
+                    percent_used
                 new_after_coupon_amount = \
-                    last_invoice.amount_after_coupon_cents * percent_used
+                    current_invoice.amount_after_coupon_cents * percent_used
                 new_balance = \
-                    new_after_coupon_amount - last_invoice.amount_paid_cents
-                last_invoice.amount_base_cents = new_base_amount
-                last_invoice.amount_after_coupon_cents = new_after_coupon_amount
-                last_invoice.remaining_balance_cents = new_balance
-                last_invoice.end_dt = right_now
-                last_invoice.subscription.should_renew = False
-                last_invoice.subscription.is_enrolled = False
-                last_invoice.prorated = True
-        return last_invoice
+                    new_after_coupon_amount - current_invoice.amount_paid_cents
+                current_invoice.amount_base_cents = new_base_amount
+                current_invoice.amount_after_coupon_cents = new_after_coupon_amount
+                current_invoice.remaining_balance_cents = new_balance
+                current_invoice.end_dt = now
+                current_invoice.subscription.should_renew = False
+                current_invoice.subscription.is_enrolled = False
+                current_invoice.prorated = True
+        return current_invoice
 
     @classmethod
     def all_due(cls, customer):
         """
-        Returns a list of invoices that are due for a customer
+        Returns a list of invoices that are due for a customers
         """
         from models import ChargePlanInvoice
 
@@ -123,19 +113,6 @@ class ChargePlanInvoice(Base):
             ChargePlanInvoice.due_dt <= now,
         ).all()
         return results
-
-    @classmethod
-    def need_rollover(cls):
-        """
-        Returns a list of ChargePlanInvoice objects that need a rollover
-        """
-        now = datetime.utcnow()
-        invoices_rollover = cls.query.join(ChargeSubscription).filter(
-            cls.end_dt <= now,
-            ChargeSubscription.is_active == True,
-            cls.remaining_balance_cents == 0,
-        ).all()
-        return invoices_rollover
 
     def rollover(self):
         """
@@ -152,7 +129,13 @@ class ChargePlanInvoice(Base):
 
     @classmethod
     def rollover_all(cls):
-        to_rollover = cls.need_rollover()
+        now = datetime.utcnow()
+        need_rollover = cls.query.join(ChargeSubscription).filter(
+            cls.end_dt <= now,
+            ChargeSubscription.is_active == True,
+            cls.remaining_balance_cents == 0,
+        ).all()
+        to_rollover = need_rollover
         for plan_invoice in to_rollover:
             plan_invoice.rollover()
         return len(to_rollover)

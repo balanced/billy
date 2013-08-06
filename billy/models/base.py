@@ -21,7 +21,7 @@ class Base(Base):
     """
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow,
-                        onupdate=datetime.utcnow, nullable=True)
+                        onupdate=datetime.utcnow, nullable=False)
 
 
 class RelativeDelta(TypeDecorator):

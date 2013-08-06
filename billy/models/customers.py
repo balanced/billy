@@ -89,7 +89,6 @@ class Customer(Base):
             due_on = end_date
         amount_base = charge_plan.price_cents * Decimal(quantity)
         amount_after_coupon = amount_base
-        coupon_id = current_coupon.id if current_coupon else None
         if self.current_coupon and current_coupon:
             dollars_off = current_coupon.price_off_cents
             percent_off = current_coupon.percent_off_int
@@ -157,7 +156,7 @@ class Customer(Base):
         return total_overdue
 
     @classmethod
-    def needs_charge_debt_cleared(cls):
+    def needs_charge_debt_settled(cls):
         """
         Returns a list of customer objects that need to clear their plan debt
         """
@@ -170,11 +169,11 @@ class Customer(Base):
                 ChargePlanInvoice.due_dt <= now).all()
 
     @classmethod
-    def clear_charge_debt(cls):
-        for customer in cls.needs_plan_debt_cleared():
-            customer.clear_charge_debt()
+    def settle_all_charge_plan_debt(cls):
+        for customer in cls.needs_charge_debt_settled():
+            customer.settle_charge_plan_debt()
 
-    def clear_charge_debt(self, force=False):
+    def settle_charge_plan_debt(self, force=False):
         """
         Clears the charge debt of the customer.
         """

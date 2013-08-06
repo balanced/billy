@@ -46,7 +46,6 @@ class ChargeTransaction(TransactionMixin, Base):
             self.session.commit()
             raise
         self.customer.charge_attempts = 0
-        self.session.commit()
 
 
 class PayoutTransaction(TransactionMixin, Base):
@@ -69,4 +68,3 @@ class PayoutTransaction(TransactionMixin, Base):
             self.status = 'ERROR'
             self.session.commit()
             raise
-        self.session.commit()

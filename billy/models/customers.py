@@ -15,17 +15,15 @@ from utils.generic import uuid_factory
 class Customer(Base):
     __tablename__ = 'customers'
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
-    company_id = Column(Unicode, ForeignKey(Company.guid), nullable=False)
+    id = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
+    company_id = Column(Unicode, ForeignKey(Company.id), nullable=False)
     your_id = Column(Unicode, nullable=False)
     processor_id = Column(Unicode, nullable=False)
-    coupon_id = Column(Unicode, ForeignKey(Coupon.guid))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    coupon_id = Column(Unicode, ForeignKey(Coupon.id))
     updated_at = Column(DateTime, default=datetime.utcnow)
     last_debt_clear = Column(DateTime)
     # Todo this should be normalized and made a property:
     charge_attempts = Column(Integer, default=0)
-
 
     # Charge Relationships
     charge_subscriptions = relationship('ChargeSubscription',
@@ -36,7 +34,7 @@ class Customer(Base):
     charge_transactions = relationship('ChargeTransaction',
                                        backref='customer', cascade='delete',
                                        lazy='dynamic'
-    )
+                                       )
 
     # Payout Relationships
     payout_subscriptions = relationship('PayoutSubscription',
@@ -58,7 +56,6 @@ class Customer(Base):
             raise ValueError('processor_id')
         self.processor_id = processor_id
 
-
     def subscribe_to_payout(self, payout_plan, first_now=False, start_dt=None):
         from models import PayoutInvoice
 
@@ -67,7 +64,7 @@ class Customer(Base):
         if not first_now:
             first_charge += payout_plan.payout_interval
         new_sub = PayoutSubscription.create(self, payout_plan)
-        invoice = PayoutInvoice.create(new_sub.guid,
+        invoice = PayoutInvoice.create(new_sub.id,
                                        first_charge,
                                        balance_to_keep_cents)
         self.session.add(invoice)
@@ -92,7 +89,7 @@ class Customer(Base):
             due_on = end_date
         amount_base = charge_plan.price_cents * Decimal(quantity)
         amount_after_coupon = amount_base
-        coupon_id = current_coupon.guid if current_coupon else None
+        coupon_id = current_coupon.id if current_coupon else None
         if self.current_coupon and current_coupon:
             dollars_off = current_coupon.price_off_cents
             percent_off = current_coupon.percent_off_int
@@ -103,8 +100,8 @@ class Customer(Base):
         new_sub = ChargeSubscription.create(self, charge_plan)
         ChargePlanInvoice.prorate_last(self, charge_plan)
         ChargePlanInvoice.create(
-            subscription_id=new_sub.guid,
-            relevant_coupon=coupon_id,
+            subscription=new_sub,
+            coupon=current_coupon,
             start_dt=start_date,
             end_dt=end_date,
             due_dt=due_on,
@@ -117,7 +114,6 @@ class Customer(Base):
             includes_trial=can_trial
         )
         return new_sub
-
 
     def remove_coupon(self):
         """
@@ -146,7 +142,7 @@ class Customer(Base):
         """
         use_coupon = self.current_coupon or True \
             if self.current_coupon.repeating == -1 or \
-               self.coupon_use_count <= self.current_coupon.repeating else False
+            self.coupon_use_count <= self.current_coupon.repeating else False
         return use_coupon
 
     @property
@@ -170,8 +166,8 @@ class Customer(Base):
         now = datetime.utcnow()
         return cls.query.join(ChargeSubscription).join(
             ChargePlanInvoice).filter(
-            ChargePlanInvoice.remaining_balance_cents > 0,
-            ChargePlanInvoice.due_dt <= now).all()
+                ChargePlanInvoice.remaining_balance_cents > 0,
+                ChargePlanInvoice.due_dt <= now).all()
 
     @classmethod
     def clear_charge_debt(cls):
@@ -189,7 +185,7 @@ class Customer(Base):
         plan_invoices_due = ChargePlanInvoice.all_due(self)
         for plan_invoice in plan_invoices_due:
             earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \
-                                                  earliest_due else earliest_due
+                earliest_due else earliest_due
             # Cancel a users plan if max retries reached
         if len(RETRY_DELAY_PLAN) < self.charge_attempts and not force:
             for plan_invoice in plan_invoices_due:
@@ -201,11 +197,11 @@ class Customer(Base):
                 earliest_due
             if when_to_charge <= now:
                 sum_debt = self.sum_plan_debt(plan_invoices_due)
-                transaction = ChargeTransaction.create(self.guid, sum_debt)
+                transaction = ChargeTransaction.create(self.id, sum_debt)
                 try:
                     transaction.execute()
                     for each in plan_invoices_due:
-                        each.cleared_by = transaction.guid
+                        each.cleared_by = transaction.id
                         each.remaining_balance_cents = 0
                     self.last_debt_clear = now
                 except Exception, e:

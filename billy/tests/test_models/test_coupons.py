@@ -15,8 +15,8 @@ class TestCoupon(BalancedTransactionalTestCase):
     def setUp(self):
         super(TestCoupon, self).setUp()
         self.your_id = "MY_TEST_COUPON"
-        self.group = Company.create('BILLY_TEST_MARKETPLACE').guid
-        self.group_2 = Company.create('BILLY_TEST_MARKETPLACE_2').guid
+        self.group = Company.create('BILLY_TEST_MARKETPLACE').id
+        self.group_2 = Company.create('BILLY_TEST_MARKETPLACE_2').id
 
     def test_redeem_count(self):
         pass  # Todo
@@ -186,7 +186,7 @@ class TestRetrieve(TestCoupon):
             self.assertLess(ret.created_at, now)
             self.assertTrue(ret.active)
             self.assertIsNone(ret.deleted_at)
-            self.assertTrue(ret.guid.startswith('CU'))
+            self.assertTrue(ret.id.startswith('CU'))
 
     def test_retrieve_active_only(self):
         coupon = Coupon.create(your_id=self.your_id,

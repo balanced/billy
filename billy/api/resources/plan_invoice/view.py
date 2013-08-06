@@ -4,11 +4,11 @@ from utils import fields
 
 plan_inv_view = {
     # Todo: figure out why some arent showing...
-    'id': fields.String(attribute='guid'),
+    'id': fields.String(attribute='id'),
     'created_at': fields.DateTime(),
     'plan_id': fields.String(attribute='subscription.plan.your_id'),
     'customer_id': fields.String(attribute='subscription.customer.your_id'),
-    'subscription_id': fields.String(attribute='subscription.guid'),
+    'subscription_id': fields.String(attribute='subscription.id'),
     'relevant_coupon': fields.String(),
     'start_dt': fields.DateTime(),
     'end_dt': fields.DateTime(),

@@ -20,10 +20,10 @@ class PayoutSubCreateForm(Form):
 
     def save(self, group_obj):
         try:
-            customer = Customer.retrieve(self.customer_id.data, group_obj.guid)
+            customer = Customer.retrieve(self.customer_id.data, group_obj.id)
             if not customer:
                 raise BillyExc['404_CUSTOMER_NOT_FOUND']
-            payout = PayoutPlan.retrieve(self.payout_id.data, group_obj.guid)
+            payout = PayoutPlan.retrieve(self.payout_id.data, group_obj.id)
             if not payout:
                 raise BillyExc['404_PAYOUT_NOT_FOUND']
             return PayoutSubscription.subscribe(customer, payout,
@@ -44,10 +44,10 @@ class PayoutSubDeleteForm(Form):
 
     def save(self, group_obj):
         try:
-            customer = Customer.retrieve(self.customer_id.data, group_obj.guid)
+            customer = Customer.retrieve(self.customer_id.data, group_obj.id)
             if not customer:
                 raise BillyExc['404_CUSTOMER_NOT_FOUND']
-            payout = PayoutPlan.retrieve(self.payout_id.data, group_obj.guid)
+            payout = PayoutPlan.retrieve(self.payout_id.data, group_obj.id)
             if not payout:
                 raise BillyExc['404_PLAN_NOT_FOUND']
             return PayoutSubscription.unsubscribe(customer, payout,

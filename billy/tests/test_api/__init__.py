@@ -83,7 +83,7 @@ class BaseTestCase(TestCase):
     @classmethod
     def schemas_path(cls, file_name):
         base_path = os.path.dirname(__file__)
-        return os.path.join(base_path, '../schemas/', file_name)
+        return os.path.join(base_path, '../fixtures/schemas/', file_name)
 
     @classmethod
     def assertSchema(cls, to_check, schema_path):

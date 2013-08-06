@@ -45,7 +45,7 @@ class CouponController(GroupController):
     def __init__(self):
         super(CouponController, self).__init__()
         coupon_id = request.view_args.values()[0]
-        self.coupon = Coupon.retrieve(coupon_id, self.group.guid)
+        self.coupon = Coupon.retrieve(coupon_id, self.group.id)
         if not self.coupon:
             raise BillyExc['404_COUPON_NOT_FOUND']
 

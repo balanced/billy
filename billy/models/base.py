@@ -1,15 +1,27 @@
 from __future__ import unicode_literals
+import json
+from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
+from sqlalchemy import Column, DateTime, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import TypeDecorator, VARCHAR
-import ujson
 
 from settings import Session
 
 Base = declarative_base()
 Base.query = Session.query_property()
 Base.session = Session
+
+
+class Base(Base):
+
+    """
+    The base class for billy. Also serves as a meta mixin
+    """
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow,
+                        onupdate=datetime.utcnow, nullable=True)
 
 
 class RelativeDelta(TypeDecorator):
@@ -36,11 +48,11 @@ class RelativeDelta(TypeDecorator):
             raise ValueError("Accepts only relativedelta types")
         if value:
             data_json = self.from_relativedelta(value)
-            value = ujson.dumps(data_json)
+            value = json.dumps(data_json)
         return value
 
     def process_result_value(self, value, dialect):
         if value is not None:
-            data = ujson.loads(value)
+            data = json.loads(value)
             value = self.to_relativedelta(data)
         return value

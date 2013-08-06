@@ -22,16 +22,16 @@ class TestPayoutInvoice(BalancedTransactionalTestCase):
         self.group = Company.create('BILLY_TEST_MARKETPLACE')
         self.group_2 = Company.create('BILLY_TEST_MARKETPLACE_2')
         self.customer = Customer.create(
-            'MY_TEST_CUSTOMER', self.group.guid, 'TESTBALID')
+            'MY_TEST_CUSTOMER', self.group.id, 'TESTBALID')
         self.customer_2 = Customer.create(
-            'MY_TEST_CUSTOMER_2', self.group.guid, 'TESTBALID')
+            'MY_TEST_CUSTOMER_2', self.group.id, 'TESTBALID')
         self.customer_3 = Customer.create(
-            'MY_TEST_CUSTOMER_3', self.group_2.guid, 'TESTBALID')
-        self.payout = PayoutPlan.create('MY_TEST_PAYOUT', self.group.guid,
+            'MY_TEST_CUSTOMER_3', self.group_2.id, 'TESTBALID')
+        self.payout = PayoutPlan.create('MY_TEST_PAYOUT', self.group.id,
                                     'Test PayoutPlan', 1000, Intervals.TWO_WEEKS)
-        self.payout_2 = PayoutPlan.create('MY_TEST_PAYOUT_2', self.group.guid,
+        self.payout_2 = PayoutPlan.create('MY_TEST_PAYOUT_2', self.group.id,
                                       'Test PayoutPlan 2', 1500, Intervals.MONTH)
-        self.payout_3 = PayoutPlan.create('MY_TEST_PAYOUT_3', self.group_2.guid,
+        self.payout_3 = PayoutPlan.create('MY_TEST_PAYOUT_3', self.group_2.id,
                                       'Test PayoutPlan 3', 9700, Intervals.MONTH)
 
 
@@ -40,7 +40,7 @@ class TestCreate(TestPayoutInvoice):
     def test_create(self):
         invoice = PayoutSubscription.subscribe(self.customer, self.payout)
         PayoutInvoice.create(
-            subscription_id=invoice.subscription.guid,
+            subscription_id=invoice.subscription.id,
             payout_date=self.week,
             balanced_to_keep_cents=5000
         )
@@ -51,7 +51,7 @@ class TestRetrieve(TestPayoutInvoice):
     def test_create_and_retrieve(self):
         inv = PayoutSubscription.subscribe(self.customer, self.payout)
         var = PayoutInvoice.create(
-            subscription_id=inv.subscription.guid,
+            subscription_id=inv.subscription.id,
             payout_date=self.week,
             balanced_to_keep_cents=12345,
         )
@@ -60,7 +60,7 @@ class TestRetrieve(TestPayoutInvoice):
     def test_retrieve_params(self):
         inv = PayoutSubscription.subscribe(self.customer, self.payout)
         var = PayoutInvoice.create(
-            subscription_id=inv.subscription.guid,
+            subscription_id=inv.subscription.id,
             payout_date=self.week,
             balanced_to_keep_cents=12345
         )
@@ -142,13 +142,13 @@ class TestValidators(TestPayoutInvoice):
 
     def setUp(self):
         super(TestValidators, self).setUp()
-        self.sub_guid = PayoutSubscription.subscribe(
-            self.customer, self.payout).subscription.guid
+        self.sub_id = PayoutSubscription.subscribe(
+            self.customer, self.payout).subscription.id
 
     def test_balance_to_keep_cents(self):
         with self.assertRaises(ValueError):
             PayoutInvoice.create(
-                subscription_id=self.sub_guid,
+                subscription_id=self.sub_id,
                 payout_date=self.week,
                 balanced_to_keep_cents=-5000
             )
@@ -156,7 +156,7 @@ class TestValidators(TestPayoutInvoice):
     def test_amount_payed_out(self):
         with self.assertRaises(ValueError):
             var = PayoutInvoice.create(
-                subscription_id=self.sub_guid,
+                subscription_id=self.sub_id,
                 payout_date=self.week,
                 balanced_to_keep_cents=5000
             )
@@ -166,7 +166,7 @@ class TestValidators(TestPayoutInvoice):
     def test_balance_at_exec(self):
         with self.assertRaises(ValueError):
             var = PayoutInvoice.create(
-                subscription_id=self.sub_guid,
+                subscription_id=self.sub_id,
                 payout_date=self.week,
                 balanced_to_keep_cents=5000
             )
@@ -176,7 +176,7 @@ class TestValidators(TestPayoutInvoice):
     def test_attempts_made(self):
         with self.assertRaises(ValueError):
             var = PayoutInvoice.create(
-                subscription_id=self.sub_guid,
+                subscription_id=self.sub_id,
                 payout_date=self.week,
                 balanced_to_keep_cents=5000
             )

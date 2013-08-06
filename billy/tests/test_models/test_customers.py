@@ -19,8 +19,8 @@ class TestCustomer(BalancedTransactionalTestCase):
         super(TestCustomer, self).setUp()
         self.your_id = 'MY_TEST_CUSTOMER'
         self.group_obj = Company.create('BILLY_TEST_MARKETPLACE')
-        self.group = self.group_obj.guid
-        self.group_2 = Company.create('BILLY_TEST_MARKETPLACE_2').guid
+        self.group = self.group_obj.id
+        self.group_2 = Company.create('BILLY_TEST_MARKETPLACE_2').id
 
 
 class TestCreate(TestCustomer):
@@ -58,7 +58,7 @@ class TestCreate(TestCustomer):
         )
         first = Customer.retrieve(self.your_id, self.group)
         second = Customer.retrieve(self.your_id, self.group_2)
-        self.assertNotEqual(first.guid, second.guid)
+        self.assertNotEqual(first.id, second.id)
 
 
 class TestRetrieve(TestCustomer):
@@ -112,7 +112,7 @@ class TestCoupon(TestCustomer):
                                repeating=-1,
                                )
         customer.apply_coupon(coupon.your_id)
-        self.assertEqual(customer.current_coupon, coupon.guid)
+        self.assertEqual(customer.current_coupon, coupon.id)
 
     def test_increase_max_redeem(self):
         coupon = Coupon.create(your_id='MY_TEST_COUPON',
@@ -171,7 +171,7 @@ class TestCoupon(TestCustomer):
                                repeating=-1,
                                )
         customer.apply_coupon(coupon.your_id)
-        self.assertEqual(customer.current_coupon, coupon.guid)
+        self.assertEqual(customer.current_coupon, coupon.id)
         customer.remove_coupon()
         self.assertIsNone(customer.current_coupon)
 
@@ -295,8 +295,8 @@ class TestUpdatePlan(TestCustomer):
             ChargeSubscription.unsubscribe(self.customer, self.plan,
                                          cancel_at_period_end=True)
             sub = ChargeSubscription.query.filter(
-                ChargeSubscription.customer_id == self.customer.guid,
-                ChargeSubscription.plan_id == self.plan.guid).first()
+                ChargeSubscription.customer_id == self.customer.id,
+                ChargeSubscription.plan_id == self.plan.id).first()
             self.assertEqual(sub.is_active, False)
         with freeze_time('2013-01-17'):
             invoice_new = ChargeSubscription.subscribe(self.customer, self.plan)
@@ -378,14 +378,14 @@ class TestPayout(TestCustomer):
     def test_cancel_payout(self):
         PayoutSubscription.subscribe(self.customer, self.payout)
         result = PayoutSubscription.query.filter(
-            PayoutSubscription.customer_id == self.customer.guid,
-            PayoutSubscription.payout_id == self.payout.guid,
+            PayoutSubscription.customer_id == self.customer.id,
+            PayoutSubscription.payout_id == self.payout.id,
             PayoutSubscription.is_active == True).one()
         PayoutSubscription.unsubscribe(self.customer, self.payout)
         with self.assertRaises(NoResultFound):
             PayoutSubscription.query.filter(
-                PayoutSubscription.customer_id == self.customer.guid,
-                PayoutSubscription.payout_id == self.payout.guid,
+                PayoutSubscription.customer_id == self.customer.id,
+                PayoutSubscription.payout_id == self.payout.id,
                 PayoutSubscription.is_active == True).one()
 
     def test_cancel_payout_already_scheduled(self):
@@ -393,8 +393,8 @@ class TestPayout(TestCustomer):
         PayoutSubscription.unsubscribe(self.customer, self.payout,
                                        cancel_scheduled=True)
         invoice = PayoutSubscription.query.filter(
-            PayoutSubscription.customer_id == self.customer.guid,
-            PayoutSubscription.payout_id == self.payout.guid).one().invoices[0]
+            PayoutSubscription.customer_id == self.customer.id,
+            PayoutSubscription.payout_id == self.payout.id).one().invoices[0]
         self.assertTrue(invoice.completed)
         self.assertFalse(invoice.subscription.is_active)
 

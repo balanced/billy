@@ -7,10 +7,9 @@ from utils.generic import uuid_factory
 class PayoutSubscription(Base):
     __tablename__ = 'payout_subscription'
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('POS'))
-    customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
-    payout_id = Column(Unicode, ForeignKey(PayoutPlan.guid), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id = Column(Unicode, primary_key=True, default=uuid_factory('POS'))
+    customer_id = Column(Unicode, ForeignKey(Customer.id), nullable=False)
+    payout_id = Column(Unicode, ForeignKey(PayoutPlan.id), nullable=False)
     is_active = Column(Boolean, default=True)
 
     __table_args__ = (
@@ -22,18 +21,15 @@ class PayoutSubscription(Base):
     @classmethod
     def create(cls, customer, payout):
         result = cls.query.filter(
-            cls.customer_id == customer.guid,
-            cls.payout_id == payout.guid).first()
+            cls.customer_id == customer.id,
+            cls.payout_id == payout.id).first()
         result = result or cls(
-            customer_id=customer.guid, payout_id=payout.guid,
+            customer_id=customer.id, payout_id=payout.id,
             # Todo Temp since default not working for some reason
-            guid=uuid_factory('PLL')())
+            id=uuid_factory('PLL')())
         result.is_active = True
         cls.session.add(result)
-        # Todo premature commit might cause issues....
-        cls.session.commit()
         return result
-
 
     def cancel(self, cancel_scheduled=False):
         from models import PayoutInvoice
@@ -44,5 +40,4 @@ class PayoutSubscription(Base):
                 PayoutInvoice.completed == False).first()
             if in_process:
                 in_process.completed = True
-        self.session.commit()
         return self

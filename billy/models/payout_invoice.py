@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import (Column, Unicode, ForeignKey, DateTime, Boolean,
-                        Integer, CheckConstraint )
+                        Integer, CheckConstraint)
 from sqlalchemy.orm import relationship, backref
 
 from models import Base, PayoutSubscription
@@ -13,10 +13,9 @@ from processor import processor_map
 class PayoutInvoice(Base):
     __tablename__ = 'payout_invoices'
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('POI'))
-    subscription_id = Column(Unicode, ForeignKey(PayoutSubscription.guid),
+    id = Column(Unicode, primary_key=True, default=uuid_factory('POI'))
+    subscription_id = Column(Unicode, ForeignKey(PayoutSubscription.id),
                              nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
     payout_date = Column(DateTime)
     balance_to_keep_cents = Column(Integer, CheckConstraint(
         'balance_to_keep_cents >= 0'))
@@ -25,14 +24,14 @@ class PayoutInvoice(Base):
     queue_rollover = Column(Boolean, default=False)
     balance_at_exec = Column(Integer,
                              nullable=True)
-    cleared_by_txn = Column(Unicode, ForeignKey('payout_transactions.guid'))
+    cleared_by_txn = Column(Unicode, ForeignKey('payout_transactions.id'))
     attempts_made = Column(Integer, CheckConstraint('attempts_made >= 0'),
                            default=0)
 
     subscription = relationship('PayoutSubscription',
                                 backref=backref('invoices', lazy='dynamic',
                                                 cascade='delete'),
-    )
+                                )
 
     @classmethod
     def create(cls, subscription_id,
@@ -50,8 +49,8 @@ class PayoutInvoice(Base):
     def retrieve(cls, customer, payout, active_only=False, last_only=False):
         # Todo can probably be cleaner
         query = PayoutSubscription.query.filter(
-            PayoutSubscription.customer_id == customer.guid,
-            PayoutSubscription.payout_id == payout.guid)
+            PayoutSubscription.customer_id == customer.id,
+            PayoutSubscription.payout_id == payout.id)
         if active_only:
             query = query.filter(PayoutSubscription.is_active == True)
         subscription = query.first()
@@ -94,9 +93,9 @@ class PayoutInvoice(Base):
         now = datetime.utcnow()
         transaction_class = processor_map[
             self.subscription.customer.group.provider](
-            self.customer.group.provider_api_key)
+                self.customer.group.provider_api_key)
         current_balance = transaction_class.check_balance(
-            self.subscription.customer.guid,
+            self.subscription.customer.id,
             self.subscription.customer.group_id)
         payout_date = self.payout_date
         if len(RETRY_DELAY_PAYOUT) < self.attempts_made and not force:
@@ -111,7 +110,7 @@ class PayoutInvoice(Base):
                     self.subscription.customer_id, payout_amount)
                 try:
                     transaction.execute()
-                    self.cleared_by = transaction.guid
+                    self.cleared_by = transaction.id
                     self.balance_at_exec = current_balance
                     self.amount_payed_out = payout_amount
                     self.completed = True

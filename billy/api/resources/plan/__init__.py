@@ -45,7 +45,7 @@ class PlanController(GroupController):
     def __init__(self):
         super(PlanController, self).__init__()
         plan_id = request.view_args.values()[0]
-        self.plan = ChargePlan.retrieve(plan_id, self.group.guid)
+        self.plan = ChargePlan.retrieve(plan_id, self.group.id)
         if not self.plan:
             raise BillyExc['404_PLAN_NOT_FOUND']
 

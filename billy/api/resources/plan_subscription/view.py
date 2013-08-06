@@ -4,7 +4,7 @@ from utils import fields
 
 plan_sub_view = {
     # Todo: figure out why some arent showing...
-    'id': fields.String(attribute='guid'),
+    'id': fields.String(attribute='id'),
     'created_at': fields.DateTime(),
     'plan_id': fields.String(attribute='plan.your_id'),
     'customer_id': fields.String(attribute='customer.your_id'),

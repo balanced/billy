@@ -25,14 +25,14 @@ class TestPlanInvoice(BalancedTransactionalTestCase):
         self.group = Company.create('BILLY_TEST_MARKETPLACE')
         self.group_2 = Company.create('BILLY_TEST_MARKETPLACE_2')
         self.customer = Customer.create(
-            'MY_TEST_CUSTOMER', self.group.guid, 'TESTBALID')
+            'MY_TEST_CUSTOMER', self.group.id, 'TESTBALID')
         self.customer_2 = Customer.create(
-            'MY_TEST_CUSTOMER_2', self.group.guid, 'TESTBALID')
+            'MY_TEST_CUSTOMER_2', self.group.id, 'TESTBALID')
         self.customer_group2 = Customer.create(
-            'MY_TEST_CUSTOMER_3', self.group_2.guid, 'TESTBALID')
+            'MY_TEST_CUSTOMER_3', self.group_2.id, 'TESTBALID')
         self.plan = ChargePlan.create(
             your_id=self.plan_id,
-            group_id=self.group.guid,
+            group_id=self.group.id,
             name='Starter',
             price_cents=1000,
             plan_interval=Intervals.MONTH,
@@ -40,7 +40,7 @@ class TestPlanInvoice(BalancedTransactionalTestCase):
         )
         self.plan_2 = ChargePlan.create(
             your_id=self.plan_id_2,
-            group_id=self.group.guid,
+            group_id=self.group.id,
             name='Starter',
             price_cents=15000,
             plan_interval=Intervals.MONTH,
@@ -53,7 +53,7 @@ class TestCreate(TestPlanInvoice):
     def test_create(self):
         inv = ChargeSubscription.subscribe(self.customer, self.plan)
         ChargePlanInvoice.create(
-            subscription_id=inv.subscription.guid,
+            subscription_id=inv.subscription.id,
             relevant_coupon=None,
             start_dt=self.now,
             end_dt=self.month,
@@ -73,7 +73,7 @@ class TestRetrieve(TestPlanInvoice):
     def test_create_and_retrieve(self):
         inv = ChargeSubscription.subscribe(self.customer, self.plan)
         ChargePlanInvoice.create(
-            subscription_id=inv.subscription.guid,
+            subscription_id=inv.subscription.id,
             relevant_coupon=None,
             start_dt=self.now,
             end_dt=self.month,
@@ -116,16 +116,16 @@ class TestUtils(TestPlanInvoice):
         super(TestUtils, self).setUp()
 
         with freeze_time(str(self.now)):
-            sub = ChargeSubscription(customer_id=self.customer.guid,
-                                   plan_id=self.plan.guid)
-            sub2 = ChargeSubscription(customer_id=self.customer.guid,
-                                    plan_id=self.plan_2.guid)
-            sub3 = ChargeSubscription(customer_id=self.customer_2.guid,
-                                    plan_id=self.plan.guid)
+            sub = ChargeSubscription(customer_id=self.customer.id,
+                                   plan_id=self.plan.id)
+            sub2 = ChargeSubscription(customer_id=self.customer.id,
+                                    plan_id=self.plan_2.id)
+            sub3 = ChargeSubscription(customer_id=self.customer_2.id,
+                                    plan_id=self.plan.id)
             ChargeSubscription.session.add_all([sub, sub2, sub3])
             ChargeSubscription.session.commit()
             ChargePlanInvoice.create(
-                subscription_id=sub.guid,
+                subscription_id=sub.id,
                 relevant_coupon=None,
                 start_dt=self.now,
                 end_dt=self.month,
@@ -139,7 +139,7 @@ class TestUtils(TestPlanInvoice):
                 includes_trial=False,
             )
             ChargePlanInvoice.create(
-                subscription_id=sub2.guid,
+                subscription_id=sub2.id,
                 relevant_coupon=None,
                 start_dt=self.now,
                 end_dt=self.month,
@@ -153,7 +153,7 @@ class TestUtils(TestPlanInvoice):
                 includes_trial=False,
             )
             ChargePlanInvoice.create(
-                subscription_id=sub3.guid,
+                subscription_id=sub3.id,
                 relevant_coupon=None,
                 start_dt=self.now,
                 end_dt=self.month,
@@ -210,13 +210,13 @@ class TestValidators(TestPlanInvoice):
 
     def setUp(self):
         super(TestValidators, self).setUp()
-        self.sub_guid = ChargeSubscription.subscribe(
-            self.customer, self.plan).subscription.guid
+        self.sub_id = ChargeSubscription.subscribe(
+            self.customer, self.plan).subscription.id
 
     def test_amount_base_cents(self):
         with self.assertRaises(ValueError):
             ChargePlanInvoice.create(
-                subscription_id=self.sub_guid,
+                subscription_id=self.sub_id,
                 relevant_coupon=None,
                 start_dt=self.now,
                 end_dt=self.month,
@@ -233,7 +233,7 @@ class TestValidators(TestPlanInvoice):
     def test_amount_after_coupon_cents(self):
         with self.assertRaises(ValueError):
             ChargePlanInvoice.create(
-                subscription_id=self.sub_guid,
+                subscription_id=self.sub_id,
                 relevant_coupon=None,
                 start_dt=self.now,
                 end_dt=self.month,
@@ -250,7 +250,7 @@ class TestValidators(TestPlanInvoice):
     def test_amount_paid_cents(self):
         with self.assertRaises(ValueError):
             ChargePlanInvoice.create(
-                subscription_id=self.sub_guid,
+                subscription_id=self.sub_id,
                 relevant_coupon=None,
                 start_dt=self.now,
                 end_dt=self.month,
@@ -267,7 +267,7 @@ class TestValidators(TestPlanInvoice):
     def test_quantity(self):
         with self.assertRaises(ValueError):
             ChargePlanInvoice.create(
-                subscription_id=self.sub_guid,
+                subscription_id=self.sub_id,
                 relevant_coupon=None,
                 start_dt=self.now,
                 end_dt=self.month,

@@ -18,7 +18,7 @@ class CustomerCreateForm(Form):
     def save(self, group_obj):
         try:
             customer = Customer.create(your_id=self.customer_id.data,
-                                       group_id=group_obj.guid,
+                                       group_id=group_obj.id,
                                        provider_id=self.provider_id.data)
             return customer
         except IntegrityError:

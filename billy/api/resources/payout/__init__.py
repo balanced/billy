@@ -45,7 +45,7 @@ class PayoutController(GroupController):
     def __init__(self):
         super(PayoutController, self).__init__()
         payout_id = request.view_args.values()[0]
-        self.payout = PayoutPlan.retrieve(payout_id, self.group.guid)
+        self.payout = PayoutPlan.retrieve(payout_id, self.group.id)
         if not self.payout:
             raise BillyExc['404_PAYOUT_NOT_FOUND']
 

@@ -26,7 +26,7 @@ class ChargePlanInterfaceTest(BaseTestCase):
 
 
         #Create A Coupon under the company
-        coupon = company.add_coupon(
+        coupon = company.create_coupon(
             your_id='10_OFF_COUPON',
             name='First Invoice 10 off',
             price_off_cents=0, # 0 dollars off
@@ -40,7 +40,7 @@ class ChargePlanInterfaceTest(BaseTestCase):
         customer = company.create_customer(
             your_id='customer_1215',
             # What you call your customer (usually id)
-            # What your processor calls your customer
+            # What your models.processor calls your customer
             provider_id='CUDEXKX1285DKE38DDK'
         )
 

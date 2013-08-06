@@ -45,7 +45,7 @@ class CustomerController(GroupController):
     def __init__(self):
         super(CustomerController, self).__init__()
         customer_id = request.view_args.values()[0]
-        self.customer = Customer.retrieve(customer_id, self.group.guid)
+        self.customer = Customer.retrieve(customer_id, self.group.id)
         if not self.customer:
             raise BillyExc['404_CUSTOMER_NOT_FOUND']
 

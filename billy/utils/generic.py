@@ -49,9 +49,3 @@ def api_key_factory():
 
     generator = lambda: ''.join([random.choice(ALPHABET) for _ in xrange(32)])
     return generator
-
-
-class Status(object):
-    PENDING = 'PENDING'
-    COMPLETE = 'COMPLETE'
-    ERROR = 'ERROR'

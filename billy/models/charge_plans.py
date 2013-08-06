@@ -5,7 +5,7 @@ from sqlalchemy import (Column, Unicode, Integer, Boolean, DateTime,
                         ForeignKey, UniqueConstraint, CheckConstraint)
 from sqlalchemy.orm import relationship
 
-from models import Base, Company, ChargeSubscription
+from models import Base, Company
 from models.base import RelativeDelta
 from utils.generic import uuid_factory
 
@@ -13,15 +13,14 @@ from utils.generic import uuid_factory
 class ChargePlan(Base):
     __tablename__ = 'charge_plans'
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('PL'))
+    id = Column(Unicode, primary_key=True, default=uuid_factory('PL'))
     your_id = Column(Unicode, nullable=False)
-    company_id = Column(Unicode, ForeignKey(Company.guid), nullable=False)
+    company_id = Column(Unicode, ForeignKey(Company.id), nullable=False)
     name = Column(Unicode, nullable=False)
     price_cents = Column(Integer, CheckConstraint('price_cents >= 0'),
                          nullable=False)
     active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    deleted_at = Column(DateTime)
+    disabled_at = Column(DateTime)
     updated_at = Column(DateTime, default=datetime.utcnow)
     trial_interval = Column(RelativeDelta)
     plan_interval = Column(RelativeDelta)
@@ -31,7 +30,7 @@ class ChargePlan(Base):
 
     __table_args__ = (UniqueConstraint(your_id, company_id,
                                        name='plan_id_company_unique'),
-    )
+                      )
 
     def update(self, name):
         """
@@ -45,6 +44,7 @@ class ChargePlan(Base):
         Disables a charge plan. Does not effect current subscribers.
         """
         self.active = False
+        self.disabled_at = datetime.utcnow()
         return self
 
     def can_customer_trial(self, customer):
@@ -52,8 +52,7 @@ class ChargePlan(Base):
         Whether a customer can trial a charge plan
         """
         from models import ChargeSubscription
-
         return ChargeSubscription.query.filter(
-            ChargeSubscription.customer_id == customer.guid,
-            ChargeSubscription.plan_id == self.guid
+            ChargeSubscription.customer_id == customer.id,
+            ChargeSubscription.plan_id == self.id
         ).first()

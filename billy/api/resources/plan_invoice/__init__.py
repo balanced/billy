@@ -21,7 +21,7 @@ class PlanInvIndexController(GroupController):
         Return a list of plans invoices pertaining to a group
         """
         return ChargePlanInvoice.query.join(ChargeSubscription).join(Customer).join(
-            Company).filter(Company.guid == self.group.guid).all()
+            Company).filter(Company.id == self.group.id).all()
 
 
 class PlanInvController(GroupController):
@@ -33,7 +33,7 @@ class PlanInvController(GroupController):
         super(PlanInvController, self).__init__()
         plan_inv_id = request.view_args.values()[0]
         self.invoice = ChargePlanInvoice.query.filter(
-            ChargePlanInvoice.guid == plan_inv_id).first()
+            ChargePlanInvoice.id == plan_inv_id).first()
         if not self.invoice:
             raise BillyExc['404_PLAN_INV_NOT_FOUND']
 

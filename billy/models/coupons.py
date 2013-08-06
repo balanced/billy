@@ -12,9 +12,9 @@ from utils.generic import uuid_factory
 class Coupon(Base):
     __tablename__ = 'coupons'
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
+    id = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     your_id = Column(Unicode, nullable=False)
-    company_id = Column(Unicode, ForeignKey(Company.guid), nullable=False)
+    company_id = Column(Unicode, ForeignKey(Company.id), nullable=False)
     name = Column(Unicode, nullable=False)
     price_off_cents = Column(Integer, CheckConstraint('price_off_cents >= 0'))
     percent_off_int = Column(Integer, CheckConstraint(
@@ -25,8 +25,7 @@ class Coupon(Base):
     repeating = Column(Integer,
                        CheckConstraint('repeating = -1 OR repeating >= 0'))
     active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    deleted_at = Column(DateTime)
+    disabled_at = Column(DateTime)
 
     customers = relationship('Customer', backref='coupon', lazy='dynamic')
 
@@ -43,9 +42,7 @@ class Coupon(Base):
                 self.max_redeem:
             raise ValueError('Coupon already redeemed maximum times. See '
                              'max_redeem')
-        customer.current_coupon = self.guid
-        customer.updated_at = datetime.utcnow()
-        self.session.commit()
+        customer.current_coupon = self.id
         return self
 
     def update(self, new_name=None,
@@ -69,8 +66,6 @@ class Coupon(Base):
             self.expire_at = new_expire_at
         if new_repeating:
             self.repeating = new_repeating
-        self.updated_at = datetime.utcnow()
-        self.session.commit()
         return self
 
     def disable(self):
@@ -81,9 +76,7 @@ class Coupon(Base):
         plan
         """
         self.active = False
-        self.updated_at = datetime.utcnow()
-        self.deleted_at = datetime.utcnow()
-        self.session.commit()
+        self.disabled_at = datetime.utcnow()
         return self
 
     @property
@@ -102,4 +95,3 @@ class Coupon(Base):
         to_expire = cls.query.filter(cls.expire_at < now).all()
         for coupon in to_expire:
             coupon.active = False
-        cls.session.commit()

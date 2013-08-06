@@ -51,7 +51,7 @@ class CouponCreateForm(Form):
     def save(self, group_obj):
         try:
             coupon = Coupon.create(your_id=self.coupon_id.data,
-                                   group_id=group_obj.guid,
+                                   group_id=group_obj.id,
                                    name=self.name.data,
                                    price_off_cents=self.price_off_cents.data,
                                    percent_off_int=self.percent_off_int.data,

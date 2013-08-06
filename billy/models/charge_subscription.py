@@ -7,10 +7,9 @@ from utils.generic import uuid_factory
 class ChargeSubscription(Base):
     __tablename__ = 'charge_subscription'
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('PLS'))
-    customer_id = Column(Unicode, ForeignKey(Customer.guid), nullable=False)
-    plan_id = Column(Unicode, ForeignKey(ChargePlan.guid), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id = Column(Unicode, primary_key=True, default=uuid_factory('PLS'))
+    customer_id = Column(Unicode, ForeignKey(Customer.id), nullable=False)
+    plan_id = Column(Unicode, ForeignKey(ChargePlan.id), nullable=False)
     is_enrolled = Column(Boolean, default=True)
     should_renew = Column(Boolean, default=True)
 
@@ -23,19 +22,18 @@ class ChargeSubscription(Base):
     @classmethod
     def create(cls, customer, plan):
         result = cls.query.filter(
-            cls.customer_id == customer.guid,
-            cls.plan_id == plan.guid).first()
+            cls.customer_id == customer.id,
+            cls.plan_id == plan.id).first()
         result = result or cls(
-            customer_id=customer.guid, plan_id=plan.guid,
+            customer_id=customer.id, plan_id=plan.id,
             # Todo TEMP since default not working for some reason
-            guid=uuid_factory('PLS')())
+            id=uuid_factory('PLS')())
         result.should_renew = True
         result.is_enrolled = True
         # Todo premature commit might cause issues....
         cls.session.add(result)
         cls.session.commit()
         return result
-
 
     def cancel(self, cancel_at_period_end=False):
         from models import ChargePlanInvoice

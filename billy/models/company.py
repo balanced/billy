@@ -8,13 +8,15 @@ from processor import processor_map
 from utils.generic import api_key_factory, uuid_factory
 
 
+provider_enum = Enum('BALANCED', 'DUMMY', name='provider_enum')
+
+
 class Company(Base):
     __tablename__ = 'company'
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('GR'))
+    id = Column(Unicode, primary_key=True, default=uuid_factory('GR'))
     api_key = Column(Unicode, unique=True, default=api_key_factory())
-    processor_type = Column(Enum('BALANCED', 'DUMMY', name='provider_enum'),
-                            nullable=False)
+    processor_type = Column(provider_enum, nullable=False)
     processor_api_key = Column(Unicode, nullable=False, unique=True)
     processor_company_id = Column(Unicode, nullable=False, unique=True)
     is_test = Column(Boolean, default=True)
@@ -32,14 +34,19 @@ class Company(Base):
     @classmethod
     def create(cls, processor_type, processor_api_key,
                is_test=True, **kwargs):
-        # Some sort of check api_key thingy.
-        processor_class = processor_map[processor_type.upper()](processor_api_key)
+        """
+        Creates a company
+        """
+
+        # Todo Some sort of check api_key thingy.
+        processor_class = processor_map[
+            processor_type.upper()](processor_api_key)
         processor_company_id = processor_class.get_company_id()
         new_company = cls(
-                          processor_type=processor_type,
-                          processor_api_key=processor_api_key,
-                          processor_company_id=processor_company_id,
-                          is_test=is_test, **kwargs)
+            processor_type=processor_type,
+            processor_api_key=processor_api_key,
+            processor_company_id=processor_company_id,
+            is_test=is_test, **kwargs)
         cls.session.add(new_company)
         return new_company
 
@@ -50,7 +57,7 @@ class Company(Base):
         processor_company_id = self.processor.get_company(new_api_key)
         if not processor_company_id == self.processor_company_id:
             raise ValueError(
-                'New API key does not match company ID with processor')
+                'New API key does not match company ID with models.processor')
         else:
             self.processor_api_key = new_api_key
         return self
@@ -63,20 +70,20 @@ class Company(Base):
         new_customer = Customer(
             your_id=your_id,
             processor_id=provider_id,
-            company_id=self.guid
+            company_id=self.id
         )
         self.session.add(new_customer)
         return new_customer
 
-    def add_coupon(self, your_id, name, price_off_cents,
-                   percent_off_int, max_redeem, repeating, expire_at=None):
+    def create_coupon(self, your_id, name, price_off_cents,
+                      percent_off_int, max_redeem, repeating, expire_at=None):
         """
         Creates a new coupon for the company
         """
         from models import Coupon
         new_coupon = Coupon(
             your_id=your_id,
-            company_id=self.guid,
+            company_id=self.id,
             name=name,
             price_off_cents=price_off_cents,
             percent_off_int=percent_off_int,
@@ -87,14 +94,14 @@ class Company(Base):
         return new_coupon
 
     def create_charge_plan(self, your_id, name, price_cents,
-                        plan_interval, trial_interval):
+                           plan_interval, trial_interval):
         """
         Creates a charge plan under the company
         """
         from models import ChargePlan
         new_plan = ChargePlan(
             your_id=your_id,
-            company_id=self.guid,
+            company_id=self.id,
             name=name,
             price_cents=price_cents,
             plan_interval=plan_interval,
@@ -104,14 +111,14 @@ class Company(Base):
         return new_plan
 
     def create_payout_plan(self, your_id, name, balance_to_keep_cents,
-                        payout_interval):
+                           payout_interval):
         """
         Creates a payout plan under the company
         """
         from models import PayoutPlan
         new_payout = PayoutPlan(
             your_id=your_id,
-            company_id=self.guid,
+            company_id=self.id,
             name=name,
             balance_to_keep_cents=balance_to_keep_cents,
             payout_interval=payout_interval)
@@ -127,6 +134,6 @@ class Company(Base):
     @property
     def processor(self):
         """
-        Returns the instantiated processor class
+        Returns the instantiated models.processor class
         """
         return processor_map[self.processor_type](self.api_key)

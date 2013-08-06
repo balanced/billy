@@ -22,7 +22,7 @@ class PlanSubIndexController(GroupController):
         Return a list of plans subscriptions pertaining to a group
         """
         return ChargeSubscription.query.join(Customer).join(Company).filter(
-            Company.guid == self.group.guid).all()
+            Company.id == self.group.id).all()
 
     @marshal_with(plan_sub_view)
     def post(self):
@@ -56,7 +56,7 @@ class PlanSubController(GroupController):
         super(PlanSubController, self).__init__()
         plan_sub_id = request.view_args.values()[0]
         self.subscription = ChargeSubscription.query.filter(
-            ChargeSubscription.guid == plan_sub_id).first()
+            ChargeSubscription.id == plan_sub_id).first()
         if not self.subscription:
             raise BillyExc['404_PLAN_SUB_NOT_FOUND']
 

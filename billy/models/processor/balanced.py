@@ -5,7 +5,7 @@ import random
 from utils.generic import uuid_factory
 
 
-class DummyProcessor(object):
+class BalancedProcessor(object):
     is_test_mode = True
 
     def __init__(self, api_key):
@@ -13,7 +13,7 @@ class DummyProcessor(object):
 
     def get_company_id(self):
         """
-        Returns the id of the company with the processor, this is a form of
+        Returns the id of the company with the models.processor, this is a form of
         authentication
         """
         hash = md5()

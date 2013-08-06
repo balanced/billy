@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-import random
+import os
 import uuid
 
 from sqlalchemy import Enum
@@ -18,48 +18,35 @@ class Enum(Enum):
 
 
 
-def base62_encode(num, alphabet=ALPHABET):
-    """Encode a number in Base X
+def b58encode(s):
+    """From https://bitcointalk.org/index.php?topic=1026.0
 
-    `num`: The number to encode
-    `alphabet`: The alphabet to use for encoding
+    by Gavin Andresen (public domain)
+
     """
-    if num == 0:
-        return alphabet[0]
-    arr = []
-    base = len(alphabet)
-    while num:
-        rem = num % base
-        num = num // base
-        arr.append(alphabet[rem])
-    arr.reverse()
-    return ''.join(arr)
+    value = 0
+    for i, c in enumerate(reversed(s)):
+        value += ord(c) * (256 ** i)
+
+    result = []
+    while value >= B58_BASE:
+        div, mod = divmod(value, B58_BASE)
+        c = B58_CHARS[mod]
+        result.append(c)
+        value = div
+    result.append(B58_CHARS[value])
+    return ''.join(reversed(result))
 
 
-def uuid_factory(prefix=None):
+def make_guid():
+    """Generate a GUID and return in base58 encoded form
+
     """
-    Given a prefix, which defaults to None, will generate a function
-    which when called, will generate a hex uuid string using uuid.uuid1()
-
-    If a prefix string is passed, it prefixes the uuid.
-    """
-
-    def generate_uuid():
-        the_uuid = base62_encode(uuid.uuid1().int)
-        if prefix:
-            the_uuid = prefix + the_uuid
-
-        return the_uuid
-
-    return generate_uuid
+    uid = uuid.uuid1().bytes
+    return b58encode(uid)
 
 
-def api_key_factory():
-    """
-    TODO: Marsenne twister is predictable. Up the security
-    """
-
-    generator = lambda: ''.join([random.choice(ALPHABET) for _ in xrange(32)])
-    return generator
-
+def make_api_key(size=32):
+    """Generate a random API key, should be as random as possible
+    (not predictable)
 

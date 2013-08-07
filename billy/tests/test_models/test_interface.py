@@ -4,6 +4,7 @@ from models import *
 from utils.intervals import Intervals
 from tests import BaseTestCase
 
+# WILL MOVE TO FIXTURES SOON!
 
 class ChargePlanInterfaceTest(BaseTestCase):
     # CREATE A COMPANY
@@ -49,10 +50,11 @@ class ChargePlanInterfaceTest(BaseTestCase):
         coupon.redeem(customer)
 
         # Subscribe Customer to a plan
-        invoice = plan.subscribe(customer, quantity=1)
+        import ipdb;ipdb.set_trace()
+        sub = customer.subscribe_to_charge(plan, quantity=1)
 
         # Unsubscribe Customer from plan:
-        plan.unsubscribe(customer)
+        sub.cancel()
 
         # Delete the test Company
         company.delete()
@@ -65,7 +67,6 @@ class ChargePayoutInterfaceTest(BaseTestCase):
             processor_api_key='MY_DUMMY_API_KEY',
             is_test=True,
         )
-
         # Create A Payout under the company
         payout = company.create_payout_plan(
             your_id='5_DOLLA_PLAN',
@@ -83,10 +84,10 @@ class ChargePayoutInterfaceTest(BaseTestCase):
         )
 
         # Subscribe Customer to a payout
-        invoice = payout.subscribe(customer)
+        sub = customer.subscribe_to_payout(payout)
 
         # Unsubscribe Customer from payout:
-        payout.unsubscribe(customer)
+        sub.cancel()
 
 
         # Delete the test company

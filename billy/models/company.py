@@ -43,7 +43,7 @@ class Company(Base):
             processor_type.upper()](processor_api_key)
         processor_company_id = processor_class.get_company_id()
         new_company = cls(
-            processor_type=processor_type,
+            processor_type=processor_type.upper(),
             processor_api_key=processor_api_key,
             processor_company_id=processor_company_id,
             is_test=is_test, **kwargs)
@@ -70,7 +70,7 @@ class Company(Base):
         new_customer = Customer(
             your_id=your_id,
             processor_id=provider_id,
-            company_id=self.id
+            company=self
         )
         self.session.add(new_customer)
         return new_customer
@@ -83,7 +83,7 @@ class Company(Base):
         from models import Coupon
         new_coupon = Coupon(
             your_id=your_id,
-            company_id=self.id,
+            company=self,
             name=name,
             price_off_cents=price_off_cents,
             percent_off_int=percent_off_int,
@@ -101,7 +101,7 @@ class Company(Base):
         from models import ChargePlan
         new_plan = ChargePlan(
             your_id=your_id,
-            company_id=self.id,
+            company=self,
             name=name,
             price_cents=price_cents,
             plan_interval=plan_interval,
@@ -118,7 +118,7 @@ class Company(Base):
         from models import PayoutPlan
         new_payout = PayoutPlan(
             your_id=your_id,
-            company_id=self.id,
+            company=self,
             name=name,
             balance_to_keep_cents=balance_to_keep_cents,
             payout_interval=payout_interval)
@@ -130,6 +130,7 @@ class Company(Base):
             raise Exception('Can only delete test marketplaces without '
                             'force set to true.')
         self.session.delete(self)
+        self.session.flush()
 
     @property
     def processor(self):

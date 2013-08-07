@@ -1,11 +1,11 @@
 from __future__ import unicode_literals
 from datetime import datetime
 
-from sqlalchemy import Column, Unicode, Integer, Boolean, DateTime, \
-    ForeignKey, UniqueConstraint, CheckConstraint
+from sqlalchemy import (Column, Unicode, Integer, Boolean,
+    ForeignKey, UniqueConstraint, CheckConstraint)
 from sqlalchemy.orm import relationship
 
-from models import Base, Company, PayoutSubscription
+from models import Base, Company
 from models.base import RelativeDelta
 from utils.generic import uuid_factory
 

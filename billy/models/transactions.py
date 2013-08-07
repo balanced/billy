@@ -6,7 +6,8 @@ from sqlalchemy.orm import relationship
 from models import Base, Customer, ChargePlanInvoice, PayoutInvoice
 from utils.generic import uuid_factory
 
-transaction_status = Enum('PENDING', 'COMPLETE', 'ERROR')
+transaction_status = Enum('PENDING', 'COMPLETE', 'ERROR',
+                          name='transaction_status')
 
 
 class TransactionMixin(object):

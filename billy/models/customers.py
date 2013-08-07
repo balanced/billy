@@ -145,12 +145,14 @@ class Customer(Base):
         return use_coupon
 
     @property
-    def total_charge_debt(self):
+    def total_charge_debt(self, invoices=None):
         """
         Returns the total outstanding debt for the customer
         """
         total_overdue = 0
-        for invoice in ChargePlanInvoice.all_due(self):
+        if not invoices:
+            invoices = ChargePlanInvoice.all_due(self)
+        for invoice in invoices:
             rem_bal = invoice.remaining_balance_cents
             total_overdue += rem_bal if rem_bal else 0
         return total_overdue
@@ -195,7 +197,7 @@ class Customer(Base):
             when_to_charge = earliest_due + retry_delay if retry_delay else \
                 earliest_due
             if when_to_charge <= now:
-                sum_debt = self.sum_plan_debt(plan_invoices_due)
+                sum_debt = self.total_charge_debt(plan_invoices_due)
                 transaction = ChargeTransaction.create(self.id, sum_debt)
                 try:
                     transaction.execute()

@@ -9,20 +9,17 @@ from sqlalchemy.types import TypeDecorator, VARCHAR
 
 from settings import Session
 
-Base = declarative_base()
-Base.query = Session.query_property()
-Base.session = Session
 
+class Base(object):
 
-class Base(Base):
+    query = Session.query_property()
+    session = Session
 
-    """
-    The base class for billy. Also serves as a meta mixin
-    """
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow,
                         onupdate=datetime.utcnow, nullable=False)
 
+Base = declarative_base(cls=Base)
 
 class RelativeDelta(TypeDecorator):
 

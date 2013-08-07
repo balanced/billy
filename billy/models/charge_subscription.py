@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, Index
-from models import Base, Customer, ChargePlan, ChargePlanInvoice
+from models import Base, ChargePlan, Customer
 from utils.generic import uuid_factory
 
 
@@ -32,11 +32,11 @@ class ChargeSubscription(Base):
         result.is_enrolled = True
         # Todo premature commit might cause issues....
         cls.session.add(result)
-        cls.session.commit()
         return result
 
     @property
     def current_invoice(self):
+        from models import ChargePlanInvoice
         return self.invoices.filter(
             ChargePlanInvoice.end_dt > datetime.utcnow()).first()
 

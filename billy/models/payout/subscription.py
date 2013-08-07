@@ -1,4 +1,7 @@
+from __future__ import unicode_literals
+
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, Index
+
 from models import Base
 from utils.models import uuid_factory
 

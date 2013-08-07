@@ -43,7 +43,7 @@ class ChargePlanInvoice(Base):
                remaining_balance_cents, quantity, charge_at_period_end,
                includes_trial=False):
         coupon_id = coupon and coupon.guid
-        new_invoice = cls(
+        invoice = cls(
             subscription_id=subscription.id,
             coupon_id=coupon_id,
             start_dt=start_dt,
@@ -58,8 +58,8 @@ class ChargePlanInvoice(Base):
             charge_at_period_end=charge_at_period_end,
             includes_trial=includes_trial,
         )
-        cls.session.add(new_invoice)
-        return new_invoice
+        cls.session.add(invoice)
+        return invoice
 
     @classmethod
     def prorate_last(cls, customer, plan):

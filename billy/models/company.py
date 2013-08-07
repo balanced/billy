@@ -50,41 +50,41 @@ class Company(Base):
         processor_class = processor_map[
             processor_type.upper()](processor_api_key)
         processor_company_id = processor_class.get_company_id()
-        new_company = cls(
+        company = cls(
             processor_type=processor_type.upper(),
             processor_credential=processor_api_key,
             processor_company_id=processor_company_id,
             is_test=is_test, **kwargs)
-        api_key = ApiKeys(company=new_company)
-        cls.session.add(new_company)
+        api_key = ApiKeys(company=company)
+        cls.session.add(company)
         cls.session.add(api_key)
-        return new_company
+        return company
 
-    def change_processor_credential(self, new_processor_credential):
+    def change_processor_credential(self, processor_credential):
         """
         Updates the company's processor credentials
-        :param new_processor_credential: The new credentials
+        :param processor_credential: The new credentials
         :return: the updated Company object
         :raise: ValueError if the processor_company_id doesn't match the one
         associated with the new api key
         """
         processor_company_id = self.processor.get_company(
-            new_processor_credential)
+            processor_credential)
         if not processor_company_id == self.processor_company_id:
             raise ValueError(
                 'New API key does not match company ID with models.processor')
         else:
-            self.processor_credential = new_processor_credential
+            self.processor_credential = processor_credential
         return self
 
     def create_customer(self, your_id, processor_id):
-        new_customer = Customer(
+        customer = Customer(
             your_id=your_id,
             processor_id=processor_id,
             company=self
         )
-        self.session.add(new_customer)
-        return new_customer
+        self.session.add(customer)
+        return customer
 
     def create_coupon(self, your_id, name, price_off_cents,
                       percent_off_int, max_redeem, repeating, expire_at=None):
@@ -101,7 +101,7 @@ class Company(Base):
         :param expire_at: When should the coupon expire?
         :return: A Coupon object
         """
-        new_coupon = Coupon(
+        coupon= Coupon(
             your_id=your_id,
             company=self,
             name=name,
@@ -110,9 +110,9 @@ class Company(Base):
             max_redeem=max_redeem,
             repeating=repeating,
             expire_at=expire_at)
-        self.session.add(new_coupon)
+        self.session.add(coupon)
 
-        return new_coupon
+        return coupon
 
 
     def create_charge_plan(self, your_id, name, price_cents,
@@ -130,7 +130,7 @@ class Company(Base):
         charging the customer. RelativeDelta object.
         :return: A ChargePlan object
         """
-        new_plan = ChargePlan(
+        plan = ChargePlan(
             your_id=your_id,
             company=self,
             name=name,
@@ -138,8 +138,8 @@ class Company(Base):
             plan_interval=plan_interval,
             trial_interval=trial_interval
         )
-        self.session.add(new_plan)
-        return new_plan
+        self.session.add(plan)
+        return plan
 
     def create_payout_plan(self, your_id, name, balance_to_keep_cents,
                            payout_interval):
@@ -153,14 +153,14 @@ class Company(Base):
         A relative delta object
         :return: A PayoutPlan object
         """
-        new_payout = PayoutPlan(
+        payout = PayoutPlan(
             your_id=your_id,
             company=self,
             name=name,
             balance_to_keep_cents=balance_to_keep_cents,
             payout_interval=payout_interval)
-        self.session.add(new_payout)
-        return new_payout
+        self.session.add(payout)
+        return payout
 
     def delete(self, force=False):
         if not self.is_test and not force:

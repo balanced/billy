@@ -15,12 +15,12 @@ class TransactionMixin(object):
 
     @classmethod
     def create(cls, customer_id, amount_cents):
-        new_transaction = cls(
+        transaction = cls(
             customer_id=customer_id,
             amount_cents=amount_cents,
             status=TransactionStatus.PENDING
         )
-        cls.session.add(new_transaction)
-        return new_transaction
+        cls.session.add(transaction)
+        return transaction
 
 

@@ -60,12 +60,12 @@ class Customer(Base):
         balance_to_keep_cents = payout_plan.balance_to_keep_cents
         if not first_now:
             first_charge += payout_plan.payout_interval
-        new_sub = PayoutSubscription.create(self, payout_plan)
-        invoice = PayoutInvoice.create(new_sub.id,
+        subscription = PayoutSubscription.create(self, payout_plan)
+        invoice = PayoutInvoice.create(subscription.id,
                                        first_charge,
                                        balance_to_keep_cents)
         self.session.add(invoice)
-        return new_sub
+        return subscription
 
     def subscribe_to_charge(self, charge_plan, quantity=1,
                             charge_at_period_end=False, start_dt=None):
@@ -91,10 +91,10 @@ class Customer(Base):
             amount_after_coupon -= int(
                 amount_after_coupon * Decimal(percent_off) / Decimal(100))
         balance = amount_after_coupon
-        new_sub = ChargeSubscription.create(self, charge_plan)
+        subscription = ChargeSubscription.create(self, charge_plan)
         ChargePlanInvoice.prorate_last(self, charge_plan)
         ChargePlanInvoice.create(
-            subscription=new_sub,
+            subscription=subscription,
             coupon=current_coupon,
             start_dt=start_date,
             end_dt=end_date,
@@ -107,7 +107,7 @@ class Customer(Base):
             charge_at_period_end=charge_at_period_end,
             includes_trial=can_trial
         )
-        return new_sub
+        return subscription
 
     def remove_coupon(self):
         """

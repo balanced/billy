@@ -34,13 +34,13 @@ class PayoutInvoice(Base):
     @classmethod
     def create(cls, subscription_id,
                payout_date, balanced_to_keep_cents):
-        new_invoice = cls(
+        invoice = cls(
             subscription_id=subscription_id,
             payout_date=payout_date,
             balance_to_keep_cents=balanced_to_keep_cents,
         )
-        cls.session.add(new_invoice)
-        return new_invoice
+        cls.session.add(invoice)
+        return invoice
 
     @classmethod
     def retrieve(cls, customer, payout, active_only=False, last_only=False):

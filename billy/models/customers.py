@@ -34,7 +34,7 @@ class Customer(Base):
     charge_transactions = relationship('ChargeTransaction',
                                        backref='customer', cascade='delete',
                                        lazy='dynamic'
-    )
+                                       )
 
     # Payout Relationships
     payout_subscriptions = relationship('PayoutSubscription',
@@ -141,7 +141,7 @@ class Customer(Base):
         """
         use_coupon = self.current_coupon or True \
             if self.current_coupon.repeating == -1 or \
-               self.coupon_use_count <= self.current_coupon.repeating else False
+            self.coupon_use_count <= self.current_coupon.repeating else False
         return use_coupon
 
     @property
@@ -167,8 +167,8 @@ class Customer(Base):
         now = datetime.utcnow()
         return cls.query.join(ChargeSubscription).join(
             ChargePlanInvoice).filter(
-            ChargePlanInvoice.remaining_balance_cents > 0,
-            ChargePlanInvoice.due_dt <= now).all()
+                ChargePlanInvoice.remaining_balance_cents > 0,
+                ChargePlanInvoice.due_dt <= now).all()
 
     @classmethod
     def settle_all_charge_plan_debt(cls):
@@ -186,7 +186,7 @@ class Customer(Base):
         plan_invoices_due = ChargePlanInvoice.all_due(self)
         for plan_invoice in plan_invoices_due:
             earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \
-                                                  earliest_due else earliest_due
+                earliest_due else earliest_due
             # Cancel a users plan if max retries reached
         if len(RETRY_DELAY_PLAN) < self.charge_attempts and not force:
             for plan_invoice in plan_invoices_due:
@@ -223,7 +223,6 @@ class Customer(Base):
             customer.settle_payouts()
         return True
 
-
     def settle_payout(self, force=False):
         from models import PayoutInvoice, PayoutSubscription, PayoutTransaction
 
@@ -244,7 +243,8 @@ class Customer(Base):
                 when_to_payout = payout_date + retry_delay if retry_delay else \
                     payout_date
                 if when_to_payout <= now:
-                    payout_amount = current_balance - invoice.balance_to_keep_cents
+                    payout_amount = current_balance - \
+                        invoice.balance_to_keep_cents
                     transaction = PayoutTransaction.create(
                         invoice.subscription.customer_id, payout_amount)
                     try:

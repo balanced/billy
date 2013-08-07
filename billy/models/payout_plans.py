@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 from datetime import datetime
 
 from sqlalchemy import (Column, Unicode, Integer, Boolean,
-    ForeignKey, UniqueConstraint, CheckConstraint)
+                        ForeignKey, UniqueConstraint, CheckConstraint)
 from sqlalchemy.orm import relationship
 
 from models import Base, Company

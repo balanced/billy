@@ -31,7 +31,7 @@ class PayoutInvoice(Base):
     subscription = relationship('PayoutSubscription',
                                 backref=backref('invoices', lazy='dynamic',
                                                 cascade='delete'),
-    )
+                                )
 
     @classmethod
     def create(cls, subscription_id,

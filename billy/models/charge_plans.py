@@ -25,7 +25,7 @@ class ChargePlan(Base):
     trial_interval = Column(RelativeDelta)
     plan_interval = Column(RelativeDelta)
 
-    subscriptions = relationship('ChargeSubscription', backref='charge_plan',
+    subscriptions = relationship('ChargeSubscription', backref='plan',
                                  cascade='delete, delete-orphan')
 
     __table_args__ = (UniqueConstraint(your_id, company_id,

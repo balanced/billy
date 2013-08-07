@@ -182,7 +182,7 @@ class TestUtils(TestPlanInvoice):
                 each.clear_plan_debt()
             invoices = ChargePlanInvoice.need_rollover()
             for invoice in invoices:
-                invoice.rollover()
+                invoice.reinvoice()
 
     def test_rollover_all(self):
         with freeze_time(str(self.month + Intervals.TWO_WEEKS)):

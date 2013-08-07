@@ -31,7 +31,7 @@ class PayoutInvoice(Base):
     subscription = relationship('PayoutSubscription',
                                 backref=backref('invoices', lazy='dynamic',
                                                 cascade='delete'),
-                                )
+    )
 
     @classmethod
     def create(cls, subscription_id,
@@ -62,15 +62,7 @@ class PayoutInvoice(Base):
             return last
         return subscription.invoices
 
-    @classmethod
-    def rollover_all(cls):
-        need_rollover = cls.query.join(PayoutSubscription).filter(
-            cls.queue_rollover == True,
-            PayoutSubscription.is_active == True).all()
-        for invoice in need_rollover:
-            invoice.rollover()
-
-    def rollover(self):
+    def reinvoice(self):
         self.subscription.is_active = False
         self.queue_rollover = False
         PayoutSubscription.subscribe(self.subscription.customer,
@@ -79,43 +71,9 @@ class PayoutInvoice(Base):
                                      start_dt=self.payout_date)
 
     @classmethod
-    def make_all_payouts(cls):
-        now = datetime.utcnow()
-        need_payout = cls.query.filter(cls.payout_date <= now,
-                                       cls.completed == False).all()
-        for invoice in need_payout:
-            invoice.make_payout()
-        return True
-
-    def make_payout(self, force=False):
-        from models import PayoutTransaction
-
-        now = datetime.utcnow()
-        transactor = self.subscription.customer.company.processor
-        current_balance = transactor.check_balance(
-            self.subscription.customer.id,
-            self.subscription.customer.group_id)
-        payout_date = self.payout_date
-        if len(RETRY_DELAY_PAYOUT) < self.attempts_made and not force:
-            self.subscription.is_active = False
-        else:
-            retry_delay = sum(RETRY_DELAY_PAYOUT[:self.attempts_made])
-            when_to_payout = payout_date + retry_delay if retry_delay else \
-                payout_date
-            if when_to_payout <= now:
-                payout_amount = current_balance - self.balance_to_keep_cents
-                transaction = PayoutTransaction.create(
-                    self.subscription.customer_id, payout_amount)
-                try:
-                    transaction.execute()
-                    self.cleared_by = transaction.id
-                    self.balance_at_exec = current_balance
-                    self.amount_payed_out = payout_amount
-                    self.completed = True
-                    self.queue_rollover = True
-                except Exception, e:
-                    self.attempts_made += 1
-                    self.session.commit()
-                    raise e
-        self.session.commit()
-        return self
+    def reinvoice_all(cls):
+        need_rollover = cls.query.join(PayoutSubscription).filter(
+            cls.queue_rollover == True,
+            PayoutSubscription.is_active == True).all()
+        for invoice in need_rollover:
+            invoice.reinvoice()

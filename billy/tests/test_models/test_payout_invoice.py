@@ -102,7 +102,7 @@ class TestUtils(TestPayoutInvoice):
             PayoutInvoice.make_all_payouts()
             self.assertEqual(len(PayoutInvoice.needs_rollover()), 2)
             self.assertEqual(len(PayoutInvoice.needs_payout_made()), 0)
-            PayoutInvoice.rollover_all()
+            PayoutInvoice.reinvoice_all()
             self.assertEqual(len(PayoutInvoice.needs_rollover()), 0)
 
     def test_rollover(self):

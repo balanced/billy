@@ -50,7 +50,6 @@ class ChargePlanInterfaceTest(BaseTestCase):
         coupon.redeem(customer)
 
         # Subscribe Customer to a plan
-        import ipdb;ipdb.set_trace()
         sub = customer.subscribe_to_charge(plan, quantity=1)
 
         # Unsubscribe Customer from plan:
@@ -64,7 +63,7 @@ class ChargePayoutInterfaceTest(BaseTestCase):
     def main_test(self):
         company = Company.create(
             processor_type='DUMMY',
-            processor_api_key='MY_DUMMY_API_KEY',
+            processor_api_key='MY_DUMMY_API_KEY_2',
             is_test=True,
         )
         # Create A Payout under the company

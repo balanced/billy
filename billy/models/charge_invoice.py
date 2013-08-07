@@ -17,7 +17,7 @@ class ChargePlanInvoice(Base):
     id = Column(Unicode, primary_key=True, default=uuid_factory('PLI'))
     subscription_id = Column(Unicode, ForeignKey(ChargeSubscription.id),
                              nullable=False)
-    coupon_id = Column(Unicode, ForeignKey(Coupon.id), nullable=False)
+    coupon_id = Column(Unicode, ForeignKey(Coupon.id))
     start_dt = Column(DateTime, nullable=False)
     end_dt = Column(DateTime, nullable=False)
     original_end_dt = Column(DateTime)
@@ -35,7 +35,7 @@ class ChargePlanInvoice(Base):
 
     subscription = relationship('ChargeSubscription',
                                 backref=backref('invoices',
-                                                cascade='delete,delete-orphan'),
+                                                cascade='delete,delete-orphan', lazy='dynamic'),
                                 )
 
     @classmethod
@@ -71,7 +71,7 @@ class ChargePlanInvoice(Base):
         subscription = ChargeSubscription.query.filter(
             ChargeSubscription.customer_id == customer.id,
             ChargeSubscription.plan_id == plan.id,
-            ChargeSubscription.is_active == True).first()
+            ChargeSubscription.should_renew == True).first()
         current_invoice = subscription and subscription.current_invoice
         if current_invoice:
             now = datetime.utcnow()
@@ -114,7 +114,7 @@ class ChargePlanInvoice(Base):
         ).all()
         return results
 
-    def rollover(self):
+    def reinvoice(self):
         """
         Rollover the invoice
         """
@@ -128,14 +128,16 @@ class ChargePlanInvoice(Base):
             start_dt=self.end_dt)
 
     @classmethod
-    def rollover_all(cls):
+    def reinvoice_all(cls):
+        """
+        Roll
+        """
         now = datetime.utcnow()
-        need_rollover = cls.query.join(ChargeSubscription).filter(
+        needs_reinvoicing = cls.query.join(ChargeSubscription).filter(
             cls.end_dt <= now,
             ChargeSubscription.is_active == True,
             cls.remaining_balance_cents == 0,
         ).all()
-        to_rollover = need_rollover
-        for plan_invoice in to_rollover:
-            plan_invoice.rollover()
-        return len(to_rollover)
+        for plan_invoice in needs_reinvoicing:
+            plan_invoice.reinvoice()
+        return len(needs_reinvoicing)

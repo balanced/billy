@@ -9,10 +9,12 @@ class PlanModel(object):
     FREQ_DAILY = 0
     FREQ_WEEKLY = 1
     FREQ_MONTHLY = 2
+    FREQ_YEARLY = 3
     FREQ_ALL = [
         FREQ_DAILY,
         FREQ_WEEKLY,
         FREQ_MONTHLY,
+        FREQ_YEARLY,
     ]
 
     def __init__(self, session, logger=None):
@@ -53,12 +55,11 @@ class PlanModel(object):
         if kwargs:
             now = tables.now_func()
             plan.updated_at = now
-        if 'name' in kwargs:
-            plan.name = kwargs['name']
-            del kwargs['name']
-        if 'active' in kwargs:
-            plan.active = kwargs['active']
-            del kwargs['active']
+        for key in ['name', 'active']:
+            if key not in kwargs:
+                continue
+            value = kwargs.pop(key)
+            setattr(plan, key, value)
         if kwargs:
             raise TypeError('Unknown attributes {} to update'.format(tuple(kwargs.keys())))
         self.session.add(plan)

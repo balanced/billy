@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-errors = {
+error_definitions = {
     # GENERIC ERRORS
     '400': {
         'status': 400,
@@ -11,6 +11,10 @@ errors = {
     '401': {
         'status': 401,
         'error_message': 'UnAuthorized: Invalid API Key'
+    },
+    '405_DELETE_NON_TEST_GROUP': {
+        'status': 405,
+        'error_message': 'Cannot delete a non-test group.'
     },
 
     # CUSTOMER ERRORS
@@ -51,7 +55,7 @@ errors = {
                          'PUT instead.'
     },
 
-    # Payout ERRORS
+    # PayoutPlan ERRORS
     '404_PAYOUT_NOT_FOUND': {
         'status': 404,
         'error_message': 'The payout you requested was not found.'
@@ -62,38 +66,38 @@ errors = {
                          'PUT instead.'
     },
 
-    # Plan Subscription Errors
+    # ChargePlan Subscription Errors
     '404_PLAN_SUB_NOT_FOUND': {
         'status': 404,
         'error_message': 'The plan subscription you requested was not found.'
     },
 
-    # Payout Subscription Errors
+    # PayoutPlan Subscription Errors
     '404_PAYOUT_SUB_NOT_FOUND': {
         'status': 404,
         'error_message': 'The payout subscription you requested was not found.'
     },
 
-    # Plan Invoice Errors
+    # ChargePlan Invoice Errors
     '404_PLAN_INV_NOT_FOUND': {
         'status': 404,
         'error_message': 'The plan invoice you requested was not found.'
     },
 
-    # Payout Invoice Errors
+    # PayoutPlan Invoice Errors
     '404_PAYOUT_INV_NOT_FOUND': {
         'status': 404,
         'error_message': 'The payout invoice you requested was not found.'
     },
 
 
-    # Plan Invoice Errors
+    # ChargePlan Invoice Errors
     '404_PLAN_TRANS_NOT_FOUND': {
         'status': 404,
         'error_message': 'The plan transaction you requested was not found.'
     },
 
-    # Payout Invoice Errors
+    # PayoutPlan Invoice Errors
     '404_PAYOUT_TRANS_NOT_FOUND': {
         'status': 404,
         'error_message': 'The payout transaction you requested was not found.'
@@ -104,6 +108,10 @@ errors = {
     '400_CUSTOMER_ID': {
         'status': 400,
         'error_message': 'Invalid customer_id. Please check.'
+    },
+    '400_PROVIDER_ID': {
+        'status': 400,
+        'error_message': 'Invalid provider_id. Please check.'
     },
     '400_COUPON_ID': {
         'status': 400,
@@ -168,5 +176,5 @@ errors = {
 
 }
 
-for key in errors.keys():
-    errors[key]['error_code'] = key
+for key in error_definitions.keys():
+    error_definitions[key]['error_code'] = key

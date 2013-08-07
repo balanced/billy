@@ -5,13 +5,13 @@ from flask.ext.restful import marshal_with
 
 from api.errors import BillyExc
 from api.resources.group import GroupController
-from models import Group, Customer, PayoutTransaction
+from models import Company, Customer, PayoutTransaction
 from view import payout_trans_view
 
 
 class PayoutTransIndexController(GroupController):
     """
-    Base Payout Transaction resource used to create a payout transaction or
+    Base PayoutPlan Transaction resource used to create a payout transaction or
     retrieve all your payout transactions
     """
 
@@ -21,7 +21,7 @@ class PayoutTransIndexController(GroupController):
         Return a list of payout transactions pertaining to a group
         """
         return PayoutTransaction.query.join(Customer).join(
-            Group).filter(Group.guid == self.group.guid).all()
+            Company).filter(Company.id == self.group.id).all()
 
 
 class PayoutTransController(GroupController):
@@ -33,7 +33,7 @@ class PayoutTransController(GroupController):
         super(PayoutTransController, self).__init__()
         payout_trans_id = request.view_args.values()[0]
         self.trans = PayoutTransaction.query.filter(
-            PayoutTransaction.guid == payout_trans_id).first()
+            PayoutTransaction.id == payout_trans_id).first()
         if not self.trans:
             raise BillyExc['404_PAYOUT_TRANS_NOT_FOUND']
 

@@ -31,7 +31,7 @@ class CustomerIndexController(GroupController):
         """
         customer_form = CustomerCreateForm(request.form)
         if customer_form.validate():
-            return customer_form.save(self.group)
+            return customer_form.save(self.group), 201
         else:
             self.form_error(customer_form.errors)
 
@@ -45,7 +45,7 @@ class CustomerController(GroupController):
     def __init__(self):
         super(CustomerController, self).__init__()
         customer_id = request.view_args.values()[0]
-        self.customer = Customer.retrieve(customer_id, self.group.guid)
+        self.customer = Customer.retrieve(customer_id, self.group.id)
         if not self.customer:
             raise BillyExc['404_CUSTOMER_NOT_FOUND']
 
@@ -64,3 +64,5 @@ class CustomerController(GroupController):
         customer_form = CustomerUpdateForm(request.form)
         if customer_form.validate():
             return customer_form.save(self.customer)
+        else:
+            self.form_error(customer_form.errors)

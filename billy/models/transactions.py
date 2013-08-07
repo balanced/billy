@@ -1,74 +1,71 @@
 from __future__ import unicode_literals
 
-from pytz import UTC
-from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Integer
+from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Integer, Enum
 from sqlalchemy.orm import relationship
-from sqlalchemy.schema import ForeignKeyConstraint
 
-from models import Base, Group, Customer, PlanInvoice, PayoutInvoice
-from utils.generic import uuid_factory, Status
-from settings import TRANSACTION_PROVIDER_CLASS
+from models import Base, Customer, ChargePlanInvoice, PayoutInvoice
+from utils.generic import uuid_factory
+
+transaction_status = Enum('PENDING', 'COMPLETE', 'ERROR',
+                          name='transaction_status')
 
 
 class TransactionMixin(object):
-    provider_txn_id = Column(Unicode)
-    created_at = Column(DateTime(timezone=UTC))
-    amount_cents = Column(Integer)
-    status = Column(Unicode)
+    provider_txn_id = Column(Unicode, nullable=False)
+    amount_cents = Column(Integer, nullable=False)
+    status = Column(transaction_status, nullable=False)
 
     @classmethod
     def create(cls, customer_id, amount_cents):
         new_transaction = cls(
             customer_id=customer_id,
             amount_cents=amount_cents,
-            status=Status.PENDING
+            status='PENDING'
         )
         cls.session.add(new_transaction)
-        cls.session.commit()
         return new_transaction
 
 
-class PlanTransaction(TransactionMixin, Base):
-    __tablename__ = "plan_transactions"
+class ChargeTransaction(TransactionMixin, Base):
+    __tablename__ = "charge_transactions"
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('PAT'))
-    customer_id = Column(Unicode, ForeignKey(Customer.guid))
+    id = Column(Unicode, primary_key=True, default=uuid_factory('PAT'))
+    customer_id = Column(Unicode, ForeignKey(Customer.id), nullable=False)
 
-    plan_invoices = relationship(PlanInvoice, backref='transaction')
+    invoices = relationship(ChargePlanInvoice, backref='transaction',
+                            cascade='delete')
 
     def execute(self):
-            try:
-                external_id = TRANSACTION_PROVIDER_CLASS.create_charge(
-                    self.customer.guid, self.customer.group_id,
-                    self.amount_cents)
-                self.status = Status.COMPLETE
-                self.external_id = external_id
-            except Exception, e:
-                self.status = Status.ERROR
-                self.session.commit()
-                raise e
-            self.customer.charge_attempts = 0
+        try:
+            your_id = self.customer.company.processor.create_charge(
+                self.customer.id, self.customer.group_id,
+                self.amount_cents)
+            self.status = 'COMPLETE'
+            self.your_id = your_id
+        except:
+            self.status = 'ERROR'
             self.session.commit()
+            raise
+        self.customer.charge_attempts = 0
 
 
 class PayoutTransaction(TransactionMixin, Base):
     __tablename__ = 'payout_transactions'
 
-    guid = Column(Unicode, primary_key=True, default=uuid_factory('POT'))
-    customer_id = Column(Unicode, ForeignKey(Customer.guid))
+    id = Column(Unicode, primary_key=True, default=uuid_factory('POT'))
+    customer_id = Column(Unicode, ForeignKey(Customer.id), nullable=False)
 
-    payout_invoices = relationship(PayoutInvoice,
-                                   backref='transaction')
+    invoices = relationship(PayoutInvoice,
+                            backref='transaction', cascade='delete')
 
     def execute(self):
         try:
-            external_id = TRANSACTION_PROVIDER_CLASS.make_payout(
-                self.customer.guid, self.customer.group_id,
+            your_id = self.customer.company.processor.make_payout(
+                self.customer.id, self.customer.group_id,
                 self.amount_cents)
-            self.status = Status.COMPLETE
-            self.external_id = external_id
-        except Exception, e:
-            self.status = Status.ERROR
+            self.status = 'COMPLETE'
+            self.your_id = your_id
+        except:
+            self.status = 'ERROR'
             self.session.commit()
-            raise e
-        self.session.commit()
+            raise

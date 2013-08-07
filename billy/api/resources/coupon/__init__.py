@@ -45,7 +45,7 @@ class CouponController(GroupController):
     def __init__(self):
         super(CouponController, self).__init__()
         coupon_id = request.view_args.values()[0]
-        self.coupon = Coupon.retrieve(coupon_id, self.group.guid)
+        self.coupon = Coupon.retrieve(coupon_id, self.group.id)
         if not self.coupon:
             raise BillyExc['404_COUPON_NOT_FOUND']
 
@@ -64,6 +64,8 @@ class CouponController(GroupController):
         coupon_form = CouponUpdateForm(request.form)
         if coupon_form.validate():
             return coupon_form.save(self.coupon)
+        else:
+            self.form_error(coupon_form.errors)
 
     def delete(self, coupon_id):
         """

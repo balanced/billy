@@ -6,13 +6,13 @@ from flask.ext.restful import marshal_with
 from api.errors import BillyExc
 from api.resources.group import GroupController
 from form import PlanSubCreateForm, PlanSubDeleteForm
-from models import Customer, Group, PlanSubscription
+from models import Customer, Company, ChargeSubscription
 from view import plan_sub_view
 
 
 class PlanSubIndexController(GroupController):
     """
-    Base PlanSubscription resource used to create a plan subscription or
+    Base ChargeSubscription resource used to create a plan subscription or
     retrieve all your plan subscriptions
     """
 
@@ -21,8 +21,8 @@ class PlanSubIndexController(GroupController):
         """
         Return a list of plans subscriptions pertaining to a group
         """
-        return PlanSubscription.query.join(Customer).join(Group).filter(
-            Group.guid == self.group.guid).all()
+        return ChargeSubscription.query.join(Customer).join(Company).filter(
+            Company.id == self.group.id).all()
 
     @marshal_with(plan_sub_view)
     def post(self):
@@ -55,8 +55,8 @@ class PlanSubController(GroupController):
     def __init__(self):
         super(PlanSubController, self).__init__()
         plan_sub_id = request.view_args.values()[0]
-        self.subscription = PlanSubscription.query.filter(
-            PlanSubscription.guid == plan_sub_id).first()
+        self.subscription = ChargeSubscription.query.filter(
+            ChargeSubscription.id == plan_sub_id).first()
         if not self.subscription:
             raise BillyExc['404_PLAN_SUB_NOT_FOUND']
 

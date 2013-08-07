@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 from dateutil.relativedelta import relativedelta
-from flask.ext.restful import fields
+from utils import fields
 import json
 from wtforms import Field, TextField
 
@@ -10,7 +10,7 @@ class Intervals(object):
 
     """
     A class to represent and create relativedelta objects which will be used
-    to define the plan intervals. Plan intervals MUST be defined using this
+    to define the plan intervals. ChargePlan intervals MUST be defined using this
     class.
     """
     NONE = relativedelta(seconds=0)

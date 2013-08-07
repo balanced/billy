@@ -5,16 +5,14 @@ from sqlalchemy import (Column, Unicode, ForeignKey, DateTime, Boolean,
 from sqlalchemy.orm import relationship, backref
 
 from models import Base, PayoutSubscription
-from settings import RETRY_DELAY_PAYOUT
-from utils.generic import uuid_factory
-from processor import processor_map
+from utils.models import uuid_factory
 
 
 class PayoutInvoice(Base):
     __tablename__ = 'payout_invoices'
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('POI'))
-    subscription_id = Column(Unicode, ForeignKey(PayoutSubscription.id),
+    subscription_id = Column(Unicode, ForeignKey('PayoutSubscription.id'),
                              nullable=False)
     payout_date = Column(DateTime)
     balance_to_keep_cents = Column(Integer, CheckConstraint(
@@ -31,7 +29,7 @@ class PayoutInvoice(Base):
     subscription = relationship('PayoutSubscription',
                                 backref=backref('invoices', lazy='dynamic',
                                                 cascade='delete'),
-                                )
+    )
 
     @classmethod
     def create(cls, subscription_id,

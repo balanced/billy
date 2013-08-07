@@ -1,7 +1,8 @@
 from __future__ import unicode_literals
 
+from processor import ProcessorType
 from base import Base
-from company import Company
+from company import ApiKeys, Company
 from coupons import Coupon
 from customers import Customer
 from payout_plans import PayoutPlan

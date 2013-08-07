@@ -1,8 +1,8 @@
 from __future__ import unicode_literals
 
-from utils import fields
 from wtforms import fields as wtfields
 
+from utils import fields
 from api.errors.definitions import error_definitions
 from resources import *
 from utils.intervals import IntervalViewField

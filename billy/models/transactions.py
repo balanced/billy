@@ -4,14 +4,14 @@ from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Integer, Enum
 from sqlalchemy.orm import relationship
 
 from models import Base, Customer, ChargePlanInvoice, PayoutInvoice
-from utils.generic import uuid_factory
+from utils.models import uuid_factory
 
 transaction_status = Enum('PENDING', 'COMPLETE', 'ERROR',
                           name='transaction_status')
 
 
 class TransactionMixin(object):
-    provider_txn_id = Column(Unicode, nullable=False)
+    processor_txn_id = Column(Unicode, nullable=False)
     amount_cents = Column(Integer, nullable=False)
     status = Column(transaction_status, nullable=False)
 

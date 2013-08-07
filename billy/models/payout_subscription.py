@@ -1,15 +1,14 @@
-from datetime import datetime
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, Index
-from models import Base, Customer, PayoutPlan
-from utils.generic import uuid_factory
+from models import Base
+from utils.models import uuid_factory
 
 
 class PayoutSubscription(Base):
     __tablename__ = 'payout_subscription'
 
-    id = Column(Unicode, primary_key=True, default=uuid_factory('POS'))
-    customer_id = Column(Unicode, ForeignKey(Customer.id), nullable=False)
-    payout_id = Column(Unicode, ForeignKey(PayoutPlan.id), nullable=False)
+    id = Column(Unicode, primary_key=True, default=uuid_factory('PS'))
+    customer_id = Column(Unicode, ForeignKey('Customer.id'), nullable=False)
+    payout_id = Column(Unicode, ForeignKey('PayoutPlan.id'), nullable=False)
     is_active = Column(Boolean, default=True)
 
     __table_args__ = (
@@ -32,8 +31,6 @@ class PayoutSubscription(Base):
         return result
 
     def cancel(self, cancel_scheduled=False):
-        from models import PayoutInvoice
-
         self.is_active = False
         if cancel_scheduled:
             in_process = self.invoices.filter(

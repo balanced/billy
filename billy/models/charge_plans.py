@@ -7,13 +7,13 @@ from sqlalchemy.orm import relationship
 
 from models import Base, Company
 from models.base import RelativeDelta
-from utils.generic import uuid_factory
+from utils.models import uuid_factory
 
 
 class ChargePlan(Base):
     __tablename__ = 'charge_plans'
 
-    id = Column(Unicode, primary_key=True, default=uuid_factory('PL'))
+    id = Column(Unicode, primary_key=True, default=uuid_factory('CP'))
     your_id = Column(Unicode, nullable=False)
     company_id = Column(Unicode, ForeignKey(Company.id), nullable=False)
     name = Column(Unicode, nullable=False)

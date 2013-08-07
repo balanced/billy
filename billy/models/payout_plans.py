@@ -5,17 +5,17 @@ from sqlalchemy import (Column, Unicode, Integer, Boolean,
                         ForeignKey, UniqueConstraint, CheckConstraint)
 from sqlalchemy.orm import relationship
 
-from models import Base, Company
+from models import Base
 from models.base import RelativeDelta
-from utils.generic import uuid_factory
+from utils.models import uuid_factory
 
 
 class PayoutPlan(Base):
     __tablename__ = 'payout_plans'
 
-    id = Column(Unicode, primary_key=True, default=uuid_factory('PO'))
+    id = Column(Unicode, primary_key=True, default=uuid_factory('POP'))
     your_id = Column(Unicode, nullable=False)
-    company_id = Column(Unicode, ForeignKey(Company.id), nullable=False)
+    company_id = Column(Unicode, ForeignKey('Company.id'), nullable=False)
     name = Column(Unicode, nullable=False)
     balance_to_keep_cents = Column(Integer,
                                    CheckConstraint('balance_to_keep_cents >= 0'

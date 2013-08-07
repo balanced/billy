@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from sqlalchemy.orm.exc import *
 from wtforms import (
-    Form, TextField, IntegerField, validators, DateTimeField, BooleanField)
+    Form, TextField, validators, DateTimeField, BooleanField)
 
 from api.errors import BillyExc
 from models import Customer, PayoutPlan, PayoutSubscription

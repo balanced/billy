@@ -1,13 +1,13 @@
 from datetime import datetime
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, Index
 from models import Base, ChargePlan, Customer
-from utils.generic import uuid_factory
+from utils.models import uuid_factory
 
 
 class ChargeSubscription(Base):
     __tablename__ = 'charge_subscription'
 
-    id = Column(Unicode, primary_key=True, default=uuid_factory('PLS'))
+    id = Column(Unicode, primary_key=True, default=uuid_factory('CS'))
     customer_id = Column(Unicode, ForeignKey(Customer.id), nullable=False)
     plan_id = Column(Unicode, ForeignKey(ChargePlan.id), nullable=False)
     is_enrolled = Column(Boolean, default=True)
@@ -36,13 +36,10 @@ class ChargeSubscription(Base):
 
     @property
     def current_invoice(self):
-        from models import ChargePlanInvoice
         return self.invoices.filter(
             ChargePlanInvoice.end_dt > datetime.utcnow()).first()
 
     def cancel(self, cancel_at_period_end=False):
-        from models import ChargePlanInvoice
-
         if cancel_at_period_end:
             self.is_active = False
         else:

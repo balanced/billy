@@ -8,13 +8,13 @@ from sqlalchemy.orm import relationship, backref
 
 from models import Base, Coupon
 from models.charge_subscription import ChargeSubscription
-from utils.generic import uuid_factory
+from utils.models import uuid_factory
 
 
 class ChargePlanInvoice(Base):
     __tablename__ = 'charge_plan_invoices'
 
-    id = Column(Unicode, primary_key=True, default=uuid_factory('PLI'))
+    id = Column(Unicode, primary_key=True, default=uuid_factory('CPI'))
     subscription_id = Column(Unicode, ForeignKey(ChargeSubscription.id),
                              nullable=False)
     coupon_id = Column(Unicode, ForeignKey(Coupon.id))
@@ -104,8 +104,6 @@ class ChargePlanInvoice(Base):
         """
         Returns a list of invoices that are due for a customers
         """
-        from models import ChargePlanInvoice
-
         now = datetime.utcnow()
         results = ChargePlanInvoice.query.filter(
             ChargeSubscription.customer_id == customer.id,

@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from models import *
+from models import Company, ProcessorType
 from utils.intervals import Intervals
 from tests import BaseTestCase
 
@@ -11,7 +11,7 @@ class ChargePlanInterfaceTest(BaseTestCase):
 
     def main_test(self):
         company = Company.create(
-            processor_type='DUMMY',
+            processor_type=ProcessorType.DUMMY,
             processor_api_key='MY_DUMMY_API_KEY',
             is_test=True,
         )
@@ -62,7 +62,7 @@ class ChargePlanInterfaceTest(BaseTestCase):
 class ChargePayoutInterfaceTest(BaseTestCase):
     def main_test(self):
         company = Company.create(
-            processor_type='DUMMY',
+            processor_type=ProcessorType.DUMMY,
             processor_api_key='MY_DUMMY_API_KEY_2',
             is_test=True,
         )

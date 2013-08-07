@@ -3,7 +3,18 @@ from __future__ import unicode_literals
 import random
 import uuid
 
+from sqlalchemy import Enum
+
 ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+class Enum(Enum):
+    """
+    Better sqlalchemy enum with a getattr
+    """
+    def __getattr__(self, item):
+        if item in self.enums:
+            return item
+
 
 
 def base62_encode(num, alphabet=ALPHABET):
@@ -49,3 +60,5 @@ def api_key_factory():
 
     generator = lambda: ''.join([random.choice(ALPHABET) for _ in xrange(32)])
     return generator
+
+

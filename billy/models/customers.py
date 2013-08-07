@@ -7,19 +7,19 @@ from sqlalchemy.schema import ForeignKey, UniqueConstraint
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
 
-from settings import RETRY_DELAY_PLAN, RETRY_DELAY_PAYOUT
-from models import *
-from utils.generic import uuid_factory
+import settings
+from models import Base
+from utils.models import uuid_factory
 
 
 class Customer(Base):
     __tablename__ = 'customers'
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
-    company_id = Column(Unicode, ForeignKey(Company.id), nullable=False)
+    company_id = Column(Unicode, ForeignKey('Company.id'), nullable=False)
     your_id = Column(Unicode, nullable=False)
     processor_id = Column(Unicode, nullable=False)
-    coupon_id = Column(Unicode, ForeignKey(Coupon.id))
+    coupon_id = Column(Unicode, ForeignKey('Coupon.id'))
     updated_at = Column(DateTime, default=datetime.utcnow)
     last_debt_clear = Column(DateTime)
     # Todo this should be normalized and made a property:
@@ -34,7 +34,7 @@ class Customer(Base):
     charge_transactions = relationship('ChargeTransaction',
                                        backref='customer', cascade='delete',
                                        lazy='dynamic'
-                                       )
+    )
 
     # Payout Relationships
     payout_subscriptions = relationship('PayoutSubscription',
@@ -51,10 +51,6 @@ class Customer(Base):
             your_id, company_id, name='customerid_company_unique'),
     )
 
-    def update(self, processor_id):
-        if not self.company.processor.can_add_customer(processor_id):
-            raise ValueError('processor_id')
-        self.processor_id = processor_id
 
     def subscribe_to_payout(self, payout_plan, first_now=False, start_dt=None):
         from models import PayoutInvoice, PayoutSubscription
@@ -75,8 +71,6 @@ class Customer(Base):
         """
         Subscribe a customer to a plan
         """
-        from models import ChargePlanInvoice, ChargeSubscription
-
         current_coupon = self.coupon
         start_date = start_dt or datetime.utcnow()
         due_on = start_date
@@ -141,7 +135,7 @@ class Customer(Base):
         """
         use_coupon = self.current_coupon or True \
             if self.current_coupon.repeating == -1 or \
-            self.coupon_use_count <= self.current_coupon.repeating else False
+               self.coupon_use_count <= self.current_coupon.repeating else False
         return use_coupon
 
     @property
@@ -162,13 +156,11 @@ class Customer(Base):
         """
         Returns a list of customer objects that need to clear their plan debt
         """
-        from models import ChargePlanInvoice
-
         now = datetime.utcnow()
         return cls.query.join(ChargeSubscription).join(
             ChargePlanInvoice).filter(
-                ChargePlanInvoice.remaining_balance_cents > 0,
-                ChargePlanInvoice.due_dt <= now).all()
+            ChargePlanInvoice.remaining_balance_cents > 0,
+            ChargePlanInvoice.due_dt <= now).all()
 
     @classmethod
     def settle_all_charge_plan_debt(cls):
@@ -179,14 +171,12 @@ class Customer(Base):
         """
         Clears the charge debt of the customer.
         """
-        from models import ChargePlanInvoice, ChargeTransaction
-
         now = datetime.utcnow()
         earliest_due = datetime.utcnow()
         plan_invoices_due = ChargePlanInvoice.all_due(self)
         for plan_invoice in plan_invoices_due:
             earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \
-                earliest_due else earliest_due
+                                                  earliest_due else earliest_due
             # Cancel a users plan if max retries reached
         if len(RETRY_DELAY_PLAN) < self.charge_attempts and not force:
             for plan_invoice in plan_invoices_due:
@@ -213,8 +203,6 @@ class Customer(Base):
 
     @classmethod
     def settle_all_payouts(cls):
-        from models import PayoutInvoice, PayoutSubscription
-
         now = datetime.utcnow()
         customers_need_payout = cls.query.join(PayoutSubscription).join(
             PayoutInvoice).filter(PayoutInvoice.payout_date <= now,
@@ -224,8 +212,6 @@ class Customer(Base):
         return True
 
     def settle_payout(self, force=False):
-        from models import PayoutInvoice, PayoutSubscription, PayoutTransaction
-
         now = datetime.utcnow()
         invoices = PayoutInvoice.join(PayoutSubscription).join(Customer).query(
             Customer.id == self.id, PayoutInvoice.payout_date <= now,
@@ -236,15 +222,17 @@ class Customer(Base):
                 self.processor_id,
                 self.group_id)
             payout_date = invoice.payout_date
-            if len(RETRY_DELAY_PAYOUT) < invoice.attempts_made and not force:
+            if len(
+                    settings.RETRY_DELAY_PAYOUT) < invoice.attempts_made and not force:
                 invoice.subscription.is_active = False
             else:
-                retry_delay = sum(RETRY_DELAY_PAYOUT[:invoice.attempts_made])
+                retry_delay = sum(
+                    settings.RETRY_DELAY_PAYOUT[:invoice.attempts_made])
                 when_to_payout = payout_date + retry_delay if retry_delay else \
                     payout_date
                 if when_to_payout <= now:
                     payout_amount = current_balance - \
-                        invoice.balance_to_keep_cents
+                                    invoice.balance_to_keep_cents
                     transaction = PayoutTransaction.create(
                         invoice.subscription.customer_id, payout_amount)
                     try:

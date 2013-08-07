@@ -5,8 +5,8 @@ from sqlalchemy import (Boolean, Column, DateTime, Integer, ForeignKey,
                         Unicode, UniqueConstraint, CheckConstraint)
 from sqlalchemy.orm import relationship
 
-from models import *
-from utils.generic import uuid_factory
+from models import Base
+from utils.models import uuid_factory
 
 
 class Coupon(Base):
@@ -14,7 +14,7 @@ class Coupon(Base):
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
     your_id = Column(Unicode, nullable=False)
-    company_id = Column(Unicode, ForeignKey(Company.id), nullable=False)
+    company_id = Column(Unicode, ForeignKey('Company.id'), nullable=False)
     name = Column(Unicode, nullable=False)
     price_off_cents = Column(Integer, CheckConstraint('price_off_cents >= 0'))
     percent_off_int = Column(Integer, CheckConstraint(

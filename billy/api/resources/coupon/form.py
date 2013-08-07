@@ -2,8 +2,7 @@ from __future__ import unicode_literals
 
 from sqlalchemy.exc import *
 from wtforms import (
-    Form, TextField, IntegerField, validators, ValidationError,
-    DateTimeField)
+    Form, TextField, IntegerField, validators, DateTimeField)
 
 from models import Coupon
 from api.errors import BillyExc

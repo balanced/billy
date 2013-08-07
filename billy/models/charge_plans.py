@@ -5,7 +5,7 @@ from sqlalchemy import (Column, Unicode, Integer, Boolean, DateTime,
                         ForeignKey, UniqueConstraint, CheckConstraint)
 from sqlalchemy.orm import relationship
 
-from models import Base, Company
+from models import Base, ChargeSubscription
 from models.base import RelativeDelta
 from utils.models import uuid_factory
 
@@ -15,7 +15,7 @@ class ChargePlan(Base):
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('CP'))
     your_id = Column(Unicode, nullable=False)
-    company_id = Column(Unicode, ForeignKey(Company.id), nullable=False)
+    company_id = Column(Unicode, ForeignKey('companies.id'), nullable=False)
     name = Column(Unicode, nullable=False)
     price_cents = Column(Integer, CheckConstraint('price_cents >= 0'),
                          nullable=False)
@@ -51,7 +51,6 @@ class ChargePlan(Base):
         """
         Whether a customer can trial a charge plan
         """
-        from models import ChargeSubscription
         return ChargeSubscription.query.filter(
             ChargeSubscription.customer_id == customer.id,
             ChargeSubscription.plan_id == self.id

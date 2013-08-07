@@ -14,6 +14,7 @@ class Enum(Enum):
     def __getattr__(self, item):
         if item in self.enums:
             return item
+        raise ValueError('{} not set.'.format(item))
 
 
 

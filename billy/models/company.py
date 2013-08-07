@@ -3,16 +3,9 @@ from __future__ import unicode_literals
 from sqlalchemy import Unicode, Column, Enum, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 
-from models import Base, ProcessorType
+from models import Base, ProcessorType, Customer, PayoutPlan, ChargePlan
 from processor import processor_map
 from utils.models import api_key_factory, uuid_factory
-
-
-class ApiKeys(Base):
-    __tablename__ = 'api_keys'
-    api_key = Column(Unicode, primary_key=True,
-                     nullable=False, default=api_key_factory())
-    company_id = Column(Unicode, ForeignKey('Company.id'), nullable=False)
 
 
 class Company(Base):
@@ -42,7 +35,9 @@ class Company(Base):
         'PayoutPlan', backref='company', lazy='dynamic',
         cascade='delete, delete-orphan')
 
-    api_keys = relationship('ApiKeys', backref='company')
+    api_keys = relationship('ApiKeys', backref='company',
+                               cascade='delete, delete-orphan')
+
 
     @classmethod
     def create(cls, processor_type, processor_api_key,
@@ -179,3 +174,11 @@ class Company(Base):
         :return: An instantiated ProcessorClass
         """
         return processor_map[self.processor_type](self.processor_credential)
+
+
+class ApiKeys(Base):
+    __tablename__ = 'api_keys'
+    api_key = Column(Unicode, primary_key=True,
+                     nullable=False, default=api_key_factory())
+    company_id = Column(Unicode, ForeignKey('companies.id'), nullable=False)
+

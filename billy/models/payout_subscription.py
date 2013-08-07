@@ -7,8 +7,8 @@ class PayoutSubscription(Base):
     __tablename__ = 'payout_subscription'
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('PS'))
-    customer_id = Column(Unicode, ForeignKey('Customer.id'), nullable=False)
-    payout_id = Column(Unicode, ForeignKey('PayoutPlan.id'), nullable=False)
+    customer_id = Column(Unicode, ForeignKey('customers.id'), nullable=False)
+    payout_id = Column(Unicode, ForeignKey('payout_plans.id'), nullable=False)
     is_active = Column(Boolean, default=True)
 
     __table_args__ = (
@@ -31,6 +31,7 @@ class PayoutSubscription(Base):
         return result
 
     def cancel(self, cancel_scheduled=False):
+        from models import PayoutInvoice
         self.is_active = False
         if cancel_scheduled:
             in_process = self.invoices.filter(

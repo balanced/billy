@@ -12,7 +12,7 @@ class PayoutInvoice(Base):
     __tablename__ = 'payout_invoices'
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('POI'))
-    subscription_id = Column(Unicode, ForeignKey('PayoutSubscription.id'),
+    subscription_id = Column(Unicode, ForeignKey('payout_subscription.id'),
                              nullable=False)
     payout_date = Column(DateTime)
     balance_to_keep_cents = Column(Integer, CheckConstraint(

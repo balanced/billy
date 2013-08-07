@@ -8,7 +8,8 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
 
 import settings
-from models import Base
+from models import (Base, PayoutSubscription, PayoutInvoice, ChargeSubscription,
+                    ChargePlanInvoice, ChargeTransaction, PayoutTransaction)
 from utils.models import uuid_factory
 
 
@@ -16,10 +17,10 @@ class Customer(Base):
     __tablename__ = 'customers'
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
-    company_id = Column(Unicode, ForeignKey('Company.id'), nullable=False)
+    company_id = Column(Unicode, ForeignKey('companies.id'), nullable=False)
     your_id = Column(Unicode, nullable=False)
     processor_id = Column(Unicode, nullable=False)
-    coupon_id = Column(Unicode, ForeignKey('Coupon.id'))
+    coupon_id = Column(Unicode, ForeignKey('coupons.id'))
     updated_at = Column(DateTime, default=datetime.utcnow)
     last_debt_clear = Column(DateTime)
     # Todo this should be normalized and made a property:
@@ -178,12 +179,12 @@ class Customer(Base):
             earliest_due = plan_invoice.due_dt if plan_invoice.due_dt < \
                                                   earliest_due else earliest_due
             # Cancel a users plan if max retries reached
-        if len(RETRY_DELAY_PLAN) < self.charge_attempts and not force:
+        if len(settings.RETRY_DELAY_PLAN) < self.charge_attempts and not force:
             for plan_invoice in plan_invoices_due:
                 plan_invoice.subscription.is_active = False
                 plan_invoice.subscription.is_enrolled = False
         else:
-            retry_delay = sum(RETRY_DELAY_PLAN[:self.charge_attempts])
+            retry_delay = sum(settings.RETRY_DELAY_PLAN[:self.charge_attempts])
             when_to_charge = earliest_due + retry_delay if retry_delay else \
                 earliest_due
             if when_to_charge <= now:

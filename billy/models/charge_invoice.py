@@ -6,8 +6,7 @@ from sqlalchemy import (Column, Unicode, ForeignKey, DateTime, Boolean,
                         Integer, CheckConstraint)
 from sqlalchemy.orm import relationship, backref
 
-from models import Base, Coupon
-from models.charge_subscription import ChargeSubscription
+from models import Base, ChargeSubscription
 from utils.models import uuid_factory
 
 
@@ -17,7 +16,7 @@ class ChargePlanInvoice(Base):
     id = Column(Unicode, primary_key=True, default=uuid_factory('CPI'))
     subscription_id = Column(Unicode, ForeignKey(ChargeSubscription.id),
                              nullable=False)
-    coupon_id = Column(Unicode, ForeignKey(Coupon.id))
+    coupon_id = Column(Unicode, ForeignKey('coupons.id'))
     start_dt = Column(DateTime, nullable=False)
     end_dt = Column(DateTime, nullable=False)
     original_end_dt = Column(DateTime)

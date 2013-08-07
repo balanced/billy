@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Integer, Enum
 from sqlalchemy.orm import relationship
 
-from models import Base, Customer, ChargePlanInvoice, PayoutInvoice
+from models import Base, ChargePlanInvoice, PayoutInvoice
 from utils.models import uuid_factory
 
 transaction_status = Enum('PENDING', 'COMPLETE', 'ERROR',
@@ -30,7 +30,7 @@ class ChargeTransaction(TransactionMixin, Base):
     __tablename__ = "charge_transactions"
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('PAT'))
-    customer_id = Column(Unicode, ForeignKey(Customer.id), nullable=False)
+    customer_id = Column(Unicode, ForeignKey('customers.id'), nullable=False)
 
     invoices = relationship(ChargePlanInvoice, backref='transaction',
                             cascade='delete')
@@ -53,7 +53,7 @@ class PayoutTransaction(TransactionMixin, Base):
     __tablename__ = 'payout_transactions'
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('POT'))
-    customer_id = Column(Unicode, ForeignKey(Customer.id), nullable=False)
+    customer_id = Column(Unicode, ForeignKey('customers.id'), nullable=False)
 
     invoices = relationship(PayoutInvoice,
                             backref='transaction', cascade='delete')

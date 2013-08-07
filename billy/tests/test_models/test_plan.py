@@ -37,18 +37,46 @@ class TestPlanModel(ModelTestCase):
             )
 
     def test_get_plan(self):
+        import transaction
         model = self.make_one(self.session)
-        name = 'evil gangster charges protection fee from Tom weekly'
-        amount = 99.99
-        frequency = model.FREQ_WEEKLY
-        guid = model.create_plan(
-            name=name,
-            amount=amount,
-            frequency=frequency,
-        )
+
+        with transaction.manager:
+            guid = model.create_plan(
+                name='evil gangster charges protection fee from Tom weekly',
+                amount=99.99,
+                frequency=model.FREQ_WEEKLY,
+            )
 
         plan = model.get_plan_by_guid('not-exist')
         self.assertEqual(plan, None)
 
         plan = model.get_plan_by_guid(guid)
         self.assertNotEqual(plan, None)
+
+    def test_update_plan(self):
+        import transaction
+        model = self.make_one(self.session)
+
+        with transaction.manager:
+            guid = model.create_plan(
+                name='evil gangster charges protection fee from Tom weekly',
+                amount=99.99,
+                frequency=model.FREQ_WEEKLY,
+            )
+
+        name = 'new plan name'
+        active = False
+
+        with transaction.manager:
+            model.update_plan(
+                guid=guid,
+                name=name,
+                active=active,
+            )
+
+        plan = model.get_plan_by_guid(guid)
+        self.assertEqual(plan.name, name)
+        self.assertEqual(plan.active, active)
+
+        with self.assertRaises(TypeError):
+            model.update_plan(guid, wrong_arg=True, neme='john')

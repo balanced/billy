@@ -35,7 +35,7 @@ class PlanModel(object):
 
         """
         if frequency not in self.FREQ_ALL:
-            raise ValueError('Invalid frequency %s' % frequency)
+            raise ValueError('Invalid frequency {}'.format(frequency))
         plan = tables.Plan(
             guid=make_guid(),
             name=name, 
@@ -52,9 +52,8 @@ class PlanModel(object):
 
         """
         plan = self.get_plan_by_guid(guid, True)
-        if kwargs:
-            now = tables.now_func()
-            plan.updated_at = now
+        now = tables.now_func()
+        plan.updated_at = now
         for key in ['name', 'active']:
             if key not in kwargs:
                 continue

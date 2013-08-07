@@ -6,7 +6,7 @@ def create_session(echo=False):
     """Create engine and session for testing, return session then
     
     """
-    # NOTICE: we do all imports here because we don't we to
+    # NOTICE: we do all imports here because we don't want to
     # expose too many third party imports to testing modules.
     # As we want to do imports mainly in test cases.
     # In that way, import error can be captured and it won't 

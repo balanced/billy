@@ -66,10 +66,10 @@ class TestPlanModel(ModelTestCase):
                 frequency=model.FREQ_WEEKLY,
             )
 
-        name = 'new plan name'
-        active = False
         # advanced the current date time
         self.now += datetime.timedelta(seconds=10)
+        name = 'new plan name'
+        active = False
 
         with transaction.manager:
             model.update_plan(
@@ -83,5 +83,18 @@ class TestPlanModel(ModelTestCase):
         self.assertEqual(plan.active, active)
         self.assertEqual(plan.updated_at, self.now)
 
+        # advanced the current date time
+        self.now += datetime.timedelta(seconds=10)
+
+        # this should update the updated_at field only
+        with transaction.manager:
+            model.update_plan(guid)
+
+        plan = model.get_plan_by_guid(guid)
+        self.assertEqual(plan.name, name)
+        self.assertEqual(plan.active, active)
+        self.assertEqual(plan.updated_at, self.now)
+
+        # make sure passing wrong argument will raise error
         with self.assertRaises(TypeError):
             model.update_plan(guid, wrong_arg=True, neme='john')

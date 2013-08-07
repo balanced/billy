@@ -111,7 +111,9 @@ class Company(Base):
             repeating=repeating,
             expire_at=expire_at)
         self.session.add(new_coupon)
+
         return new_coupon
+
 
     def create_charge_plan(self, your_id, name, price_cents,
                            plan_interval, trial_interval):

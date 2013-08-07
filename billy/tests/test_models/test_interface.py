@@ -12,7 +12,7 @@ class ChargePlanInterfaceTest(BaseTestCase):
     def main_test(self):
         company = Company.create(
             processor_type=ProcessorType.DUMMY,
-            processor_api_key='MY_DUMMY_API_KEY',
+            processor_credential='MY_DUMMY_API_KEY',
             is_test=True,
         )
 

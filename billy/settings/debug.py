@@ -5,8 +5,6 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 from utils.intervals import Intervals
-from provider.dummy import DummyProvider
-
 
 DB_SETTINGS = {
     'driver': 'postgresql',
@@ -24,8 +22,6 @@ DB_URL = URL(DB_SETTINGS['driver'], username=DB_SETTINGS['user'],
 
 DB_ENGINE = create_engine(DB_URL)
 Session = scoped_session(sessionmaker(bind=DB_ENGINE))
-
-TRANSACTION_PROVIDER_CLASS = DummyProvider('blah')
 
 # A list of attempt invervals, [ATTEMPT n DELAY INTERVAL,...]
 RETRY_DELAY_PLAN = [

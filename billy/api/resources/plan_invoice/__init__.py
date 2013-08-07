@@ -5,13 +5,13 @@ from flask.ext.restful import marshal_with
 
 from api.errors import BillyExc
 from api.resources.group import GroupController
-from models import Group, Customer, PlanInvoice, PlanSubscription
+from models import Company, Customer, ChargePlanInvoice, ChargeSubscription
 from view import plan_inv_view
 
 
 class PlanInvIndexController(GroupController):
     """
-    Base PlanInvoice resource used to create a plan invoice or
+    Base ChargePlanInvoice resource used to create a plan invoice or
     retrieve all your plan invoices
     """
 
@@ -20,8 +20,8 @@ class PlanInvIndexController(GroupController):
         """
         Return a list of plans invoices pertaining to a group
         """
-        return PlanInvoice.query.join(PlanSubscription).join(Customer).join(
-            Group).filter(Group.guid == self.group.guid).all()
+        return ChargePlanInvoice.query.join(ChargeSubscription).join(Customer).join(
+            Company).filter(Company.id == self.group.id).all()
 
 
 class PlanInvController(GroupController):
@@ -32,8 +32,8 @@ class PlanInvController(GroupController):
     def __init__(self):
         super(PlanInvController, self).__init__()
         plan_inv_id = request.view_args.values()[0]
-        self.invoice = PlanInvoice.query.filter(
-            PlanInvoice.guid == plan_inv_id).first()
+        self.invoice = ChargePlanInvoice.query.filter(
+            ChargePlanInvoice.id == plan_inv_id).first()
         if not self.invoice:
             raise BillyExc['404_PLAN_INV_NOT_FOUND']
 

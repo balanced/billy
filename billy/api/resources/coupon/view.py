@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
 
-from flask.ext.restful import fields
+from utils import fields
 
 coupon_view = {
     # Todo: figure out why coupon_id isnt showing...
-    'coupon_id': fields.String(attribute='external_id'),
+    'coupon_id': fields.String(attribute='your_id'),
     'created_at': fields.DateTime(),
     'name': fields.String(),
     'expire_at': fields.DateTime(),

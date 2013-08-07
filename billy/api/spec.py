@@ -1,45 +1,23 @@
 from __future__ import unicode_literals
 
-from flask.ext.restful import fields
+from utils import fields
+from wtforms import fields as wtfields
 
-from api.resources.group import GroupController
-from api.resources.customer import (CustomerIndexController,
-                                    CustomerController, customer_view)
-from api.resources.coupon import (CouponIndexController, CouponController,
-                                  coupon_view)
-from api.resources.plan import (PlanIndexController, PlanController, plan_view)
-from api.resources.payout import (PayoutIndexController, PayoutController,
-                                  payout_view)
-from api.resources.plan_subscription import (PlanSubIndexController,
-                                             PlanSubController, plan_sub_view)
-from api.resources.payout_subscription import (PayoutSubIndexController,
-                                               PayoutSubController,
-                                               payout_sub_view)
-from api.resources.plan_invoice import (PlanInvController,
-                                        PlanInvIndexController, plan_inv_view)
-from api.resources.payout_invoice import (PayoutInvController,
-                                          PayoutInvIndexController,
-                                          payout_inv_view)
-from api.resources.plan_transaction import (PlanTransIndexController,
-                                            PlanTransController,
-                                            plan_trans_view)
-from api.resources.payout_transaction import (PayoutTransIndexController,
-                                              PayoutTransController,
-                                              payout_trans_view)
+from api.errors.definitions import error_definitions
+from resources import *
 from utils.intervals import IntervalViewField
 
 
 def get_methods(controller):
     methods = ['GET', 'POST', 'PUT', 'DELETE']
-    method_list = []
+    method_list = {}
     for method in methods:
         if hasattr(controller, method.lower()):
             try:
                 doc = getattr(controller, method.lower()).__doc__.strip()
-                method_list.append({
-                    'method': method,
+                method_list[method] = {
                     'description': doc,
-                })
+                }
             except AttributeError, e:
                 print "ERROR {} has no doc.".format(getattr(controller,
                                                             method.lower()))
@@ -67,61 +45,112 @@ def get_doc(obj):
     return None if not obj.__doc__ else ' '.join(obj.__doc__.split()).strip()
 
 
+def process_forms(spec_item):
+    """
+    Processes the forms in the spec items.
+    """
+
+    def process_form_class(form_class):
+        field_map = {
+            wtfields.TextField: 'STRING',
+            wtfields.IntegerField: "INTEGER",
+            wtfields.DateTimeField: "DATETIME",
+            wtfields.BooleanField: "BOOLEAN"
+        }
+        return [{'name':name, 'type': field_map[type(field_class)]} for
+                name, field_class in form_class()._fields.iteritems()]
+
+    form = spec.get('form', {})
+    for method, form_class in form.iteritems():
+        method = method.upper()
+        assert method in spec['methods'], "Method not in methods!"
+        spec['methods'][method]['form_fields'] = process_form_class(form_class)
+    return spec_item
+
+
 billy_spec = {
     'group': {
         'path': '/auth/',
-        'controller': GroupController,
+        'controller': GroupController
     },
     'customers_index': {
         'path': '/customer/',
         'controller': CustomerIndexController,
-        'view': customer_view
+        'view': customer_view,
+        'form': {
+            'post': CustomerCreateForm
+        }
     },
     'customer': {
         'path': '/customer/<string:customer_id>/',
         'controller': CustomerController,
-        'view': customer_view
+        'view': customer_view,
+        'form': {
+            'put': CustomerUpdateForm
+        }
     },
     'coupon_index': {
         'path': '/coupon/',
         'controller': CouponIndexController,
-        'view': coupon_view
+        'view': coupon_view,
+        'form': {
+            'post': CouponCreateForm
+        }
 
     },
     'coupon': {
         'path': '/coupon/<string:coupon_id>/',
         'controller': CouponController,
-        'view': coupon_view
+        'view': coupon_view,
+        'form': {
+            'put': CouponUpdateForm
+        }
 
     },
     'plan_index': {
         'path': '/plan/',
         'controller': PlanIndexController,
-        'view': plan_view
+        'view': plan_view,
+        'form': {
+            'post': PlanCreateForm
+        }
 
     },
     'plan': {
         'path': '/plan/<string:plan_id>/',
         'controller': PlanController,
-        'view': plan_view
+        'view': plan_view,
+        'form': {
+            'put': PlanUpdateForm
+        }
 
     },
     'payout_index': {
         'path': '/payout/',
         'controller': PayoutIndexController,
-        'view': payout_view
+        'view': payout_view,
+        'form': {
+            'post': PayoutCreateForm
+        }
 
     },
     'payout': {
         'path': '/payout/<string:payout_id>/',
         'controller': PayoutController,
-        'view': payout_view
+        'view': payout_view,
+        'form': {
+            'put': PayoutUpdateForm
+        }
 
     },
     'plan_subscription_index': {
         'path': '/plan_subscription/',
         'controller': PlanSubIndexController,
-        'view': plan_sub_view
+        'view': plan_sub_view,
+        'form': {
+            'post': PlanSubCreateForm,
+            'delete': PlanSubDeleteForm
+        }
 
     },
     'plan_subscription': {
@@ -133,7 +162,11 @@ billy_spec = {
     'payout_subscription_index': {
         'path': '/payout_subscription/',
         'controller': PayoutSubIndexController,
-        'view': payout_sub_view
+        'view': payout_sub_view,
+        'form': {
+            'post': PayoutSubCreateForm,
+            'delete': PlanSubDeleteForm
+        }
 
     },
     'payout_subscription': {
@@ -193,14 +226,17 @@ billy_spec = {
 
 }
 
-billy_spec_processed = {}
+billy_spec_processed = {'resources': {}, 'errors': {}}
 for resource, spec in billy_spec.iteritems():
     spec['methods'] = get_methods(spec['controller'])
     spec['description'] = get_doc(spec['controller'])
     spec['view'] = get_view(spec.get('view'))
-    spec = spec.copy()
-    del spec['controller']
-    billy_spec_processed[resource] = spec
+    spec_new = process_forms(spec.copy())
+    del spec_new['controller']
+    if 'form' in spec_new:
+        del spec_new['form']
+    billy_spec_processed['resources'][resource] = spec_new
+    billy_spec_processed['errors'] = error_definitions
 
 if __name__ == '__main__':
     import json

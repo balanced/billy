@@ -5,13 +5,13 @@ from base64 import b64encode
 from . import BaseTestCase
 
 
-class AuthenticationTest(BaseTestCase):
+class GroupAuthenticationTest(BaseTestCase):
 
     def setUp(self):
         self.bad_auth_headers = {
             'Authorization': "Basic {}".format(b64encode(':BADAPIKEY'))
         }
-        super(AuthenticationTest, self).setUp()
+        super(GroupAuthenticationTest, self).setUp()
 
     def test_no_key(self):
         resp = self.client.get('/auth/')

@@ -4,12 +4,12 @@ from sqlalchemy.exc import *
 from wtforms import (Form, TextField, IntegerField, validators)
 
 from api.errors import BillyExc
-from models import Payout
+from models import PayoutPlan
 from utils.intervals import interval_matcher
 
 
 class PayoutCreateForm(Form):
-    payout_id = TextField('Payout ID', [validators.Required(),
+    payout_id = TextField('PayoutPlan ID', [validators.Required(),
                                         validators.Length(min=5, max=150)])
     name = TextField('Name',
                      [validators.Required(),
@@ -18,7 +18,13 @@ class PayoutCreateForm(Form):
     balance_to_keep_cents = IntegerField('Balance to Keep Cents',
                                          [validators.Required()])
 
-    payout_interval = TextField('Payout Interval', [validators.Required()])
+    payout_interval = TextField('PayoutPlan Interval', [validators.Required()])
+
+    def validate_balance_to_keep(self, key, address):
+        if not address > 0:
+            raise ValueError("400_BALANCE_TO_KEEP_CENTS")
+        return address
+
 
     def save(self, group_obj):
         try:
@@ -26,8 +32,8 @@ class PayoutCreateForm(Form):
                 payout_int = interval_matcher(self.payout_interval.data)
             except ValueError:
                 raise BillyExc['400_PAYOUT_INTERVAL']
-            return Payout.create(external_id=self.payout_id.data,
-                                 group_id=group_obj.guid,
+            return PayoutPlan.create(your_id=self.payout_id.data,
+                                 group_id=group_obj.id,
                                  name=self.name.data,
                                  balance_to_keep_cents=self
                                  .balance_to_keep_cents.data,

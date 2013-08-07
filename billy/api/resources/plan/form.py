@@ -4,12 +4,12 @@ from sqlalchemy.exc import *
 from wtforms import (Form, TextField, IntegerField, validators)
 
 from api.errors import BillyExc
-from models import Plan
+from models import ChargePlan
 from utils.intervals import interval_matcher
 
 
 class PlanCreateForm(Form):
-    plan_id = TextField('Plan ID', [validators.Required(),
+    plan_id = TextField('ChargePlan ID', [validators.Required(),
                                     validators.Length(min=5, max=150)])
     name = TextField('Name',
                      [validators.Required(),
@@ -17,9 +17,14 @@ class PlanCreateForm(Form):
 
     price_cents = IntegerField('Price Cents', [validators.Required()])
 
-    plan_interval = TextField('Plan Interval', [validators.Required()])
+    plan_interval = TextField('ChargePlan Interval', [validators.Required()])
 
     trial_interval = TextField('Trial Interval', default=None)
+
+    def validate_price_cents(self, key, address):
+        if not address > 0:
+            raise ValueError("400_PRICE_CENTS")
+        return address
 
     def save(self, group_obj):
         try:
@@ -34,8 +39,8 @@ class PlanCreateForm(Form):
                 plan_int = interval_matcher(self.plan_interval.data)
             except ValueError:
                 raise BillyExc['400_PLAN_INTERVAL']
-            return Plan.create(external_id=self.plan_id.data,
-                               group_id=group_obj.guid,
+            return ChargePlan.create(your_id=self.plan_id.data,
+                               group_id=group_obj.id,
                                name=self.name.data,
                                price_cents=self.price_cents.data,
                                plan_interval=plan_int,

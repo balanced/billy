@@ -59,7 +59,7 @@ class Base(restful.Resource):
             exc_key = '400_{}'.format(key.upper())
             if BillyExc.get(exc_key):
                 raise BillyExc[exc_key]
-        raise ValueError('Error for {} not defined!'.format(last_key))
+        raise Exception('Field error for {} not defined!'.format(last_key))
 
 
 class Home(Base):

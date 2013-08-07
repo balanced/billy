@@ -11,15 +11,15 @@ class CustomerCreateForm(Form):
     customer_id = TextField('Customer ID',
                             [validators.Required(),
                              validators.Length(min=5, max=150)])
-    balanced_id = TextField('Balanced ID',
+    provider_id = TextField('Balanced ID',
                             [validators.Required(),
                              validators.Length(min=5, max=150)])
 
     def save(self, group_obj):
         try:
-            customer = Customer.create(external_id=self.customer_id.data,
-                                       group_id=group_obj.guid,
-                                       balanced_id=self.balanced_id.data)
+            customer = Customer.create(your_id=self.customer_id.data,
+                                       group_id=group_obj.id,
+                                       provider_id=self.provider_id.data)
             return customer
         except IntegrityError:
             raise BillyExc['409_CUSTOMER_ALREADY_EXISTS']

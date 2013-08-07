@@ -1,69 +1,23 @@
 from __future__ import unicode_literals
-import unittest
-import os
 
 import datetime
-import sqlalchemy
-from settings import DB_URL, Session
-from models import Base
+import unittest
 
 
-class BalancedTransactionalTestCase(unittest.TestCase):
+from models import Company
 
-    """
-    This class is optimized for multiple tests requiring the
-    database, by putting every db test in a large transaction
-    avoiding the commit to the database, significantly speeding
-    up tests by order of magnitudes.
 
-    The one thing that is hard to test with this class though is
-    the updateon or trigger tests. For that reason, if needed, it
-    might be more beneficial to use the BalancedSlowDBTestCase class
-    below.
-    """
-
-    def __init__(self, *A, **KW):
-        super(BalancedTransactionalTestCase, self).__init__(*A, **KW)
-        self._db_engine = sqlalchemy.create_engine(DB_URL,
-                                                   isolation_level='SERIALIZABLE'
-                                                   )
-
+class BaseTestCase(unittest.TestCase):
     def setUp(self):
-        super(BalancedTransactionalTestCase, self).setUp()
-
-        self._db_connection = self._db_engine.connect()
-        self._db_transaction = self._db_connection.begin()
-        Session.configure(bind=self._db_connection)
-        # HACK: this is done solely to set up signals for model test cases --
-        # alternatives are welcome
-        self.session = Base.session = Session
-        # ew... very dirty... look into this (todo)...
-        Base.session.commit = Base.session.flush
-        # adds the clean up handler that will reset the database
-        # state, which is necessary for when your setUp() function
-        # can fail in the middle of setting up a db-fixture.
-        # if we don't do this, then the transaction is never closed,
-        # causing a deadlock
-        self.addCleanup(_transactional_db_reset,
-                        db_session=self.session,
-                        db_transaction=self._db_transaction,
-                        db_connection=self._db_connection)
-
-
-def _transactional_db_reset(db_session, db_transaction, db_connection):
-    # roll it back
-    db_session.rollback()
-    # expunge the entire session
-    db_session.expunge_all()
-    # clean up the transaction
-    db_transaction.close()
-    # you must detach the connection or otherwise,
-    # you have lingering connections that will keep an open
-    # connection.
-    db_connection.detach()
-    db_connection.close()
-    # remove the session from the registry
-    Session.remove()
+        super(BaseTestCase, self).setUp()
+        self.test_company_keys = ['BILLY_TEST_COMPANY_1',
+                                  'BILLY_TEST_COMPANY_2',
+                                  'BILLY_TEST_COMPANY_3']
+        self.test_companies = []
+        for api_key in self.test_company_keys:
+            Company.query.filter(Company.processor_api_key == api_key).delete()
+            self.test_companies.append(
+                Company.create('DUMMY', api_key, is_test=True))
 
 
 def rel_delta_to_sec(rel):

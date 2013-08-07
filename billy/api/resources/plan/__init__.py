@@ -5,7 +5,7 @@ from flask.ext.restful import marshal_with
 
 from api.errors import BillyExc
 from api.resources.group import GroupController
-from models import Plan
+from models import ChargePlan
 from form import PlanCreateForm, PlanUpdateForm
 from view import plan_view
 
@@ -13,7 +13,7 @@ from view import plan_view
 class PlanIndexController(GroupController):
 
     """
-    Base Plan resource used to create a plan or retrieve all your
+    Base ChargePlan resource used to create a plan or retrieve all your
     plans
     """
 
@@ -45,7 +45,7 @@ class PlanController(GroupController):
     def __init__(self):
         super(PlanController, self).__init__()
         plan_id = request.view_args.values()[0]
-        self.plan = Plan.retrieve(plan_id, self.group.guid)
+        self.plan = ChargePlan.retrieve(plan_id, self.group.id)
         if not self.plan:
             raise BillyExc['404_PLAN_NOT_FOUND']
 

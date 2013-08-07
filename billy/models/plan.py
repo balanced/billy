@@ -50,6 +50,9 @@ class PlanModel(object):
 
         """
         plan = self.get_plan_by_guid(guid, True)
+        if kwargs:
+            now = tables.now_func()
+            plan.updated_at = now
         if 'name' in kwargs:
             plan.name = kwargs['name']
             del kwargs['name']

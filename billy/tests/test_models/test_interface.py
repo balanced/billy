@@ -50,7 +50,7 @@ class ChargePlanInterfaceTest(BaseTestCase):
         coupon.redeem(customer)
 
         # Subscribe Customer to a plan
-        sub = customer.subscribe_to_charge(plan, quantity=1)
+        sub = plan.subscribe(customer, quantity=1)
 
         # Unsubscribe Customer from plan:
         sub.cancel()
@@ -83,7 +83,7 @@ class ChargePayoutInterfaceTest(BaseTestCase):
         )
 
         # Subscribe Customer to a payout
-        sub = customer.subscribe_to_payout(payout)
+        sub = payout.subscribe(customer)
 
         # Unsubscribe Customer from payout:
         sub.cancel()

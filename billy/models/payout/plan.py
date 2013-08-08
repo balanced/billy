@@ -5,7 +5,7 @@ from sqlalchemy import (Column, Unicode, Integer, Boolean,
                         ForeignKey, UniqueConstraint, CheckConstraint)
 from sqlalchemy.orm import relationship
 
-from models import Base
+from models import Base, PayoutInvoice, PayoutSubscription
 from models.base import RelativeDelta
 from utils.models import uuid_factory
 
@@ -19,7 +19,7 @@ class PayoutPlan(Base):
     name = Column(Unicode, nullable=False)
     balance_to_keep_cents = Column(Integer,
                                    CheckConstraint('balance_to_keep_cents >= 0'
-                                                   ), nullable=False)
+                                   ), nullable=False)
     is_active = Column(Boolean, default=True)
     payout_interval = Column(RelativeDelta, nullable=False)
 
@@ -28,7 +28,7 @@ class PayoutPlan(Base):
 
     __table_args__ = (UniqueConstraint(your_id, company_id,
                                        name='payout_id_group_unique'),
-                      )
+    )
 
     def update(self, name):
         """
@@ -44,3 +44,15 @@ class PayoutPlan(Base):
         self.is_active = False
         self.disabled_at = datetime.utcnow()
         return self
+
+    def subscribe(self, customer, first_now=False, start_dt=None):
+        first_charge = start_dt or datetime.utcnow()
+        balance_to_keep_cents = self.balance_to_keep_cents
+        if not first_now:
+            first_charge += self.payout_interval
+        subscription = PayoutSubscription.create(customer, self)
+        invoice = PayoutInvoice.create(subscription.id,
+                                       first_charge,
+                                       balance_to_keep_cents)
+        self.session.add(invoice)
+        return subscription

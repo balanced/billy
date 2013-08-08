@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 from datetime import datetime
-from decimal import Decimal
 
 from sqlalchemy import Column, Unicode, DateTime, Integer
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
@@ -53,61 +52,8 @@ class Customer(Base):
     )
 
 
-    def subscribe_to_payout(self, payout_plan, first_now=False, start_dt=None):
-        from models import PayoutInvoice, PayoutSubscription
 
-        first_charge = start_dt or datetime.utcnow()
-        balance_to_keep_cents = payout_plan.balance_to_keep_cents
-        if not first_now:
-            first_charge += payout_plan.payout_interval
-        subscription = PayoutSubscription.create(self, payout_plan)
-        invoice = PayoutInvoice.create(subscription.id,
-                                       first_charge,
-                                       balance_to_keep_cents)
-        self.session.add(invoice)
-        return subscription
 
-    def subscribe_to_charge(self, charge_plan, quantity=1,
-                            charge_at_period_end=False, start_dt=None):
-        """
-        Subscribe a customer to a plan
-        """
-        current_coupon = self.coupon
-        start_date = start_dt or datetime.utcnow()
-        due_on = start_date
-        can_trial = charge_plan.can_customer_trial(self)
-        end_date = start_date + charge_plan.plan_interval
-        if can_trial and charge_plan.trial_interval:
-            end_date += charge_plan.trial_interval
-            due_on += charge_plan.trial_interval
-        if charge_at_period_end:
-            due_on = end_date
-        amount_base = charge_plan.price_cents * Decimal(quantity)
-        amount_after_coupon = amount_base
-        if self.current_coupon and current_coupon:
-            dollars_off = current_coupon.price_off_cents
-            percent_off = current_coupon.percent_off_int
-            amount_after_coupon -= dollars_off  # BOTH CENTS, safe
-            amount_after_coupon -= int(
-                amount_after_coupon * Decimal(percent_off) / Decimal(100))
-        balance = amount_after_coupon
-        subscription = ChargeSubscription.create(self, charge_plan)
-        ChargePlanInvoice.prorate_last(self, charge_plan)
-        ChargePlanInvoice.create(
-            subscription=subscription,
-            coupon=current_coupon,
-            start_dt=start_date,
-            end_dt=end_date,
-            due_dt=due_on,
-            amount_base_cents=amount_base,
-            amount_after_coupon_cents=amount_after_coupon,
-            amount_paid_cents=0,
-            remaining_balance_cents=balance,
-            quantity=quantity,
-            charge_at_period_end=charge_at_period_end,
-            includes_trial=can_trial
-        )
-        return subscription
 
     def remove_coupon(self):
         """

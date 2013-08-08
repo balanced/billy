@@ -5,6 +5,7 @@ from tests import BaseTestCase
 from tests.fixtures import (good_company, good_plan, good_coupon, good_customer,
                             good_payout)
 
+
 class ChargePlanInterfaceTest(BaseTestCase):
     # CREATE A COMPANY
 

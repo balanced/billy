@@ -22,7 +22,6 @@ class ChargePlan(Base):
                          nullable=False)
     active = Column(Boolean, default=True)
     disabled_at = Column(DateTime)
-    updated_at = Column(DateTime, default=datetime.utcnow)
     trial_interval = Column(RelativeDelta)
     plan_interval = Column(RelativeDelta)
 
@@ -38,11 +37,11 @@ class ChargePlan(Base):
         """
         Subscribe a customer to a plan
         """
+        can_trial = self.can_customer_trial(customer)
         subscription = ChargeSubscription.create(customer, self, coupon=coupon)
         coupon = subscription.coupon
         start_date = start_dt or datetime.utcnow()
         due_on = start_date
-        can_trial = self.can_customer_trial(customer)
         end_date = start_date + self.plan_interval
         if can_trial and self.trial_interval:
             end_date += self.trial_interval
@@ -75,14 +74,6 @@ class ChargePlan(Base):
             includes_trial=can_trial
         )
         return subscription
-
-
-    def update(self, name):
-        """
-        Updates the name of a plan
-        """
-        self.name = name
-        return self
 
     def disable(self):
         """

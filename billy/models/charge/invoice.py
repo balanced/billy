@@ -15,7 +15,7 @@ class ChargePlanInvoice(Base):
     __tablename__ = 'charge_plan_invoices'
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('CPI'))
-    subscription_id = Column(Unicode, ForeignKey(ChargeSubscription.id),
+    subscription_id = Column(Unicode, ForeignKey('charge_subscription.id'),
                              nullable=False)
     coupon_id = Column(Unicode, ForeignKey('coupons.id'))
     start_dt = Column(DateTime, nullable=False)
@@ -66,8 +66,7 @@ class ChargePlanInvoice(Base):
     @classmethod
     def prorate_last(cls, customer, plan):
         """
-        Prorates the last invoice when changing a users plan. Only use when
-        changing a users plan.
+        Prorates the last invoice to now
         """
         subscription = ChargeSubscription.query.filter(
             ChargeSubscription.customer_id == customer.id,
@@ -95,8 +94,6 @@ class ChargePlanInvoice(Base):
                 current_invoice.amount_after_coupon_cents = new_after_coupon_amount
                 current_invoice.remaining_balance_cents = new_balance
                 current_invoice.end_dt = now
-                current_invoice.subscription.should_renew = False
-                current_invoice.subscription.is_enrolled = False
                 current_invoice.prorated = True
         return current_invoice
 
@@ -113,38 +110,6 @@ class ChargePlanInvoice(Base):
         ).all()
         return results
 
-    def generate_next(self):
-        """
-        Rollover the invoice if the next invoice is not already there.
-        """
-        customer = self.subscription.customer
-        plan = self.subscription.plan
-        if self.subscription.current_invoice:
-            return self.subscription.current_invoice
-        sub = plan.subscribe(
-            customer=customer,
-            quantity=self.quantity,
-            charge_at_period_end=self.charge_at_period_end,
-            start_dt=self.end_dt)
-        return sub.current_invoice
-
-
-    @classmethod
-    def generate_all(cls):
-        """
-        Roll
-        """
-        now = datetime.utcnow()
-        needs_make_invoicing = cls.query.join(ChargeSubscription).filter(
-            cls.end_dt <= now,
-            ChargeSubscription.is_active == True,
-            ChargeSubscription.should_renew == True,
-        ).all()
-        for plan_invoice in needs_make_invoicing:
-            plan_invoice.generate_next()
-        return len(needs_make_invoicing)
-
-
     @classmethod
     def settle_all(cls):
         """
@@ -160,7 +125,8 @@ class ChargePlanInvoice(Base):
                 invoice.subscription.is_enrolled = False
             retry_delay = sum(
                 settings.RETRY_DELAY_PLAN[:invoice.charge_attempts])
-            when_to_charge = invoice.due_dt + retry_delay
+            when_to_charge = invoice.due_dt + retry_delay if retry_delay \
+                else invoice.due_dt
             if when_to_charge <= now:
                 invoice.settle()
 
@@ -170,10 +136,10 @@ class ChargePlanInvoice(Base):
         Clears the charge debt of the customer.
         """
         from models import ChargeTransaction
-        transaction = ChargeTransaction.create(self.subscription.customer,
-                                               self.remaining_balance_cents)
+
         try:
-            transaction.execute()
+            transaction = ChargeTransaction.create(self.subscription.customer,
+                                                   self.remaining_balance_cents)
             self.transaction = transaction
             self.remaining_balance_cents = 0
         except Exception, e:

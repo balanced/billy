@@ -27,23 +27,15 @@ class Coupon(Base):
     active = Column(Boolean, default=True)
     disabled_at = Column(DateTime)
 
-    customers = relationship('Customer', backref='coupon', lazy='dynamic')
+    charge_subscriptions = relationship('ChargeSubscription', backref='coupon',
+                                        lazy='dynamic')
+    charge_invoices = relationship('ChargePlanInvoice', backref='coupon',
+                                   lazy='dynamic')
 
     __table_args__ = (
         UniqueConstraint(your_id, company_id,
                          name='coupon_id_group_unique'),
     )
-
-    def redeem(self, customer):
-        """
-        Applies the coupon to a customer
-        """
-        if self.max_redeem != -1 and self.count_customers >= \
-                self.max_redeem:
-            raise ValueError('Coupon already redeemed maximum times. See '
-                             'max_redeem')
-        customer.current_coupon = self.id
-        return self
 
     def update(self, new_name=None,
                new_max_redeem=None, new_expire_at=None, new_repeating=None):

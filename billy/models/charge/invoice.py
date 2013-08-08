@@ -34,8 +34,8 @@ class ChargePlanInvoice(Base):
 
     subscription = relationship('ChargeSubscription',
                                 backref=backref('invoices',
-                                                cascade='delete,delete-orphan', lazy='dynamic'),
-                                )
+                                                cascade='delete,delete-orphan',
+                                                lazy='dynamic'))
 
     @classmethod
     def create(cls, subscription, coupon, start_dt, end_dt, due_dt,

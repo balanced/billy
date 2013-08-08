@@ -34,11 +34,12 @@ class ChargePlan(Base):
     )
 
     def subscribe(self, customer, quantity=1,
-                  charge_at_period_end=False, start_dt=None):
+                  charge_at_period_end=False, start_dt=None, coupon=None):
         """
         Subscribe a customer to a plan
         """
-        current_coupon = customer.coupon
+        subscription = ChargeSubscription.create(customer, self, coupon=coupon)
+        coupon = subscription.coupon
         start_date = start_dt or datetime.utcnow()
         due_on = start_date
         can_trial = self.can_customer_trial(customer)
@@ -50,18 +51,18 @@ class ChargePlan(Base):
             due_on = end_date
         amount_base = self.price_cents * Decimal(quantity)
         amount_after_coupon = amount_base
-        if customer.current_coupon and current_coupon:
-            dollars_off = current_coupon.price_off_cents
-            percent_off = current_coupon.percent_off_int
+
+        if subscription.coupon:
+            dollars_off = coupon.price_off_cents
+            percent_off = coupon.percent_off_int
             amount_after_coupon -= dollars_off  # BOTH CENTS, safe
             amount_after_coupon -= int(
                 amount_after_coupon * Decimal(percent_off) / Decimal(100))
         balance = amount_after_coupon
-        subscription = ChargeSubscription.create(customer, self)
         ChargePlanInvoice.prorate_last(customer, self)
         ChargePlanInvoice.create(
             subscription=subscription,
-            coupon=current_coupon,
+            coupon=subscription.coupon,
             start_dt=start_date,
             end_dt=end_date,
             due_dt=due_on,

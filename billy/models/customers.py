@@ -19,7 +19,6 @@ class Customer(Base):
     company_id = Column(Unicode, ForeignKey('companies.id'), nullable=False)
     your_id = Column(Unicode, nullable=False)
     processor_id = Column(Unicode, nullable=False)
-    coupon_id = Column(Unicode, ForeignKey('coupons.id'))
     updated_at = Column(DateTime, default=datetime.utcnow)
     last_debt_clear = Column(DateTime)
     # Todo this should be normalized and made a property:
@@ -51,39 +50,6 @@ class Customer(Base):
             your_id, company_id, name='customerid_company_unique'),
     )
 
-
-
-
-
-    def remove_coupon(self):
-        """
-        Removes the coupon.
-
-        """
-        if not self.current_coupon:
-            return self
-        self.current_coupon = None
-        return self
-
-    @property
-    def coupon_use_count(self):
-        """
-        The number of times the current coupon has been used
-        """
-        count = 0 if not self.current_coupon else self.plan_invoices.filter(
-            ChargePlanInvoice.relevant_coupon == self.current_coupon).count()
-        return count
-
-    @property
-    def can_use_current_coupon(self):
-        """
-        Whether or not a coupon can be applied to an invoice this is for
-        scenarios where
-        """
-        use_coupon = self.current_coupon or True \
-            if self.current_coupon.repeating == -1 or \
-               self.coupon_use_count <= self.current_coupon.repeating else False
-        return use_coupon
 
     @property
     def total_charge_debt(self, invoices=None):

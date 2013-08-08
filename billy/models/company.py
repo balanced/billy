@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from sqlalchemy import Unicode, Column, Enum, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 
-from models import Base, ProcessorType, Customer, PayoutPlan, ChargePlan
+from models import Base, ProcessorType, PayoutPlan, ChargePlan, Coupon, Customer
 from processor import processor_map
 from utils.models import api_key_factory, uuid_factory
 
@@ -94,7 +94,7 @@ class Company(Base):
         :param name: A name for the coupon for display purposes
         :param price_off_cents: The price off in cents
         :param percent_off_int: The percent off (0-100)
-        :param max_redeem: The maximum number of different customers that
+        :param max_redeem: The maximum number of different subscriptions that
         can redeem the coupon -1 for unlimited or int
         :param repeating: How many invoices can this coupon be used for each
         customer? -1 for unlimited or int

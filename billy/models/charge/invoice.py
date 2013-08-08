@@ -44,10 +44,9 @@ class ChargePlanInvoice(Base):
                amount_base_cents, amount_after_coupon_cents, amount_paid_cents,
                remaining_balance_cents, quantity, charge_at_period_end,
                includes_trial=False):
-        coupon_id = coupon and coupon.guid
         invoice = cls(
             subscription_id=subscription.id,
-            coupon_id=coupon_id,
+            coupon=coupon,
             start_dt=start_dt,
             end_dt=end_dt,
             due_dt=due_dt,

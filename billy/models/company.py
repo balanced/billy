@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 from sqlalchemy import Unicode, Column, Enum, Boolean, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 
 from models import Base, ProcessorType, PayoutPlan, ChargePlan, Coupon, Customer
 from processor import processor_map
@@ -25,6 +25,10 @@ class Company(Base):
     #: Deletion is supported only on test companies with this flag set to true
     is_test = Column(Boolean, default=True)
 
+    # Todo: make this a separate table
+    #: Api key for billy-api
+    api_key = Column(Unicode, nullable=False, default=api_key_factory())
+
     coupons = relationship('Coupon', backref='company', lazy='dynamic',
                            cascade='delete', )
     customers = relationship('Customer', backref='company', cascade='delete')
@@ -35,8 +39,7 @@ class Company(Base):
         'PayoutPlan', backref='company', lazy='dynamic',
         cascade='delete, delete-orphan')
 
-    api_keys = relationship('ApiKeys', backref='company',
-                               cascade='delete, delete-orphan')
+
 
 
     @classmethod
@@ -55,9 +58,7 @@ class Company(Base):
             processor_credential=processor_api_key,
             processor_company_id=processor_company_id,
             is_test=is_test, **kwargs)
-        api_key = ApiKeys(company=company)
         cls.session.add(company)
-        cls.session.add(api_key)
         return company
 
     def change_processor_credential(self, processor_credential):
@@ -176,11 +177,3 @@ class Company(Base):
         :return: An instantiated ProcessorClass
         """
         return processor_map[self.processor_type](self.processor_credential)
-
-
-class ApiKeys(Base):
-    __tablename__ = 'api_keys'
-    api_key = Column(Unicode, primary_key=True,
-                     nullable=False, default=api_key_factory())
-    company_id = Column(Unicode, ForeignKey('companies.id'), nullable=False)
-

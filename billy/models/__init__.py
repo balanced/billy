@@ -14,4 +14,4 @@ from .payout.plan import PayoutPlan
 from .charge.plan import ChargePlan
 from .customers import Customer
 from .coupons import Coupon
-from .company import Company, ApiKeys
+from .company import Company

@@ -51,15 +51,11 @@ class ChargeSubscription(Base):
         return self.invoices.filter(
             ChargePlanInvoice.end_dt > datetime.utcnow()).first()
 
-    def cancel(self, cancel_at_period_end=False):
+    def cancel(self):
         from models import ChargePlanInvoice
-
-        if cancel_at_period_end:
-            self.should_renew = False
-        else:
-            self.is_enrolled = False
-            self.should_renew = False
-            return ChargePlanInvoice.prorate_last(self.customer, self.plan)
+        self.is_enrolled = False
+        self.should_renew = False
+        ChargePlanInvoice.prorate_last(self.customer, self.plan)
         return self
 
 

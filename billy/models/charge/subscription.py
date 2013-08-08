@@ -27,12 +27,9 @@ class ChargeSubscription(Base):
             cls.plan_id == plan.id
         ).first()
         subscription = subscription or cls(
-            customer_id=customer.id, plan_id=plan.id, coupon=coupon,
-            # Todo TEMP since default not working for some reason
-            id=uuid_factory('PLS')())
+            customer_id=customer.id, plan_id=plan.id, coupon=coupon)
         subscription.should_renew = True
         subscription.is_enrolled = True
-        # Todo premature commit might cause issues....
         cls.session.add(subscription)
         return subscription
 
@@ -41,8 +38,11 @@ class ChargeSubscription(Base):
 
     @property
     def current_invoice(self):
+        """
+        Returns the current invoice of the customer. There can only be one
+        invoice outstanding per customer ChargePlan
+        """
         from models import ChargePlanInvoice
-
         return self.invoices.filter(
             ChargePlanInvoice.end_dt > datetime.utcnow()).first()
 

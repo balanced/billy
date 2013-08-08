@@ -115,15 +115,19 @@ class ChargePlanInvoice(Base):
 
     def generate_next(self):
         """
-        Rollover the invoice
+        Rollover the invoice if the next invoice is not already there.
         """
         customer = self.subscription.customer
         plan = self.subscription.plan
-        plan.subscribe(
+        if self.subscription.current_invoice:
+            return self.subscription.current_invoice
+        sub = plan.subscribe(
             customer=customer,
             quantity=self.quantity,
             charge_at_period_end=self.charge_at_period_end,
             start_dt=self.end_dt)
+        return sub.current_invoice
+
 
     @classmethod
     def generate_all(cls):
@@ -147,7 +151,7 @@ class ChargePlanInvoice(Base):
         Main task to settle charge_plans.
         """
         now = datetime.utcnow()
-        needs_settling = cls.query.join(ChargeSubscription).filter(
+        needs_settling = cls.query.filter(
             cls.end_dt <= now,
             cls.remaining_balance_cents > 0).all()
         for invoice in needs_settling:

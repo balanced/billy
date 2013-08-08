@@ -1,29 +1,41 @@
 from __future__ import unicode_literals
 
-from sqlalchemy import Column, Unicode, ForeignKey
+from sqlalchemy import Column, Unicode, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
 from models import Base
-from models.transactions import TransactionMixin
-from utils.models import uuid_factory
+from utils.models import uuid_factory, Enum
+
+TransactionStatus = Enum('PENDING', 'SENT', 'ERROR',
+                         name='payout_plan_transaction_status')
 
 
-class PayoutTransaction(TransactionMixin, Base):
+class PayoutTransaction(Base):
     __tablename__ = 'payout_transactions'
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('POT'))
     customer_id = Column(Unicode, ForeignKey('customers.id'), nullable=False)
+    processor_txn_id = Column(Unicode, nullable=False)
+    amount_cents = Column(Integer, nullable=False)
+    status = Column(TransactionStatus, nullable=False)
 
     invoices = relationship('PayoutPlanInvoice',
                             backref='transaction', cascade='delete')
 
-    def execute(self):
+
+    @classmethod
+    def create(cls, customer, amount_cents):
+        transaction = cls(
+            customer=customer,
+            amount_cents=amount_cents,
+            status=TransactionStatus.PENDING
+        )
         try:
-            your_id = self.customer.company.processor.make_payout(
-                self.customer.processor_id, self.amount_cents)
-            self.status = 'COMPLETE'
-            self.your_id = your_id
+            your_id = transaction.customer.company.processor.make_payout(
+                transaction.customer.processor_id, transaction.amount_cents)
+            transaction.status = TransactionStatus.SENT
+            transaction.your_id = your_id
         except:
-            self.status = 'ERROR'
-            self.session.commit()
+            transaction.status = TransactionStatus.ERROR
+            transaction.session.commit()
             raise

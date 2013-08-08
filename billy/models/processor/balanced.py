@@ -24,19 +24,19 @@ class BalancedProcessor(object):
         """
         return True
 
-    def check_balance(self, customer, group):
+    def check_balance(self, customer_id):
         """
         Returns balance
         """
         return random.randint(100000, 500000)
 
-    def create_charge(self, customer, amount_cents):
+    def create_charge(self, customer_id, amount_cents):
         """
         Returns a transaction identifier or raises error
         """
         return uuid_factory('CHDUMMY')()
 
-    def make_payout(self, customer, amount_cents):
+    def make_payout(self, customer_id, amount_cents):
         """
         Returns a transaction identifier or raises error.
         """

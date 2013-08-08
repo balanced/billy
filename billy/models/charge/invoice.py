@@ -6,7 +6,7 @@ from sqlalchemy import (Column, Unicode, ForeignKey, DateTime, Boolean,
                         Integer, CheckConstraint)
 from sqlalchemy.orm import relationship, backref
 
-from models import Base, ChargeTransaction, ChargeSubscription, ChargePlan
+from models import Base, ChargeSubscription
 import settings
 from utils.models import uuid_factory
 
@@ -142,7 +142,7 @@ class ChargePlanInvoice(Base):
 
 
     @classmethod
-    def settle_task(cls):
+    def settle_all(cls):
         """
         Main task to settle charge_plans.
         """
@@ -165,6 +165,7 @@ class ChargePlanInvoice(Base):
         """
         Clears the charge debt of the customer.
         """
+        from models import ChargeTransaction
         transaction = ChargeTransaction.create(self.subscription.customer,
                                                self.remaining_balance_cents)
         try:

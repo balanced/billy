@@ -364,7 +364,7 @@ class TestPayout(TestCustomer):
     def add_payout_not_first_now(self):
         with freeze_time('2013-2-15'):
             self.customer.add_payout(self.payout.your_id)
-            invoice = PayoutInvoice.retrieve(
+            invoice = PayoutPlanInvoice.retrieve(
                 self.customer.your_id, self.group, self.payout.your_id, active_only=True)
             self.assertEqual(
                 invoice.payout_date, datetime.utcnow() + self.payout.payout_interval)

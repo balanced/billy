@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, Index
+from sqlalchemy import Column, Unicode, ForeignKey, Boolean, Index
 from models import Base
 from utils.models import uuid_factory
 

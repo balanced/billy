@@ -14,9 +14,9 @@ class TransactionMixin(object):
     status = Column(TransactionStatus, nullable=False)
 
     @classmethod
-    def create(cls, customer_id, amount_cents):
+    def create(cls, customer, amount_cents):
         transaction = cls(
-            customer_id=customer_id,
+            customer=customer,
             amount_cents=amount_cents,
             status=TransactionStatus.PENDING
         )

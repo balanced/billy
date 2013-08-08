@@ -6,7 +6,8 @@ from sqlalchemy import (Column, Unicode, ForeignKey, DateTime, Boolean,
                         Integer, CheckConstraint)
 from sqlalchemy.orm import relationship, backref
 
-from models import Base, ChargeSubscription
+from models import Base, ChargeTransaction, ChargeSubscription, ChargePlan
+import settings
 from utils.models import uuid_factory
 
 
@@ -30,7 +31,8 @@ class ChargePlanInvoice(Base):
         Integer, CheckConstraint('quantity >= 0'), nullable=False)
     prorated = Column(Boolean)
     charge_at_period_end = Column(Boolean)
-    cleared_by_txn = Column(Unicode, ForeignKey('charge_transactions.id'))
+    transaction_id = Column(Unicode, ForeignKey('charge_transactions.id'))
+    charge_attempts = Column(Integer, default=0)
 
     subscription = relationship('ChargeSubscription',
                                 backref=backref('invoices',
@@ -84,7 +86,7 @@ class ChargePlanInvoice(Base):
                     (now - true_start).total_seconds())
                 percent_used = time_used / time_total
                 new_base_amount = current_invoice.amount_base_cents * \
-                    percent_used
+                                  percent_used
                 new_after_coupon_amount = \
                     current_invoice.amount_after_coupon_cents * percent_used
                 new_balance = \
@@ -111,30 +113,66 @@ class ChargePlanInvoice(Base):
         ).all()
         return results
 
-    def reinvoice(self):
+    def generate_next(self):
         """
         Rollover the invoice
         """
         customer = self.subscription.customer
         plan = self.subscription.plan
-        ChargeSubscription.subscribe(
+        plan.subscribe(
             customer=customer,
-            plan=plan,
             quantity=self.quantity,
             charge_at_period_end=self.charge_at_period_end,
             start_dt=self.end_dt)
 
     @classmethod
-    def reinvoice_all(cls):
+    def generate_all(cls):
         """
         Roll
         """
         now = datetime.utcnow()
-        needs_reinvoicing = cls.query.join(ChargeSubscription).filter(
+        needs_make_invoicing = cls.query.join(ChargeSubscription).filter(
             cls.end_dt <= now,
             ChargeSubscription.is_active == True,
-            cls.remaining_balance_cents == 0,
+            ChargeSubscription.should_renew == True,
         ).all()
-        for plan_invoice in needs_reinvoicing:
-            plan_invoice.reinvoice()
-        return len(needs_reinvoicing)
+        for plan_invoice in needs_make_invoicing:
+            plan_invoice.generate_next()
+        return len(needs_make_invoicing)
+
+
+    @classmethod
+    def settle_task(cls):
+        """
+        Main task to settle charge_plans.
+        """
+        now = datetime.utcnow()
+        needs_settling = cls.query.join(ChargeSubscription).filter(
+            cls.end_dt <= now,
+            cls.remaining_balance_cents > 0).all()
+        for invoice in needs_settling:
+            if len(settings.RETRY_DELAY_PLAN) < invoice.charge_attempts:
+                invoice.subscription.is_active = False
+                invoice.subscription.is_enrolled = False
+            retry_delay = sum(
+                settings.RETRY_DELAY_PLAN[:invoice.charge_attempts])
+            when_to_charge = invoice.due_dt + retry_delay
+            if when_to_charge <= now:
+                invoice.settle()
+
+
+    def settle(self):
+        """
+        Clears the charge debt of the customer.
+        """
+        transaction = ChargeTransaction.create(self.subscription.customer,
+                                               self.remaining_balance_cents)
+        try:
+            transaction.execute()
+            self.transaction = transaction
+            self.remaining_balance_cents = 0
+        except Exception, e:
+            self.charge_attempts += 1
+            self.session.commit()
+            raise e
+        return self

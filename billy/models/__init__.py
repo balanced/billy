@@ -7,7 +7,7 @@ from .base import Base
 from .charge.subscription import ChargeSubscription
 from .payout.subscription import PayoutSubscription
 from .charge.invoice import ChargePlanInvoice
-from .payout.invoice import PayoutInvoice
+from .payout.invoice import PayoutPlanInvoice
 from .charge.transaction import ChargeTransaction
 from .payout.transaction import PayoutTransaction
 from .payout.plan import PayoutPlan

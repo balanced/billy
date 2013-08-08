@@ -14,14 +14,13 @@ class PayoutTransaction(TransactionMixin, Base):
     id = Column(Unicode, primary_key=True, default=uuid_factory('POT'))
     customer_id = Column(Unicode, ForeignKey('customers.id'), nullable=False)
 
-    invoices = relationship(PayoutInvoice,
+    invoices = relationship('PayoutPlanInvoice',
                             backref='transaction', cascade='delete')
 
     def execute(self):
         try:
             your_id = self.customer.company.processor.make_payout(
-                self.customer.id, self.customer.group_id,
-                self.amount_cents)
+                self.customer.processor_id, self.amount_cents)
             self.status = 'COMPLETE'
             self.your_id = your_id
         except:

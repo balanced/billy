@@ -6,7 +6,7 @@ from pytz import UTC
 from sqlalchemy.exc import *
 from sqlalchemy.orm.exc import *
 
-from models import Company, Customer, PayoutPlan, PayoutInvoice, PayoutSubscription
+from models import Company, Customer, PayoutPlan, PayoutPlanInvoice, PayoutSubscription
 from utils.intervals import Intervals
 from tests import BalancedTransactionalTestCase
 
@@ -39,7 +39,7 @@ class TestCreate(TestPayoutInvoice):
 
     def test_create(self):
         invoice = PayoutSubscription.subscribe(self.customer, self.payout)
-        PayoutInvoice.create(
+        PayoutPlanInvoice.create(
             subscription_id=invoice.subscription.id,
             payout_date=self.week,
             balanced_to_keep_cents=5000
@@ -50,7 +50,7 @@ class TestRetrieve(TestPayoutInvoice):
 
     def test_create_and_retrieve(self):
         inv = PayoutSubscription.subscribe(self.customer, self.payout)
-        var = PayoutInvoice.create(
+        var = PayoutPlanInvoice.create(
             subscription_id=inv.subscription.id,
             payout_date=self.week,
             balanced_to_keep_cents=12345,
@@ -59,7 +59,7 @@ class TestRetrieve(TestPayoutInvoice):
 
     def test_retrieve_params(self):
         inv = PayoutSubscription.subscribe(self.customer, self.payout)
-        var = PayoutInvoice.create(
+        var = PayoutPlanInvoice.create(
             subscription_id=inv.subscription.id,
             payout_date=self.week,
             balanced_to_keep_cents=12345
@@ -77,40 +77,40 @@ class TestUtils(TestPayoutInvoice):
         with freeze_time(str(self.now)):
             PayoutSubscription.subscribe(self.customer, self.payout)
             PayoutSubscription.subscribe(self.customer, self.payout_2)
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 0)
+            self.assertEqual(len(PayoutPlanInvoice.needs_payout_made()), 0)
         with freeze_time(str(self.week)):
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 0)
+            self.assertEqual(len(PayoutPlanInvoice.needs_payout_made()), 0)
         with freeze_time(str(self.two_weeks)):
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 1)
+            self.assertEqual(len(PayoutPlanInvoice.needs_payout_made()), 1)
         with freeze_time(str(self.month)):
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 2)
+            self.assertEqual(len(PayoutPlanInvoice.needs_payout_made()), 2)
 
     def test_needs_rollover(self):
         with freeze_time(str(self.now)):
             PayoutSubscription.subscribe(self.customer, self.payout)
             PayoutSubscription.subscribe(self.customer, self.payout_2)
         with freeze_time(str(self.month)):
-            PayoutInvoice.make_all_payouts()
-            self.assertEqual(len(PayoutInvoice.needs_rollover()), 2)
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 0)
+            PayoutPlanInvoice.make_all_payouts()
+            self.assertEqual(len(PayoutPlanInvoice.needs_rollover()), 2)
+            self.assertEqual(len(PayoutPlanInvoice.needs_payout_made()), 0)
 
     def test_rollover_all(self):
         with freeze_time(str(self.now)):
             PayoutSubscription.subscribe(self.customer, self.payout)
             PayoutSubscription.subscribe(self.customer, self.payout_2)
         with freeze_time(str(self.month)):
-            PayoutInvoice.make_all_payouts()
-            self.assertEqual(len(PayoutInvoice.needs_rollover()), 2)
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 0)
-            PayoutInvoice.reinvoice_all()
-            self.assertEqual(len(PayoutInvoice.needs_rollover()), 0)
+            PayoutPlanInvoice.make_all_payouts()
+            self.assertEqual(len(PayoutPlanInvoice.needs_rollover()), 2)
+            self.assertEqual(len(PayoutPlanInvoice.needs_payout_made()), 0)
+            PayoutPlanInvoice.reinvoice_all()
+            self.assertEqual(len(PayoutPlanInvoice.needs_rollover()), 0)
 
     def test_rollover(self):
         with freeze_time(str(self.now)):
             PayoutSubscription.subscribe(self.customer, self.payout)
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 0)
+            self.assertEqual(len(PayoutPlanInvoice.needs_payout_made()), 0)
         with freeze_time(str(self.month)):
-            needs_payout = PayoutInvoice.needs_payout_made()
+            needs_payout = PayoutPlanInvoice.needs_payout_made()
             self.assertEqual(len(needs_payout), 1)
             invoice = needs_payout[0].make_payout()
             self.assertTrue(invoice.completed)
@@ -120,9 +120,9 @@ class TestUtils(TestPayoutInvoice):
     def test_payout(self):
         with freeze_time(str(self.now)):
             PayoutSubscription.subscribe(self.customer, self.payout)
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 0)
+            self.assertEqual(len(PayoutPlanInvoice.needs_payout_made()), 0)
         with freeze_time(str(self.month)):
-            needs_payout = PayoutInvoice.needs_payout_made()
+            needs_payout = PayoutPlanInvoice.needs_payout_made()
             self.assertEqual(len(needs_payout), 1)
             invoice = needs_payout[0].make_payout()
             self.assertTrue(invoice.completed)
@@ -134,8 +134,8 @@ class TestUtils(TestPayoutInvoice):
             PayoutSubscription.subscribe(self.customer, self.payout)
             PayoutSubscription.subscribe(self.customer, self.payout_2)
         with freeze_time(str(self.month)):
-            PayoutInvoice.make_all_payouts()
-            self.assertEqual(len(PayoutInvoice.needs_payout_made()), 0)
+            PayoutPlanInvoice.make_all_payouts()
+            self.assertEqual(len(PayoutPlanInvoice.needs_payout_made()), 0)
 
 
 class TestValidators(TestPayoutInvoice):
@@ -147,7 +147,7 @@ class TestValidators(TestPayoutInvoice):
 
     def test_balance_to_keep_cents(self):
         with self.assertRaises(ValueError):
-            PayoutInvoice.create(
+            PayoutPlanInvoice.create(
                 subscription_id=self.sub_id,
                 payout_date=self.week,
                 balanced_to_keep_cents=-5000
@@ -155,7 +155,7 @@ class TestValidators(TestPayoutInvoice):
 
     def test_amount_payed_out(self):
         with self.assertRaises(ValueError):
-            var = PayoutInvoice.create(
+            var = PayoutPlanInvoice.create(
                 subscription_id=self.sub_id,
                 payout_date=self.week,
                 balanced_to_keep_cents=5000
@@ -165,7 +165,7 @@ class TestValidators(TestPayoutInvoice):
 
     def test_balance_at_exec(self):
         with self.assertRaises(ValueError):
-            var = PayoutInvoice.create(
+            var = PayoutPlanInvoice.create(
                 subscription_id=self.sub_id,
                 payout_date=self.week,
                 balanced_to_keep_cents=5000
@@ -175,7 +175,7 @@ class TestValidators(TestPayoutInvoice):
 
     def test_attempts_made(self):
         with self.assertRaises(ValueError):
-            var = PayoutInvoice.create(
+            var = PayoutPlanInvoice.create(
                 subscription_id=self.sub_id,
                 payout_date=self.week,
                 balanced_to_keep_cents=5000

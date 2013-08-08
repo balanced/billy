@@ -34,11 +34,11 @@ class PayoutSubscription(Base):
         return result
 
     def cancel(self, cancel_scheduled=False):
-        from models import PayoutInvoice
+        from models import PayoutPlanInvoice
         self.is_active = False
         if cancel_scheduled:
             in_process = self.invoices.filter(
-                PayoutInvoice.completed == False).first()
+                PayoutPlanInvoice.completed == False).first()
             if in_process:
                 in_process.completed = True
         return self

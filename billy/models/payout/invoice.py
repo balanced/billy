@@ -8,7 +8,7 @@ from models import Base, PayoutSubscription
 from utils.models import uuid_factory
 
 
-class PayoutInvoice(Base):
+class PayoutPlanInvoice(Base):
     __tablename__ = 'payout_invoices'
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('POI'))

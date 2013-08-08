@@ -5,7 +5,7 @@ from sqlalchemy import (Column, Unicode, Integer, Boolean,
                         ForeignKey, UniqueConstraint, CheckConstraint)
 from sqlalchemy.orm import relationship
 
-from models import Base, PayoutInvoice, PayoutSubscription
+from models import Base, PayoutPlanInvoice, PayoutSubscription
 from models.base import RelativeDelta
 from utils.models import uuid_factory
 
@@ -51,7 +51,7 @@ class PayoutPlan(Base):
         if not first_now:
             first_charge += self.payout_interval
         subscription = PayoutSubscription.create(customer, self)
-        invoice = PayoutInvoice.create(subscription.id,
+        invoice = PayoutPlanInvoice.create(subscription.id,
                                        first_charge,
                                        balance_to_keep_cents)
         self.session.add(invoice)

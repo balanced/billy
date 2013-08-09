@@ -5,24 +5,23 @@ from freezegun import freeze_time
 
 from models import ChargePlanInvoice, ChargeSubscription
 from utils.intervals import Intervals
-from tests.fixtures import sample_coupon, sample_customer, sample_plan
-from tests import BaseTestCase
+from tests import BaseTestCase, fixtures
 
 
-class InvoiceScenarioTest(BaseTestCase):
+class ChargeInvoiceTest(BaseTestCase):
     def setUp(self):
-        super(InvoiceScenarioTest, self).setUp()
+        super(ChargeInvoiceTest, self).setUp()
         # Prune old companies
         self.company = self.test_companies[0]
 
         # Create a plan under the company
-        self.plan = self.company.create_charge_plan(**sample_plan())
+        self.plan = self.company.create_charge_plan(**fixtures.sample_plan())
 
         # Create a customer under the company
-        self.customer = self.company.create_customer(**sample_customer())
+        self.customer = self.company.create_customer(**fixtures.sample_customer())
 
         # Create a coupon under the company
-        self.coupon = self.company.create_coupon(**sample_coupon())
+        self.coupon = self.company.create_coupon(**fixtures.sample_coupon())
 
 
     def basic_test(self):

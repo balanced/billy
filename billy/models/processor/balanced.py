@@ -30,13 +30,13 @@ class BalancedProcessor(object):
         """
         return random.randint(100000, 500000)
 
-    def create_charge(self, customer_id, amount_cents):
+    def create_charge(self, customer, amount_cents):
         """
         Returns a transaction identifier or raises error
         """
         return uuid_factory('CHDUMMY')()
 
-    def make_payout(self, customer_id, amount_cents):
+    def make_payout(self, customer, amount_cents):
         """
         Returns a transaction identifier or raises error.
         """

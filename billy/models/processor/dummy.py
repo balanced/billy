@@ -24,7 +24,7 @@ class DummyProcessor(object):
         """
         return True
 
-    def check_balance(self, customer, group):
+    def check_balance(self, customer_id):
         """
         Returns balance
         """

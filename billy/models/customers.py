@@ -6,7 +6,7 @@ from sqlalchemy.schema import ForeignKey, UniqueConstraint
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
 
-from models import Base
+from models import Base, ChargeSubscription, PayoutSubscription
 from utils.models import uuid_factory
 
 
@@ -42,3 +42,20 @@ class Customer(Base):
         UniqueConstraint(
             your_id, company_id, name='yourid_company_unique'),
     )
+
+
+    @property
+    def charge_subscriptions(self):
+        return ChargeSubscription.query.filter(
+            ChargeSubscription.customer == self,
+            ChargeSubscription.is_enrolled == True).all()
+
+
+    @property
+    def payout_subscriptions(self):
+        return PayoutSubscription.query.filter(
+            PayoutSubscription.customer == self,
+            ChargeSubscription.is_active == True).all()
+
+
+

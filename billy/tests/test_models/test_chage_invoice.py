@@ -27,7 +27,6 @@ class ChargeInvoiceTest(BaseTestCase):
     def basic_test(self):
         # Lets go to the future
         with freeze_time('2014-01-01'):
-            # Create a dummy test company
             # Subscribe the customer to the plan using that coupon
             sub = self.plan.subscribe(self.customer, quantity=1,
                                       coupon=self.coupon)

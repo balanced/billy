@@ -31,13 +31,6 @@ class PayoutPlan(Base):
                                        name='payout_id_group_unique'),
     )
 
-    def update(self, name):
-        """
-        Update the payout plan's names
-        """
-        self.name = name
-        return self
-
     def disable(self):
         """
         Disables a payout plan. Does not effect current subscribers.

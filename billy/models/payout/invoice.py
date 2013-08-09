@@ -10,7 +10,7 @@ from utils.models import uuid_factory
 
 
 class PayoutPlanInvoice(Base):
-    __tablename__ = 'payout_invoices'
+    __tablename__ = 'payout_plan_invoices'
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('POI'))
     subscription_id = Column(Unicode, ForeignKey('payout_subscription.id',
@@ -19,14 +19,16 @@ class PayoutPlanInvoice(Base):
     payout_date = Column(DateTime)
     balance_to_keep_cents = Column(Integer, CheckConstraint(
         'balance_to_keep_cents >= 0'))
-    amount_payed_out = Column(Integer)
+    amount_payed_out = Column(Integer, nullable=False, default=0)
     completed = Column(Boolean, default=False)
     queue_rollover = Column(Boolean, default=False)
     balance_at_exec = Column(Integer,
                              nullable=True)
-    transaction_id = Column(Unicode, ForeignKey('payout_transactions.id'))
     attempts_made = Column(Integer, CheckConstraint('attempts_made >= 0'),
                            default=0)
+
+    transaction = relationship('PayoutTransaction', backref='invoice',
+                               cascade='delete', uselist=False)
 
     subscription = relationship('PayoutSubscription',
                                 backref=backref('invoices', lazy='dynamic',
@@ -45,40 +47,6 @@ class PayoutPlanInvoice(Base):
         return invoice
 
     @classmethod
-    def retrieve(cls, customer, payout, active_only=False, last_only=False):
-        # Todo can probably be cleaner
-        query = PayoutSubscription.query.filter(
-            PayoutSubscription.customer == customer,
-            PayoutSubscription.payout == payout)
-        if active_only:
-            query = query.filter(PayoutSubscription.is_active == True)
-        subscription = query.first()
-        if subscription and last_only:
-            last = None
-            for invoice in subscription.invoices:
-                if invoice.payout_date >= datetime.utcnow():
-                    last = invoice
-                    break
-            return last
-        return subscription.invoices
-
-    def generate_next(self):
-        self.queue_rollover = False
-        PayoutSubscription.subscribe(self.subscription.customer,
-                                     self.subscription.payout,
-                                     first_now=False,
-                                     start_dt=self.payout_date)
-
-    @classmethod
-    def generate_all(cls):
-        needs_generation = cls.query.join(PayoutSubscription).filter(
-            cls.queue_rollover == True,
-            PayoutSubscription.is_active == True).all()
-        for invoice in needs_generation:
-            invoice.generate_next()
-
-
-    @classmethod
     def settle_all(cls):
         now = datetime.utcnow()
         needs_settling = cls.query.filter(cls.payout_date <= now,
@@ -89,7 +57,8 @@ class PayoutPlanInvoice(Base):
             else:
                 retry_delay = sum(
                     settings.RETRY_DELAY_PAYOUT[:invoice.attempts_made])
-                when_to_payout = invoice.payout_date + retry_delay
+                when_to_payout = invoice.payout_date + retry_delay if \
+                    retry_delay else invoice.payout_date
                 if when_to_payout <= now:
                     invoice.settle()
         return len(needs_settling)
@@ -97,15 +66,14 @@ class PayoutPlanInvoice(Base):
     def settle(self):
         from models import PayoutTransaction
 
-        transactor = self.company.processor
+        transactor = self.subscription.customer.company.processor
         current_balance = transactor.check_balance(
             self.subscription.customer.processor_id)
         payout_amount = current_balance - self.balance_to_keep_cents
         transaction = PayoutTransaction.create(
-            self.subscription.customer.processor_id, payout_amount)
+            self.subscription.customer, payout_amount)
+        transaction.invoice_id = self.id
         try:
-            transaction.execute()
-            self.transaction = transaction
             self.balance_at_exec = current_balance
             self.amount_payed_out = payout_amount
             self.completed = True

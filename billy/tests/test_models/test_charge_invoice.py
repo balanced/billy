@@ -91,6 +91,10 @@ class ChargeInvoiceTest(BaseTestCase):
             self.assertEqual(new_invoice.end_dt,
                              new_invoice.start_dt + Intervals.MONTH)
 
+        # Prorates
+        with freeze_time('2014-02-14'):
+            sub.cancel()
+
 
 
 

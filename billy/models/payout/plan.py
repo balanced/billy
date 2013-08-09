@@ -39,14 +39,14 @@ class PayoutPlan(Base):
         self.disabled_at = datetime.utcnow()
         return self
 
-    def subscribe(self, customer, first_now=False, start_dt=None):
-        first_charge = start_dt or datetime.utcnow()
+    def subscribe(self, customer, first_now=True, start_dt=None):
+        first_payout = start_dt or datetime.utcnow()
         balance_to_keep_cents = self.balance_to_keep_cents
         if not first_now:
-            first_charge += self.payout_interval
+            first_payout += self.payout_interval
         subscription = PayoutSubscription.create(customer, self)
         invoice = PayoutPlanInvoice.create(subscription,
-                                           first_charge,
+                                           first_payout,
                                            balance_to_keep_cents)
         self.session.add(invoice)
         return subscription

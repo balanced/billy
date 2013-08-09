@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
+from datetime import datetime
 
-from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, Index
+from sqlalchemy import Column, Unicode, ForeignKey, func, Boolean, Index
 from sqlalchemy.orm import relationship
 
 from models import Base
@@ -14,7 +15,9 @@ class PayoutSubscription(Base):
     customer_id = Column(Unicode,
                          ForeignKey('customers.id', ondelete='cascade'),
                          nullable=False)
-    payout_id = Column(Unicode, ForeignKey('payout_plans.id'), nullable=False)
+    payout_id = Column(Unicode,
+                       ForeignKey('payout_plans.id', ondelete='cascade'),
+                       nullable=False)
     is_active = Column(Boolean, default=True)
 
     customer = relationship('Customer')
@@ -37,6 +40,47 @@ class PayoutSubscription(Base):
         result.is_active = True
         cls.session.add(result)
         return result
+
+    def generate_next_invoice(self):
+        from models import PayoutPlan, PayoutPlanInvoice
+
+        if not self.is_active:
+            raise ValueError('Generating invoice for inactive plan!')
+        invoice = self.invoices.filter(
+            PayoutPlanInvoice.queue_rollover == True).first()
+        if invoice:
+            invoice.queue_rollover = False
+            PayoutPlan.subscribe(self.customer,
+                                 self.payout,
+                                 first_now=False,
+                                 start_dt=invoice.payout_date)
+
+    @classmethod
+    def generate_all_invoices(cls):
+        from models import PayoutPlanInvoice
+
+        needs_generation = cls.join(PayoutPlanInvoice).filter(
+            PayoutPlanInvoice.queue_rollover == True,
+            cls.is_active == True
+        )
+
+        needs_generation = PayoutPlanInvoice.query.join(cls).filter(
+            PayoutPlanInvoice.queue_rollover == True,
+            cls.is_active == True).all()
+        for subscription in needs_generation:
+            subscription.generate_next_invoice()
+
+
+    @property
+    def current_invoice(self):
+        """
+        Returns the current invoice of the customer. There can only be one
+        invoice outstanding per customer PayoutPlan
+        """
+        from models import PayoutPlanInvoice
+
+        return self.invoices.order_by(
+            PayoutPlanInvoice.payout_date.desc()).first()
 
     def cancel(self, cancel_scheduled=False):
         from models import PayoutPlanInvoice

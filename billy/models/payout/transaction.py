@@ -7,7 +7,7 @@ from models import Base
 from utils.models import uuid_factory, Enum
 
 PayoutTransactionStatus = Enum('PENDING', 'SENT', 'ERROR',
-                         name='payout_plan_transaction_status')
+                               name='payout_plan_transaction_status')
 
 
 class PayoutTransaction(Base):
@@ -20,10 +20,8 @@ class PayoutTransaction(Base):
     processor_txn_id = Column(Unicode, nullable=False)
     amount_cents = Column(Integer, nullable=False)
     status = Column(PayoutTransactionStatus, nullable=False)
-
-    invoices = relationship('PayoutPlanInvoice',
-                            backref='transaction', cascade='delete')
-
+    invoice_id = Column(Unicode, ForeignKey('payout_plan_invoices.id'),
+                        nullable=False)
 
     @classmethod
     def create(cls, customer, amount_cents):

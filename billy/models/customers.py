@@ -54,7 +54,7 @@ class Customer(Base):
     def payout_subscriptions(self):
         return PayoutSubscription.query.filter(
             PayoutSubscription.customer == self,
-            ChargeSubscription.is_active == True).all()
+            PayoutSubscription.is_active == True).all()
 
 
 

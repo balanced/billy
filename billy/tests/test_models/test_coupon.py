@@ -50,3 +50,7 @@ class CouponTest(BaseTestCase):
             self.assertEqual(next_invoice.coupon, coupon)
             self.assertNotEqual(invoice, next_invoice)
 
+        # Updating a coupon:
+        coupon.update('my_new_name', new_max_redeem=10,
+                      new_expire_at=datetime(2015, 1, 26), new_repeating=5)
+

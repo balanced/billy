@@ -8,9 +8,12 @@ class ChargeSubscription(Base):
     __tablename__ = 'charge_subscription'
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('CS'))
-    customer_id = Column(Unicode, ForeignKey('customers.id'), nullable=False)
+    customer_id = Column(Unicode,
+                         ForeignKey('customers.id', ondelete='cascade'),
+                         nullable=False)
     coupon_id = Column(Unicode, ForeignKey('coupons.id'))
-    plan_id = Column(Unicode, ForeignKey('charge_plans.id'), nullable=False)
+    plan_id = Column(Unicode, ForeignKey('charge_plans.id', ondelete='cascade'),
+                     nullable=False)
     # is_enrolled and should_renew have paired states such as:
     # 1) is_enrolled = True and should_renew = False when the subscription will
     # end at the end of the current period

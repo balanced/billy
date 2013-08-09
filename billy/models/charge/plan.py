@@ -16,7 +16,8 @@ class ChargePlan(Base):
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('CP'))
     your_id = Column(Unicode, nullable=False)
-    company_id = Column(Unicode, ForeignKey('companies.id'), nullable=False)
+    company_id = Column(Unicode, ForeignKey('companies.id', ondelete='cascade'),
+                        nullable=False)
     name = Column(Unicode, nullable=False)
     price_cents = Column(Integer, CheckConstraint('price_cents >= 0'),
                          nullable=False)

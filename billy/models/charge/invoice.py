@@ -15,9 +15,10 @@ class ChargePlanInvoice(Base):
     __tablename__ = 'charge_plan_invoices'
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('CPI'))
-    subscription_id = Column(Unicode, ForeignKey('charge_subscription.id'),
+    subscription_id = Column(Unicode, ForeignKey('charge_subscription.id',
+                                                 ondelete='cascade'),
                              nullable=False)
-    coupon_id = Column(Unicode, ForeignKey('coupons.id'))
+    coupon_id = Column(Unicode, ForeignKey('coupons.id', ondelete='cascade'))
     start_dt = Column(DateTime, nullable=False)
     end_dt = Column(DateTime, nullable=False)
     original_end_dt = Column(DateTime)
@@ -135,6 +136,7 @@ class ChargePlanInvoice(Base):
         Clears the charge debt of the customer.
         """
         from models import ChargeTransaction
+
         try:
             transaction = ChargeTransaction.create(self.subscription.customer,
                                                    self.remaining_balance_cents)

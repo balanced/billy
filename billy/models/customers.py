@@ -14,7 +14,8 @@ class Customer(Base):
     __tablename__ = 'customers'
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('CU'))
-    company_id = Column(Unicode, ForeignKey('companies.id'), nullable=False)
+    company_id = Column(Unicode, ForeignKey('companies.id', ondelete='cascade'),
+                        nullable=False)
     your_id = Column(Unicode, nullable=False)
     processor_id = Column(Unicode, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow)

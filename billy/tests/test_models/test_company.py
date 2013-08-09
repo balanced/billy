@@ -9,8 +9,6 @@ from tests import BaseTestCase, fixtures
 class InvoiceScenarioTest(BaseTestCase):
     def setUp(self):
         super(InvoiceScenarioTest, self).setUp()
-        # Prune old companies
-        self.company = self.test_companies[0]
 
 
     def basic_test(self):
@@ -37,6 +35,9 @@ class InvoiceScenarioTest(BaseTestCase):
         processor_class.check_balance('SOME_CUSTOMER_ID')
 
 
+        # Since its a test company we can now delete it:
+        company.session.commit()
+        company.delete()
 
 
 

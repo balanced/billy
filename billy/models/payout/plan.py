@@ -15,7 +15,8 @@ class PayoutPlan(Base):
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('POP'))
     your_id = Column(Unicode, nullable=False)
-    company_id = Column(Unicode, ForeignKey('companies.id'), nullable=False)
+    company_id = Column(Unicode, ForeignKey('companies.id', ondelete='cascade'),
+                        nullable=False)
     name = Column(Unicode, nullable=False)
     balance_to_keep_cents = Column(Integer,
                                    CheckConstraint('balance_to_keep_cents >= 0'
@@ -52,7 +53,7 @@ class PayoutPlan(Base):
             first_charge += self.payout_interval
         subscription = PayoutSubscription.create(customer, self)
         invoice = PayoutPlanInvoice.create(subscription.id,
-                                       first_charge,
-                                       balance_to_keep_cents)
+                                           first_charge,
+                                           balance_to_keep_cents)
         self.session.add(invoice)
         return subscription

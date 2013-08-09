@@ -14,7 +14,9 @@ class PayoutTransaction(Base):
     __tablename__ = 'payout_transactions'
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('POT'))
-    customer_id = Column(Unicode, ForeignKey('customers.id'), nullable=False)
+    customer_id = Column(Unicode,
+                         ForeignKey('customers.id', ondelete='cascade'),
+                         nullable=False)
     processor_txn_id = Column(Unicode, nullable=False)
     amount_cents = Column(Integer, nullable=False)
     status = Column(TransactionStatus, nullable=False)

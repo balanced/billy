@@ -13,7 +13,8 @@ class PayoutPlanInvoice(Base):
     __tablename__ = 'payout_invoices'
 
     id = Column(Unicode, primary_key=True, default=uuid_factory('POI'))
-    subscription_id = Column(Unicode, ForeignKey('payout_subscription.id'),
+    subscription_id = Column(Unicode, ForeignKey('payout_subscription.id',
+                                                 ondelete='cascade'),
                              nullable=False)
     payout_date = Column(DateTime)
     balance_to_keep_cents = Column(Integer, CheckConstraint(
@@ -86,7 +87,8 @@ class PayoutPlanInvoice(Base):
             if len(settings.RETRY_DELAY_PAYOUT) < invoice.attempts_made:
                 invoice.subscription.is_active = False
             else:
-                retry_delay = sum(settings.RETRY_DELAY_PAYOUT[:invoice.attempts_made])
+                retry_delay = sum(
+                    settings.RETRY_DELAY_PAYOUT[:invoice.attempts_made])
                 when_to_payout = invoice.payout_date + retry_delay
                 if when_to_payout <= now:
                     invoice.settle()

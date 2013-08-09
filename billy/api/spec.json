@@ -570,7 +570,7 @@
                     "type": "INTEGER"
                 }
             },
-            "description": "Base PayoutInvoice resource used to create a payout invoice or retrieve all your payout invoices",
+            "description": "Base PayoutPlanInvoice resource used to create a payout invoice or retrieve all your payout invoices",
             "methods": {
                 "GET": {
                     "description": "Return a list of payout invoices pertaining to a group"

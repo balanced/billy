@@ -39,8 +39,8 @@ def billy_tasks():
     Coupon.expire_coupons()
     Customer.settle_all_charge_plan_debt()
     ChargePlanInvoice.reinvoice_all()
-    PayoutInvoice.make_all_payouts()
-    PayoutInvoice.reinvoice_all()
+    PayoutPlanInvoice.make_all_payouts()
+    PayoutPlanInvoice.reinvoice_all()
     print "Billy task.... DONE"
 
 

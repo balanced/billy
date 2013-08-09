@@ -5,7 +5,6 @@ from flask import Flask
 from api.spec import billy_spec
 from api.resources.base import Home
 from api import ApiFixed
-from settings import DEBUG
 
 app = Flask(__name__)
 api = ApiFixed(app)

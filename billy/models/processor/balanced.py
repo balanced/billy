@@ -2,14 +2,12 @@ from __future__ import unicode_literals
 from hashlib import md5
 import random
 
-from utils.generic import uuid_factory
+from utils.models import uuid_factory
 
 
 class BalancedProcessor(object):
-    is_test_mode = True
-
-    def __init__(self, api_key):
-        self.api_key = api_key
+    def __init__(self, credential):
+        self.credential = credential
 
     def get_company_id(self):
         """
@@ -17,7 +15,7 @@ class BalancedProcessor(object):
         authentication
         """
         hash = md5()
-        hash.update(self.api_key)
+        hash.update(self.credential)
         return hash.hexdigest()
 
     def can_add_customer(self, customer_id):
@@ -26,19 +24,19 @@ class BalancedProcessor(object):
         """
         return True
 
-    def check_balance(self, customer, group):
+    def check_balance(self, customer_id):
         """
         Returns balance
         """
         return random.randint(100000, 500000)
 
-    def create_charge(self, customer, group, amount_cents):
+    def create_charge(self, customer, amount_cents):
         """
         Returns a transaction identifier or raises error
         """
         return uuid_factory('CHDUMMY')()
 
-    def make_payout(self, customer, group, amount_cents):
+    def make_payout(self, customer, amount_cents):
         """
         Returns a transaction identifier or raises error.
         """

@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 from datetime import datetime
 
-from flask import jsonify, make_response, abort as flask_abort
+from flask import jsonify, make_response
 from werkzeug.exceptions import HTTPException
 
 from definitions import error_definitions

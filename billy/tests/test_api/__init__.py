@@ -12,8 +12,7 @@ from werkzeug.test import Client
 from api.app import app
 from api.errors import error_definitions
 from api.resources import GroupController
-from settings import TEST_API_KEYS
-
+import settings
 
 class ClientResponse(Response):
     def json(self):
@@ -52,7 +51,7 @@ class BaseTestCase(TestCase):
 
     def setUp(self):
         super(BaseTestCase, self).setUp()
-        self.api_key = TEST_API_KEYS[0]
+        self.api_key = settings.TEST_API_KEYS[0]
         self.auth_headers = {
             'Authorization': 'Basic {}'.format(b64encode(
                 ':{}'.format(self.api_key)))

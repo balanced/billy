@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, Index
+from sqlalchemy.orm import relationship
 
 from models import Base
 from utils.models import uuid_factory
@@ -16,6 +17,8 @@ class PayoutSubscription(Base):
     payout_id = Column(Unicode, ForeignKey('payout_plans.id'), nullable=False)
     is_active = Column(Boolean, default=True)
 
+    customer = relationship('Customer')
+
     __table_args__ = (
         Index('unique_payout_sub', payout_id, customer_id,
               postgresql_where=is_active == True,
@@ -25,10 +28,10 @@ class PayoutSubscription(Base):
     @classmethod
     def create(cls, customer, payout):
         result = cls.query.filter(
-            cls.customer_id == customer.id,
-            cls.payout_id == payout.id).first()
+            cls.customer == customer,
+            cls.payout == payout).first()
         result = result or cls(
-            customer_id=customer.id, payout_id=payout.id,
+            customer=customer, payout=payout,
             # Todo Temp since default not working for some reason
             id=uuid_factory('PLL')())
         result.is_active = True

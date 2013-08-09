@@ -45,7 +45,7 @@ class PayoutPlan(Base):
         if not first_now:
             first_charge += self.payout_interval
         subscription = PayoutSubscription.create(customer, self)
-        invoice = PayoutPlanInvoice.create(subscription.id,
+        invoice = PayoutPlanInvoice.create(subscription,
                                            first_charge,
                                            balance_to_keep_cents)
         self.session.add(invoice)

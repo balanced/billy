@@ -46,7 +46,7 @@ class ChargePlanInvoice(Base):
                remaining_balance_cents, quantity, charge_at_period_end,
                includes_trial=False):
         invoice = cls(
-            subscription_id=subscription.id,
+            subscription=subscription,
             coupon=coupon,
             start_dt=start_dt,
             end_dt=end_dt,
@@ -69,8 +69,8 @@ class ChargePlanInvoice(Base):
         Prorates the last invoice to now
         """
         subscription = ChargeSubscription.query.filter(
-            ChargeSubscription.customer_id == customer.id,
-            ChargeSubscription.plan_id == plan.id,
+            ChargeSubscription.customer == customer,
+            ChargeSubscription.plan == plan,
             ChargeSubscription.should_renew == True).first()
         current_invoice = subscription and subscription.current_invoice
         if current_invoice:
@@ -104,7 +104,7 @@ class ChargePlanInvoice(Base):
         """
         now = datetime.utcnow()
         results = ChargePlanInvoice.query.filter(
-            ChargeSubscription.customer_id == customer.id,
+            ChargeSubscription.customer == customer,
             ChargePlanInvoice.remaining_balance_cents != 0,
             ChargePlanInvoice.due_dt <= now,
         ).all()

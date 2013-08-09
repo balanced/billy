@@ -21,8 +21,7 @@ class Customer(Base):
     updated_at = Column(DateTime, default=datetime.utcnow)
 
     charge_subscriptions = relationship('ChargeSubscription',
-                                        backref='customer',
-                                        cascade='delete', lazy='dynamic')
+                                       cascade='delete', lazy='dynamic')
     charge_invoices = association_proxy('charge_subscriptions', 'invoices')
 
     charge_transactions = relationship('ChargeTransaction',

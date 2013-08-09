@@ -1,5 +1,9 @@
+from __future__ import unicode_literals
 from datetime import datetime
-from sqlalchemy import Column, Unicode, ForeignKey, Boolean, Index, func, select
+
+from sqlalchemy import Column, Unicode, ForeignKey, Boolean, Index
+from sqlalchemy.orm import relationship
+
 from models import Base
 from utils.models import uuid_factory
 
@@ -7,11 +11,12 @@ from utils.models import uuid_factory
 class ChargeSubscription(Base):
     __tablename__ = 'charge_subscription'
 
+
     id = Column(Unicode, primary_key=True, default=uuid_factory('CS'))
     customer_id = Column(Unicode,
                          ForeignKey('customers.id', ondelete='cascade'),
                          nullable=False)
-    coupon_id = Column(Unicode, ForeignKey('coupons.id'))
+    coupon_id = Column(Unicode, ForeignKey('coupons.id', ondelete='cascade'))
     plan_id = Column(Unicode, ForeignKey('charge_plans.id', ondelete='cascade'),
                      nullable=False)
     # is_enrolled and should_renew have paired states such as:
@@ -24,20 +29,23 @@ class ChargeSubscription(Base):
     is_enrolled = Column(Boolean, default=True)
     should_renew = Column(Boolean, default=True)
 
+    customer = relationship('Customer')
+
     __table_args__ = (
-        Index('unique_charge_sub', plan_id, customer_id,
-              postgresql_where=should_renew == True,
-              unique=True),
-    )
+            Index('unique_charge_sub', plan_id, customer_id,
+                  postgresql_where=should_renew == True,
+                  unique=True),
+        )
+
 
     @classmethod
     def create(cls, customer, plan, coupon=None):
         subscription = cls.query.filter(
-            cls.customer_id == customer.id,
-            cls.plan_id == plan.id
+            cls.customer == customer,
+            cls.plan == plan
         ).first()
         subscription = subscription or cls(
-            customer_id=customer.id, plan_id=plan.id, coupon=coupon)
+            customer=customer, plan=plan, coupon=coupon)
         subscription.should_renew = True
         subscription.is_enrolled = True
         cls.session.add(subscription)
@@ -93,7 +101,7 @@ class ChargeSubscription(Base):
         now = datetime.utcnow()
         needs_invoice_generation = ChargeSubscription.query.outerjoin(
             ChargePlanInvoice,
-            ChargePlanInvoice.end_dt > now).filter(
+            ChargePlanInvoice.end_dt >= now).filter(
             ChargePlanInvoice.id == None).all()
 
         for subscription in needs_invoice_generation:

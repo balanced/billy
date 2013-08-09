@@ -34,10 +34,10 @@ class PayoutPlanInvoice(Base):
     )
 
     @classmethod
-    def create(cls, subscription_id,
+    def create(cls, subscription,
                payout_date, balanced_to_keep_cents):
         invoice = cls(
-            subscription_id=subscription_id,
+            subscription=subscription,
             payout_date=payout_date,
             balance_to_keep_cents=balanced_to_keep_cents,
         )
@@ -48,8 +48,8 @@ class PayoutPlanInvoice(Base):
     def retrieve(cls, customer, payout, active_only=False, last_only=False):
         # Todo can probably be cleaner
         query = PayoutSubscription.query.filter(
-            PayoutSubscription.customer_id == customer.id,
-            PayoutSubscription.payout_id == payout.id)
+            PayoutSubscription.customer == customer,
+            PayoutSubscription.payout == payout)
         if active_only:
             query = query.filter(PayoutSubscription.is_active == True)
         subscription = query.first()

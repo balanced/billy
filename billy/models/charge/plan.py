@@ -89,6 +89,6 @@ class ChargePlan(Base):
         Whether a customer can trial a charge plan
         """
         return not ChargeSubscription.query.filter(
-            ChargeSubscription.customer_id == customer.id,
-            ChargeSubscription.plan_id == self.id
+            ChargeSubscription.customer == customer,
+            ChargeSubscription.plan == self
         ).first()

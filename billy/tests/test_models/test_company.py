@@ -6,9 +6,9 @@ from models.processor import DummyProcessor
 from tests import BaseTestCase, fixtures
 
 
-class InvoiceScenarioTest(BaseTestCase):
+class CompanyTest(BaseTestCase):
     def setUp(self):
-        super(InvoiceScenarioTest, self).setUp()
+        super(CompanyTest, self).setUp()
 
 
     def basic_test(self):

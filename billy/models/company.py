@@ -168,6 +168,7 @@ class Company(Base):
             raise Exception('Can only delete test marketplaces without '
                             'force set to true.')
         self.session.delete(self)
+        self.session.commit()
 
     @property
     def processor(self):

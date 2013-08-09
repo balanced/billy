@@ -3,9 +3,9 @@ from datetime import datetime
 
 from freezegun import freeze_time
 
-from models import Company, ChargePlanInvoice, ChargeSubscription
+from models import ChargePlanInvoice, ChargeSubscription
 from utils.intervals import Intervals
-from tests.fixtures import sample_coupon, sample_company, sample_customer, sample_plan
+from tests.fixtures import sample_coupon, sample_customer, sample_plan
 from tests import BaseTestCase
 
 

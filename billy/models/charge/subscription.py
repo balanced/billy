@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Unicode, ForeignKey, Boolean, Index, func
+from sqlalchemy import Column, Unicode, ForeignKey, Boolean, Index, func, select
 from models import Base
 from utils.models import uuid_factory
 
@@ -53,6 +53,7 @@ class ChargeSubscription(Base):
 
     def cancel(self):
         from models import ChargePlanInvoice
+
         self.is_enrolled = False
         self.should_renew = False
         ChargePlanInvoice.prorate_last(self.customer, self.plan)
@@ -69,7 +70,7 @@ class ChargeSubscription(Base):
         plan = self.plan
         if self.current_invoice:
             return self.current_invoice
-        last_invoice = self.query.join(ChargePlanInvoice).order_by(
+        last_invoice = self.invoices.order_by(
             ChargePlanInvoice.end_dt.desc()).first()
         sub = plan.subscribe(
             customer=customer,
@@ -87,11 +88,11 @@ class ChargeSubscription(Base):
         from models import ChargePlanInvoice
 
         now = datetime.utcnow()
-        needs_make_invoicing = ChargeSubscription.query.join(
-            ChargePlanInvoice).filter(
-            cls.is_enrolled == True,
-            cls.should_renew == True, ).having(
-            func.max(ChargePlanInvoice.end_dt) <= now).all()
-        for subscription in needs_make_invoicing:
+        needs_invoice_generation = ChargeSubscription.query.outerjoin(
+            ChargePlanInvoice,
+            ChargePlanInvoice.end_dt > now).filter(
+            ChargePlanInvoice.id == None).all()
+
+        for subscription in needs_invoice_generation:
             subscription.generate_next_invoice()
-        return len(needs_make_invoicing)
+        return len(needs_invoice_generation)

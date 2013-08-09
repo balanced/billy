@@ -7,8 +7,6 @@ from tests.fixtures import (sample_company, sample_plan, sample_coupon,
 
 
 class ChargePlanInterfaceTest(BaseTestCase):
-    # CREATE A COMPANY
-
     def main_test(self):
         company = Company.create(**sample_company())
 

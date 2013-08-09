@@ -38,7 +38,7 @@ class GroupController(Base):
         if not result and api_key in TEST_API_KEYS:
             return Company.create(
                 'MY_TEST_GROUP_{}'.format(TEST_API_KEYS.index(api_key)),
-                processor_type='DUMMY', processor_api_key='SOME_API_KEY',
+                processor_type='DUMMY', processor_credential='SOME_API_KEY',
                 api_key=api_key)
         return result
 

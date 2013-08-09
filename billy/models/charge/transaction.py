@@ -31,11 +31,14 @@ class ChargeTransaction(Base):
             status=TransactionStatus.PENDING
         )
         try:
-            your_id = transaction.customer.company.processor.create_charge(
+            processor_txn_id = transaction.customer.company.processor.create_charge(
                 transaction.customer.processor_id, transaction.amount_cents)
             transaction.status = TransactionStatus.SENT
-            transaction.your_id = your_id
+            transaction.processor_txn_id = processor_txn_id
+            cls.session.add(transaction)
         except:
             transaction.status = TransactionStatus.ERROR
+            cls.session.add(transaction)
             transaction.session.commit()
             raise
+        return transaction

@@ -43,7 +43,7 @@ class Company(Base):
 
 
     @classmethod
-    def create(cls, processor_type, processor_api_key,
+    def create(cls, processor_type, processor_credential,
                is_test=True, **kwargs):
         """
         Creates a company
@@ -51,11 +51,11 @@ class Company(Base):
 
         # Todo Some sort of check api_key thingy.
         processor_class = processor_map[
-            processor_type.upper()](processor_api_key)
+            processor_type.upper()](processor_credential)
         processor_company_id = processor_class.get_company_id()
         company = cls(
             processor_type=processor_type.upper(),
-            processor_credential=processor_api_key,
+            processor_credential=processor_credential,
             processor_company_id=processor_company_id,
             is_test=is_test, **kwargs)
         cls.session.add(company)

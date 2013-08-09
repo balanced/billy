@@ -116,7 +116,7 @@ class ChargePlanInvoice(Base):
         """
         now = datetime.utcnow()
         needs_settling = cls.query.filter(
-            cls.end_dt <= now,
+            cls.due_dt <= now,
             cls.remaining_balance_cents > 0).all()
         for invoice in needs_settling:
             if len(settings.RETRY_DELAY_PLAN) < invoice.charge_attempts:
@@ -135,7 +135,6 @@ class ChargePlanInvoice(Base):
         Clears the charge debt of the customer.
         """
         from models import ChargeTransaction
-
         try:
             transaction = ChargeTransaction.create(self.subscription.customer,
                                                    self.remaining_balance_cents)

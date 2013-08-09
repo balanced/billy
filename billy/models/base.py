@@ -19,6 +19,13 @@ class Base(object):
     updated_at = Column(DateTime, default=datetime.utcnow,
                         onupdate=datetime.utcnow, nullable=False)
 
+    def __repr__(self):
+            cols = self.__mapper__.c.keys()
+            class_name = self.__class__.__name__
+            items = ', '.join(['%s=%s' % (col, repr(getattr(self, col))) for col
+                               in cols])
+            return '%s(%s)' % (class_name, items)
+
 Base = declarative_base(cls=Base)
 
 

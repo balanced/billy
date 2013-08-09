@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship
 from models import Base
 from utils.models import uuid_factory, Enum
 
-TransactionStatus = Enum('PENDING', 'SENT', 'ERROR',
+PayoutTransactionStatus = Enum('PENDING', 'SENT', 'ERROR',
                          name='payout_plan_transaction_status')
 
 
@@ -19,7 +19,7 @@ class PayoutTransaction(Base):
                          nullable=False)
     processor_txn_id = Column(Unicode, nullable=False)
     amount_cents = Column(Integer, nullable=False)
-    status = Column(TransactionStatus, nullable=False)
+    status = Column(PayoutTransactionStatus, nullable=False)
 
     invoices = relationship('PayoutPlanInvoice',
                             backref='transaction', cascade='delete')
@@ -30,16 +30,16 @@ class PayoutTransaction(Base):
         transaction = cls(
             customer=customer,
             amount_cents=amount_cents,
-            status=TransactionStatus.PENDING
+            status=PayoutTransactionStatus.PENDING
         )
         try:
             processor_txn_id = transaction.customer.company.processor.make_payout(
                 transaction.customer.processor_id, transaction.amount_cents)
-            transaction.status = TransactionStatus.SENT
+            transaction.status = PayoutTransactionStatus.SENT
             transaction.processor_txn_id = processor_txn_id
             cls.session.add(transaction)
         except:
-            transaction.status = TransactionStatus.ERROR
+            transaction.status = PayoutTransactionStatus.ERROR
             cls.session.add(transaction)
             transaction.session.commit()
             raise

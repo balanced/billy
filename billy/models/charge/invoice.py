@@ -32,8 +32,10 @@ class ChargePlanInvoice(Base):
         Integer, CheckConstraint('quantity >= 0'), nullable=False)
     prorated = Column(Boolean)
     charge_at_period_end = Column(Boolean)
-    transaction_id = Column(Unicode, ForeignKey('charge_transactions.id'))
     charge_attempts = Column(Integer, default=0)
+
+    transaction = relationship('ChargeTransaction', backref='invoice',
+                               cascade='delete', uselist=False)
 
     subscription = relationship('ChargeSubscription',
                                 backref=backref('invoices',
@@ -129,6 +131,7 @@ class ChargePlanInvoice(Base):
                 else invoice.due_dt
             if when_to_charge <= now:
                 invoice.settle()
+        return len(needs_settling)
 
 
     def settle(self):
@@ -136,12 +139,13 @@ class ChargePlanInvoice(Base):
         Clears the charge debt of the customer.
         """
         from models import ChargeTransaction
-
+        transaction = ChargeTransaction.create(self.subscription.customer,
+                                               self.remaining_balance_cents)
+        transaction.invoice_id = self.id
         try:
-            transaction = ChargeTransaction.create(self.subscription.customer,
-                                                   self.remaining_balance_cents)
-            self.transaction = transaction
+
             self.remaining_balance_cents = 0
+            self.amount_paid_cents = transaction.amount_cents
         except Exception, e:
             self.charge_attempts += 1
             self.session.commit()

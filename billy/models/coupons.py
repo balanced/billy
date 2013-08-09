@@ -5,7 +5,7 @@ from sqlalchemy import (Boolean, Column, DateTime, Integer, ForeignKey,
                         Unicode, UniqueConstraint, CheckConstraint)
 from sqlalchemy.orm import relationship
 
-from models import Base
+from models import Base, ChargeSubscription, ChargePlanInvoice
 from utils.models import uuid_factory
 
 
@@ -25,7 +25,6 @@ class Coupon(Base):
                         CheckConstraint('max_redeem = -1 OR max_redeem >= 0'))
     repeating = Column(Integer,
                        CheckConstraint('repeating = -1 OR repeating >= 0'))
-    active = Column(Boolean, default=True)
     disabled_at = Column(DateTime)
 
     charge_subscriptions = relationship('ChargeSubscription', backref='coupon',
@@ -72,19 +71,26 @@ class Coupon(Base):
         self.disabled_at = datetime.utcnow()
         return self
 
+
+    def can_use(self, customer, ignore_expiration=False):
+        now = datetime.utcnow()
+        sub_count = ChargeSubscription.query.filter(
+            ChargeSubscription.coupon == self).count()
+        invoice_count = ChargePlanInvoice.query.join(ChargeSubscription).filter(
+            ChargePlanInvoice.coupon == self,
+            ChargeSubscription.customer == customer).count()
+        if not ignore_expiration and self.expire_at and self.expire_at < now:
+            return False
+        if self.max_redeem != -1 and self.max_redeem <= sub_count:
+            return False
+        if self.repeating != -1 and self.repeating <= invoice_count:
+            return False
+        return self
+
+
     @property
     def count_customers(self):
         """
         The number of unique customers that are using the coupon
         """
         return self.customer.count()
-
-    @classmethod
-    def expire_coupons(cls):
-        """
-        Expires all expired coupons (TASK)
-        """
-        now = datetime.utcnow()
-        to_expire = cls.query.filter(cls.expire_at < now).all()
-        for coupon in to_expire:
-            coupon.active = False

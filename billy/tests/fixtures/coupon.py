@@ -7,7 +7,7 @@ def sample_coupon(
         price_off_cents=0,
         percent_off_int=10,
         max_redeem=-1,
-        repeating=1):
+        repeating=10):
 
     return dict(
         your_id=your_id,

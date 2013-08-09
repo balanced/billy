@@ -8,8 +8,8 @@ from .charge.subscription import ChargeSubscription
 from .payout.subscription import PayoutSubscription
 from .charge.invoice import ChargePlanInvoice
 from .payout.invoice import PayoutPlanInvoice
-from .charge.transaction import ChargeTransaction
-from .payout.transaction import PayoutTransaction
+from .charge.transaction import ChargeTransaction, ChargeTransactionStatus
+from .payout.transaction import PayoutTransaction, PayoutTransactionStatus
 from .payout.plan import PayoutPlan
 from .charge.plan import ChargePlan
 from .customers import Customer

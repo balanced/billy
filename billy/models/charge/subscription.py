@@ -11,7 +11,6 @@ from utils.models import uuid_factory
 class ChargeSubscription(Base):
     __tablename__ = 'charge_subscription'
 
-
     id = Column(Unicode, primary_key=True, default=uuid_factory('CS'))
     customer_id = Column(Unicode,
                          ForeignKey('customers.id', ondelete='cascade'),
@@ -32,18 +31,29 @@ class ChargeSubscription(Base):
     customer = relationship('Customer')
 
     __table_args__ = (
-            Index('unique_charge_sub', plan_id, customer_id,
-                  postgresql_where=should_renew == True,
-                  unique=True),
-        )
+        Index('unique_charge_sub', plan_id, customer_id,
+              postgresql_where=should_renew == True,
+              unique=True),
+    )
 
 
     @classmethod
     def create(cls, customer, plan, coupon=None):
+        # Coupon passed
+        if coupon and not coupon.can_use(customer):
+            raise ValueError(
+                'Customer cannot use this coupon. Because either it was '
+                'over redeemed')
         subscription = cls.query.filter(
             cls.customer == customer,
             cls.plan == plan
         ).first()
+        # Coupon not passed, used existing coupon
+        if subscription and not coupon and subscription.coupon:
+            coupon = subscription.coupon.can_use(
+                customer,
+                ignore_expiration=True)
+
         subscription = subscription or cls(
             customer=customer, plan=plan, coupon=coupon)
         subscription.should_renew = True

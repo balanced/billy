@@ -52,7 +52,7 @@ class ChargePlan(Base):
         amount_base = self.price_cents * Decimal(quantity)
         amount_after_coupon = amount_base
 
-        if subscription.coupon:
+        if subscription.coupon and coupon.can_use(customer):
             dollars_off = coupon.price_off_cents
             percent_off = coupon.percent_off_int
             amount_after_coupon -= dollars_off  # BOTH CENTS, safe

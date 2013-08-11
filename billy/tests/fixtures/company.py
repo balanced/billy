@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from models.processor import ProcessorType
+from billy.models.processor import ProcessorType
 
 
 def sample_company(

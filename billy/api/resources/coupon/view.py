@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from utils import fields
+from billy.utils import fields
 
 coupon_view = {
     # Todo: figure out why coupon_id isnt showing...

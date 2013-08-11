@@ -4,9 +4,9 @@ from sqlalchemy import (Column, Unicode, ForeignKey, DateTime, Boolean,
                         Integer, CheckConstraint)
 from sqlalchemy.orm import relationship, backref
 
-from models import Base, PayoutSubscription
-import settings
-from utils.models import uuid_factory
+from billy.models import Base, PayoutSubscription
+from billy import settings
+from billy.utils.models import uuid_factory
 
 
 class PayoutPlanInvoice(Base):

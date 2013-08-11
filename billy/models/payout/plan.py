@@ -5,9 +5,9 @@ from sqlalchemy import (Column, Unicode, Integer, Boolean,
                         ForeignKey, UniqueConstraint, CheckConstraint)
 from sqlalchemy.orm import relationship
 
-from models import Base, PayoutPlanInvoice, PayoutSubscription
-from models.base import RelativeDelta
-from utils.models import uuid_factory
+from billy.models import Base, PayoutPlanInvoice, PayoutSubscription
+from billy.models.base import RelativeDelta
+from billy.utils.models import uuid_factory
 
 
 class PayoutPlan(Base):

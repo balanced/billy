@@ -4,8 +4,8 @@ from datetime import datetime
 from sqlalchemy import Column, Unicode, ForeignKey, Boolean, Index
 from sqlalchemy.orm import relationship
 
-from models import Base
-from utils.models import uuid_factory
+from billy.models import Base
+from billy.utils.models import uuid_factory
 
 
 class ChargeSubscription(Base):
@@ -67,13 +67,13 @@ class ChargeSubscription(Base):
         Returns the current invoice of the customer. There can only be one
         invoice outstanding per customer ChargePlan
         """
-        from models import ChargePlanInvoice
+        from billy.models import ChargePlanInvoice
 
         return self.invoices.filter(
             ChargePlanInvoice.end_dt > datetime.utcnow()).first()
 
     def cancel(self):
-        from models import ChargePlanInvoice
+        from billy.models import ChargePlanInvoice
 
         self.is_enrolled = False
         self.should_renew = False
@@ -85,7 +85,7 @@ class ChargeSubscription(Base):
         """
         Rollover the invoice if the next invoice is not already there.
         """
-        from models import ChargePlanInvoice
+        from billy.models import ChargePlanInvoice
 
         customer = self.customer
         plan = self.plan
@@ -106,7 +106,7 @@ class ChargeSubscription(Base):
         """
         Generate the next invoice for all invoices that need to be generated
         """
-        from models import ChargePlanInvoice
+        from billy.models import ChargePlanInvoice
 
         now = datetime.utcnow()
         needs_invoice_generation = ChargeSubscription.query.outerjoin(

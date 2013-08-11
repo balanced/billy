@@ -5,8 +5,8 @@ from sqlalchemy import (Boolean, Column, DateTime, Integer, ForeignKey,
                         Unicode, UniqueConstraint, CheckConstraint)
 from sqlalchemy.orm import relationship
 
-from models import Base, ChargeSubscription, ChargePlanInvoice
-from utils.models import uuid_factory
+from billy.models import Base, ChargeSubscription, ChargePlanInvoice
+from billy.utils.models import uuid_factory
 
 
 class Coupon(Base):

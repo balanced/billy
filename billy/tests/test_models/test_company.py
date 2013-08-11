@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
 from datetime import datetime
 
-from models import Company, ProcessorType
-from models.processor import DummyProcessor
-from tests import BaseTestCase, fixtures
+from billy.models import Company, ProcessorType
+from billy.models.processor import DummyProcessor
+from billy.tests import BaseTestCase, fixtures
 
 
 class CompanyTest(BaseTestCase):

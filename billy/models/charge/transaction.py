@@ -3,8 +3,8 @@ from __future__ import unicode_literals
 from sqlalchemy import Column, Unicode, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
-from models import Base
-from utils.models import uuid_factory, Enum
+from billy.models import Base
+from billy.utils.models import uuid_factory, Enum
 
 
 ChargeTransactionStatus = Enum('PENDING', 'SENT', 'ERROR',

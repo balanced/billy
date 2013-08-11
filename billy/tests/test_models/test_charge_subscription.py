@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from freezegun import freeze_time
 
-from tests import BaseTestCase, fixtures
+from billy.tests import BaseTestCase, fixtures
 
 
 class ChargePlanSubscriptionTest(BaseTestCase):

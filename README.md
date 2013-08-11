@@ -10,7 +10,7 @@ There are three major parts to billy: the models, the api, and the web layer.
 This library currently has the API and the models.
 
 1. Create a pgsql DB called 'billy' with 'test' user and no password
-2. Install requirements ```pip install -r requirements.txt```
+2. Install requirements ```python setup.py develop```
 3. Create the tables: ```python manage.py create_tables```
 4. To run the api server run: ```python manage.py run_api```
 5. Cron job this hourly: ```python manage.py billy_tasks```

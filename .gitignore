@@ -39,3 +39,5 @@ nosetests.xml
 venv-billy
 scratch.py
 
+env/
+cover/

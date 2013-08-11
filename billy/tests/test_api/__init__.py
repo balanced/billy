@@ -9,10 +9,10 @@ import jsonschema
 from unittest import TestCase
 from werkzeug.test import Client
 
-from api.app import app
-from api.errors import error_definitions
-from api.resources import GroupController
-import settings
+from billy.api.app import app
+from billy.api.errors import error_definitions
+from billy.api.resources import GroupController
+from billy import settings
 
 class ClientResponse(Response):
     def json(self):

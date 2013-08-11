@@ -2,10 +2,10 @@ from __future__ import unicode_literals
 
 from wtforms import fields as wtfields
 
-from utils import fields
-from api.errors.definitions import error_definitions
-from resources import *
-from utils.intervals import IntervalViewField
+from billy.utils import fields
+from billy.api.errors.definitions import error_definitions
+from billy.utils.intervals import IntervalViewField
+from .resources import *
 
 
 def get_methods(controller):

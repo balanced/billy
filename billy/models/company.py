@@ -3,9 +3,9 @@ from __future__ import unicode_literals
 from sqlalchemy import Unicode, Column, Enum, Boolean, ForeignKey
 from sqlalchemy.orm import relationship, backref
 
-from models import Base, ProcessorType, PayoutPlan, ChargePlan, Coupon, Customer
-from processor import processor_map
-from utils.models import api_key_factory, uuid_factory
+from billy.models import Base, ProcessorType, PayoutPlan, ChargePlan, Coupon, Customer
+from billy.utils.models import api_key_factory, uuid_factory
+from .processor import processor_map
 
 
 class Company(Base):

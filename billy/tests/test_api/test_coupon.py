@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
 
-from api.resources import (CustomerController, CustomerIndexController,
+from billy.api.resources import (CustomerController, CustomerIndexController,
     CouponIndexController)
 from . import BaseTestCase
-from fixtures import (sample_customer, sample_customer_2, sample_customer_3,
-                      sample_coupon)
+from billy.tests.fixtures import (sample_customer, sample_customer_2, sample_customer_3,
+                                  sample_coupon)
 
 
 class TestCustomers(BaseTestCase):

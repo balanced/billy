@@ -7,7 +7,7 @@ from sqlalchemy import Column, DateTime, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import TypeDecorator, VARCHAR
 
-from settings import Session
+from billy.settings import Session
 
 
 class Base(object):

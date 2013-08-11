@@ -3,10 +3,10 @@ from __future__ import unicode_literals
 from flask import request
 from flask.ext.restful import marshal_with
 
-from api.errors import BillyExc
-from api.resources.group import GroupController
-from models import Company, Customer, ChargePlanInvoice, ChargeSubscription
-from view import plan_inv_view
+from billy.api.errors import BillyExc
+from billy.api.resources.group import GroupController
+from billy.models import Company, Customer, ChargePlanInvoice, ChargeSubscription
+from .view import plan_inv_view
 
 
 class PlanInvIndexController(GroupController):

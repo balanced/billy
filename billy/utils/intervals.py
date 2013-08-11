@@ -1,9 +1,11 @@
 from __future__ import unicode_literals
 
-from dateutil.relativedelta import relativedelta
-from utils import fields
 import json
+
+from dateutil.relativedelta import relativedelta
 from wtforms import Field, TextField
+
+from billy.utils import fields
 
 
 class Intervals(object):

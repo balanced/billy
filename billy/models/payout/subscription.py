@@ -3,8 +3,8 @@ from __future__ import unicode_literals
 from sqlalchemy import Column, Unicode, ForeignKey, DateTime, Boolean, Index
 from sqlalchemy.orm import relationship
 
-from models import Base
-from utils.models import uuid_factory
+from billy.models import Base
+from billy.utils.models import uuid_factory
 
 
 class PayoutSubscription(Base):
@@ -39,7 +39,7 @@ class PayoutSubscription(Base):
         return result
 
     def cancel(self, cancel_scheduled=False):
-        from models import PayoutPlanInvoice
+        from billy.models import PayoutPlanInvoice
 
         self.is_active = False
         if cancel_scheduled:

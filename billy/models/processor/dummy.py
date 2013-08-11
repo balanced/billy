@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 from hashlib import md5
 import random
 
-from utils.models import uuid_factory
+from billy.utils.models import uuid_factory
 
 
 class DummyProcessor(object):

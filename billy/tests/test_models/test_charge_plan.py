@@ -2,8 +2,8 @@ from __future__ import unicode_literals
 
 from freezegun import freeze_time
 
-from utils.intervals import Intervals
-from tests import BaseTestCase, fixtures
+from billy.utils.intervals import Intervals
+from billy.tests import BaseTestCase, fixtures
 
 
 class ChargePlanTest(BaseTestCase):

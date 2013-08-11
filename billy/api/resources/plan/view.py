@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 
-from utils import fields
-
-from utils.intervals import IntervalViewField
+from billy.utils import fields
+from billy.utils.intervals import IntervalViewField
 
 plan_view = {
     # Todo: figure out why some arent showing...

@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from utils import fields
+from billy.utils import fields
 
 customer_view = {
     # Todo: figure out why some attributes arent showing...

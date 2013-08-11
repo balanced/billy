@@ -2,9 +2,9 @@ from __future__ import unicode_literals
 
 from flask.ext.script import Manager
 
-from models import *
-from api.app import app
-from settings import DB_ENGINE, DEBUG
+from billy.models import *
+from billy.api.app import app
+from billy.settings import DB_ENGINE, DEBUG
 
 manager = Manager(app)
 

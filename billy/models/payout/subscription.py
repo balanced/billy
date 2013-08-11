@@ -39,7 +39,7 @@ class PayoutSubscription(Base):
         return result
 
     def cancel(self, cancel_scheduled=False):
-        from models import PayoutPlanInvoice
+        from billy.models import PayoutPlanInvoice
 
         self.is_active = False
         if cancel_scheduled:

@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from utils.intervals import Intervals
+from billy.utils.intervals import Intervals
 
 
 def sample_payout(your_id='5_DOLLA_PLAN',

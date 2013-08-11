@@ -4,8 +4,8 @@ from datetime import datetime
 from sqlalchemy import Column, Unicode, ForeignKey, Boolean, Index
 from sqlalchemy.orm import relationship
 
-from models import Base
-from utils.models import uuid_factory
+from billy.models import Base
+from billy.utils.models import uuid_factory
 
 
 class ChargeSubscription(Base):

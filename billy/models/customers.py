@@ -6,8 +6,8 @@ from sqlalchemy.schema import ForeignKey, UniqueConstraint
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
 
-from models import Base, ChargeSubscription, PayoutSubscription
-from utils.models import uuid_factory
+from billy.models import Base, ChargeSubscription, PayoutSubscription
+from billy.utils.models import uuid_factory
 
 
 class Customer(Base):

@@ -3,8 +3,8 @@ from __future__ import unicode_literals
 from sqlalchemy.exc import *
 from wtforms import Form, TextField, validators
 
-from models import Customer
-from api.errors import BillyExc
+from billy.models import Customer
+from billy.api.errors import BillyExc
 
 
 class CustomerCreateForm(Form):

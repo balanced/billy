@@ -3,10 +3,10 @@ from __future__ import unicode_literals
 from flask import request
 from flask.ext.restful import marshal_with
 
-from api.errors import BillyExc
-from api.resources.group import GroupController
-from models import Company, Customer, PayoutTransaction
-from view import payout_trans_view
+from billy.api.errors import BillyExc
+from billy.api.resources.group import GroupController
+from billy.models import Company, Customer, PayoutTransaction
+from .view import payout_trans_view
 
 
 class PayoutTransIndexController(GroupController):

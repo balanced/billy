@@ -1,8 +1,8 @@
 from __future__ import unicode_literals
 
-from models import Company
-from tests import BaseTestCase
-from tests.fixtures import (sample_company, sample_plan, sample_coupon,
+from billy.models import Company
+from billy.tests import BaseTestCase
+from billy.tests.fixtures import (sample_company, sample_plan, sample_coupon,
                             sample_customer, sample_payout)
 
 

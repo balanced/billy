@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from flask import request, Response
 from flask.ext import restful
 
-from api.errors import BillyExc
+from billy.api.errors import BillyExc
 
 
 class Base(restful.Resource):

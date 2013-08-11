@@ -4,8 +4,8 @@ from sqlalchemy.exc import *
 from wtforms import (
     Form, TextField, IntegerField, validators, DateTimeField)
 
-from models import Coupon
-from api.errors import BillyExc
+from billy.models import Coupon
+from billy.api.errors import BillyExc
 
 
 class CouponCreateForm(Form):

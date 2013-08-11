@@ -3,8 +3,8 @@ from datetime import datetime
 
 from freezegun import freeze_time
 
-from models import ChargeSubscription
-from tests import BaseTestCase, fixtures
+from billy.models import ChargeSubscription
+from billy.tests import BaseTestCase, fixtures
 
 
 class CouponTest(BaseTestCase):

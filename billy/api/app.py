@@ -2,9 +2,9 @@ from __future__ import unicode_literals
 
 from flask import Flask
 
-from api.spec import billy_spec
-from api.resources.base import Home
-from api import ApiFixed
+from billy.api.spec import billy_spec
+from billy.api.resources.base import Home
+from billy.api import ApiFixed
 
 app = Flask(__name__)
 api = ApiFixed(app)

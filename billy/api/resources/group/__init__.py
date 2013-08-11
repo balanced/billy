@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
 
-from api.resources import Base
-from api.errors import BillyExc
-from models import Company
-from settings import TEST_API_KEYS
+from billy.api.resources import Base
+from billy.api.errors import BillyExc
+from billy.models import Company
+from billy.settings import TEST_API_KEYS
 
 
 class GroupController(Base):

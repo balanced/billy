@@ -4,7 +4,7 @@ import datetime
 import unittest
 
 
-from models import ProcessorType, Company
+from billy.models import ProcessorType, Company
 
 
 class BaseTestCase(unittest.TestCase):

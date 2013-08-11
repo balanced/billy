@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import sessionmaker, scoped_session
 
-from utils.intervals import Intervals
+from billy.utils.intervals import Intervals
 
 DB_SETTINGS = {
     'driver': 'postgresql',

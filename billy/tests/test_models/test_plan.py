@@ -15,6 +15,32 @@ class TestPlanModel(ModelTestCase):
         from billy.models.plan import PlanModel
         return PlanModel(*args, **kwargs)
 
+    def test_get_plan(self):
+        model = self.make_one(self.session)
+
+        plan = model.get_plan_by_guid('PL_NON_EXIST')
+        self.assertEqual(plan, None)
+
+        with self.assertRaises(KeyError):
+            model.get_plan_by_guid('PL_NON_EXIST', raise_error=True)
+
+        with transaction.manager:
+            guid = model.create_plan(
+                plan_type=model.TYPE_CHARGE,
+                name='name',
+                amount=99.99,
+                frequency=model.FREQ_WEEKLY,
+            )
+
+        with transaction.manager:
+            model.delete_plan(guid)
+
+        with self.assertRaises(KeyError):
+            model.get_plan_by_guid(guid, raise_error=True)
+
+        plan = model.get_plan_by_guid(guid, ignore_deleted=False, raise_error=True)
+        self.assertEqual(plan.guid, guid)
+
     def test_create_plan(self):
         model = self.make_one(self.session)
         name = 'monthly billing to user John'
@@ -70,23 +96,6 @@ class TestPlanModel(ModelTestCase):
                 amount=999,
                 frequency=model.FREQ_DAILY,
             )
-
-    def test_get_plan(self):
-        model = self.make_one(self.session)
-
-        with transaction.manager:
-            guid = model.create_plan(
-                plan_type=model.TYPE_CHARGE,
-                name='evil gangster charges protection fee from Tom weekly',
-                amount=99.99,
-                frequency=model.FREQ_WEEKLY,
-            )
-
-        plan = model.get_plan_by_guid('not-exist')
-        self.assertEqual(plan, None)
-
-        plan = model.get_plan_by_guid(guid)
-        self.assertNotEqual(plan, None)
 
     def test_update_plan(self):
         model = self.make_one(self.session)
@@ -170,7 +179,7 @@ class TestPlanModel(ModelTestCase):
         with transaction.manager:
             guid = model.create_plan(
                 plan_type=model.TYPE_CHARGE,
-                name='old name',
+                name='name',
                 amount=99.99,
                 frequency=model.FREQ_WEEKLY,
             )

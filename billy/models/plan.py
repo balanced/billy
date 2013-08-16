@@ -37,7 +37,7 @@ class PlanModel(object):
         self.logger = logger or logging.getLogger(__name__)
         self.session = session
 
-    def get_plan_by_guid(self, guid, raise_error=True, ignore_deleted=True):
+    def get_plan_by_guid(self, guid, raise_error=False, ignore_deleted=True):
         """Get a plan guid and return it
 
         :param guid: The guild of plan to get
@@ -47,6 +47,8 @@ class PlanModel(object):
             .filter_by(guid=guid) \
             .filter_by(deleted=not ignore_deleted) \
             .first()
+        if raise_error and query is None:
+            raise KeyError('No such plan {}'.format(guid))
         return query
 
     def create_plan(
@@ -82,7 +84,7 @@ class PlanModel(object):
         """Update a plan
 
         """
-        plan = self.get_plan_by_guid(guid, True)
+        plan = self.get_plan_by_guid(guid, raise_error=True)
         now = tables.now_func()
         plan.updated_at = now
         for key in ['name', 'external_id', 'description']:
@@ -99,7 +101,7 @@ class PlanModel(object):
         """Delete a plan
 
         """
-        plan = self.get_plan_by_guid(guid, True)
+        plan = self.get_plan_by_guid(guid, raise_error=True)
         plan.deleted = True
         self.session.add(plan)
         self.session.flush()

@@ -53,6 +53,7 @@ class PlanModel(object):
 
     def create_plan(
         self, 
+        company_guid, 
         plan_type, 
         amount, 
         frequency, 
@@ -69,6 +70,7 @@ class PlanModel(object):
             raise ValueError('Invalid frequency {}'.format(frequency))
         plan = tables.Plan(
             guid='PL' + make_guid(),
+            company_guid=company_guid,
             plan_type=plan_type,
             amount=amount, 
             frequency=frequency, 

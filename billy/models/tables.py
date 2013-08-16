@@ -8,6 +8,8 @@ from sqlalchemy import UnicodeText
 from sqlalchemy import Boolean
 from sqlalchemy import DateTime
 from sqlalchemy import Numeric
+from sqlalchemy.schema import ForeignKey
+from sqlalchemy.orm import relation
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import func
 
@@ -61,6 +63,9 @@ class Company(DeclarativeBase):
     #: the updated datetime of this company
     updated_at = Column(DateTime(timezone=True), default=now_func)
 
+    #: plans of this company
+    plans = relation('Plan', cascade='all, delete-orphan', backref='company')
+
 
 class Plan(DeclarativeBase):
     """Plan is a recurring payment schedule, such as a hosting service plan.
@@ -69,6 +74,16 @@ class Plan(DeclarativeBase):
     __tablename__ = 'plan'
 
     guid = Column(String(64), primary_key=True)
+    #: the guid of company which owns this plan
+    company_guid = Column(
+        String(64), 
+        ForeignKey(
+            'company.guid', 
+            ondelete='CASCADE', onupdate='CASCADE'
+        ), 
+        index=True,
+        nullable=False,
+    )
     #: what kind of plan it is, 0=charge, 1=payout
     plan_type = Column(Integer, nullable=False, index=True)
     #: the external ID given by user

@@ -11,6 +11,14 @@ from billy.tests.helper import ModelTestCase
 @freeze_time('2013-08-16')
 class TestPlanModel(ModelTestCase):
 
+    def setUp(self):
+        from billy.models.company import CompanyModel
+        super(TestPlanModel, self).setUp()
+        # build the basic scenario for plan model
+        self.company_model = CompanyModel(self.session)
+        with transaction.manager:
+            self.company_guid = self.company_model.create_company('my_secret_key')
+
     def make_one(self, *args, **kwargs):
         from billy.models.plan import PlanModel
         return PlanModel(*args, **kwargs)
@@ -26,6 +34,7 @@ class TestPlanModel(ModelTestCase):
 
         with transaction.manager:
             guid = model.create_plan(
+                company_guid=self.company_guid,
                 plan_type=model.TYPE_CHARGE,
                 name='name',
                 amount=99.99,
@@ -50,6 +59,7 @@ class TestPlanModel(ModelTestCase):
 
         with transaction.manager:
             guid = model.create_plan(
+                company_guid=self.company_guid,
                 plan_type=plan_type,
                 name=name,
                 amount=amount,
@@ -63,6 +73,7 @@ class TestPlanModel(ModelTestCase):
         plan = model.get_plan_by_guid(guid)
         self.assertEqual(plan.guid, guid)
         self.assert_(plan.guid.startswith('PL'))
+        self.assertEqual(plan.company_guid, self.company_guid)
         self.assertEqual(plan.name, name)
         self.assertEqual(plan.amount, amount)
         self.assertEqual(plan.frequency, frequency)
@@ -78,6 +89,7 @@ class TestPlanModel(ModelTestCase):
 
         with self.assertRaises(ValueError):
             model.create_plan(
+                company_guid=self.company_guid,
                 plan_type=model.TYPE_CHARGE,
                 name=None,
                 amount=999,
@@ -89,6 +101,7 @@ class TestPlanModel(ModelTestCase):
 
         with self.assertRaises(ValueError):
             model.create_plan(
+                company_guid=self.company_guid,
                 plan_type=999,
                 name=None,
                 amount=999,
@@ -100,6 +113,7 @@ class TestPlanModel(ModelTestCase):
 
         with transaction.manager:
             guid = model.create_plan(
+                company_guid=self.company_guid,
                 plan_type=model.TYPE_CHARGE,
                 name='old name',
                 amount=99.99,
@@ -131,6 +145,7 @@ class TestPlanModel(ModelTestCase):
 
         with transaction.manager:
             guid = model.create_plan(
+                company_guid=self.company_guid,
                 plan_type=model.TYPE_CHARGE,
                 name='evil gangster charges protection fee from Tom weekly',
                 amount=99.99,
@@ -176,6 +191,7 @@ class TestPlanModel(ModelTestCase):
 
         with transaction.manager:
             guid = model.create_plan(
+                company_guid=self.company_guid,
                 plan_type=model.TYPE_CHARGE,
                 name='name',
                 amount=99.99,

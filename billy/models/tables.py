@@ -1,9 +1,12 @@
+from __future__ import unicode_literals
+
 from sqlalchemy import Column
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Unicode
 from sqlalchemy import Boolean
 from sqlalchemy import DateTime
+from sqlalchemy import Numeric
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import func
 
@@ -38,10 +41,17 @@ def now_func():
 
 
 class Plan(DeclarativeBase):
+    """Plan is a recurring payment schedule, such as a hosting service plan.
+
+    """
+
     __tablename__ = 'plan'
 
     guid = Column(String(64), primary_key=True)
     
+    #: what kind of plan it is, 0=charge, 1=payout
+    plan_type = Column(Integer, nullable=False, index=True)
+
     #: the external ID given by user
     external_id = Column(Unicode(128), index=True)
 
@@ -49,11 +59,11 @@ class Plan(DeclarativeBase):
     name = Column(Unicode(128))
 
     #: the amount to bill user
-    # TODO: should use a decmial here as it is money unit?
-    amount = Column(Integer, nullable=False)
+    # TODO: make sure how many digi of number we need
+    amount = Column(Numeric(10, 2), nullable=False)
 
-    #: is this plain active?
-    active = Column(Boolean, default=True, nullable=False)
+    #: is this plan deleted?
+    deleted = Column(Boolean, default=False, nullable=False)
 
     #: the created datetime of this plan
     created_at = Column(DateTime(timezone=True), default=now_func)

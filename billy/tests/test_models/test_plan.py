@@ -1,4 +1,6 @@
+from __future__ import unicode_literals
 import datetime
+import decimal
 
 from billy.tests.helper import ModelTestCase
 
@@ -12,19 +14,23 @@ class TestPlanModel(ModelTestCase):
     def test_create_plan(self):
         model = self.make_one(self.session)
         name = 'monthly billing to user John'
-        amount = 5566.77
+        amount = decimal.Decimal('5566.77')
         frequency = model.FREQ_MONTHLY
+        plan_type = model.TYPE_CHARGE
         guid = model.create_plan(
+            plan_type=plan_type,
             name=name,
             amount=amount,
             frequency=frequency,
         )
         plan = model.get_plan_by_guid(guid)
         self.assertEqual(plan.guid, guid)
+        self.assert_(plan.guid.startswith('PL'))
         self.assertEqual(plan.name, name)
         self.assertEqual(plan.amount, amount)
         self.assertEqual(plan.frequency, frequency)
-        self.assertEqual(plan.active, True)
+        self.assertEqual(plan.plan_type, plan_type)
+        self.assertEqual(plan.deleted, False)
         self.assertEqual(plan.created_at, self.now)
         self.assertEqual(plan.updated_at, self.now)
 
@@ -33,9 +39,21 @@ class TestPlanModel(ModelTestCase):
 
         with self.assertRaises(ValueError):
             model.create_plan(
+                plan_type=model.TYPE_CHARGE,
                 name=None,
                 amount=999,
                 frequency=999,
+            )
+
+    def test_create_plan_with_wrong_type(self):
+        model = self.make_one(self.session)
+
+        with self.assertRaises(ValueError):
+            model.create_plan(
+                plan_type=999,
+                name=None,
+                amount=999,
+                frequency=model.FREQ_DAILY,
             )
 
     def test_get_plan(self):
@@ -44,6 +62,7 @@ class TestPlanModel(ModelTestCase):
 
         with transaction.manager:
             guid = model.create_plan(
+                plan_type=model.TYPE_CHARGE,
                 name='evil gangster charges protection fee from Tom weekly',
                 amount=99.99,
                 frequency=model.FREQ_WEEKLY,
@@ -61,6 +80,7 @@ class TestPlanModel(ModelTestCase):
 
         with transaction.manager:
             guid = model.create_plan(
+                plan_type=model.TYPE_CHARGE,
                 name='evil gangster charges protection fee from Tom weekly',
                 amount=99.99,
                 frequency=model.FREQ_WEEKLY,
@@ -69,18 +89,15 @@ class TestPlanModel(ModelTestCase):
         # advanced the current date time
         self.now += datetime.timedelta(seconds=10)
         name = 'new plan name'
-        active = False
 
         with transaction.manager:
             model.update_plan(
                 guid=guid,
                 name=name,
-                active=active,
             )
 
         plan = model.get_plan_by_guid(guid)
         self.assertEqual(plan.name, name)
-        self.assertEqual(plan.active, active)
         self.assertEqual(plan.updated_at, self.now)
 
         # advanced the current date time
@@ -92,7 +109,6 @@ class TestPlanModel(ModelTestCase):
 
         plan = model.get_plan_by_guid(guid)
         self.assertEqual(plan.name, name)
-        self.assertEqual(plan.active, active)
         self.assertEqual(plan.updated_at, self.now)
 
         # make sure passing wrong argument will raise error

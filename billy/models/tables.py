@@ -4,6 +4,7 @@ from sqlalchemy import Column
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Unicode
+from sqlalchemy import UnicodeText
 from sqlalchemy import Boolean
 from sqlalchemy import DateTime
 from sqlalchemy import Numeric
@@ -58,8 +59,12 @@ class Plan(DeclarativeBase):
     #: a short name of this plan
     name = Column(Unicode(128))
 
+    #: a long description of this plan
+    description = Column(UnicodeText(1024))
+
     #: the amount to bill user
     # TODO: make sure how many digi of number we need
+    # TODO: Fix SQLite doesn't support decimal issue?
     amount = Column(Numeric(10, 2), nullable=False)
 
     #: is this plan deleted?

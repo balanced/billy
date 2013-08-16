@@ -46,7 +46,15 @@ class PlanModel(object):
         query = self.session.query(tables.Plan).get(guid)
         return query
 
-    def create_plan(self, plan_type, amount, frequency, name=None):
+    def create_plan(
+        self, 
+        plan_type, 
+        amount, 
+        frequency, 
+        external_id=None, 
+        name=None, 
+        description=None,
+    ):
         """Create a plan and return its ID
 
         """
@@ -57,9 +65,11 @@ class PlanModel(object):
         plan = tables.Plan(
             guid='PL' + make_guid(),
             plan_type=plan_type,
-            name=name, 
             amount=amount, 
             frequency=frequency, 
+            external_id=external_id, 
+            name=name, 
+            description=description,
         )
         self.session.add(plan)
         self.session.flush()
@@ -72,7 +82,7 @@ class PlanModel(object):
         plan = self.get_plan_by_guid(guid, True)
         now = tables.now_func()
         plan.updated_at = now
-        for key in ['name']:
+        for key in ['name', 'external_id', 'description']:
             if key not in kwargs:
                 continue
             value = kwargs.pop(key)

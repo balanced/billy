@@ -12,17 +12,21 @@ class TestPlanModel(ModelTestCase):
         return PlanModel(*args, **kwargs)
 
     def test_create_plan(self):
+        import transaction
         model = self.make_one(self.session)
         name = 'monthly billing to user John'
         amount = decimal.Decimal('5566.77')
         frequency = model.FREQ_MONTHLY
         plan_type = model.TYPE_CHARGE
-        guid = model.create_plan(
-            plan_type=plan_type,
-            name=name,
-            amount=amount,
-            frequency=frequency,
-        )
+
+        with transaction.manager:
+            guid = model.create_plan(
+                plan_type=plan_type,
+                name=name,
+                amount=amount,
+                frequency=frequency,
+            )
+        
         plan = model.get_plan_by_guid(guid)
         self.assertEqual(plan.guid, guid)
         self.assert_(plan.guid.startswith('PL'))

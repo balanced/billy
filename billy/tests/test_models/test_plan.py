@@ -2,9 +2,13 @@ from __future__ import unicode_literals
 import datetime
 import decimal
 
+import transaction
+from freezegun import freeze_time
+
 from billy.tests.helper import ModelTestCase
 
 
+@freeze_time('2013-08-16')
 class TestPlanModel(ModelTestCase):
 
     def make_one(self, *args, **kwargs):
@@ -12,7 +16,6 @@ class TestPlanModel(ModelTestCase):
         return PlanModel(*args, **kwargs)
 
     def test_create_plan(self):
-        import transaction
         model = self.make_one(self.session)
         name = 'monthly billing to user John'
         amount = decimal.Decimal('5566.77')
@@ -26,7 +29,9 @@ class TestPlanModel(ModelTestCase):
                 amount=amount,
                 frequency=frequency,
             )
-        
+
+        now = datetime.datetime.utcnow()
+
         plan = model.get_plan_by_guid(guid)
         self.assertEqual(plan.guid, guid)
         self.assert_(plan.guid.startswith('PL'))
@@ -35,8 +40,8 @@ class TestPlanModel(ModelTestCase):
         self.assertEqual(plan.frequency, frequency)
         self.assertEqual(plan.plan_type, plan_type)
         self.assertEqual(plan.deleted, False)
-        self.assertEqual(plan.created_at, self.now)
-        self.assertEqual(plan.updated_at, self.now)
+        self.assertEqual(plan.created_at, now)
+        self.assertEqual(plan.updated_at, now)
 
     def test_create_plan_with_wrong_frequency(self):
         model = self.make_one(self.session)
@@ -61,7 +66,6 @@ class TestPlanModel(ModelTestCase):
             )
 
     def test_get_plan(self):
-        import transaction
         model = self.make_one(self.session)
 
         with transaction.manager:
@@ -79,7 +83,6 @@ class TestPlanModel(ModelTestCase):
         self.assertNotEqual(plan, None)
 
     def test_update_plan(self):
-        import transaction
         model = self.make_one(self.session)
 
         with transaction.manager:
@@ -90,30 +93,31 @@ class TestPlanModel(ModelTestCase):
                 frequency=model.FREQ_WEEKLY,
             )
 
-        # advanced the current date time
-        self.now += datetime.timedelta(seconds=10)
         name = 'new plan name'
 
-        with transaction.manager:
-            model.update_plan(
-                guid=guid,
-                name=name,
-            )
-
-        plan = model.get_plan_by_guid(guid)
-        self.assertEqual(plan.name, name)
-        self.assertEqual(plan.updated_at, self.now)
-
         # advanced the current date time
-        self.now += datetime.timedelta(seconds=10)
-
-        # this should update the updated_at field only
-        with transaction.manager:
-            model.update_plan(guid)
+        with freeze_time('2013-08-16 07:00:01'):
+            with transaction.manager:
+                model.update_plan(
+                    guid=guid,
+                    name=name,
+                )
+            updated_time = datetime.datetime.utcnow()
 
         plan = model.get_plan_by_guid(guid)
         self.assertEqual(plan.name, name)
-        self.assertEqual(plan.updated_at, self.now)
+        self.assertEqual(plan.updated_at, updated_time)
+
+        # advanced the current date time even more
+        with freeze_time('2013-08-16 08:35:40'):
+            # this should update the updated_at field only
+            with transaction.manager:
+                model.update_plan(guid)
+            updated_time = datetime.datetime.utcnow()
+
+        plan = model.get_plan_by_guid(guid)
+        self.assertEqual(plan.name, name)
+        self.assertEqual(plan.updated_at, updated_time)
 
         # make sure passing wrong argument will raise error
         with self.assertRaises(TypeError):

@@ -31,7 +31,8 @@ setup(
     zip_safe=False,
     tests_require=[
         'nose-cov',
-        'webtest'
+        'webtest',
+        'freezegun',
     ],
     install_requires=requires,
 )

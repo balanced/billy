@@ -36,8 +36,7 @@ class ModelTestCase(unittest.TestCase):
         from billy.models import tables
         from billy.tests.helper import create_session
         self.session = create_session()
-        self.now = datetime.datetime.utcnow()
-        self._old_now_func = tables.set_now_func(lambda: self.now)
+        self._old_now_func = tables.set_now_func(datetime.datetime.utcnow)
 
     def tearDown(self):
         from billy.models import tables

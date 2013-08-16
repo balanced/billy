@@ -163,3 +163,23 @@ class TestPlanModel(ModelTestCase):
         # make sure passing wrong argument will raise error
         with self.assertRaises(TypeError):
             model.update_plan(guid, wrong_arg=True, neme='john')
+
+    def test_delete_plan(self):
+        model = self.make_one(self.session)
+
+        with transaction.manager:
+            guid = model.create_plan(
+                plan_type=model.TYPE_CHARGE,
+                name='old name',
+                amount=99.99,
+                frequency=model.FREQ_WEEKLY,
+            )
+
+        with transaction.manager:
+            model.delete_plan(guid)
+
+        plan = model.get_plan_by_guid(guid)
+        self.assertEqual(plan, None)
+
+        plan = model.get_plan_by_guid(guid, ignore_deleted=False)
+        self.assertEqual(plan.deleted, True)

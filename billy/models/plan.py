@@ -37,13 +37,16 @@ class PlanModel(object):
         self.logger = logger or logging.getLogger(__name__)
         self.session = session
 
-    def get_plan_by_guid(self, guid, raise_error=True):
+    def get_plan_by_guid(self, guid, raise_error=True, ignore_deleted=True):
         """Get a plan guid and return it
 
         :param guid: The guild of plan to get
         :param raise_error: Raise KeyError when cannot find one
         """
-        query = self.session.query(tables.Plan).get(guid)
+        query = self.session.query(tables.Plan) \
+            .filter_by(guid=guid) \
+            .filter_by(deleted=not ignore_deleted) \
+            .first()
         return query
 
     def create_plan(
@@ -89,5 +92,14 @@ class PlanModel(object):
             setattr(plan, key, value)
         if kwargs:
             raise TypeError('Unknown attributes {} to update'.format(tuple(kwargs.keys())))
+        self.session.add(plan)
+        self.session.flush()
+
+    def delete_plan(self, guid):
+        """Delete a plan
+
+        """
+        plan = self.get_plan_by_guid(guid, True)
+        plan.deleted = True
         self.session.add(plan)
         self.session.flush()

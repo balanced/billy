@@ -2,12 +2,12 @@ from __future__ import unicode_literals
 
 from sqlalchemy import Column
 from sqlalchemy import Integer
-from sqlalchemy import String
 from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
 from sqlalchemy import Boolean
 from sqlalchemy import DateTime
 from sqlalchemy import Numeric
+from sqlalchemy import Float
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.orm import relation
 from sqlalchemy.ext.declarative import declarative_base
@@ -49,9 +49,9 @@ class Company(DeclarativeBase):
     """
     __tablename__ = 'company'
 
-    guid = Column(String(64), primary_key=True)
+    guid = Column(Unicode(64), primary_key=True)
     #: the API key for accessing billy system
-    api_key = Column(String(64), unique=True, index=True, nullable=False)
+    api_key = Column(Unicode(64), unique=True, index=True, nullable=False)
     #: the processor key (it would be balanced API key if we are using balanced)
     processor_key = Column(Unicode(64), index=True, nullable=False)
     #: a short optional name of this company
@@ -67,16 +67,47 @@ class Company(DeclarativeBase):
     plans = relation('Plan', cascade='all, delete-orphan', backref='company')
 
 
+class Customer(DeclarativeBase):
+    """A Customer is basically a user to billy system
+
+    """
+    __tablename__ = 'customer'
+
+    guid = Column(Unicode(64), primary_key=True)
+    #: the guid of company which owns this customer
+    company_guid = Column(
+        Unicode(64), 
+        ForeignKey(
+            'company.guid', 
+            ondelete='CASCADE', onupdate='CASCADE'
+        ), 
+        index=True,
+        nullable=False,
+    )
+    #: the external ID given by user
+    external_id = Column(Unicode(128), index=True)
+    #: the payment URI associated with this customer
+    payment_uri = Column(Unicode(128), index=True, nullable=False)
+    #: a short optional name of this company
+    name = Column(Unicode(128))
+    #: is this company deleted?
+    deleted = Column(Boolean, default=False, nullable=False)
+    #: the created datetime of this company
+    created_at = Column(DateTime(timezone=True), default=now_func)
+    #: the updated datetime of this company
+    updated_at = Column(DateTime(timezone=True), default=now_func)
+
+
 class Plan(DeclarativeBase):
     """Plan is a recurring payment schedule, such as a hosting service plan.
 
     """
     __tablename__ = 'plan'
 
-    guid = Column(String(64), primary_key=True)
+    guid = Column(Unicode(64), primary_key=True)
     #: the guid of company which owns this plan
     company_guid = Column(
-        String(64), 
+        Unicode(64), 
         ForeignKey(
             'company.guid', 
             ondelete='CASCADE', onupdate='CASCADE'
@@ -105,4 +136,46 @@ class Plan(DeclarativeBase):
     #: the created datetime of this plan
     created_at = Column(DateTime(timezone=True), default=now_func)
     #: the updated datetime of this plan
+    updated_at = Column(DateTime(timezone=True), default=now_func)
+
+
+class Subscription(DeclarativeBase):
+    """A subscription relationship between Customer and Plan
+
+    """
+    __tablename__ = 'subscription'
+
+    guid = Column(Unicode(64), primary_key=True)
+    #: the guid of customer who subscribes
+    customer_guid = Column(
+        Unicode(64), 
+        ForeignKey(
+            'customer.guid', 
+            ondelete='CASCADE', onupdate='CASCADE'
+        ), 
+        index=True,
+        nullable=False,
+    )
+    #: the guid of plan customer subscribes to
+    plan_guid = Column(
+        Unicode(64), 
+        ForeignKey(
+            'plan.guid', 
+            ondelete='CASCADE', onupdate='CASCADE'
+        ), 
+        index=True,
+        nullable=False,
+    )
+    #: the discount of this subscription
+    # TODO: maybe we should use decimal here? what about accuracy issue?
+    discount = Column(Float)
+    #: the external ID given by user
+    external_id = Column(Unicode(128), index=True)
+    #: is this subscription canceled?
+    canceled = Column(Boolean, default=False, nullable=False)
+    #: the canceled datetime of this subscription 
+    canceled_at = Column(DateTime(timezone=True), default=None)
+    #: the created datetime of this subscription 
+    created_at = Column(DateTime(timezone=True), default=now_func)
+    #: the updated datetime of this subscription 
     updated_at = Column(DateTime(timezone=True), default=now_func)

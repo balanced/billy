@@ -166,7 +166,8 @@ class Subscription(DeclarativeBase):
         index=True,
         nullable=False,
     )
-    #: the discount of this subscription
+    #: the discount of this subscription, 
+    #  e.g. 0.3 means 30% price off disscount
     # TODO: maybe we should use decimal here? what about accuracy issue?
     discount = Column(Float)
     #: the external ID given by user

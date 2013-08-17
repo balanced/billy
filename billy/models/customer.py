@@ -47,7 +47,7 @@ class CustomerModel(object):
         return customer.guid
 
     def update_customer(self, guid, **kwargs):
-        """Update acustomer 
+        """Update a customer 
 
         """
         customer = self.get_customer_by_guid(guid, raise_error=True)

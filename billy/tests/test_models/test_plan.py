@@ -182,6 +182,18 @@ class TestPlanModel(ModelTestCase):
         self.assertEqual(plan.updated_at, updated_at)
         self.assertEqual(plan.created_at, created_at)
 
+    def test_update_plan_with_wrong_args(self):
+        model = self.make_one(self.session)
+        
+        with transaction.manager:
+            guid = model.create_plan(
+                company_guid=self.company_guid,
+                plan_type=model.TYPE_CHARGE,
+                name='evil gangster charges protection fee from Tom weekly',
+                amount=99.99,
+                frequency=model.FREQ_WEEKLY,
+            )
+
         # make sure passing wrong argument will raise error
         with self.assertRaises(TypeError):
             model.update_plan(guid, wrong_arg=True, neme='john')

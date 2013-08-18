@@ -133,6 +133,15 @@ class TestCustomerModel(ModelTestCase):
         self.assertEqual(customer.updated_at, updated_at)
         self.assertEqual(customer.created_at, created_at)
 
+    def test_update_customer_with_wrong_args(self):
+        model = self.make_one(self.session)
+
+        with transaction.manager:
+            guid = model.create_customer(
+                company_guid=self.company_guid,
+                payment_uri='/v1/credit_card/id',
+            )
+
         # make sure passing wrong argument will raise error
         with self.assertRaises(TypeError):
             model.update_customer(guid, wrong_arg=True, neme='john')

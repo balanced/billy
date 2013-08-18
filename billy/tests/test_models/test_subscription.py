@@ -167,6 +167,13 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(subscription.updated_at, updated_at)
         self.assertEqual(subscription.created_at, created_at)
 
+    def test_update_subscription_with_wrong_args(self):
+        model = self.make_one(self.session)
+        with transaction.manager:
+            guid = model.create_subscription(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+            )
         # make sure passing wrong argument will raise error
         with self.assertRaises(TypeError):
             model.update_subscription(guid, wrong_arg=True, neme='john')

@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 import datetime
-import decimal
 
 import transaction
 from freezegun import freeze_time

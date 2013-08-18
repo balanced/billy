@@ -65,6 +65,8 @@ class Company(DeclarativeBase):
 
     #: plans of this company
     plans = relation('Plan', cascade='all, delete-orphan', backref='company')
+    #: customers of this company
+    customers = relation('Customer', cascade='all, delete-orphan', backref='company')
 
 
 class Customer(DeclarativeBase):
@@ -138,6 +140,9 @@ class Plan(DeclarativeBase):
     #: the updated datetime of this plan
     updated_at = Column(DateTime(timezone=True), default=now_func)
 
+    #: subscriptions of this plan
+    subscriptions = relation('Subscription', cascade='all, delete-orphan', backref='plan')
+
 
 class Subscription(DeclarativeBase):
     """A subscription relationship between Customer and Plan
@@ -176,6 +181,44 @@ class Subscription(DeclarativeBase):
     canceled = Column(Boolean, default=False, nullable=False)
     #: the canceled datetime of this subscription 
     canceled_at = Column(DateTime(timezone=True), default=None)
+    #: the created datetime of this subscription 
+    created_at = Column(DateTime(timezone=True), default=now_func)
+    #: the updated datetime of this subscription 
+    updated_at = Column(DateTime(timezone=True), default=now_func)
+
+    #: transactions of this subscription
+    transactions = relation('Transaction', cascade='all, delete-orphan', backref='subscription')
+
+
+class Transaction(DeclarativeBase):
+    """A transaction of subscription, typically, this can be a bank charging
+    or credit card debiting operation. It could also be a refunding or paying
+    out operation.
+
+    """
+    __tablename__ = 'transaction'
+
+    guid = Column(Unicode(64), primary_key=True)
+    #: the guid of subscription which generated this transaction
+    subscription_guid = Column(
+        Unicode(64), 
+        ForeignKey(
+            'subscription.guid', 
+            ondelete='CASCADE', onupdate='CASCADE'
+        ), 
+        index=True,
+        nullable=False,
+    )
+    #: what type of transaction it is, 0=charge, 1=refund, 2=payout
+    transaction_type = Column(Integer, index=True, nullable=False)
+    #: current status of this transaction, could be
+    #  0=init, 1=retrying, 2=done, 3=failed
+    # TODO: what about retry?
+    status = Column(Integer, index=True, nullable=False)
+    #: the amount to do transaction (charge, payout or refund)
+    amount = Column(Numeric(10, 2), index=True, nullable=False)
+    #: the payment URI
+    payment_uri = Column(Unicode(128), index=True, nullable=False)
     #: the created datetime of this subscription 
     created_at = Column(DateTime(timezone=True), default=now_func)
     #: the updated datetime of this subscription 

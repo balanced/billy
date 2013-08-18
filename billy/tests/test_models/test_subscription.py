@@ -95,6 +95,23 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(subscription.created_at, now)
         self.assertEqual(subscription.updated_at, now)
 
+    def test_create_subscription_with_started_at(self):
+        model = self.make_one(self.session)
+        customer_guid = self.customer_tom_guid
+        plan_guid = self.monthly_plan_guid
+        started_at = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+
+        with transaction.manager:
+            guid = model.create_subscription(
+                customer_guid=customer_guid,
+                plan_guid=plan_guid,
+                started_at=started_at
+            )
+
+        subscription = model.get_subscription_by_guid(guid)
+        self.assertEqual(subscription.guid, guid)
+        self.assertEqual(subscription.started_at, started_at)
+
     def test_create_subscription_with_negtive_discount(self):
         model = self.make_one(self.session)
 

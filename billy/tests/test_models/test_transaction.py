@@ -57,6 +57,7 @@ class TestTransactionModel(ModelTestCase):
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/credit_card/tester',
+                scheduled_at=datetime.datetime.utcnow(),
             )
 
         transaction = model.get_transaction_by_guid(guid, raise_error=True)
@@ -69,6 +70,8 @@ class TestTransactionModel(ModelTestCase):
         transaction_type = model.TYPE_CHARGE
         amount = 100
         payment_uri = '/v1/credit_card/tester'
+        now = datetime.datetime.utcnow()
+        scheduled_at = now + datetime.timedelta(days=1)
 
         with db_transaction.manager:
             guid = model.create_transaction(
@@ -76,9 +79,8 @@ class TestTransactionModel(ModelTestCase):
                 transaction_type=transaction_type,
                 amount=amount,
                 payment_uri=payment_uri,
+                scheduled_at=scheduled_at,
             )
-
-        now = datetime.datetime.utcnow()
 
         transaction = model.get_transaction_by_guid(guid)
         self.assertEqual(transaction.guid, guid)
@@ -88,6 +90,7 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.amount, amount)
         self.assertEqual(transaction.payment_uri, payment_uri)
         self.assertEqual(transaction.status, model.STATUS_INIT)
+        self.assertEqual(transaction.scheduled_at, scheduled_at)
         self.assertEqual(transaction.created_at, now)
         self.assertEqual(transaction.updated_at, now)
 
@@ -100,6 +103,7 @@ class TestTransactionModel(ModelTestCase):
                 transaction_type=999,
                 amount=123,
                 payment_uri='/v1/credit_card/tester',
+                scheduled_at=datetime.datetime.utcnow(),
             )
 
     def test_update_transaction(self):
@@ -111,6 +115,7 @@ class TestTransactionModel(ModelTestCase):
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/credit_card/tester',
+                scheduled_at=datetime.datetime.utcnow(),
             )
 
         transaction = model.get_transaction_by_guid(guid)
@@ -134,6 +139,7 @@ class TestTransactionModel(ModelTestCase):
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/credit_card/tester',
+                scheduled_at=datetime.datetime.utcnow(),
             )
 
         transaction = model.get_transaction_by_guid(guid)
@@ -169,6 +175,7 @@ class TestTransactionModel(ModelTestCase):
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/credit_card/tester',
+                scheduled_at=datetime.datetime.utcnow(),
             )
 
         # make sure passing wrong argument will raise error
@@ -188,6 +195,7 @@ class TestTransactionModel(ModelTestCase):
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/credit_card/tester',
+                scheduled_at=datetime.datetime.utcnow(),
             )
 
         with self.assertRaises(ValueError):

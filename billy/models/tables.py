@@ -179,6 +179,10 @@ class Subscription(DeclarativeBase):
     external_id = Column(Unicode(128), index=True)
     #: is this subscription canceled?
     canceled = Column(Boolean, default=False, nullable=False)
+    #: the next datetime to charge or pay out
+    next_transaction_at = Column(DateTime(timezone=True), nullable=False)
+    #: the started datetime of this subscription
+    started_at = Column(DateTime(timezone=True), nullable=False)
     #: the canceled datetime of this subscription 
     canceled_at = Column(DateTime(timezone=True), default=None)
     #: the created datetime of this subscription 
@@ -219,6 +223,8 @@ class Transaction(DeclarativeBase):
     amount = Column(Numeric(10, 2), index=True, nullable=False)
     #: the payment URI
     payment_uri = Column(Unicode(128), index=True, nullable=False)
+    #: the scheduled datetime of this transaction should be processed
+    scheduled_at = Column(DateTime(timezone=True), default=now_func)
     #: the created datetime of this subscription 
     created_at = Column(DateTime(timezone=True), default=now_func)
     #: the updated datetime of this subscription 

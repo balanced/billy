@@ -2,6 +2,9 @@ from __future__ import unicode_literals
 import logging
 
 from billy.models import tables
+from billy.models.plan import PlanModel
+from billy.models.transaction import TransactionModel
+from billy.models.schedule import next_transaction_datetime
 from billy.utils.generic import make_guid
 
 
@@ -35,6 +38,7 @@ class SubscriptionModel(object):
         self, 
         customer_guid, 
         plan_guid, 
+        started_at=None,
         external_id=None,
         discount=None,
     ):
@@ -43,12 +47,17 @@ class SubscriptionModel(object):
         """
         if discount is not None and discount < 0:
             raise ValueError('Discount should be a postive float number')
+        if started_at is None:
+            started_at = tables.now_func()
+        # TODO: should we allow a past started_at value?
         subscription = tables.Subscription(
             guid='SU' + make_guid(),
             customer_guid=customer_guid,
             plan_guid=plan_guid,
             discount=discount, 
             external_id=external_id, 
+            started_at=started_at, 
+            next_transaction_at=started_at, 
         )
         self.session.add(subscription)
         self.session.flush()

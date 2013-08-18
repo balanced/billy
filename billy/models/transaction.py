@@ -59,6 +59,7 @@ class TransactionModel(object):
         transaction_type, 
         amount,
         payment_uri,
+        scheduled_at,
     ):
         """Create a transaction and return its ID
 
@@ -72,6 +73,7 @@ class TransactionModel(object):
             amount=amount, 
             payment_uri=payment_uri, 
             status=self.STATUS_INIT, 
+            scheduled_at=scheduled_at, 
         )
         self.session.add(transaction)
         self.session.flush()

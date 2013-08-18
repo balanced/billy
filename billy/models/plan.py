@@ -38,7 +38,7 @@ class PlanModel(object):
         self.session = session
 
     def get_plan_by_guid(self, guid, raise_error=False, ignore_deleted=True):
-        """Get a plan guid and return it
+        """Find a plan by guid and return it
 
         :param guid: The guild of plan to get
         :param raise_error: Raise KeyError when cannot find one

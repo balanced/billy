@@ -31,8 +31,6 @@ class TestPlanModel(ModelTestCase):
                 amount=99.99,
                 frequency=model.FREQ_WEEKLY,
             )
-
-        with transaction.manager:
             model.delete_plan(guid)
 
         with self.assertRaises(KeyError):
@@ -183,8 +181,6 @@ class TestPlanModel(ModelTestCase):
                 amount=99.99,
                 frequency=model.FREQ_WEEKLY,
             )
-
-        with transaction.manager:
             model.delete_plan(guid)
 
         plan = model.get_plan_by_guid(guid)

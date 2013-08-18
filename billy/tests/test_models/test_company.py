@@ -1,49 +1,132 @@
 from __future__ import unicode_literals
-from datetime import datetime
+import datetime
 
-from billy.models import Company, ProcessorType
-from billy.models.processor import DummyProcessor
-from billy.tests import BaseTestCase, fixtures
+import transaction
+from freezegun import freeze_time
 
-
-class CompanyTest(BaseTestCase):
-    def setUp(self):
-        super(CompanyTest, self).setUp()
+from billy.tests.helper import ModelTestCase
 
 
-    def basic_test(self):
-        # Create a company
-        company = Company.create(
-            processor_type=ProcessorType.DUMMY, # Dummy processor,
-            processor_credential="API_KEY_WITH_PROCESSOR",
-            is_test=True, # Allows us to delete it!
-        )
+@freeze_time('2013-08-16')
+class TestCompanyModel(ModelTestCase):
 
-        # Primary functionality
-        company.create_coupon(**fixtures.sample_coupon())
-        company.create_customer(**fixtures.sample_customer())
-        company.create_charge_plan(**fixtures.sample_plan())
-        company.create_payout_plan(**fixtures.sample_payout())
+    def make_one(self, *args, **kwargs):
+        from billy.models.company import CompanyModel
+        return CompanyModel(*args, **kwargs)
 
+    def test_get_company_by_guid(self):
+        model = self.make_one(self.session)
 
-        # Retrieving the instantiated processor class
-        processor_class = company.processor
-        self.assertIsInstance(processor_class, DummyProcessor)
+        company = model.get_company_by_guid('CP_NON_EXIST')
+        self.assertEqual(company, None)
 
-        # Performing transactions, generally though these should be preferred
-        # by some application logic.
-        processor_class.check_balance('SOME_CUSTOMER_ID')
+        with self.assertRaises(KeyError):
+            model.get_company_by_guid('CP_NON_EXIST', raise_error=True)
 
+        with transaction.manager:
+            guid = model.create_company(processor_key='my_secret_key')
+            model.delete_company(guid)
 
-        # Since its a test company we can now delete it:
-        company.session.commit()
-        company.delete()
+        with self.assertRaises(KeyError):
+            model.get_company_by_guid(guid, raise_error=True)
 
+        company = model.get_company_by_guid(guid, ignore_deleted=False, raise_error=True)
+        self.assertEqual(company.guid, guid)
 
+    def test_create_company(self):
+        model = self.make_one(self.session)
+        name = 'awesome company'
+        processor_key = 'my_secret_key'
 
+        with transaction.manager:
+            guid = model.create_company(
+                name=name,
+                processor_key=processor_key,
+            )
 
+        now = datetime.datetime.utcnow()
 
+        company = model.get_company_by_guid(guid)
+        self.assertEqual(company.guid, guid)
+        self.assert_(company.guid.startswith('CP'))
+        self.assertEqual(company.name, name)
+        self.assertEqual(company.processor_key, processor_key)
+        self.assertNotEqual(company.api_key, None)
+        self.assertEqual(company.deleted, False)
+        self.assertEqual(company.created_at, now)
+        self.assertEqual(company.updated_at, now)
 
+    def test_update_company(self):
+        model = self.make_one(self.session)
 
+        with transaction.manager:
+            guid = model.create_company(processor_key='my_secret_key')
 
+        name = 'new name'
+        processor_key = 'new processor key'
+        api_key = 'new api key'
 
+        with transaction.manager:
+            model.update_company(
+                guid=guid,
+                name=name,
+                api_key=api_key,
+                processor_key=processor_key,
+            )
+
+        company = model.get_company_by_guid(guid)
+        self.assertEqual(company.name, name)
+        self.assertEqual(company.processor_key, processor_key)
+        self.assertEqual(company.api_key, api_key)
+
+    def test_update_company_updated_at(self):
+        model = self.make_one(self.session)
+
+        with transaction.manager:
+            guid = model.create_company(processor_key='my_secret_key')
+
+        company = model.get_company_by_guid(guid)
+        created_at = company.created_at
+
+        # advanced the current date time
+        with freeze_time('2013-08-16 07:00:01'):
+            with transaction.manager:
+                model.update_company(guid=guid)
+            updated_at = datetime.datetime.utcnow()
+
+        company = model.get_company_by_guid(guid)
+        self.assertEqual(company.updated_at, updated_at)
+        self.assertEqual(company.created_at, created_at)
+
+        # advanced the current date time even more
+        with freeze_time('2013-08-16 08:35:40'):
+            with transaction.manager:
+                model.update_company(guid)
+            updated_at = datetime.datetime.utcnow()
+
+        company = model.get_company_by_guid(guid)
+        self.assertEqual(company.updated_at, updated_at)
+        self.assertEqual(company.created_at, created_at)
+
+    def test_update_company_with_wrong_args(self):
+        model = self.make_one(self.session)
+
+        with transaction.manager:
+            guid = model.create_company(processor_key='my_secret_key')
+
+        # make sure passing wrong argument will raise error
+        with self.assertRaises(TypeError):
+            model.update_company(guid, wrong_arg=True, neme='john')
+
+    def test_delete_company(self):
+        model = self.make_one(self.session)
+
+        with transaction.manager:
+            guid = model.create_company(processor_key='my_secret_key')
+            model.delete_company(guid)
+
+        company = model.get_company_by_guid(guid)
+        self.assertEqual(company, None)
+
+        company = model.get_company_by_guid(guid, ignore_deleted=False)
+        self.assertEqual(company.deleted, True)

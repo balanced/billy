@@ -127,6 +127,10 @@ class SubscriptionModel(object):
                 .filter(not_(Subscription.canceled)) \
                 .all()
 
+            # okay, we have no more transaction to process, just break
+            if not subscriptions:
+                break
+
             for subscription in subscriptions:
                 if subscription.plan.plan_type == PlanModel.TYPE_CHARGE:
                     transaction_type = tx_model.TYPE_CHARGE
@@ -153,9 +157,6 @@ class SubscriptionModel(object):
                 self.session.add(subscription)
                 self.session.flush()
                 transaction_guids.append(guid)
-            # okay, we have no more transaction to process, just break
-            if not subscriptions:
-                break
 
         self.session.flush()
         return transaction_guids

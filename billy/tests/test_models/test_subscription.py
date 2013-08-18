@@ -398,3 +398,19 @@ class TestSubscriptionModel(ModelTestCase):
 
         with self.assertRaises(ValueError):
             model.yield_transactions()
+
+    def test_yield_transactions_with_canceled_subscription(self):
+        model = self.make_one(self.session)
+
+        with db_transaction.manager:
+            guid = model.create_subscription(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+                started_at=datetime.datetime(2013, 9, 1),
+            )
+            model.cancel_subscription(guid)
+
+        tx_guids = model.yield_transactions()
+        self.assertFalse(tx_guids)
+        subscription = model.get_subscription_by_guid(guid)
+        self.assertFalse(subscription.transactions)

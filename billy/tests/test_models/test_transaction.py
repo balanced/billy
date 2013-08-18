@@ -91,6 +91,17 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.created_at, now)
         self.assertEqual(transaction.updated_at, now)
 
+    def test_create_transaction_with_wrong_type(self):
+        model = self.make_one(self.session)
+
+        with self.assertRaises(ValueError):
+            model.create_transaction(
+                subscription_guid=self.subscription_guid,
+                transaction_type=999,
+                amount=123,
+                payment_uri='/v1/credit_card/tester',
+            )
+
     def test_update_transaction(self):
         model = self.make_one(self.session)
 

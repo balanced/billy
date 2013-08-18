@@ -16,6 +16,11 @@ class TestSchedule(unittest.TestCase):
             result.append(dt)
         self.assertEqual(result, expected)
 
+    def test_invalid_freq_type(self):
+        from billy.models.schedule import next_transaction_datetime
+        with self.assertRaises(ValueError):
+            next_transaction_datetime(datetime.datetime.utcnow(), 999, 0)
+
     def test_daily_schedule(self):
         from billy.models.plan import PlanModel
         with freeze_time('2013-07-28'):

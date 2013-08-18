@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import datetime
 
-import transaction
+import transaction as db_transaction
 from freezegun import freeze_time
 
 from billy.tests.helper import ModelTestCase
@@ -19,7 +19,7 @@ class TestSubscriptionModel(ModelTestCase):
         self.company_model = CompanyModel(self.session)
         self.customer_model = CustomerModel(self.session)
         self.plan_model = PlanModel(self.session)
-        with transaction.manager:
+        with db_transaction.manager:
             self.company_guid = self.company_model.create_company('my_secret_key')
             self.daily_plan_guid = self.plan_model.create_plan(
                 company_guid=self.company_guid,
@@ -57,7 +57,7 @@ class TestSubscriptionModel(ModelTestCase):
         with self.assertRaises(KeyError):
             model.get_subscription_by_guid('SU_NON_EXIST', raise_error=True)
 
-        with transaction.manager:
+        with db_transaction.manager:
             guid = model.create_subscription(
                 customer_guid=self.customer_tom_guid,
                 plan_guid=self.monthly_plan_guid,
@@ -73,7 +73,7 @@ class TestSubscriptionModel(ModelTestCase):
         customer_guid = self.customer_tom_guid
         plan_guid = self.monthly_plan_guid
 
-        with transaction.manager:
+        with db_transaction.manager:
             guid = model.create_subscription(
                 customer_guid=customer_guid,
                 plan_guid=plan_guid,
@@ -90,8 +90,11 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(subscription.plan_guid, plan_guid)
         self.assertEqual(subscription.discount, discount)
         self.assertEqual(subscription.external_id, external_id)
+        self.assertEqual(subscription.period, 0)
         self.assertEqual(subscription.canceled, False)
         self.assertEqual(subscription.canceled_at, None)
+        self.assertEqual(subscription.started_at, now)
+        self.assertEqual(subscription.next_transaction_at, now)
         self.assertEqual(subscription.created_at, now)
         self.assertEqual(subscription.updated_at, now)
 
@@ -101,7 +104,7 @@ class TestSubscriptionModel(ModelTestCase):
         plan_guid = self.monthly_plan_guid
         started_at = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 
-        with transaction.manager:
+        with db_transaction.manager:
             guid = model.create_subscription(
                 customer_guid=customer_guid,
                 plan_guid=plan_guid,
@@ -116,7 +119,7 @@ class TestSubscriptionModel(ModelTestCase):
         model = self.make_one(self.session)
 
         with self.assertRaises(ValueError):
-            with transaction.manager:
+            with db_transaction.manager:
                 model.create_subscription(
                     customer_guid=self.customer_tom_guid,
                     plan_guid=self.monthly_plan_guid,
@@ -126,7 +129,7 @@ class TestSubscriptionModel(ModelTestCase):
     def test_update_subscription(self):
         model = self.make_one(self.session)
 
-        with transaction.manager:
+        with db_transaction.manager:
             guid = model.create_subscription(
                 customer_guid=self.customer_tom_guid,
                 plan_guid=self.monthly_plan_guid,
@@ -138,7 +141,7 @@ class TestSubscriptionModel(ModelTestCase):
         discount = 0.3
         external_id = 'new external id'
 
-        with transaction.manager:
+        with db_transaction.manager:
             model.update_subscription(
                 guid=guid,
                 discount=discount,
@@ -152,7 +155,7 @@ class TestSubscriptionModel(ModelTestCase):
     def test_update_subscription_updated_at(self):
         model = self.make_one(self.session)
 
-        with transaction.manager:
+        with db_transaction.manager:
             guid = model.create_subscription(
                 customer_guid=self.customer_tom_guid,
                 plan_guid=self.monthly_plan_guid,
@@ -163,7 +166,7 @@ class TestSubscriptionModel(ModelTestCase):
 
         # advanced the current date time
         with freeze_time('2013-08-16 07:00:01'):
-            with transaction.manager:
+            with db_transaction.manager:
                 model.update_subscription(guid=guid)
             updated_at = datetime.datetime.utcnow()
 
@@ -175,7 +178,7 @@ class TestSubscriptionModel(ModelTestCase):
         # advanced the current date time even more
         with freeze_time('2013-08-16 08:35:40'):
             # this should update the updated_at field only
-            with transaction.manager:
+            with db_transaction.manager:
                 model.update_subscription(guid)
             updated_at = datetime.datetime.utcnow()
 
@@ -186,7 +189,7 @@ class TestSubscriptionModel(ModelTestCase):
 
     def test_update_subscription_with_wrong_args(self):
         model = self.make_one(self.session)
-        with transaction.manager:
+        with db_transaction.manager:
             guid = model.create_subscription(
                 customer_guid=self.customer_tom_guid,
                 plan_guid=self.monthly_plan_guid,
@@ -198,7 +201,7 @@ class TestSubscriptionModel(ModelTestCase):
     def test_subscription_cancel(self):
         model = self.make_one(self.session)
 
-        with transaction.manager:
+        with db_transaction.manager:
             guid = model.create_subscription(
                 customer_guid=self.customer_tom_guid,
                 plan_guid=self.monthly_plan_guid,
@@ -214,7 +217,7 @@ class TestSubscriptionModel(ModelTestCase):
     def test_subscription_cancel_with_prorated_refund(self):
         model = self.make_one(self.session)
 
-        with transaction.manager:
+        with db_transaction.manager:
             model.create_subscription(
                 customer_guid=self.customer_tom_guid,
                 plan_guid=self.monthly_plan_guid,
@@ -225,7 +228,7 @@ class TestSubscriptionModel(ModelTestCase):
         from billy.models.subscription import SubscriptionCanceledError
         model = self.make_one(self.session)
 
-        with transaction.manager:
+        with db_transaction.manager:
             guid = model.create_subscription(
                 customer_guid=self.customer_tom_guid,
                 plan_guid=self.monthly_plan_guid,
@@ -234,3 +237,33 @@ class TestSubscriptionModel(ModelTestCase):
 
         with self.assertRaises(SubscriptionCanceledError):
             model.cancel_subscription(guid)
+
+    def test_yield_transactions(self):
+        from billy.models.transaction import TransactionModel
+
+        now = datetime.datetime.utcnow()
+
+        model = self.make_one(self.session)
+        with db_transaction.manager:
+            guid = model.create_subscription(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+            )
+            tx_guids = model.yield_transactions()
+
+        self.assertEqual(len(tx_guids), 1)
+
+        subscription = model.get_subscription_by_guid(guid)
+        transactions = subscription.transactions
+        self.assertEqual(len(transactions), 1)
+
+        transaction = transactions[0]
+        self.assertEqual(transaction.guid, tx_guids[0])
+        self.assertEqual(transaction.subscription_guid, guid)
+        self.assertEqual(transaction.amount, subscription.plan.amount)
+        self.assertEqual(transaction.transaction_type, 
+                         TransactionModel.TYPE_CHARGE)
+        self.assertEqual(transaction.scheduled_at, now)
+        self.assertEqual(transaction.created_at, now)
+        self.assertEqual(transaction.updated_at, now)
+        self.assertEqual(transaction.status, TransactionModel.STATUS_INIT)

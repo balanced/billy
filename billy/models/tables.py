@@ -99,6 +99,9 @@ class Customer(DeclarativeBase):
     #: the updated datetime of this company
     updated_at = Column(DateTime(timezone=True), default=now_func)
 
+    #: subscriptions of this customer
+    subscriptions = relation('Subscription', cascade='all, delete-orphan', backref='customer')
+
 
 class Plan(DeclarativeBase):
     """Plan is a recurring payment schedule, such as a hosting service plan.
@@ -181,6 +184,8 @@ class Subscription(DeclarativeBase):
     canceled = Column(Boolean, default=False, nullable=False)
     #: the next datetime to charge or pay out
     next_transaction_at = Column(DateTime(timezone=True), nullable=False)
+    #: how many transaction has been generated
+    period = Column(Integer, nullable=False, default=0)
     #: the started datetime of this subscription
     started_at = Column(DateTime(timezone=True), nullable=False)
     #: the canceled datetime of this subscription 

@@ -98,3 +98,62 @@ class SubscriptionModel(object):
             pass
         self.session.add(subscription)
         self.session.flush()
+
+    def yield_transactions(self, now=None):
+        """Generate new necessary transactions according to subscriptions we 
+        had return guid list
+
+        :param now: the current date time to use, now_func() will be used by 
+            default
+        :return: generated transaction guid list
+        """
+        from sqlalchemy.sql.expression import not_
+
+        if now is None:
+            now = tables.now_func()
+
+        tx_model = TransactionModel(self.session)
+        Subscription = tables.Subscription
+
+        transaction_guids = []
+
+        # as we may have multiple new transactions for one subscription to
+        # process, for example, we didn't run this method for a long while,
+        # in this case, we need to make sure all transactions are yielded
+        while True:
+            # find subscriptions which should yield new transactions
+            query = self.session.query(Subscription) \
+                .filter(Subscription.next_transaction_at <= now) \
+                .filter(not_(Subscription.canceled))
+
+            for subscription in query:
+                if subscription.plan.plan_type == PlanModel.TYPE_CHARGE:
+                    transaction_type = tx_model.TYPE_CHARGE
+                elif subscription.plan.plan_type == PlanModel.TYPE_PAYOUT:
+                    transaction_type = tx_model.TYPE_PAYOUT
+                else:
+                    raise ValueError('Unknown plan type {} to process'
+                                     .format(subscription.plan.plan_type))
+                # create the new transaction for this subscription
+                guid = tx_model.create_transaction(
+                    subscription_guid=subscription.guid, 
+                    payment_uri=subscription.customer.payment_uri, 
+                    amount=subscription.plan.amount, 
+                    transaction_type=transaction_type, 
+                    scheduled_at=subscription.next_transaction_at, 
+                )
+                # advance the next transaction time
+                subscription.period += 1
+                subscription.next_transaction_at = next_transaction_datetime(
+                    started_at=subscription.started_at,
+                    frequency=subscription.plan.frequency, 
+                    period=subscription.period,
+                )
+                self.session.add(subscription)
+                transaction_guids.append(guid)
+            # okay, we have no more transaction to process, just break
+            else:
+                break
+
+        self.session.flush()
+        return transaction_guids

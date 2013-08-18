@@ -1,17 +1,34 @@
-from __future__ import unicode_literals
+from sqlalchemy import engine_from_config
+from sqlalchemy.orm import scoped_session
+from sqlalchemy.orm import sessionmaker
+from zope.sqlalchemy import ZopeTransactionExtension
+    
 
+from sqlalchemy import engine_from_config
+from sqlalchemy.orm import scoped_session
+from sqlalchemy.orm import sessionmaker
+from zope.sqlalchemy import ZopeTransactionExtension
+    
 
-from .processor import ProcessorType
-from .base import Base
+def setup_database(**settings):
+    """Setup database
+    
+    """
+    if 'engine' not in settings:
+        settings['engine'] = \
+            engine_from_config(settings, 'sqlalchemy.')
+  
+    if 'session' not in settings:
+        settings['session'] = scoped_session(sessionmaker(
+            extension=ZopeTransactionExtension(),
+            bind=settings['engine']
+        ))
 
-from .charge.subscription import ChargeSubscription
-from .payout.subscription import PayoutSubscription
-from .charge.invoice import ChargePlanInvoice
-from .payout.invoice import PayoutPlanInvoice
-from .charge.transaction import ChargeTransaction, ChargeTransactionStatus
-from .payout.transaction import PayoutTransaction, PayoutTransactionStatus
-from .payout.plan import PayoutPlan
-from .charge.plan import ChargePlan
-from .customers import Customer
-from .coupons import Coupon
-from .company import Company
+    # SQLite does not support utc_timestamp function, therefore, we need to
+    # replace it with utcnow of datetime here
+    if settings['engine'].name == 'sqlite':
+        import datetime
+        from . import tables
+        tables.set_now_func(datetime.datetime.utcnow)
+        
+    return settings

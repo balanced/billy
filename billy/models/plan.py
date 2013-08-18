@@ -1,6 +1,7 @@
 import logging
 
 from billy.models import tables
+from billy.utils.generic import make_guid
 
 
 class PlanModel(object):
@@ -22,11 +23,10 @@ class PlanModel(object):
         """
         plan = tables.Plan(
             # TODO: generate GUID here
-            guid='',
+            guid=make_guid(),
             name=name, 
             amount=amount, 
         )
         self.session.add(plan)
         self.session.flush()
         return plan.guid
-

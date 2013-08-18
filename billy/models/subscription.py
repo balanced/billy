@@ -122,11 +122,12 @@ class SubscriptionModel(object):
         # in this case, we need to make sure all transactions are yielded
         while True:
             # find subscriptions which should yield new transactions
-            query = self.session.query(Subscription) \
+            subscriptions = self.session.query(Subscription) \
                 .filter(Subscription.next_transaction_at <= now) \
-                .filter(not_(Subscription.canceled))
+                .filter(not_(Subscription.canceled)) \
+                .all()
 
-            for subscription in query:
+            for subscription in subscriptions:
                 if subscription.plan.plan_type == PlanModel.TYPE_CHARGE:
                     transaction_type = tx_model.TYPE_CHARGE
                 elif subscription.plan.plan_type == PlanModel.TYPE_PAYOUT:
@@ -150,9 +151,10 @@ class SubscriptionModel(object):
                     period=subscription.period,
                 )
                 self.session.add(subscription)
+                self.session.flush()
                 transaction_guids.append(guid)
             # okay, we have no more transaction to process, just break
-            else:
+            if not subscriptions:
                 break
 
         self.session.flush()

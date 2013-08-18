@@ -241,9 +241,11 @@ class TestSubscriptionModel(ModelTestCase):
     def test_yield_transactions(self):
         from billy.models.transaction import TransactionModel
 
+        model = self.make_one(self.session)
+        tx_model = TransactionModel(self.session)
+
         now = datetime.datetime.utcnow()
 
-        model = self.make_one(self.session)
         with db_transaction.manager:
             guid = model.create_subscription(
                 customer_guid=self.customer_tom_guid,
@@ -267,3 +269,65 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(transaction.created_at, now)
         self.assertEqual(transaction.updated_at, now)
         self.assertEqual(transaction.status, TransactionModel.STATUS_INIT)
+
+        # we should not yield new transaction as the datetime is the same
+        with db_transaction.manager:
+            tx_guids = model.yield_transactions()
+        self.assertFalse(tx_guids)
+        subscription = model.get_subscription_by_guid(guid)
+        self.assertEqual(len(subscription.transactions), 1)
+
+        # should not yield new transaction as 09-16 is the date
+        with freeze_time('2013-09-15'):
+            with db_transaction.manager:
+                tx_guids = model.yield_transactions()
+        self.assertFalse(tx_guids)
+        subscription = model.get_subscription_by_guid(guid)
+        self.assertEqual(len(subscription.transactions), 1)
+
+        # okay, should yield new transaction now
+        with freeze_time('2013-09-16'):
+            with db_transaction.manager:
+                tx_guids = model.yield_transactions()
+            scheduled_at = datetime.datetime.utcnow()
+        self.assertEqual(len(tx_guids), 1)
+        subscription = model.get_subscription_by_guid(guid)
+        self.assertEqual(len(subscription.transactions), 2)
+
+        transaction = tx_model.get_transaction_by_guid(tx_guids[0])
+        self.assertEqual(transaction.subscription_guid, guid)
+        self.assertEqual(transaction.amount, subscription.plan.amount)
+        self.assertEqual(transaction.transaction_type, 
+                         TransactionModel.TYPE_CHARGE)
+        self.assertEqual(transaction.scheduled_at, scheduled_at)
+        self.assertEqual(transaction.created_at, scheduled_at)
+        self.assertEqual(transaction.updated_at, scheduled_at)
+        self.assertEqual(transaction.status, TransactionModel.STATUS_INIT)
+
+    def test_yield_transactions_with_multiple_period(self):
+        model = self.make_one(self.session)
+
+        with db_transaction.manager:
+            guid = model.create_subscription(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+            )
+
+        # okay, 08-16, 09-16, 10-16, so we should have 3 new transactions
+        with freeze_time('2013-10-16'):
+            with db_transaction.manager:
+                tx_guids = model.yield_transactions()
+
+        self.assertEqual(len(set(tx_guids)), 3)
+        subscription = model.get_subscription_by_guid(guid)
+        self.assertEqual(len(subscription.transactions), 3)
+
+        sub_tx_guids = [tx.guid for tx in subscription.transactions]
+        self.assertEqual(set(tx_guids), set(sub_tx_guids))
+
+        tx_dates = [tx.scheduled_at for tx in subscription.transactions]
+        self.assertEqual(tx_dates, [
+            datetime.datetime(2013, 8, 16),
+            datetime.datetime(2013, 9, 16),
+            datetime.datetime(2013, 10, 16),
+        ])

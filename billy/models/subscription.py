@@ -185,11 +185,15 @@ class SubscriptionModel(object):
                 else:
                     raise ValueError('Unknown plan type {} to process'
                                      .format(subscription.plan.plan_type))
+                amount = subscription.plan.amount 
+                if subscription.discount is not None:
+                    # TODO: what about float number round up?
+                    amount *= (1 - subscription.discount)
                 # create the new transaction for this subscription
                 guid = tx_model.create(
                     subscription_guid=subscription.guid, 
                     payment_uri=subscription.customer.payment_uri, 
-                    amount=subscription.plan.amount, 
+                    amount=amount, 
                     transaction_type=transaction_type, 
                     scheduled_at=subscription.next_transaction_at, 
                 )

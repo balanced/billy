@@ -239,6 +239,32 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(transaction.transaction_type, tx_model.TYPE_REFUND)
         self.assertEqual(transaction.amount, decimal.Decimal('5'))
 
+    def test_subscription_cancel_with_prorated_refund_and_discount(self):
+        from billy.models.transaction import TransactionModel
+        model = self.make_one(self.session)
+        tx_model = TransactionModel(self.session)
+
+        with freeze_time('2013-06-01'):
+            with db_transaction.manager:
+                guid = model.create(
+                    customer_guid=self.customer_tom_guid,
+                    plan_guid=self.monthly_plan_guid,
+                    discount=0.25,
+                )
+                model.yield_transactions()
+
+        # 15 / 30 days, the rate should be 0.5
+        with freeze_time('2013-06-16'):
+            with db_transaction.manager:
+                refund_guid = model.cancel(guid, prorated_refund=True)
+
+        transaction = tx_model.get(refund_guid)
+        # the orignal price is 10, the discount is 0.25,
+        # so the amount of transaction is 7.5, and we refund half,
+        # then the refund amount should be 3.75
+        self.assertEqual(transaction.amount, decimal.Decimal('3.75'))
+        # TODO: what about float number round up issue?
+
     def test_subscription_cancel_with_zero_refund(self):
         model = self.make_one(self.session)
 
@@ -252,7 +278,6 @@ class TestSubscriptionModel(ModelTestCase):
                 refund_guid = model.cancel(guid, prorated_refund=True)
 
         self.assertEqual(refund_guid, None)
-
         subscription = model.get(guid)
         transactions = subscription.transactions
         self.assertEqual(len(transactions), 1)
@@ -363,6 +388,29 @@ class TestSubscriptionModel(ModelTestCase):
             datetime.datetime(2013, 8, 16),
             datetime.datetime(2013, 9, 16),
             datetime.datetime(2013, 10, 16),
+        ])
+
+    def test_yield_transactions_with_discount(self):
+        model = self.make_one(self.session)
+
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+                discount=0.25,
+            )
+
+        # okay, 08-16, 09-16, 10-16, so we should have 3 new transactions
+        with freeze_time('2013-10-16'):
+            with db_transaction.manager:
+                model.yield_transactions()
+
+        subscription = model.get(guid)
+        amounts = [tx.amount for tx in subscription.transactions]
+        self.assertEqual(amounts, [
+            decimal.Decimal('7.5'),
+            decimal.Decimal('7.5'),
+            decimal.Decimal('7.5'),
         ])
 
     def test_yield_transactions_with_multiple_interval(self):

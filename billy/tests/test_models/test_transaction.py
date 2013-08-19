@@ -95,7 +95,20 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.created_at, now)
         self.assertEqual(transaction.updated_at, now)
 
-    def test_create_with_refund_to_guid(self):
+    def test_create_with_none_payment_uri(self):
+        model = self.make_one(self.session)
+
+        now = datetime.datetime.utcnow()
+
+        with self.assertRaises(ValueError):
+            model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=100,
+                scheduled_at=now,
+            )
+
+    def test_create_refund(self):
         model = self.make_one(self.session)
 
         now = datetime.datetime.utcnow()
@@ -125,6 +138,89 @@ class TestTransactionModel(ModelTestCase):
                          refund_guid)
         self.assertEqual(refund_transaction.transaction_type, model.TYPE_REFUND)
         self.assertEqual(refund_transaction.amount, decimal.Decimal(50))
+
+    def test_create_refund_with_non_exist_target(self):
+        model = self.make_one(self.session)
+        now = datetime.datetime.utcnow()
+
+        with self.assertRaises(KeyError):
+            model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_REFUND,
+                refund_to_guid='TX_NON_EXIST', 
+                amount=50,
+                scheduled_at=now,
+            )
+
+    def test_create_refund_with_wrong_transaction_type(self):
+        model = self.make_one(self.session)
+        now = datetime.datetime.utcnow()
+
+        with self.assertRaises(ValueError):
+            tx_guid = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=100,
+                payment_uri='/v1/credit_card/tester',
+                scheduled_at=now,
+            )
+            model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_PAYOUT,
+                refund_to_guid=tx_guid, 
+                amount=50,
+                scheduled_at=now,
+            )
+
+    def test_create_refund_with_payment_uri(self):
+        model = self.make_one(self.session)
+        now = datetime.datetime.utcnow()
+
+        with self.assertRaises(ValueError):
+            tx_guid = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=100,
+                payment_uri='/v1/credit_card/tester',
+                scheduled_at=now,
+            )
+            model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_REFUND,
+                refund_to_guid=tx_guid, 
+                amount=50,
+                scheduled_at=now,
+                payment_uri='/v1/credit_card/tester',
+            )
+
+    def test_create_refund_with_wrong_target(self):
+        model = self.make_one(self.session)
+        now = datetime.datetime.utcnow()
+
+        with db_transaction.manager:
+            tx_guid = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=100,
+                payment_uri='/v1/credit_card/tester',
+                scheduled_at=now,
+            )
+            refund_guid = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_REFUND,
+                refund_to_guid=tx_guid, 
+                amount=50,
+                scheduled_at=now,
+            )
+
+        with self.assertRaises(ValueError):
+            model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_REFUND,
+                refund_to_guid=refund_guid, 
+                amount=50,
+                scheduled_at=now,
+            )
 
     def test_create_with_wrong_type(self):
         model = self.make_one(self.session)

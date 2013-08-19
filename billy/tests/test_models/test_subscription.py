@@ -239,6 +239,24 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(transaction.transaction_type, tx_model.TYPE_REFUND)
         self.assertEqual(transaction.amount, decimal.Decimal('5'))
 
+    def test_subscription_cancel_with_zero_refund(self):
+        model = self.make_one(self.session)
+
+        with freeze_time('2013-06-01'):
+            with db_transaction.manager:
+                guid = model.create(
+                    customer_guid=self.customer_tom_guid,
+                    plan_guid=self.monthly_plan_guid,
+                )
+                model.yield_transactions()
+                refund_guid = model.cancel(guid, prorated_refund=True)
+
+        self.assertEqual(refund_guid, None)
+
+        subscription = model.get(guid)
+        transactions = subscription.transactions
+        self.assertEqual(len(transactions), 1)
+
     def test_subscription_cancel_twice(self):
         from billy.models.subscription import SubscriptionCanceledError
         model = self.make_one(self.session)

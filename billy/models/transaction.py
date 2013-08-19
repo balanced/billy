@@ -68,7 +68,8 @@ class TransactionModel(object):
 
         """
         if transaction_type not in self.TYPE_ALL:
-            raise ValueError('Invalid transaction_type {}'.format(transaction_type))
+            raise ValueError('Invalid transaction_type {}'
+                             .format(transaction_type))
         if refund_to_guid is not None:
             if transaction_type != self.TYPE_REFUND:
                 raise ValueError('refund_to_guid can only be set to a refund '

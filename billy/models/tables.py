@@ -39,7 +39,7 @@ def now_func():
     """Return current datetime
     
     """
-    func = _now_func[0]
+    func = get_now_func()
     return func()
 
 

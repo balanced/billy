@@ -4,21 +4,16 @@ from sqlalchemy import engine_from_config
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from zope.sqlalchemy import ZopeTransactionExtension
-    
-
-from sqlalchemy import engine_from_config
-from sqlalchemy.orm import scoped_session
-from sqlalchemy.orm import sessionmaker
-from zope.sqlalchemy import ZopeTransactionExtension
-    
+   
 
 def setup_database(**settings):
     """Setup database
     
     """
     if 'engine' not in settings:
-        settings['engine'] = \
+        settings['engine'] = (
             engine_from_config(settings, 'sqlalchemy.')
+        )
   
     if 'session' not in settings:
         settings['session'] = scoped_session(sessionmaker(

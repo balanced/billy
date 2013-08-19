@@ -46,9 +46,11 @@ class TransactionModel(object):
         :param guid: The guild of transaction to get
         :param raise_error: Raise KeyError when cannot find one
         """
-        query = self.session.query(tables.Transaction) \
-            .filter_by(guid=guid) \
+        query = (
+            self.session.query(tables.Transaction)
+            .filter_by(guid=guid)
             .first()
+        )
         if raise_error and query is None:
             raise KeyError('No such transaction {}'.format(guid))
         return query

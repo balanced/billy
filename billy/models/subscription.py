@@ -27,9 +27,11 @@ class SubscriptionModel(object):
         :param guid: The guild of subscription to get
         :param raise_error: Raise KeyError when cannot find one
         """
-        query = self.session.query(tables.Subscription) \
-            .filter_by(guid=guid) \
+        query = (
+            self.session.query(tables.Subscription)
+            .filter_by(guid=guid)
             .first()
+        )
         if raise_error and query is None:
             raise KeyError('No such subscription {}'.format(guid))
         return query
@@ -122,10 +124,12 @@ class SubscriptionModel(object):
         # in this case, we need to make sure all transactions are yielded
         while True:
             # find subscriptions which should yield new transactions
-            subscriptions = self.session.query(Subscription) \
-                .filter(Subscription.next_transaction_at <= now) \
-                .filter(not_(Subscription.canceled)) \
+            subscriptions = (
+                self.session.query(Subscription)
+                .filter(Subscription.next_transaction_at <= now)
+                .filter(not_(Subscription.canceled))
                 .all()
+            )
 
             # okay, we have no more transaction to process, just break
             if not subscriptions:

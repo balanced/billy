@@ -18,10 +18,12 @@ class CompanyModel(object):
         :param guid: The guild of company to get
         :param raise_error: Raise KeyError when cannot find one
         """
-        query = self.session.query(tables.Company) \
-            .filter_by(guid=guid) \
-            .filter_by(deleted=not ignore_deleted) \
+        query = (
+            self.session.query(tables.Company)
+            .filter_by(guid=guid)
+            .filter_by(deleted=not ignore_deleted)
             .first()
+        )
         if raise_error and query is None:
             raise KeyError('No such company {}'.format(guid))
         return query

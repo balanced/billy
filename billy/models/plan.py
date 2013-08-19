@@ -43,10 +43,12 @@ class PlanModel(object):
         :param guid: The guild of plan to get
         :param raise_error: Raise KeyError when cannot find one
         """
-        query = self.session.query(tables.Plan) \
-            .filter_by(guid=guid) \
-            .filter_by(deleted=not ignore_deleted) \
+        query = (
+            self.session.query(tables.Plan)
+            .filter_by(guid=guid)
+            .filter_by(deleted=not ignore_deleted)
             .first()
+        )
         if raise_error and query is None:
             raise KeyError('No such plan {}'.format(guid))
         return query

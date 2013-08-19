@@ -333,6 +333,31 @@ class TestSubscriptionModel(ModelTestCase):
             datetime.datetime(2013, 10, 16),
         ])
 
+    def test_yield_transactions_with_multiple_interval(self):
+        model = self.make_one(self.session)
+
+        with db_transaction.manager:
+            plan_guid = self.plan_model.create(
+                company_guid=self.company_guid,
+                plan_type=self.plan_model.TYPE_PAYOUT,
+                amount=10,
+                frequency=self.plan_model.FREQ_MONTHLY,
+                interval=2,
+            )
+            guid = model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=plan_guid,
+            )
+
+        # okay, 08-16, 10-16, so we should have 2 new transactions
+        with freeze_time('2013-10-16'):
+            with db_transaction.manager:
+                tx_guids = model.yield_transactions()
+
+        self.assertEqual(len(set(tx_guids)), 2)
+        subscription = model.get(guid)
+        self.assertEqual(len(subscription.transactions), 2)
+
     def test_yield_transactions_with_payout(self):
         from billy.models.transaction import TransactionModel
         model = self.make_one(self.session)

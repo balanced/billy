@@ -157,6 +157,7 @@ class SubscriptionModel(object):
                     started_at=subscription.started_at,
                     frequency=subscription.plan.frequency, 
                     period=subscription.period,
+                    interval=subscription.plan.interval, 
                 )
                 self.session.add(subscription)
                 self.session.flush()

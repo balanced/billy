@@ -54,6 +54,7 @@ class TestPlanModel(ModelTestCase):
         amount = decimal.Decimal('5566.77')
         frequency = model.FREQ_MONTHLY
         plan_type = model.TYPE_CHARGE
+        interval = 5
         external_id = '5566_GOOD_BROTHERS'
         description = 'This is a long description'
 
@@ -64,6 +65,7 @@ class TestPlanModel(ModelTestCase):
                 name=name,
                 amount=amount,
                 frequency=frequency,
+                interval=interval, 
                 external_id=external_id,
                 description=description,
             )
@@ -77,12 +79,39 @@ class TestPlanModel(ModelTestCase):
         self.assertEqual(plan.name, name)
         self.assertEqual(plan.amount, amount)
         self.assertEqual(plan.frequency, frequency)
+        self.assertEqual(plan.interval, interval)
         self.assertEqual(plan.plan_type, plan_type)
         self.assertEqual(plan.external_id, external_id)
         self.assertEqual(plan.description, description)
         self.assertEqual(plan.deleted, False)
         self.assertEqual(plan.created_at, now)
         self.assertEqual(plan.updated_at, now)
+
+    def test_create_with_zero_interval(self):
+        model = self.make_one(self.session)
+
+        with self.assertRaises(ValueError):
+            model.create(
+                company_guid=self.company_guid,
+                plan_type=model.TYPE_CHARGE,
+                name=None,
+                amount=999,
+                frequency=model.FREQ_MONTHLY,
+                interval=0,
+            )
+
+    def test_create_with_negtive_interval(self):
+        model = self.make_one(self.session)
+
+        with self.assertRaises(ValueError):
+            model.create(
+                company_guid=self.company_guid,
+                plan_type=model.TYPE_CHARGE,
+                name=None,
+                amount=999,
+                frequency=model.FREQ_MONTHLY,
+                interval=-1,
+            )
 
     def test_create_with_wrong_frequency(self):
         model = self.make_one(self.session)

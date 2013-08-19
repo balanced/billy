@@ -59,6 +59,7 @@ class PlanModel(object):
         plan_type, 
         amount, 
         frequency, 
+        interval=1,
         external_id=None, 
         name=None, 
         description=None,
@@ -70,12 +71,15 @@ class PlanModel(object):
             raise ValueError('Invalid plan_type {}'.format(plan_type))
         if frequency not in self.FREQ_ALL:
             raise ValueError('Invalid frequency {}'.format(frequency))
+        if interval < 1:
+            raise ValueError('Interval can only be >= 1')
         plan = tables.Plan(
             guid='PL' + make_guid(),
             company_guid=company_guid,
             plan_type=plan_type,
             amount=amount, 
             frequency=frequency, 
+            interval=interval, 
             external_id=external_id, 
             name=name, 
             description=description,

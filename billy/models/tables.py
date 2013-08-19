@@ -133,9 +133,10 @@ class Plan(DeclarativeBase):
     # TODO: Fix SQLite doesn't support decimal issue?
     amount = Column(Numeric(10, 2), nullable=False)
     #: the fequency to bill user, 0=daily, 1=weekly, 2=monthly
-    # TODO: this is just a rough implementation, should allow 
-    # a more flexiable setting later
     frequency = Column(Integer, nullable=False)
+    #: interval of period, for example, interval 3 with weekly frequency
+    #  means this plan will do transaction every 3 weeks
+    interval = Column(Integer, nullable=False, default=1)
     #: is this plan deleted?
     deleted = Column(Boolean, default=False, nullable=False)
     #: the created datetime of this plan

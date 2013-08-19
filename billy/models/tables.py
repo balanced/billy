@@ -176,8 +176,7 @@ class Subscription(DeclarativeBase):
     )
     #: the discount of this subscription, 
     #  e.g. 0.3 means 30% price off disscount
-    # TODO: maybe we should use decimal here? what about accuracy issue?
-    discount = Column(Float)
+    discount = Column(Numeric(10, 2))
     #: the external ID given by user
     external_id = Column(Unicode(128), index=True)
     #: is this subscription canceled?

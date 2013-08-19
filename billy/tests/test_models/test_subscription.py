@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import datetime
+import decimal
 
 import transaction as db_transaction
 from freezegun import freeze_time
@@ -68,7 +69,7 @@ class TestSubscriptionModel(ModelTestCase):
 
     def test_create(self):
         model = self.make_one(self.session)
-        discount = 0.8
+        discount = decimal.Decimal('0.8')
         external_id = '5566_GOOD_BROTHERS'
         customer_guid = self.customer_tom_guid
         plan_guid = self.monthly_plan_guid
@@ -138,7 +139,7 @@ class TestSubscriptionModel(ModelTestCase):
             )
 
         subscription = model.get(guid)
-        discount = 0.3
+        discount = decimal.Decimal('0.3')
         external_id = 'new external id'
 
         with db_transaction.manager:

@@ -69,6 +69,9 @@ class SubscriptionModel(object):
     def update(self, guid, **kwargs):
         """Update a subscription
 
+        :param guid: the guid of subscription to update
+        :param discount: discount to update
+        :param external_id: external_id to update
         """
         subscription = self.get(guid, raise_error=True)
         now = tables.now_func()
@@ -86,8 +89,11 @@ class SubscriptionModel(object):
     def cancel(self, guid, prorated_refund=False):
         """Cancel a subscription
 
+        :param guid: the guid of subscription to cancel
         :param prorated_refund: Should we generate a prorated refund 
             transaction according to remaining time of subscription period?
+        :return: if prorated_refund is True, and the subscription is 
+            refundable, the refund transaction guid will be returned
         """
         subscription = self.get(guid, raise_error=True)
         if subscription.canceled:
@@ -143,7 +149,7 @@ class SubscriptionModel(object):
 
         :param now: the current date time to use, now_func() will be used by 
             default
-        :return: generated transaction guid list
+        :return: a generated transaction guid list
         """
         from sqlalchemy.sql.expression import not_
 

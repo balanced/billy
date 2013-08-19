@@ -9,7 +9,7 @@ from sqlalchemy import DateTime
 from sqlalchemy import Numeric
 from sqlalchemy import Float
 from sqlalchemy.schema import ForeignKey
-from sqlalchemy.orm import relation
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import func
 
@@ -64,9 +64,9 @@ class Company(DeclarativeBase):
     updated_at = Column(DateTime(timezone=True), default=now_func)
 
     #: plans of this company
-    plans = relation('Plan', cascade='all, delete-orphan', backref='company')
+    plans = relationship('Plan', cascade='all, delete-orphan', backref='company')
     #: customers of this company
-    customers = relation('Customer', cascade='all, delete-orphan', backref='company')
+    customers = relationship('Customer', cascade='all, delete-orphan', backref='company')
 
 
 class Customer(DeclarativeBase):
@@ -100,7 +100,7 @@ class Customer(DeclarativeBase):
     updated_at = Column(DateTime(timezone=True), default=now_func)
 
     #: subscriptions of this customer
-    subscriptions = relation('Subscription', cascade='all, delete-orphan', backref='customer')
+    subscriptions = relationship('Subscription', cascade='all, delete-orphan', backref='customer')
 
 
 class Plan(DeclarativeBase):
@@ -144,7 +144,7 @@ class Plan(DeclarativeBase):
     updated_at = Column(DateTime(timezone=True), default=now_func)
 
     #: subscriptions of this plan
-    subscriptions = relation('Subscription', cascade='all, delete-orphan', backref='plan')
+    subscriptions = relationship('Subscription', cascade='all, delete-orphan', backref='plan')
 
 
 class Subscription(DeclarativeBase):
@@ -196,7 +196,7 @@ class Subscription(DeclarativeBase):
     updated_at = Column(DateTime(timezone=True), default=now_func)
 
     #: transactions of this subscription
-    transactions = relation('Transaction', cascade='all, delete-orphan', backref='subscription')
+    transactions = relationship('Transaction', cascade='all, delete-orphan', backref='subscription')
 
 
 class Transaction(DeclarativeBase):

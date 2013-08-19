@@ -60,14 +60,31 @@ class TransactionModel(object):
         subscription_guid, 
         transaction_type, 
         amount,
-        payment_uri,
         scheduled_at,
+        payment_uri=None,
+        refund_to_guid=None,
     ):
         """Create a transaction and return its ID
 
         """
         if transaction_type not in self.TYPE_ALL:
             raise ValueError('Invalid transaction_type {}'.format(transaction_type))
+        if refund_to_guid is not None:
+            if transaction_type != self.TYPE_REFUND:
+                raise ValueError('refund_to_guid can only be set to a refund '
+                                 'transaction')
+            if payment_uri is not None:
+                raise ValueError('payment_uri cannot be set to a refund '
+                                 'transaction')
+            refund_transaction = self.get(refund_to_guid, raise_error=True)
+            if refund_transaction.transaction_type == self.TYPE_REFUND:
+                raise ValueError('Cannot set refund_to_guid to a refund '
+                                 'transaction')
+        else:
+            if payment_uri is None:
+                raise ValueError('payment_uri can only be None for refund '
+                                 'transactions')
+
         transaction = tables.Transaction(
             guid='TX' + make_guid(),
             subscription_guid=subscription_guid,
@@ -76,6 +93,7 @@ class TransactionModel(object):
             payment_uri=payment_uri, 
             status=self.STATUS_INIT, 
             scheduled_at=scheduled_at, 
+            refund_to_guid=refund_to_guid, 
         )
         self.session.add(transaction)
         self.session.flush()

@@ -9,6 +9,7 @@ from sqlalchemy import DateTime
 from sqlalchemy import Numeric
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import func
 
@@ -195,7 +196,8 @@ class Subscription(DeclarativeBase):
     updated_at = Column(DateTime(timezone=True), default=now_func)
 
     #: transactions of this subscription
-    transactions = relationship('Transaction', cascade='all, delete-orphan', backref='subscription')
+    transactions = relationship('Transaction', cascade='all, delete-orphan', 
+                                backref='subscription')
 
 
 class Transaction(DeclarativeBase):
@@ -217,6 +219,15 @@ class Transaction(DeclarativeBase):
         index=True,
         nullable=False,
     )
+    #: the guid of target transaction to refund to
+    refund_to_guid = Column(
+        Unicode(64), 
+        ForeignKey(
+            'transaction.guid', 
+            ondelete='CASCADE', onupdate='CASCADE'
+        ), 
+        index=True,
+    )
     #: what type of transaction it is, 0=charge, 1=refund, 2=payout
     transaction_type = Column(Integer, index=True, nullable=False)
     #: current status of this transaction, could be
@@ -226,10 +237,20 @@ class Transaction(DeclarativeBase):
     #: the amount to do transaction (charge, payout or refund)
     amount = Column(Numeric(10, 2), index=True, nullable=False)
     #: the payment URI
-    payment_uri = Column(Unicode(128), index=True, nullable=False)
+    payment_uri = Column(Unicode(128), index=True)
     #: the scheduled datetime of this transaction should be processed
     scheduled_at = Column(DateTime(timezone=True), default=now_func)
     #: the created datetime of this subscription 
     created_at = Column(DateTime(timezone=True), default=now_func)
     #: the updated datetime of this subscription 
     updated_at = Column(DateTime(timezone=True), default=now_func)
+
+    #: target transaction of refund transaction
+    refund_to = relationship(
+        'Transaction', 
+        cascade='all, delete-orphan', 
+        backref=backref('refund_from', uselist=False), 
+        remote_side=[guid], 
+        uselist=False, 
+        single_parent=True,
+    )

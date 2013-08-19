@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import datetime
+import decimal
 
 import transaction as db_transaction
 from freezegun import freeze_time
@@ -93,6 +94,37 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.scheduled_at, scheduled_at)
         self.assertEqual(transaction.created_at, now)
         self.assertEqual(transaction.updated_at, now)
+
+    def test_create_with_refund_to_guid(self):
+        model = self.make_one(self.session)
+
+        now = datetime.datetime.utcnow()
+
+        with db_transaction.manager:
+            tx_guid = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=100,
+                payment_uri='/v1/credit_card/tester',
+                scheduled_at=now,
+            )
+
+        with db_transaction.manager:
+            refund_guid = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_REFUND,
+                refund_to_guid=tx_guid, 
+                amount=50,
+                scheduled_at=now,
+            )
+
+        refund_transaction = model.get(refund_guid)
+        self.assertEqual(refund_transaction.refund_to_guid, tx_guid)
+        self.assertEqual(refund_transaction.refund_to.guid, tx_guid)
+        self.assertEqual(refund_transaction.refund_to.refund_from.guid, 
+                         refund_guid)
+        self.assertEqual(refund_transaction.transaction_type, model.TYPE_REFUND)
+        self.assertEqual(refund_transaction.amount, decimal.Decimal(50))
 
     def test_create_with_wrong_type(self):
         model = self.make_one(self.session)

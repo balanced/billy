@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import logging
+import decimal
 
 from billy.models import tables
 from billy.models.plan import PlanModel
@@ -95,11 +96,46 @@ class SubscriptionModel(object):
         now = tables.now_func()
         subscription.canceled = True
         subscription.canceled_at = now
-        if prorated_refund:
-            # TODO: handle prorated refund here
-            pass
+        tx_guid = None
+        # we want to do a prorated refund here, however, if there is no any 
+        # issued transaction, then no need to do a refund, just skip
+        if prorated_refund and subscription.period:
+            previous_transaction = (
+                self.session.query(tables.Transaction)
+                .filter_by(subscription_guid=subscription.guid)
+                .order_by(tables.Transaction.scheduled_at.desc())
+                .first()
+            )
+            previous_datetime = previous_transaction.scheduled_at
+            # the total time delta in the period
+            total_delta = (
+                subscription.next_transaction_at - previous_datetime
+            )
+            total_seconds = decimal.Decimal(total_delta.total_seconds())
+            # the passed time so far since last transaction
+            elapsed_delta = now - previous_datetime
+            elapsed_seconds = decimal.Decimal(elapsed_delta.total_seconds())
+
+            # TODO: what about calculate in different granularity here?
+            #       such as day or hour granularity?
+            rate = elapsed_seconds / total_seconds
+            amount = previous_transaction.amount * rate
+
+            tx_model = TransactionModel(self.session)
+            # make sure we will not refund zero dollar
+            # TODO: or... should we?
+            if amount:
+                tx_guid = tx_model.create(
+                    subscription_guid=subscription.guid, 
+                    amount=amount, 
+                    transaction_type=tx_model.TYPE_REFUND, 
+                    scheduled_at=subscription.next_transaction_at, 
+                    refund_to_guid=previous_transaction.guid, 
+                )
+
         self.session.add(subscription)
         self.session.flush()
+        return tx_guid 
 
     def yield_transactions(self, now=None):
         """Generate new necessary transactions according to subscriptions we 

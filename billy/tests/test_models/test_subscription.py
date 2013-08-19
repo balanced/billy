@@ -216,14 +216,28 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(subscription.canceled_at, now)
 
     def test_subscription_cancel_with_prorated_refund(self):
+        from billy.models.transaction import TransactionModel
         model = self.make_one(self.session)
+        tx_model = TransactionModel(self.session)
 
-        with db_transaction.manager:
-            model.create(
-                customer_guid=self.customer_tom_guid,
-                plan_guid=self.monthly_plan_guid,
-            )
-        # TODO: check prorated refund here
+        with freeze_time('2013-06-01'):
+            with db_transaction.manager:
+                guid = model.create(
+                    customer_guid=self.customer_tom_guid,
+                    plan_guid=self.monthly_plan_guid,
+                )
+                tx_guids = model.yield_transactions()
+
+        # 15 / 30 days, the rate should be 0.5
+        with freeze_time('2013-06-16'):
+            with db_transaction.manager:
+                refund_guid = model.cancel(guid, prorated_refund=True)
+
+        transaction = tx_model.get(refund_guid)
+        self.assertEqual(transaction.refund_to_guid, tx_guids[0])
+        self.assertEqual(transaction.subscription_guid, guid)
+        self.assertEqual(transaction.transaction_type, tx_model.TYPE_REFUND)
+        self.assertEqual(transaction.amount, decimal.Decimal('5'))
 
     def test_subscription_cancel_twice(self):
         from billy.models.subscription import SubscriptionCanceledError

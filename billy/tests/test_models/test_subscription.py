@@ -436,9 +436,39 @@ class TestSubscriptionModel(ModelTestCase):
             )
             model.cancel(guid)
 
-        tx_guids = model.yield_transactions()
+        with db_transaction.manager:
+            tx_guids = model.yield_transactions()
+
         self.assertFalse(tx_guids)
         subscription = model.get(guid)
         self.assertFalse(subscription.transactions)
 
-    # TODO: test cancel in middle
+    def test_yield_transactions_with_canceled_in_middle(self):
+        model = self.make_one(self.session)
+
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+            )
+
+        # 08-16, 09-16, 10-16 transactions should be yielded
+        with freeze_time('2013-10-16'):
+            with db_transaction.manager:
+                tx_guids = model.yield_transactions()
+
+        self.assertEqual(len(set(tx_guids)), 3)
+        subscription = model.get(guid)
+        self.assertEqual(len(subscription.transactions), 3)
+
+        # okay, cancel this, there should be no more new transactions
+        with db_transaction.manager:
+            model.cancel(guid)
+
+        with freeze_time('2020-12-31'):
+            with db_transaction.manager:
+                tx_guids = model.yield_transactions()
+
+        self.assertFalse(tx_guids)
+        subscription = model.get(guid)
+        self.assertEqual(len(subscription.transactions), 3)

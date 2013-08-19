@@ -24,7 +24,30 @@ class TestSchedule(unittest.TestCase):
     def test_invalid_freq_type(self):
         from billy.models.schedule import next_transaction_datetime
         with self.assertRaises(ValueError):
-            next_transaction_datetime(datetime.datetime.utcnow(), 999, 0)
+            next_transaction_datetime(
+                started_at=datetime.datetime.utcnow(), 
+                frequency=999, 
+                period=0,
+                interval=1, 
+            )
+
+    def test_invalid_interval(self):
+        from billy.models.plan import PlanModel
+        from billy.models.schedule import next_transaction_datetime
+        with self.assertRaises(ValueError):
+            next_transaction_datetime(
+                started_at=datetime.datetime.utcnow(), 
+                frequency=PlanModel.FREQ_DAILY, 
+                period=0,
+                interval=0, 
+            )
+        with self.assertRaises(ValueError):
+            next_transaction_datetime(
+                started_at=datetime.datetime.utcnow(), 
+                frequency=PlanModel.FREQ_DAILY, 
+                period=0,
+                interval=-1, 
+            )
 
     def test_daily_schedule(self):
         from billy.models.plan import PlanModel

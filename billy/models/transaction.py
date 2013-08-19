@@ -40,7 +40,7 @@ class TransactionModel(object):
         self.logger = logger or logging.getLogger(__name__)
         self.session = session
 
-    def get_transaction_by_guid(self, guid, raise_error=False):
+    def get(self, guid, raise_error=False):
         """Find a transaction by guid and return it
 
         :param guid: The guild of transaction to get
@@ -53,7 +53,7 @@ class TransactionModel(object):
             raise KeyError('No such transaction {}'.format(guid))
         return query
 
-    def create_transaction(
+    def create(
         self, 
         subscription_guid, 
         transaction_type, 
@@ -79,11 +79,11 @@ class TransactionModel(object):
         self.session.flush()
         return transaction.guid
 
-    def update_transaction(self, guid, **kwargs):
+    def update(self, guid, **kwargs):
         """Update a transaction 
 
         """
-        transaction = self.get_transaction_by_guid(guid, raise_error=True)
+        transaction = self.get(guid, raise_error=True)
         now = tables.now_func()
         transaction.updated_at = now
         if 'status' in kwargs:

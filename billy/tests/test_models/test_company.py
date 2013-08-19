@@ -14,39 +14,39 @@ class TestCompanyModel(ModelTestCase):
         from billy.models.company import CompanyModel
         return CompanyModel(*args, **kwargs)
 
-    def test_get_company_by_guid(self):
+    def test_get(self):
         model = self.make_one(self.session)
 
-        company = model.get_company_by_guid('CP_NON_EXIST')
+        company = model.get('CP_NON_EXIST')
         self.assertEqual(company, None)
 
         with self.assertRaises(KeyError):
-            model.get_company_by_guid('CP_NON_EXIST', raise_error=True)
+            model.get('CP_NON_EXIST', raise_error=True)
 
         with transaction.manager:
-            guid = model.create_company(processor_key='my_secret_key')
-            model.delete_company(guid)
+            guid = model.create(processor_key='my_secret_key')
+            model.delete(guid)
 
         with self.assertRaises(KeyError):
-            model.get_company_by_guid(guid, raise_error=True)
+            model.get(guid, raise_error=True)
 
-        company = model.get_company_by_guid(guid, ignore_deleted=False, raise_error=True)
+        company = model.get(guid, ignore_deleted=False, raise_error=True)
         self.assertEqual(company.guid, guid)
 
-    def test_create_company(self):
+    def test_create(self):
         model = self.make_one(self.session)
         name = 'awesome company'
         processor_key = 'my_secret_key'
 
         with transaction.manager:
-            guid = model.create_company(
+            guid = model.create(
                 name=name,
                 processor_key=processor_key,
             )
 
         now = datetime.datetime.utcnow()
 
-        company = model.get_company_by_guid(guid)
+        company = model.get(guid)
         self.assertEqual(company.guid, guid)
         self.assert_(company.guid.startswith('CP'))
         self.assertEqual(company.name, name)
@@ -56,77 +56,77 @@ class TestCompanyModel(ModelTestCase):
         self.assertEqual(company.created_at, now)
         self.assertEqual(company.updated_at, now)
 
-    def test_update_company(self):
+    def test_update(self):
         model = self.make_one(self.session)
 
         with transaction.manager:
-            guid = model.create_company(processor_key='my_secret_key')
+            guid = model.create(processor_key='my_secret_key')
 
         name = 'new name'
         processor_key = 'new processor key'
         api_key = 'new api key'
 
         with transaction.manager:
-            model.update_company(
+            model.update(
                 guid=guid,
                 name=name,
                 api_key=api_key,
                 processor_key=processor_key,
             )
 
-        company = model.get_company_by_guid(guid)
+        company = model.get(guid)
         self.assertEqual(company.name, name)
         self.assertEqual(company.processor_key, processor_key)
         self.assertEqual(company.api_key, api_key)
 
-    def test_update_company_updated_at(self):
+    def test_update_updated_at(self):
         model = self.make_one(self.session)
 
         with transaction.manager:
-            guid = model.create_company(processor_key='my_secret_key')
+            guid = model.create(processor_key='my_secret_key')
 
-        company = model.get_company_by_guid(guid)
+        company = model.get(guid)
         created_at = company.created_at
 
         # advanced the current date time
         with freeze_time('2013-08-16 07:00:01'):
             with transaction.manager:
-                model.update_company(guid=guid)
+                model.update(guid=guid)
             updated_at = datetime.datetime.utcnow()
 
-        company = model.get_company_by_guid(guid)
+        company = model.get(guid)
         self.assertEqual(company.updated_at, updated_at)
         self.assertEqual(company.created_at, created_at)
 
         # advanced the current date time even more
         with freeze_time('2013-08-16 08:35:40'):
             with transaction.manager:
-                model.update_company(guid)
+                model.update(guid)
             updated_at = datetime.datetime.utcnow()
 
-        company = model.get_company_by_guid(guid)
+        company = model.get(guid)
         self.assertEqual(company.updated_at, updated_at)
         self.assertEqual(company.created_at, created_at)
 
-    def test_update_company_with_wrong_args(self):
+    def test_update_with_wrong_args(self):
         model = self.make_one(self.session)
 
         with transaction.manager:
-            guid = model.create_company(processor_key='my_secret_key')
+            guid = model.create(processor_key='my_secret_key')
 
         # make sure passing wrong argument will raise error
         with self.assertRaises(TypeError):
-            model.update_company(guid, wrong_arg=True, neme='john')
+            model.update(guid, wrong_arg=True, neme='john')
 
-    def test_delete_company(self):
+    def test_delete(self):
         model = self.make_one(self.session)
 
         with transaction.manager:
-            guid = model.create_company(processor_key='my_secret_key')
-            model.delete_company(guid)
+            guid = model.create(processor_key='my_secret_key')
+            model.delete(guid)
 
-        company = model.get_company_by_guid(guid)
+        company = model.get(guid)
         self.assertEqual(company, None)
 
-        company = model.get_company_by_guid(guid, ignore_deleted=False)
+        company = model.get(guid, ignore_deleted=False)
         self.assertEqual(company.deleted, True)

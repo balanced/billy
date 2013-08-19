@@ -17,7 +17,7 @@ class TestPlanModel(ModelTestCase):
         # build the basic scenario for plan model
         self.company_model = CompanyModel(self.session)
         with transaction.manager:
-            self.company_guid = self.company_model.create_company('my_secret_key')
+            self.company_guid = self.company_model.create('my_secret_key')
 
     def make_one(self, *args, **kwargs):
         from billy.models.plan import PlanModel
@@ -26,29 +26,29 @@ class TestPlanModel(ModelTestCase):
     def test_get_plan(self):
         model = self.make_one(self.session)
 
-        plan = model.get_plan_by_guid('PL_NON_EXIST')
+        plan = model.get('PL_NON_EXIST')
         self.assertEqual(plan, None)
 
         with self.assertRaises(KeyError):
-            model.get_plan_by_guid('PL_NON_EXIST', raise_error=True)
+            model.get('PL_NON_EXIST', raise_error=True)
 
         with transaction.manager:
-            guid = model.create_plan(
+            guid = model.create(
                 company_guid=self.company_guid,
                 plan_type=model.TYPE_CHARGE,
                 name='name',
                 amount=99.99,
                 frequency=model.FREQ_WEEKLY,
             )
-            model.delete_plan(guid)
+            model.delete(guid)
 
         with self.assertRaises(KeyError):
-            model.get_plan_by_guid(guid, raise_error=True)
+            model.get(guid, raise_error=True)
 
-        plan = model.get_plan_by_guid(guid, ignore_deleted=False, raise_error=True)
+        plan = model.get(guid, ignore_deleted=False, raise_error=True)
         self.assertEqual(plan.guid, guid)
 
-    def test_create_plan(self):
+    def test_create(self):
         model = self.make_one(self.session)
         name = 'monthly billing to user John'
         amount = decimal.Decimal('5566.77')
@@ -58,7 +58,7 @@ class TestPlanModel(ModelTestCase):
         description = 'This is a long description'
 
         with transaction.manager:
-            guid = model.create_plan(
+            guid = model.create(
                 company_guid=self.company_guid,
                 plan_type=plan_type,
                 name=name,
@@ -70,7 +70,7 @@ class TestPlanModel(ModelTestCase):
 
         now = datetime.datetime.utcnow()
 
-        plan = model.get_plan_by_guid(guid)
+        plan = model.get(guid)
         self.assertEqual(plan.guid, guid)
         self.assert_(plan.guid.startswith('PL'))
         self.assertEqual(plan.company_guid, self.company_guid)
@@ -84,11 +84,11 @@ class TestPlanModel(ModelTestCase):
         self.assertEqual(plan.created_at, now)
         self.assertEqual(plan.updated_at, now)
 
-    def test_create_plan_with_wrong_frequency(self):
+    def test_create_with_wrong_frequency(self):
         model = self.make_one(self.session)
 
         with self.assertRaises(ValueError):
-            model.create_plan(
+            model.create(
                 company_guid=self.company_guid,
                 plan_type=model.TYPE_CHARGE,
                 name=None,
@@ -96,11 +96,11 @@ class TestPlanModel(ModelTestCase):
                 frequency=999,
             )
 
-    def test_create_plan_with_wrong_type(self):
+    def test_create_with_wrong_type(self):
         model = self.make_one(self.session)
 
         with self.assertRaises(ValueError):
-            model.create_plan(
+            model.create(
                 company_guid=self.company_guid,
                 plan_type=999,
                 name=None,
@@ -108,11 +108,11 @@ class TestPlanModel(ModelTestCase):
                 frequency=model.FREQ_DAILY,
             )
 
-    def test_update_plan(self):
+    def test_update(self):
         model = self.make_one(self.session)
 
         with transaction.manager:
-            guid = model.create_plan(
+            guid = model.create(
                 company_guid=self.company_guid,
                 plan_type=model.TYPE_CHARGE,
                 name='old name',
@@ -122,29 +122,29 @@ class TestPlanModel(ModelTestCase):
                 external_id='old external id',
             )
 
-        plan = model.get_plan_by_guid(guid)
+        plan = model.get(guid)
         name = 'new name'
         description = 'new description'
         external_id = 'new external id'
 
         with transaction.manager:
-            model.update_plan(
+            model.update(
                 guid=guid,
                 name=name,
                 description=description,
                 external_id=external_id,
             )
 
-        plan = model.get_plan_by_guid(guid)
+        plan = model.get(guid)
         self.assertEqual(plan.name, name)
         self.assertEqual(plan.description, description)
         self.assertEqual(plan.external_id, external_id)
 
-    def test_update_plan_updated_at(self):
+    def test_update_updated_at(self):
         model = self.make_one(self.session)
 
         with transaction.manager:
-            guid = model.create_plan(
+            guid = model.create(
                 company_guid=self.company_guid,
                 plan_type=model.TYPE_CHARGE,
                 name='evil gangster charges protection fee from Tom weekly',
@@ -152,20 +152,20 @@ class TestPlanModel(ModelTestCase):
                 frequency=model.FREQ_WEEKLY,
             )
 
-        plan = model.get_plan_by_guid(guid)
+        plan = model.get(guid)
         created_at = plan.created_at
         name = 'new plan name'
 
         # advanced the current date time
         with freeze_time('2013-08-16 07:00:01'):
             with transaction.manager:
-                model.update_plan(
+                model.update(
                     guid=guid,
                     name=name,
                 )
             updated_at = datetime.datetime.utcnow()
 
-        plan = model.get_plan_by_guid(guid)
+        plan = model.get(guid)
         self.assertEqual(plan.name, name)
         self.assertEqual(plan.updated_at, updated_at)
         self.assertEqual(plan.created_at, created_at)
@@ -174,19 +174,19 @@ class TestPlanModel(ModelTestCase):
         with freeze_time('2013-08-16 08:35:40'):
             # this should update the updated_at field only
             with transaction.manager:
-                model.update_plan(guid)
+                model.update(guid)
             updated_at = datetime.datetime.utcnow()
 
-        plan = model.get_plan_by_guid(guid)
+        plan = model.get(guid)
         self.assertEqual(plan.name, name)
         self.assertEqual(plan.updated_at, updated_at)
         self.assertEqual(plan.created_at, created_at)
 
-    def test_update_plan_with_wrong_args(self):
+    def test_update_with_wrong_args(self):
         model = self.make_one(self.session)
         
         with transaction.manager:
-            guid = model.create_plan(
+            guid = model.create(
                 company_guid=self.company_guid,
                 plan_type=model.TYPE_CHARGE,
                 name='evil gangster charges protection fee from Tom weekly',
@@ -196,23 +196,23 @@ class TestPlanModel(ModelTestCase):
 
         # make sure passing wrong argument will raise error
         with self.assertRaises(TypeError):
-            model.update_plan(guid, wrong_arg=True, neme='john')
+            model.update(guid, wrong_arg=True, neme='john')
 
-    def test_delete_plan(self):
+    def test_delete(self):
         model = self.make_one(self.session)
 
         with transaction.manager:
-            guid = model.create_plan(
+            guid = model.create(
                 company_guid=self.company_guid,
                 plan_type=model.TYPE_CHARGE,
                 name='name',
                 amount=99.99,
                 frequency=model.FREQ_WEEKLY,
             )
-            model.delete_plan(guid)
+            model.delete(guid)
 
-        plan = model.get_plan_by_guid(guid)
+        plan = model.get(guid)
         self.assertEqual(plan, None)
 
-        plan = model.get_plan_by_guid(guid, ignore_deleted=False)
+        plan = model.get(guid, ignore_deleted=False)
         self.assertEqual(plan.deleted, True)

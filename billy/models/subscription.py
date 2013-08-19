@@ -21,7 +21,7 @@ class SubscriptionModel(object):
         self.logger = logger or logging.getLogger(__name__)
         self.session = session
 
-    def get_subscription_by_guid(self, guid, raise_error=False):
+    def get(self, guid, raise_error=False):
         """Find a subscription by guid and return it
 
         :param guid: The guild of subscription to get
@@ -34,7 +34,7 @@ class SubscriptionModel(object):
             raise KeyError('No such subscription {}'.format(guid))
         return query
 
-    def create_subscription(
+    def create(
         self, 
         customer_guid, 
         plan_guid, 
@@ -63,11 +63,11 @@ class SubscriptionModel(object):
         self.session.flush()
         return subscription.guid
 
-    def update_subscription(self, guid, **kwargs):
+    def update(self, guid, **kwargs):
         """Update a subscription
 
         """
-        subscription = self.get_subscription_by_guid(guid, raise_error=True)
+        subscription = self.get(guid, raise_error=True)
         now = tables.now_func()
         subscription.updated_at = now
         for key in ['discount', 'external_id']:
@@ -80,13 +80,13 @@ class SubscriptionModel(object):
         self.session.add(subscription)
         self.session.flush()
 
-    def cancel_subscription(self, guid, prorated_refund=False):
+    def cancel(self, guid, prorated_refund=False):
         """Cancel a subscription
 
         :param prorated_refund: Should we generate a prorated refund 
             transaction according to remaining time of subscription period?
         """
-        subscription = self.get_subscription_by_guid(guid, raise_error=True)
+        subscription = self.get(guid, raise_error=True)
         if subscription.canceled:
             raise SubscriptionCanceledError('Subscription {} is already '
                                             'canceled'.format(guid))
@@ -140,7 +140,7 @@ class SubscriptionModel(object):
                     raise ValueError('Unknown plan type {} to process'
                                      .format(subscription.plan.plan_type))
                 # create the new transaction for this subscription
-                guid = tx_model.create_transaction(
+                guid = tx_model.create(
                     subscription_guid=subscription.guid, 
                     payment_uri=subscription.customer.payment_uri, 
                     amount=subscription.plan.amount, 

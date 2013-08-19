@@ -22,18 +22,18 @@ class TestTransactionModel(ModelTestCase):
         self.plan_model = PlanModel(self.session)
         self.subscription_model = SubscriptionModel(self.session)
         with db_transaction.manager:
-            self.company_guid = self.company_model.create_company('my_secret_key')
-            self.plan_guid = self.plan_model.create_plan(
+            self.company_guid = self.company_model.create('my_secret_key')
+            self.plan_guid = self.plan_model.create(
                 company_guid=self.company_guid,
                 plan_type=self.plan_model.TYPE_CHARGE,
                 amount=10,
                 frequency=self.plan_model.FREQ_MONTHLY,
             )
-            self.customer_guid = self.customer_model.create_customer(
+            self.customer_guid = self.customer_model.create(
                 company_guid=self.company_guid,
                 payment_uri='/v1/credit_card/tester',
             )
-            self.subscription_guid = self.subscription_model.create_subscription(
+            self.subscription_guid = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
             )
@@ -45,14 +45,14 @@ class TestTransactionModel(ModelTestCase):
     def test_get_transaction(self):
         model = self.make_one(self.session)
 
-        transaction = model.get_transaction_by_guid('TX_NON_EXIST')
+        transaction = model.get('TX_NON_EXIST')
         self.assertEqual(transaction, None)
 
         with self.assertRaises(KeyError):
-            model.get_transaction_by_guid('TX_NON_EXIST', raise_error=True)
+            model.get('TX_NON_EXIST', raise_error=True)
 
         with db_transaction.manager:
-            guid = model.create_transaction(
+            guid = model.create(
                 subscription_guid=self.subscription_guid,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
@@ -60,10 +60,10 @@ class TestTransactionModel(ModelTestCase):
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
-        transaction = model.get_transaction_by_guid(guid, raise_error=True)
+        transaction = model.get(guid, raise_error=True)
         self.assertEqual(transaction.guid, guid)
 
-    def test_create_transaction(self):
+    def test_create(self):
         model = self.make_one(self.session)
 
         subscription_guid = self.subscription_guid
@@ -74,7 +74,7 @@ class TestTransactionModel(ModelTestCase):
         scheduled_at = now + datetime.timedelta(days=1)
 
         with db_transaction.manager:
-            guid = model.create_transaction(
+            guid = model.create(
                 subscription_guid=subscription_guid,
                 transaction_type=transaction_type,
                 amount=amount,
@@ -82,7 +82,7 @@ class TestTransactionModel(ModelTestCase):
                 scheduled_at=scheduled_at,
             )
 
-        transaction = model.get_transaction_by_guid(guid)
+        transaction = model.get(guid)
         self.assertEqual(transaction.guid, guid)
         self.assert_(transaction.guid.startswith('TX'))
         self.assertEqual(transaction.subscription_guid, subscription_guid)
@@ -94,11 +94,11 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.created_at, now)
         self.assertEqual(transaction.updated_at, now)
 
-    def test_create_transaction_with_wrong_type(self):
+    def test_create_with_wrong_type(self):
         model = self.make_one(self.session)
 
         with self.assertRaises(ValueError):
-            model.create_transaction(
+            model.create(
                 subscription_guid=self.subscription_guid,
                 transaction_type=999,
                 amount=123,
@@ -106,11 +106,11 @@ class TestTransactionModel(ModelTestCase):
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
-    def test_update_transaction(self):
+    def test_update(self):
         model = self.make_one(self.session)
 
         with db_transaction.manager:
-            guid = model.create_transaction(
+            guid = model.create(
                 subscription_guid=self.subscription_guid,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
@@ -118,23 +118,23 @@ class TestTransactionModel(ModelTestCase):
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
-        transaction = model.get_transaction_by_guid(guid)
+        transaction = model.get(guid)
         status = model.STATUS_DONE
 
         with db_transaction.manager:
-            model.update_transaction(
+            model.update(
                 guid=guid,
                 status=status,
             )
 
-        transaction = model.get_transaction_by_guid(guid)
+        transaction = model.get(guid)
         self.assertEqual(transaction.status, status)
 
-    def test_update_transaction_updated_at(self):
+    def test_update_updated_at(self):
         model = self.make_one(self.session)
 
         with db_transaction.manager:
-            guid = model.create_transaction(
+            guid = model.create(
                 subscription_guid=self.subscription_guid,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
@@ -142,16 +142,16 @@ class TestTransactionModel(ModelTestCase):
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
-        transaction = model.get_transaction_by_guid(guid)
+        transaction = model.get(guid)
         created_at = transaction.created_at
 
         # advanced the current date time
         with freeze_time('2013-08-16 07:00:01'):
             with db_transaction.manager:
-                model.update_transaction(guid=guid)
+                model.update(guid=guid)
             updated_at = datetime.datetime.utcnow()
 
-        transaction = model.get_transaction_by_guid(guid)
+        transaction = model.get(guid)
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.created_at, created_at)
 
@@ -159,18 +159,18 @@ class TestTransactionModel(ModelTestCase):
         with freeze_time('2013-08-16 08:35:40'):
             # this should update the updated_at field only
             with db_transaction.manager:
-                model.update_transaction(guid)
+                model.update(guid)
             updated_at = datetime.datetime.utcnow()
 
-        transaction = model.get_transaction_by_guid(guid)
+        transaction = model.get(guid)
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.created_at, created_at)
 
-    def test_update_transaction_with_wrong_args(self):
+    def test_update_with_wrong_args(self):
         model = self.make_one(self.session)
 
         with db_transaction.manager:
-            guid = model.create_transaction(
+            guid = model.create(
                 subscription_guid=self.subscription_guid,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
@@ -180,17 +180,17 @@ class TestTransactionModel(ModelTestCase):
 
         # make sure passing wrong argument will raise error
         with self.assertRaises(TypeError):
-            model.update_transaction(
+            model.update(
                 guid=guid, 
                 wrong_arg=True, 
                 status=model.STATUS_INIT
             )
 
-    def test_update_transaction_with_wrong_status(self):
+    def test_update_with_wrong_status(self):
         model = self.make_one(self.session)
 
         with db_transaction.manager:
-            guid = model.create_transaction(
+            guid = model.create(
                 subscription_guid=self.subscription_guid,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
@@ -199,7 +199,7 @@ class TestTransactionModel(ModelTestCase):
             )
 
         with self.assertRaises(ValueError):
-            model.update_transaction(
+            model.update(
                 guid=guid,
                 status=999,
             )

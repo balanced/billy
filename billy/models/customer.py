@@ -11,7 +11,7 @@ class CustomerModel(object):
         self.logger = logger or logging.getLogger(__name__)
         self.session = session
 
-    def get_customer_by_guid(self, guid, raise_error=False, ignore_deleted=True):
+    def get(self, guid, raise_error=False, ignore_deleted=True):
         """Find a customer by guid and return it
 
         :param guid: The guild of customer to get
@@ -25,7 +25,7 @@ class CustomerModel(object):
             raise KeyError('No such customer {}'.format(guid))
         return query
 
-    def create_customer(
+    def create(
         self, 
         company_guid, 
         payment_uri, 
@@ -46,11 +46,11 @@ class CustomerModel(object):
         self.session.flush()
         return customer.guid
 
-    def update_customer(self, guid, **kwargs):
+    def update(self, guid, **kwargs):
         """Update a customer 
 
         """
-        customer = self.get_customer_by_guid(guid, raise_error=True)
+        customer = self.get(guid, raise_error=True)
         now = tables.now_func()
         customer.updated_at = now
         for key in ['name', 'payment_uri', 'external_id']:
@@ -63,11 +63,11 @@ class CustomerModel(object):
         self.session.add(customer)
         self.session.flush()
 
-    def delete_customer(self, guid):
+    def delete(self, guid):
         """Delete a customer 
 
         """
-        customer = self.get_customer_by_guid(guid, raise_error=True)
+        customer = self.get(guid, raise_error=True)
         customer.deleted = True
         self.session.add(customer)
         self.session.flush()

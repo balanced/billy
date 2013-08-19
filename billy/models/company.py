@@ -12,7 +12,7 @@ class CompanyModel(object):
         self.logger = logger or logging.getLogger(__name__)
         self.session = session
 
-    def get_company_by_guid(self, guid, raise_error=False, ignore_deleted=True):
+    def get(self, guid, raise_error=False, ignore_deleted=True):
         """Find a company by guid and return it
 
         :param guid: The guild of company to get
@@ -26,7 +26,7 @@ class CompanyModel(object):
             raise KeyError('No such company {}'.format(guid))
         return query
 
-    def create_company(self, processor_key, name=None):
+    def create(self, processor_key, name=None):
         """Create a company and return its id
 
         """
@@ -40,11 +40,11 @@ class CompanyModel(object):
         self.session.flush()
         return company.guid
 
-    def update_company(self, guid, **kwargs):
+    def update(self, guid, **kwargs):
         """Update a company
 
         """
-        company = self.get_company_by_guid(guid, raise_error=True)
+        company = self.get(guid, raise_error=True)
         now = tables.now_func()
         company.updated_at = now
         for key in ['name', 'processor_key', 'api_key']:
@@ -57,11 +57,11 @@ class CompanyModel(object):
         self.session.add(company)
         self.session.flush()
 
-    def delete_company(self, guid):
+    def delete(self, guid):
         """Delete a company
 
         """
-        company = self.get_company_by_guid(guid, raise_error=True)
+        company = self.get(guid, raise_error=True)
         company.deleted = True
         self.session.add(company)
         self.session.flush()

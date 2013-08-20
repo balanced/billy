@@ -33,6 +33,7 @@ setup(
         'nose-cov',
         'webtest',
         'freezegun',
+        'flexmock',
     ],
     install_requires=requires,
 )

@@ -3,6 +3,7 @@ import datetime
 import decimal
 
 import transaction as db_transaction
+from flexmock import flexmock
 from freezegun import freeze_time
 
 from billy.tests.helper import ModelTestCase
@@ -318,3 +319,129 @@ class TestTransactionModel(ModelTestCase):
                 guid=guid,
                 status=999,
             )
+
+    def test_base_processor(self):
+        from billy.models.processors.base import PaymentProcessor
+        processor = PaymentProcessor()
+        with self.assertRaises(NotImplementedError):
+            processor.create_customer(None)
+        with self.assertRaises(NotImplementedError):
+            processor.prepare_customer(None)
+        with self.assertRaises(NotImplementedError):
+            processor.charge(None)
+        with self.assertRaises(NotImplementedError):
+            processor.payout(None)
+
+    def test_process_one_charge(self):
+        from billy.models.processors.base import PaymentProcessor
+        model = self.make_one(self.session)
+        now = datetime.datetime.utcnow()
+
+        payment_uri = '/v1/credit_card/tester'
+
+        with db_transaction.manager:
+            guid = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=100,
+                payment_uri=payment_uri,
+                scheduled_at=now,
+            )
+
+        transaction = model.get(guid)
+        customer = transaction.subscription.customer
+
+        processor = PaymentProcessor()
+        mocked_processor = flexmock(processor)
+        (
+            mocked_processor
+            .should_receive('create_customer')
+            .with_args(customer)
+            .replace_with(lambda c: 'AC_MOCK')
+            .once()
+        )
+        (
+            mocked_processor
+            .should_receive('prepare_customer')
+            .with_args(customer, payment_uri)
+            .replace_with(lambda c, payment_uri: None)
+            .once()
+        )
+        (
+            mocked_processor
+            .should_receive('charge')
+            .with_args(transaction)
+            .replace_with(lambda t: 'TX_MOCK')
+            .once()
+        )
+
+        with freeze_time('2013-08-20'):
+            with db_transaction.manager:
+                model.process_one(processor, transaction)
+                updated_at = datetime.datetime.utcnow()
+
+        transaction = model.get(guid)
+        self.assertEqual(transaction.status, model.STATUS_DONE)
+        self.assertEqual(transaction.external_id, 'TX_MOCK')
+        self.assertEqual(transaction.updated_at, updated_at)
+        self.assertEqual(transaction.scheduled_at, now)
+        self.assertEqual(transaction.created_at, now)
+        self.assertEqual(transaction.subscription.customer.external_id, 
+                         'AC_MOCK')
+
+    def test_process_one_payout(self):
+        from billy.models.processors.base import PaymentProcessor
+        model = self.make_one(self.session)
+        now = datetime.datetime.utcnow()
+
+        payment_uri = '/v1/credit_card/tester'
+
+        with db_transaction.manager:
+            guid = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_PAYOUT,
+                amount=100,
+                payment_uri=payment_uri,
+                scheduled_at=now,
+            )
+
+        transaction = model.get(guid)
+        customer = transaction.subscription.customer
+
+        processor = PaymentProcessor()
+        mocked_processor = flexmock(processor)
+        (
+            mocked_processor
+            .should_receive('create_customer')
+            .with_args(customer)
+            .replace_with(lambda c: 'AC_MOCK')
+            .once()
+        )
+        (
+            mocked_processor
+            .should_receive('prepare_customer')
+            .with_args(customer, payment_uri)
+            .replace_with(lambda c, payment_uri: None)
+            .once()
+        )
+        (
+            mocked_processor
+            .should_receive('payout')
+            .with_args(transaction)
+            .replace_with(lambda t: 'TX_MOCK')
+            .once()
+        )
+
+        with freeze_time('2013-08-20'):
+            with db_transaction.manager:
+                model.process_one(processor, transaction)
+                updated_at = datetime.datetime.utcnow()
+
+        transaction = model.get(guid)
+        self.assertEqual(transaction.status, model.STATUS_DONE)
+        self.assertEqual(transaction.external_id, 'TX_MOCK')
+        self.assertEqual(transaction.updated_at, updated_at)
+        self.assertEqual(transaction.scheduled_at, now)
+        self.assertEqual(transaction.created_at, now)
+        self.assertEqual(transaction.subscription.customer.external_id, 
+                         'AC_MOCK')

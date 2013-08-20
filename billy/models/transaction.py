@@ -112,3 +112,48 @@ class TransactionModel(object):
             raise TypeError('Unknown attributes {} to update'.format(tuple(kwargs.keys())))
         self.session.add(transaction)
         self.session.flush()
+
+    def process_one(self, processor, transaction):
+        """Process one transaction
+
+        """
+        customer = transaction.subscription.customer
+        # create customer record in balanced
+        if customer.external_id is None:
+            customer_id = processor.create_customer(customer)
+            customer.external_id = customer_id
+            self.session.add(customer)
+            self.session.flush()
+
+        # TODO: handle error
+        # prepare customer (add bank account or credit card)
+        processor.prepare_customer(customer, transaction.payment_uri)
+
+        if transaction.transaction_type == self.TYPE_CHARGE:
+            method = processor.charge
+        else:
+            method = processor.payout
+
+        # TODO: handle error and retry
+        transaction_id = method(transaction)
+        # TODO: generate an invoice here?
+
+        transaction.external_id = transaction_id
+        transaction.status = self.STATUS_DONE
+        transaction.updated_at = tables.now_func()
+        self.session.add(transaction)
+        self.session.flush()
+
+    def process_transactions(self, processor):
+        """Process all transactions 
+
+        """
+        Transaction = tables.Transaction
+        query = (
+            self.session.query(Transaction)
+            .filter(Transaction.status == self.STATUS_INIT)
+            .filter(Transaction.type != self.TYPE_REFUND)
+        )
+
+        for transaction in query:
+            self.process_one(processor, transaction.guid)

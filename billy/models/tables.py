@@ -227,6 +227,8 @@ class Transaction(DeclarativeBase):
     )
     #: what type of transaction it is, 0=charge, 1=refund, 2=payout
     transaction_type = Column(Integer, index=True, nullable=False)
+    #: the ID of transaction record in payment processing system
+    external_id = Column(Unicode(128), index=True)
     #: current status of this transaction, could be
     #  0=init, 1=retrying, 2=done, 3=failed
     # TODO: what about retry?

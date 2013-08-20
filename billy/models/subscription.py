@@ -7,6 +7,7 @@ from billy.models.plan import PlanModel
 from billy.models.transaction import TransactionModel
 from billy.models.schedule import next_transaction_datetime
 from billy.utils.generic import make_guid
+from billy.utils.generic import round_down_cent
 
 
 class SubscriptionCanceledError(RuntimeError):
@@ -126,6 +127,7 @@ class SubscriptionModel(object):
             #       such as day or hour granularity?
             rate = elapsed_seconds / total_seconds
             amount = previous_transaction.amount * rate
+            amount = round_down_cent(amount)
 
             tx_model = TransactionModel(self.session)
             # make sure we will not refund zero dollar
@@ -189,6 +191,7 @@ class SubscriptionModel(object):
                 if subscription.discount is not None:
                     # TODO: what about float number round up?
                     amount *= (1 - subscription.discount)
+                    amount = round_down_cent(amount)
                 # create the new transaction for this subscription
                 guid = tx_model.create(
                     subscription_guid=subscription.guid, 

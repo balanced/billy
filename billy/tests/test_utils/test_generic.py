@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import math
 import unittest
 
 
@@ -28,3 +27,25 @@ class TestGenericUtils(unittest.TestCase):
         # just make sure it is random
         api_keys = [make_api_key() for _ in range(1000)]
         self.assertEqual(len(set(api_keys)), 1000)
+
+    def test_round_down_cent(self):
+        from decimal import Decimal
+        from billy.utils.generic import round_down_cent
+
+        def assert_round_down(amount, expected):
+            self.assertEqual(
+                round_down_cent(Decimal(amount)), 
+                Decimal(expected)
+            )
+
+        assert_round_down('0.0', '0.0')
+        assert_round_down('0.1', '0.1')
+        assert_round_down('0.11', '0.11')
+        assert_round_down('1.0', '1.0')
+        assert_round_down('1.12', '1.12')
+        assert_round_down('123.0', '123.0')
+        assert_round_down('0.123', '0.12')
+        assert_round_down('0.1234', '0.12')
+        assert_round_down('0.5566', '0.55')
+        assert_round_down('0.7788', '0.77')
+        assert_round_down('1.23456789', '1.23')

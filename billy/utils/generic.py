@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import os
 import uuid
+import decimal
 
 B58_CHARS = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 B58_BASE = len(B58_CHARS)
@@ -52,3 +53,12 @@ def make_api_key(size=32):
     # however, this is good enough currently
     random = os.urandom(size)
     return b58encode(random)
+
+def round_down_cent(amount):
+    """Round down money value to cent (truncate to), for example, $5.66666
+    will be rounded to $5.66
+
+    :param amount: the money amount to be rounded
+    :return: the rounded money amount
+    """
+    return amount.quantize(decimal.Decimal('.01'), rounding=decimal.ROUND_DOWN)

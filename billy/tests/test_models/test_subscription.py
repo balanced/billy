@@ -263,7 +263,27 @@ class TestSubscriptionModel(ModelTestCase):
         # so the amount of transaction is 7.5, and we refund half,
         # then the refund amount should be 3.75
         self.assertEqual(transaction.amount, decimal.Decimal('3.75'))
-        # TODO: what about float number round up issue?
+
+    def test_subscription_cancel_with_prorated_refund_rounding(self):
+        from billy.models.transaction import TransactionModel
+        model = self.make_one(self.session)
+        tx_model = TransactionModel(self.session)
+
+        with freeze_time('2013-06-01'):
+            with db_transaction.manager:
+                guid = model.create(
+                    customer_guid=self.customer_tom_guid,
+                    plan_guid=self.monthly_plan_guid,
+                )
+                model.yield_transactions()
+
+        # 17 / 30 days, the rate should be 0.56666...
+        with freeze_time('2013-06-18'):
+            with db_transaction.manager:
+                refund_guid = model.cancel(guid, prorated_refund=True)
+
+        transaction = tx_model.get(refund_guid)
+        self.assertEqual(transaction.amount, decimal.Decimal('5.66'))
 
     def test_subscription_cancel_with_zero_refund(self):
         model = self.make_one(self.session)

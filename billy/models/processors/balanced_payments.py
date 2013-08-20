@@ -36,24 +36,27 @@ class BalancedProcessor(PaymentProcessor):
             )
         except balanced.exc.NoResultFound:
             debit = None
-        # we already have a Debit there in Balanced, 
-        # just return it
+        # We already have a Debit there in Balanced, this means we once did
+        # transaction, however, we failed to update database. No need to do
+        # it again, just return the id
         if debit is not None:
             return debit.id
 
         # TODO: handle error here
-
-        # get customer
+        # get balanced customer record
         external_id = transaction.subscription.customer.external_id
-        customer = customer_cls.find(external_id)
+        balanced_customer = self.customer_cls.find(external_id)
 
         # prepare arguments
-        kwargs = dict(amount=self._to_cent(transaction.amount))
-        kwargs['meta.billy_transaction_guid'] =transaction.guid 
+        kwargs = {
+            'amount': self._to_cent(transaction.amount),
+            'meta.billy_transaction_guid': transaction.guid,
+        }
         if transaction.payment_uri is not None:
             kwargs['source_uri'] = transaction.payment_uri
 
-        debit = customer.debit(**kwargs)
+        # TODO: handle error here
+        debit = balanced_customer.debit(**kwargs)
         return debit.id
 
     def payout(self, transaction_guid, payment_uri, amount):

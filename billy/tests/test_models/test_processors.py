@@ -64,6 +64,7 @@ class TestBalancedProcessorModel(ModelTestCase):
     def test_create_customer(self):
         customer = self.customer_model.get(self.customer_guid)
 
+        # mock balanced customer instance
         mock_balanced_customer = (
             flexmock(id='MOCK_BALANCED_CUSTOMER_ID')
             .should_receive('save')
@@ -72,9 +73,92 @@ class TestBalancedProcessorModel(ModelTestCase):
             .mock()
         )
 
-        class BalancedCustomer(object): pass
-        flexmock(BalancedCustomer).new_instances(mock_balanced_customer)
-    
+        class BalancedCustomer(object):
+            pass
+        flexmock(BalancedCustomer).new_instances(mock_balanced_customer) 
+
         processor = self.make_one(customer_cls=BalancedCustomer)
         customer_id = processor.create_customer(customer)
         self.assertEqual(customer_id, 'MOCK_BALANCED_CUSTOMER_ID')
+
+    def test_charge(self):
+        import balanced
+
+        tx_model = self.transaction_model
+        with db_transaction.manager:
+            guid = tx_model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=tx_model.TYPE_CHARGE,
+                amount=10,
+                payment_uri='/v1/credit_card/tester',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+            transaction = tx_model.get(guid)
+            self.customer_model.update(
+                guid=transaction.subscription.customer_guid,
+                external_id='MOCK_BALANCED_CUSTOMER_ID',
+            )
+        transaction = tx_model.get(guid)
+
+        # mock result page object of balanced.Debit.query.filter(...)
+
+        def mock_one():
+            raise balanced.exc.NoResultFound
+
+        mock_page = (
+            flexmock()
+            .should_receive('one')
+            .replace_with(mock_one)
+            .once()
+            .mock()
+        )
+
+        # mock balanced.Debit.query
+        mock_query = (
+            flexmock()
+            .should_receive('filter')
+            .with_args(**{'meta.billy_transaction_guid': transaction.guid})
+            .replace_with(lambda **kw: mock_page)
+            .mock()
+        )
+
+        # mock balanced.Debit class
+        class Debit(object): 
+            pass
+        Debit.query = mock_query
+
+        # mock balanced.Debit instance
+        mock_debit = flexmock(id='MOCK_BALANCED_DEBIT_ID')
+
+        # mock balanced.Customer instance
+        mock_balanced_customer = (
+            flexmock()
+            .should_receive('debit')
+            .with_args(**{
+                'amount': int(transaction.amount * 100),
+                'meta.billy_transaction_guid': transaction.guid,
+                'source_uri': '/v1/credit_card/tester',
+            })
+            .replace_with(lambda **kw: mock_debit)
+            .once()
+            .mock()
+        )
+
+        # mock balanced.Customer class
+        class BalancedCustomer(object): 
+            def find(self, id):
+                pass
+        (
+            flexmock(BalancedCustomer)
+            .should_receive('find')
+            .with_args('MOCK_BALANCED_CUSTOMER_ID')
+            .replace_with(lambda _: mock_balanced_customer)
+            .once()
+        )
+
+        processor = self.make_one(
+            customer_cls=BalancedCustomer, 
+            debit_cls=Debit,
+        )
+        balanced_tx_id = processor.charge(transaction)
+        self.assertEqual(balanced_tx_id, 'MOCK_BALANCED_DEBIT_ID')

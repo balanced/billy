@@ -173,9 +173,8 @@ class Subscription(DeclarativeBase):
     )
     #: the payment URI to charge/payout, such as bank account or credit card
     payment_uri = Column(Unicode(128), index=True)
-    #: the discount of this subscription, 
-    #  e.g. 0.3 means 30% price off disscount
-    discount = Column(Numeric(10, 2))
+    #: if this amount is not null, the amount of plan will be overwritten
+    amount = Column(Numeric(10, 2))
     #: the external ID given by user
     external_id = Column(Unicode(128), index=True)
     #: is this subscription canceled?
@@ -233,7 +232,7 @@ class Transaction(DeclarativeBase):
     # TODO: what about retry?
     status = Column(Integer, index=True, nullable=False)
     #: the amount to do transaction (charge, payout or refund)
-    amount = Column(Numeric(10, 2), index=True, nullable=False)
+    amount = Column(Numeric(10, 2), nullable=False)
     #: the payment URI
     payment_uri = Column(Unicode(128), index=True)
     #: the scheduled datetime of this transaction should be processed

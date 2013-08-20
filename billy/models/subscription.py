@@ -45,13 +45,13 @@ class SubscriptionModel(object):
         payment_uri=None, 
         started_at=None,
         external_id=None,
-        discount=None,
+        amount=None,
     ):
         """Create a subscription and return its id
 
         """
-        if discount is not None and discount < 0:
-            raise ValueError('Discount should be a postive float number')
+        if amount is not None and amount <= 0:
+            raise ValueError('Amount should be a non-zero postive float number')
         if started_at is None:
             started_at = tables.now_func()
         # TODO: should we allow a past started_at value?
@@ -59,7 +59,7 @@ class SubscriptionModel(object):
             guid='SU' + make_guid(),
             customer_guid=customer_guid,
             plan_guid=plan_guid,
-            discount=discount, 
+            amount=amount, 
             payment_uri=payment_uri, 
             external_id=external_id, 
             started_at=started_at, 
@@ -73,13 +73,12 @@ class SubscriptionModel(object):
         """Update a subscription
 
         :param guid: the guid of subscription to update
-        :param discount: discount to update
         :param external_id: external_id to update
         """
         subscription = self.get(guid, raise_error=True)
         now = tables.now_func()
         subscription.updated_at = now
-        for key in ['discount', 'external_id']:
+        for key in ['external_id']:
             if key not in kwargs:
                 continue
             value = kwargs.pop(key)
@@ -189,11 +188,12 @@ class SubscriptionModel(object):
                 else:
                     raise ValueError('Unknown plan type {} to process'
                                      .format(subscription.plan.plan_type))
-                amount = subscription.plan.amount 
-                if subscription.discount is not None:
-                    # TODO: what about float number round up?
-                    amount *= (1 - subscription.discount)
-                    amount = round_down_cent(amount)
+                # when amount of subscription is given, we should use it
+                # instead the one from plan
+                if subscription.amount is None:
+                    amount = subscription.plan.amount 
+                else:
+                    amount = subscription.amount
                 # create the new transaction for this subscription
                 guid = tx_model.create(
                     subscription_guid=subscription.guid, 

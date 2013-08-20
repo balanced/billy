@@ -68,7 +68,7 @@ class TestSubscriptionModel(ModelTestCase):
 
     def test_create(self):
         model = self.make_one(self.session)
-        discount = decimal.Decimal('0.8')
+        amount = decimal.Decimal('99.99')
         external_id = '5566_GOOD_BROTHERS'
         customer_guid = self.customer_tom_guid
         plan_guid = self.monthly_plan_guid
@@ -78,7 +78,7 @@ class TestSubscriptionModel(ModelTestCase):
             guid = model.create(
                 customer_guid=customer_guid,
                 plan_guid=plan_guid,
-                discount=discount,
+                amount=amount,
                 external_id=external_id,
                 payment_uri=payment_uri, 
             )
@@ -90,7 +90,7 @@ class TestSubscriptionModel(ModelTestCase):
         self.assert_(subscription.guid.startswith('SU'))
         self.assertEqual(subscription.customer_guid, customer_guid)
         self.assertEqual(subscription.plan_guid, plan_guid)
-        self.assertEqual(subscription.discount, discount)
+        self.assertEqual(subscription.amount, amount)
         self.assertEqual(subscription.external_id, external_id)
         self.assertEqual(subscription.payment_uri, payment_uri)
         self.assertEqual(subscription.period, 0)
@@ -118,16 +118,21 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(subscription.guid, guid)
         self.assertEqual(subscription.started_at, started_at)
 
-    def test_create_with_negtive_discount(self):
+    def test_create_with_bad_amount(self):
         model = self.make_one(self.session)
 
         with self.assertRaises(ValueError):
-            with db_transaction.manager:
-                model.create(
-                    customer_guid=self.customer_tom_guid,
-                    plan_guid=self.monthly_plan_guid,
-                    discount=-0.1,
-                )
+            model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+                amount=-0.1,
+            )
+        with self.assertRaises(ValueError):
+            model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+                amount=0,
+            )
 
     def test_update(self):
         model = self.make_one(self.session)
@@ -136,23 +141,19 @@ class TestSubscriptionModel(ModelTestCase):
             guid = model.create(
                 customer_guid=self.customer_tom_guid,
                 plan_guid=self.monthly_plan_guid,
-                discount=0.1,
                 external_id='old external id'
             )
 
         subscription = model.get(guid)
-        discount = decimal.Decimal('0.3')
         external_id = 'new external id'
 
         with db_transaction.manager:
             model.update(
                 guid=guid,
-                discount=discount,
                 external_id=external_id,
             )
 
         subscription = model.get(guid)
-        self.assertEqual(subscription.discount, discount)
         self.assertEqual(subscription.external_id, external_id)
 
     def test_update_updated_at(self):
@@ -241,7 +242,7 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(transaction.transaction_type, tx_model.TYPE_REFUND)
         self.assertEqual(transaction.amount, decimal.Decimal('5'))
 
-    def test_subscription_cancel_with_prorated_refund_and_discount(self):
+    def test_subscription_cancel_with_prorated_refund_and_amount(self):
         from billy.models.transaction import TransactionModel
         model = self.make_one(self.session)
         tx_model = TransactionModel(self.session)
@@ -251,7 +252,7 @@ class TestSubscriptionModel(ModelTestCase):
                 guid = model.create(
                     customer_guid=self.customer_tom_guid,
                     plan_guid=self.monthly_plan_guid,
-                    discount=0.25,
+                    amount=100,
                 )
                 model.yield_transactions()
 
@@ -261,10 +262,9 @@ class TestSubscriptionModel(ModelTestCase):
                 refund_guid = model.cancel(guid, prorated_refund=True)
 
         transaction = tx_model.get(refund_guid)
-        # the orignal price is 10, the discount is 0.25,
-        # so the amount of transaction is 7.5, and we refund half,
-        # then the refund amount should be 3.75
-        self.assertEqual(transaction.amount, decimal.Decimal('3.75'))
+        # the orignal price is 10, then overwritten by subscription as 100
+        # and we refund half, then the refund amount should be 50
+        self.assertEqual(transaction.amount, decimal.Decimal('50'))
 
     def test_subscription_cancel_with_prorated_refund_rounding(self):
         from billy.models.transaction import TransactionModel
@@ -412,14 +412,14 @@ class TestSubscriptionModel(ModelTestCase):
             datetime.datetime(2013, 10, 16),
         ])
 
-    def test_yield_transactions_with_discount(self):
+    def test_yield_transactions_with_amount_overwrite(self):
         model = self.make_one(self.session)
 
         with db_transaction.manager:
             guid = model.create(
                 customer_guid=self.customer_tom_guid,
                 plan_guid=self.monthly_plan_guid,
-                discount=0.25,
+                amount=55.66, 
             )
 
         # okay, 08-16, 09-16, 10-16, so we should have 3 new transactions
@@ -430,9 +430,9 @@ class TestSubscriptionModel(ModelTestCase):
         subscription = model.get(guid)
         amounts = [tx.amount for tx in subscription.transactions]
         self.assertEqual(amounts, [
-            decimal.Decimal('7.5'),
-            decimal.Decimal('7.5'),
-            decimal.Decimal('7.5'),
+            decimal.Decimal('55.66'),
+            decimal.Decimal('55.66'),
+            decimal.Decimal('55.66'),
         ])
 
     def test_yield_transactions_with_multiple_interval(self):

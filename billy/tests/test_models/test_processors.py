@@ -81,7 +81,13 @@ class TestBalancedProcessorModel(ModelTestCase):
         customer_id = processor.create_customer(customer)
         self.assertEqual(customer_id, 'MOCK_BALANCED_CUSTOMER_ID')
 
-    def test_charge(self):
+    def _test_operation(
+        self, 
+        cls_name, 
+        processor_method_name, 
+        api_method_name,
+        extra_api_kwargs,
+    ):
         import balanced
 
         tx_model = self.transaction_model
@@ -100,7 +106,7 @@ class TestBalancedProcessorModel(ModelTestCase):
             )
         transaction = tx_model.get(guid)
 
-        # mock result page object of balanced.Debit.query.filter(...)
+        # mock result page object of balanced.RESOURCE.query.filter(...)
 
         def mock_one():
             raise balanced.exc.NoResultFound
@@ -113,7 +119,7 @@ class TestBalancedProcessorModel(ModelTestCase):
             .mock()
         )
 
-        # mock balanced.Debit.query
+        # mock balanced.RESOURCE.query
         mock_query = (
             flexmock()
             .should_receive('filter')
@@ -122,24 +128,25 @@ class TestBalancedProcessorModel(ModelTestCase):
             .mock()
         )
 
-        # mock balanced.Debit class
-        class Debit(object): 
+        # mock balanced.RESOURCE class
+        class Resource(object): 
             pass
-        Debit.query = mock_query
+        Resource.query = mock_query
 
-        # mock balanced.Debit instance
-        mock_debit = flexmock(id='MOCK_BALANCED_DEBIT_ID')
+        # mock balanced.RESOURCE instance
+        mock_resource = flexmock(id='MOCK_BALANCED_RESOURCE_ID')
 
         # mock balanced.Customer instance
+        kwargs = {
+            'amount': int(transaction.amount * 100),
+            'meta.billy_transaction_guid': transaction.guid,
+        }
+        kwargs.update(extra_api_kwargs)
         mock_balanced_customer = (
             flexmock()
-            .should_receive('debit')
-            .with_args(**{
-                'amount': int(transaction.amount * 100),
-                'meta.billy_transaction_guid': transaction.guid,
-                'source_uri': '/v1/credit_card/tester',
-            })
-            .replace_with(lambda **kw: mock_debit)
+            .should_receive(api_method_name)
+            .with_args(**kwargs)
+            .replace_with(lambda **kw: mock_resource)
             .once()
             .mock()
         )
@@ -158,14 +165,17 @@ class TestBalancedProcessorModel(ModelTestCase):
 
         processor = self.make_one(
             customer_cls=BalancedCustomer, 
-            debit_cls=Debit,
+            **{cls_name: Resource}
         )
-        balanced_tx_id = processor.charge(transaction)
-        self.assertEqual(balanced_tx_id, 'MOCK_BALANCED_DEBIT_ID')
+        method = getattr(processor, processor_method_name)
+        balanced_tx_id = method(transaction)
+        self.assertEqual(balanced_tx_id, 'MOCK_BALANCED_RESOURCE_ID')
 
-    def test_charge_already_created(self):
-        import balanced
-
+    def _test_operation_with_created_record(
+        self, 
+        cls_name, 
+        processor_method_name,
+    ):
         tx_model = self.transaction_model
         with db_transaction.manager:
             guid = tx_model.create(
@@ -178,17 +188,19 @@ class TestBalancedProcessorModel(ModelTestCase):
             transaction = tx_model.get(guid)
         transaction = tx_model.get(guid)
 
-        # mock result page object of balanced.Debit.query.filter(...)
+        # mock balanced.RESOURCE instance
+        mock_resource = flexmock(id='MOCK_BALANCED_RESOURCE_ID')
 
+        # mock result page object of balanced.RESOURCE.query.filter(...)
         mock_page = (
             flexmock()
             .should_receive('one')
-            .replace_with(lambda: mock_debit)
+            .replace_with(lambda: mock_resource)
             .once()
             .mock()
         )
 
-        # mock balanced.Debit.query
+        # mock balanced.RESOURCE.query
         mock_query = (
             flexmock()
             .should_receive('filter')
@@ -197,14 +209,40 @@ class TestBalancedProcessorModel(ModelTestCase):
             .mock()
         )
 
-        # mock balanced.Debit class
-        class Debit(object): 
+        # mock balanced.RESOURCE class
+        class Resource(object): 
             pass
-        Debit.query = mock_query
+        Resource.query = mock_query
 
-        # mock balanced.Debit instance
-        mock_debit = flexmock(id='MOCK_BALANCED_DEBIT_ID')
+        processor = self.make_one(**{cls_name: Resource})
+        method = getattr(processor, processor_method_name)
+        balanced_res_id = method(transaction)
+        self.assertEqual(balanced_res_id, 'MOCK_BALANCED_RESOURCE_ID')
 
-        processor = self.make_one(debit_cls=Debit)
-        balanced_tx_id = processor.charge(transaction)
-        self.assertEqual(balanced_tx_id, 'MOCK_BALANCED_DEBIT_ID')
+    def test_charge(self):
+        self._test_operation(
+            cls_name='debit_cls', 
+            processor_method_name='charge',
+            api_method_name='debit',
+            extra_api_kwargs=dict(source_uri='/v1/credit_card/tester'),
+        )
+
+    def test_charge_with_created_record(self):
+        self._test_operation_with_created_record(
+            cls_name='debit_cls',
+            processor_method_name='charge',
+        )
+
+    def test_payout(self):
+        self._test_operation(
+            cls_name='credit_cls', 
+            processor_method_name='payout',
+            api_method_name='credit',
+            extra_api_kwargs=dict(destination_uri='/v1/credit_card/tester'),
+        )
+
+    def test_payout_with_created_record(self):
+        self._test_operation_with_created_record(
+            cls_name='credit_cls',
+            processor_method_name='payout',
+        )

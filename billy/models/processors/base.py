@@ -1,3 +1,6 @@
+from __future__ import unicode_literals
+
+
 class PaymentProcessor(object):
 
     def create_customer(self, customer):

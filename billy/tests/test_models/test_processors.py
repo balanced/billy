@@ -162,3 +162,49 @@ class TestBalancedProcessorModel(ModelTestCase):
         )
         balanced_tx_id = processor.charge(transaction)
         self.assertEqual(balanced_tx_id, 'MOCK_BALANCED_DEBIT_ID')
+
+    def test_charge_already_created(self):
+        import balanced
+
+        tx_model = self.transaction_model
+        with db_transaction.manager:
+            guid = tx_model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=tx_model.TYPE_CHARGE,
+                amount=10,
+                payment_uri='/v1/credit_card/tester',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+            transaction = tx_model.get(guid)
+        transaction = tx_model.get(guid)
+
+        # mock result page object of balanced.Debit.query.filter(...)
+
+        mock_page = (
+            flexmock()
+            .should_receive('one')
+            .replace_with(lambda: mock_debit)
+            .once()
+            .mock()
+        )
+
+        # mock balanced.Debit.query
+        mock_query = (
+            flexmock()
+            .should_receive('filter')
+            .with_args(**{'meta.billy_transaction_guid': transaction.guid})
+            .replace_with(lambda **kw: mock_page)
+            .mock()
+        )
+
+        # mock balanced.Debit class
+        class Debit(object): 
+            pass
+        Debit.query = mock_query
+
+        # mock balanced.Debit instance
+        mock_debit = flexmock(id='MOCK_BALANCED_DEBIT_ID')
+
+        processor = self.make_one(debit_cls=Debit)
+        balanced_tx_id = processor.charge(transaction)
+        self.assertEqual(balanced_tx_id, 'MOCK_BALANCED_DEBIT_ID')

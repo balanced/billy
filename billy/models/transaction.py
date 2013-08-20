@@ -133,6 +133,7 @@ class TransactionModel(object):
             method = processor.charge
         else:
             method = processor.payout
+        # TODO: support refund here
 
         # TODO: handle error and retry
         transaction_id = method(transaction)

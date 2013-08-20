@@ -20,7 +20,7 @@ class CustomerModel(object):
         query = (
             self.session.query(tables.Customer)
             .filter_by(guid=guid)
-            .filter_by(deleted=not ignore_deleted)
+            .filter_by(deleted=(not ignore_deleted))
             .first()
         )
         if raise_error and query is None:
@@ -30,8 +30,6 @@ class CustomerModel(object):
     def create(
         self, 
         company_guid, 
-        payment_uri, 
-        name=None, 
         external_id=None
     ):
         """Create a customer and return its id
@@ -40,9 +38,7 @@ class CustomerModel(object):
         customer = tables.Customer(
             guid='CU' + make_guid(),
             company_guid=company_guid,
-            payment_uri=payment_uri,
             external_id=external_id, 
-            name=name, 
         )
         self.session.add(customer)
         self.session.flush()
@@ -55,7 +51,7 @@ class CustomerModel(object):
         customer = self.get(guid, raise_error=True)
         now = tables.now_func()
         customer.updated_at = now
-        for key in ['name', 'payment_uri', 'external_id']:
+        for key in ['external_id']:
             if key not in kwargs:
                 continue
             value = kwargs.pop(key)

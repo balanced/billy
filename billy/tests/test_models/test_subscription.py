@@ -42,7 +42,6 @@ class TestSubscriptionModel(ModelTestCase):
             )
             self.customer_tom_guid = self.customer_model.create(
                 company_guid=self.company_guid,
-                payment_uri='/v1/credit_card/tom',
             )
 
     def make_one(self, *args, **kwargs):
@@ -73,6 +72,7 @@ class TestSubscriptionModel(ModelTestCase):
         external_id = '5566_GOOD_BROTHERS'
         customer_guid = self.customer_tom_guid
         plan_guid = self.monthly_plan_guid
+        payment_uri = '/v1/credit_cards/id'
 
         with db_transaction.manager:
             guid = model.create(
@@ -80,6 +80,7 @@ class TestSubscriptionModel(ModelTestCase):
                 plan_guid=plan_guid,
                 discount=discount,
                 external_id=external_id,
+                payment_uri=payment_uri, 
             )
 
         now = datetime.datetime.utcnow()
@@ -91,6 +92,7 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(subscription.plan_guid, plan_guid)
         self.assertEqual(subscription.discount, discount)
         self.assertEqual(subscription.external_id, external_id)
+        self.assertEqual(subscription.payment_uri, payment_uri)
         self.assertEqual(subscription.period, 0)
         self.assertEqual(subscription.canceled, False)
         self.assertEqual(subscription.canceled_at, None)

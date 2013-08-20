@@ -42,6 +42,7 @@ class SubscriptionModel(object):
         self, 
         customer_guid, 
         plan_guid, 
+        payment_uri=None, 
         started_at=None,
         external_id=None,
         discount=None,
@@ -59,6 +60,7 @@ class SubscriptionModel(object):
             customer_guid=customer_guid,
             plan_guid=plan_guid,
             discount=discount, 
+            payment_uri=payment_uri, 
             external_id=external_id, 
             started_at=started_at, 
             next_transaction_at=started_at, 
@@ -195,7 +197,7 @@ class SubscriptionModel(object):
                 # create the new transaction for this subscription
                 guid = tx_model.create(
                     subscription_guid=subscription.guid, 
-                    payment_uri=subscription.customer.payment_uri, 
+                    payment_uri=subscription.payment_uri, 
                     amount=amount, 
                     transaction_type=transaction_type, 
                     scheduled_at=subscription.next_transaction_at, 

@@ -81,10 +81,6 @@ class TransactionModel(object):
             if refund_transaction.transaction_type == self.TYPE_REFUND:
                 raise ValueError('Cannot set refund_to_guid to a refund '
                                  'transaction')
-        else:
-            if payment_uri is None:
-                raise ValueError('payment_uri can only be None for refund '
-                                 'transactions')
 
         transaction = tables.Transaction(
             guid='TX' + make_guid(),

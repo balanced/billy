@@ -32,11 +32,11 @@ class TestTransactionModel(ModelTestCase):
             )
             self.customer_guid = self.customer_model.create(
                 company_guid=self.company_guid,
-                payment_uri='/v1/credit_card/tester',
             )
             self.subscription_guid = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
+                payment_uri='/v1/credit_card/tester',
             )
 
     def make_one(self, *args, **kwargs):
@@ -94,19 +94,6 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.scheduled_at, scheduled_at)
         self.assertEqual(transaction.created_at, now)
         self.assertEqual(transaction.updated_at, now)
-
-    def test_create_with_none_payment_uri(self):
-        model = self.make_one(self.session)
-
-        now = datetime.datetime.utcnow()
-
-        with self.assertRaises(ValueError):
-            model.create(
-                subscription_guid=self.subscription_guid,
-                transaction_type=model.TYPE_CHARGE,
-                amount=100,
-                scheduled_at=now,
-            )
 
     def test_create_refund(self):
         model = self.make_one(self.session)

@@ -70,7 +70,7 @@ class Company(DeclarativeBase):
 
 
 class Customer(DeclarativeBase):
-    """A Customer is basically a user to billy system
+    """A Customer is a target for charging or payout to
 
     """
     __tablename__ = 'customer'
@@ -86,12 +86,8 @@ class Customer(DeclarativeBase):
         index=True,
         nullable=False,
     )
-    #: the external ID given by user
+    #: the ID of customer record in payment processing system
     external_id = Column(Unicode(128), index=True)
-    #: the payment URI associated with this customer
-    payment_uri = Column(Unicode(128), index=True, nullable=False)
-    #: a short optional name of this company
-    name = Column(Unicode(128))
     #: is this company deleted?
     deleted = Column(Boolean, default=False, nullable=False)
     #: the created datetime of this company
@@ -175,6 +171,8 @@ class Subscription(DeclarativeBase):
         index=True,
         nullable=False,
     )
+    #: the payment URI to charge/payout, such as bank account or credit card
+    payment_uri = Column(Unicode(128), index=True)
     #: the discount of this subscription, 
     #  e.g. 0.3 means 30% price off disscount
     discount = Column(Numeric(10, 2))

@@ -32,10 +32,7 @@ class TestCustomerModel(ModelTestCase):
             model.get('PL_NON_EXIST', raise_error=True)
 
         with transaction.manager:
-            guid = model.create(
-                company_guid=self.company_guid, 
-                payment_uri='/v1/credit_card/id',
-            )
+            guid = model.create(company_guid=self.company_guid)
             model.delete(guid)
 
         with self.assertRaises(KeyError):
@@ -46,15 +43,11 @@ class TestCustomerModel(ModelTestCase):
 
     def test_create(self):
         model = self.make_one(self.session)
-        name = 'Tom'
-        payment_uri = '/v1/credit_card/id'
         external_id = '5566_GOOD_BROTHERS'
 
         with transaction.manager:
             guid = model.create(
                 company_guid=self.company_guid,
-                payment_uri=payment_uri,
-                name=name,
                 external_id=external_id,
             )
 
@@ -64,8 +57,6 @@ class TestCustomerModel(ModelTestCase):
         self.assertEqual(customer.guid, guid)
         self.assert_(customer.guid.startswith('CU'))
         self.assertEqual(customer.company_guid, self.company_guid)
-        self.assertEqual(customer.name, name)
-        self.assertEqual(customer.payment_uri, payment_uri)
         self.assertEqual(customer.external_id, external_id)
         self.assertEqual(customer.deleted, False)
         self.assertEqual(customer.created_at, now)
@@ -77,37 +68,26 @@ class TestCustomerModel(ModelTestCase):
         with transaction.manager:
             guid = model.create(
                 company_guid=self.company_guid,
-                payment_uri='/v1/credit_card/id',
                 external_id='old id',
-                name='old name',
             )
 
         customer = model.get(guid)
-        name = 'new name'
-        payment_uri = 'new payment uri'
         external_id = 'new external id'
 
         with transaction.manager:
             model.update(
                 guid=guid,
-                payment_uri=payment_uri,
-                name=name,
                 external_id=external_id,
             )
 
         customer = model.get(guid)
-        self.assertEqual(customer.name, name)
-        self.assertEqual(customer.payment_uri, payment_uri)
         self.assertEqual(customer.external_id, external_id)
 
     def test_update_updated_at(self):
         model = self.make_one(self.session)
 
         with transaction.manager:
-            guid = model.create(
-                company_guid=self.company_guid,
-                payment_uri='/v1/credit_card/id',
-            )
+            guid = model.create(company_guid=self.company_guid)
 
         customer = model.get(guid)
         created_at = customer.created_at
@@ -137,10 +117,7 @@ class TestCustomerModel(ModelTestCase):
         model = self.make_one(self.session)
 
         with transaction.manager:
-            guid = model.create(
-                company_guid=self.company_guid,
-                payment_uri='/v1/credit_card/id',
-            )
+            guid = model.create(company_guid=self.company_guid)
 
         # make sure passing wrong argument will raise error
         with self.assertRaises(TypeError):
@@ -150,10 +127,7 @@ class TestCustomerModel(ModelTestCase):
         model = self.make_one(self.session)
 
         with transaction.manager:
-            guid = model.create(
-                company_guid=self.company_guid,
-                payment_uri='/v1/credit_card/id',
-            )
+            guid = model.create(company_guid=self.company_guid)
             model.delete(guid)
 
         customer = model.get(guid)

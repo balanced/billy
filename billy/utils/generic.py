@@ -4,7 +4,7 @@ import os
 import uuid
 import decimal
 
-B58_CHARS = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+B58_CHARS = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 B58_BASE = len(B58_CHARS)
 
 
@@ -27,7 +27,7 @@ def b58encode(s):
         result.append(c)
         value = div
     result.append(B58_CHARS[value])
-    return b''.join(reversed(result))
+    return ''.join(reversed(result))
 
 
 def make_guid():

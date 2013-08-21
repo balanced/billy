@@ -10,9 +10,9 @@ class TestGenericUtils(unittest.TestCase):
         def assert_encode(data, expected):
             self.assertEqual(b58encode(data), expected)
 
-        assert_encode(b'', b'1')
-        assert_encode(b'\00', b'1')
-        assert_encode(b'hello world', b'StV1DL6CwTryKyV')
+        assert_encode('', '1')
+        assert_encode('\00', '1')
+        assert_encode('hello world', 'StV1DL6CwTryKyV')
 
     def test_make_guid(self):
         from billy.utils.generic import make_guid

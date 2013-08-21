@@ -28,10 +28,20 @@ class BalancedProcessor(PaymentProcessor):
         return record.id
 
     def prepare_customer(self, customer, payment_uri=None):
+        # when payment_uri is None, it means we are going to use the 
+        # default funding instrument, just return
         if payment_uri is None:
             return
-        record = customer_cls.find(customer.external_id)
-        # TODO: add payment uri to customer
+        # get balanced customer record
+        external_id = customer.external_id
+        balanced_customer = self.customer_cls.find(external_id)
+        # TODO: use a better way to determine type of URI?
+        if '/bank_accounts/' in payment_uri:
+            balanced_customer.add_bank_account(payment_uri)
+        elif '/cards/' in payment_uri:
+            balanced_customer.add_card(payment_uri)
+        else:
+            raise ValueError('Invalid payment_uri {}'.format(payment_uri))
 
     def _do_transaction(
         self, 

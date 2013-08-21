@@ -81,6 +81,128 @@ class TestBalancedProcessorModel(ModelTestCase):
         customer_id = processor.create_customer(customer)
         self.assertEqual(customer_id, 'MOCK_BALANCED_CUSTOMER_ID')
 
+    def test_prepare_customer_with_card(self):
+        with db_transaction.manager:
+            self.customer_model.update(
+                guid=self.customer_guid,
+                external_id='MOCK_BALANCED_CUSTOMER_ID',
+            )
+        customer = self.customer_model.get(self.customer_guid)
+
+        # mock balanced.Customer instance
+        mock_balanced_customer = (
+            flexmock()
+            .should_receive('add_card')
+            .with_args('/v1/cards/my_card')
+            .once()
+            .mock()
+        )
+
+        # mock balanced.Customer class
+        class BalancedCustomer(object): 
+            def find(self, id):
+                pass
+        (
+            flexmock(BalancedCustomer)
+            .should_receive('find')
+            .with_args('MOCK_BALANCED_CUSTOMER_ID')
+            .replace_with(lambda _: mock_balanced_customer)
+            .once()
+        )
+
+        processor = self.make_one(customer_cls=BalancedCustomer)
+        processor.prepare_customer(customer, '/v1/cards/my_card')
+
+    def test_prepare_customer_with_bank_account(self):
+        with db_transaction.manager:
+            self.customer_model.update(
+                guid=self.customer_guid,
+                external_id='MOCK_BALANCED_CUSTOMER_ID',
+            )
+        customer = self.customer_model.get(self.customer_guid)
+
+        # mock balanced.Customer instance
+        mock_balanced_customer = (
+            flexmock()
+            .should_receive('add_bank_account')
+            .with_args('/v1/bank_accounts/my_account')
+            .once()
+            .mock()
+        )
+
+        # mock balanced.Customer class
+        class BalancedCustomer(object): 
+            def find(self, id):
+                pass
+        (
+            flexmock(BalancedCustomer)
+            .should_receive('find')
+            .with_args('MOCK_BALANCED_CUSTOMER_ID')
+            .replace_with(lambda _: mock_balanced_customer)
+            .once()
+        )
+
+        processor = self.make_one(customer_cls=BalancedCustomer)
+        processor.prepare_customer(customer, '/v1/bank_accounts/my_account')
+
+    def test_prepare_customer_with_none_payment_uri(self):
+        with db_transaction.manager:
+            self.customer_model.update(
+                guid=self.customer_guid,
+                external_id='MOCK_BALANCED_CUSTOMER_ID',
+            )
+        customer = self.customer_model.get(self.customer_guid)
+
+        # mock balanced.Customer instance
+        mock_balanced_customer = (
+            flexmock()
+            .should_receive('add_bank_account')
+            .never()
+            .mock()
+        )
+
+        # mock balanced.Customer class
+        class BalancedCustomer(object): 
+            def find(self, id):
+                pass
+        (
+            flexmock(BalancedCustomer)
+            .should_receive('find')
+            .with_args('MOCK_BALANCED_CUSTOMER_ID')
+            .replace_with(lambda _: mock_balanced_customer)
+            .never()
+        )
+
+        processor = self.make_one(customer_cls=BalancedCustomer)
+        processor.prepare_customer(customer, None)
+
+    def test_prepare_customer_with_bad_payment_uri(self):
+        with db_transaction.manager:
+            self.customer_model.update(
+                guid=self.customer_guid,
+                external_id='MOCK_BALANCED_CUSTOMER_ID',
+            )
+        customer = self.customer_model.get(self.customer_guid)
+
+        # mock balanced.Customer instance
+        mock_balanced_customer = flexmock()
+
+        # mock balanced.Customer class
+        class BalancedCustomer(object): 
+            def find(self, id):
+                pass
+        (
+            flexmock(BalancedCustomer)
+            .should_receive('find')
+            .with_args('MOCK_BALANCED_CUSTOMER_ID')
+            .replace_with(lambda _: mock_balanced_customer)
+            .once()
+        )
+
+        processor = self.make_one(customer_cls=BalancedCustomer)
+        with self.assertRaises(ValueError):
+            processor.prepare_customer(customer, '/v1/bitcoin/12345')
+
     def _test_operation(
         self, 
         cls_name, 

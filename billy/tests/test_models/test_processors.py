@@ -137,10 +137,10 @@ class TestBalancedProcessorModel(ModelTestCase):
         mock_resource = flexmock(id='MOCK_BALANCED_RESOURCE_ID')
 
         # mock balanced.Customer instance
-        kwargs = {
-            'amount': int(transaction.amount * 100),
-            'meta.billy_transaction_guid': transaction.guid,
-        }
+        kwargs = dict(
+            amount=int(transaction.amount * 100),
+            meta=dict(billy_transaction_guid=transaction.guid),
+        )
         kwargs.update(extra_api_kwargs)
         mock_balanced_customer = (
             flexmock()

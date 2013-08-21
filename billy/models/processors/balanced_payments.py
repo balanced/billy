@@ -61,10 +61,10 @@ class BalancedProcessor(PaymentProcessor):
         balanced_customer = self.customer_cls.find(external_id)
 
         # prepare arguments
-        kwargs = {
-            'amount': self._to_cent(transaction.amount),
-            'meta.billy_transaction_guid': transaction.guid,
-        }
+        kwargs = dict(
+            amount=self._to_cent(transaction.amount),
+            meta=dict(billy_transaction_guid=transaction.guid),
+        )
         kwargs.update(extra_kwargs)
         # TODO: handle error here
         method = getattr(balanced_customer, method_name)

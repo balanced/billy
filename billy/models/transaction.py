@@ -173,5 +173,8 @@ class TransactionModel(object):
             ))
         )
 
+        processed_transaction_guids = []
         for transaction in query:
-            self.process_one(processor, transaction.guid)
+            self.process_one(processor, transaction)
+            processed_transaction_guids.append(transaction.guid)
+        return processed_transaction_guids

@@ -565,3 +565,50 @@ class TestTransactionModel(ModelTestCase):
         transaction = model.get(guid)
         with self.assertRaises(ValueError):
             model.process_one(processor, transaction)
+
+    def test_process_transactions(self):
+        model = self.make_one(self.session)
+        now = datetime.datetime.utcnow()
+
+        payment_uri = '/v1/cards/tester'
+
+        with db_transaction.manager:
+            guid1 = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=100,
+                payment_uri=payment_uri,
+                scheduled_at=now,
+            )
+
+            guid2 = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=100,
+                payment_uri=payment_uri,
+                scheduled_at=now,
+            )
+            model.update(guid2, status=model.STATUS_RETRYING)
+
+            guid3 = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=100,
+                payment_uri=payment_uri,
+                scheduled_at=now,
+            )
+            
+            guid4 = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=100,
+                payment_uri=payment_uri,
+                scheduled_at=now,
+            )
+            model.update(guid4, status=model.STATUS_DONE)
+
+        processor = flexmock()
+        with db_transaction.manager:
+            tx_guids = model.process_transactions(processor)
+
+        self.assertEqual(set(tx_guids), set([guid1, guid2, guid3]))

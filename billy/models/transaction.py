@@ -117,27 +117,42 @@ class TransactionModel(object):
         """Process one transaction
 
         """
+        if transaction.status == self.STATUS_DONE:
+            raise ValueError('Cannot process a finished transaction')
+        now = tables.now_func()
         customer = transaction.subscription.customer
-        # create customer record in balanced
-        if customer.external_id is None:
-            customer_id = processor.create_customer(customer)
-            customer.external_id = customer_id
-            self.session.add(customer)
+        try:
+            # create customer record in balanced
+            if customer.external_id is None:
+                customer_id = processor.create_customer(customer)
+                customer.external_id = customer_id
+                self.session.add(customer)
+                self.session.flush()
+
+            # prepare customer (add bank account or credit card)
+            processor.prepare_customer(customer, transaction.payment_uri)
+
+            if transaction.transaction_type == self.TYPE_CHARGE:
+                method = processor.charge
+            else:
+                method = processor.payout
+            # TODO: support refund here
+
+            transaction_id = method(transaction)
+            # TODO: generate an invoice here?
+        except (SystemExit, KeyboardInterrupt):
+            raise
+        except Exception, e:
+            transaction.status = self.STATUS_RETRYING
+            # TODO: provide more expressive error message?
+            transaction.error_message = unicode(e)
+            transaction.failure_count += 1
+            # TODO: maybe we should limit failure count here?
+            #       such as too many faiure then transit to FAILED status?
+            transaction.updated_at = now
+            self.session.add(transaction)
             self.session.flush()
-
-        # TODO: handle error
-        # prepare customer (add bank account or credit card)
-        processor.prepare_customer(customer, transaction.payment_uri)
-
-        if transaction.transaction_type == self.TYPE_CHARGE:
-            method = processor.charge
-        else:
-            method = processor.payout
-        # TODO: support refund here
-
-        # TODO: handle error and retry
-        transaction_id = method(transaction)
-        # TODO: generate an invoice here?
+            return
 
         transaction.external_id = transaction_id
         transaction.status = self.STATUS_DONE
@@ -152,8 +167,10 @@ class TransactionModel(object):
         Transaction = tables.Transaction
         query = (
             self.session.query(Transaction)
-            .filter(Transaction.status == self.STATUS_INIT)
-            .filter(Transaction.type != self.TYPE_REFUND)
+            .filter(Transaction.status.in_([
+                self.STATUS_INIT, 
+                self.STATUS_RETRYING]
+            ))
         )
 
         for transaction in query:

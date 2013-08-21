@@ -231,12 +231,15 @@ class Transaction(DeclarativeBase):
     external_id = Column(Unicode(128), index=True)
     #: current status of this transaction, could be
     #  0=init, 1=retrying, 2=done, 3=failed
-    # TODO: what about retry?
     status = Column(Integer, index=True, nullable=False)
     #: the amount to do transaction (charge, payout or refund)
     amount = Column(Numeric(10, 2), nullable=False)
     #: the payment URI
     payment_uri = Column(Unicode(128), index=True)
+    #: count of failure times
+    failure_count = Column(Integer, default=0)
+    #: error message when failed
+    error_message = Column(UnicodeText)
     #: the scheduled datetime of this transaction should be processed
     scheduled_at = Column(DateTime(timezone=True), default=now_func)
     #: the created datetime of this subscription 

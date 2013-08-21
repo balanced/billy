@@ -37,7 +37,7 @@ class TestTransactionModel(ModelTestCase):
             self.subscription_guid = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
-                payment_uri='/v1/credit_card/tester',
+                payment_uri='/v1/cards/tester',
             )
 
     def make_one(self, *args, **kwargs):
@@ -58,7 +58,7 @@ class TestTransactionModel(ModelTestCase):
                 subscription_guid=self.subscription_guid,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/credit_card/tester',
+                payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
@@ -71,7 +71,7 @@ class TestTransactionModel(ModelTestCase):
         subscription_guid = self.subscription_guid
         transaction_type = model.TYPE_CHARGE
         amount = 100
-        payment_uri = '/v1/credit_card/tester'
+        payment_uri = '/v1/cards/tester'
         now = datetime.datetime.utcnow()
         scheduled_at = now + datetime.timedelta(days=1)
 
@@ -92,6 +92,8 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.amount, amount)
         self.assertEqual(transaction.payment_uri, payment_uri)
         self.assertEqual(transaction.status, model.STATUS_INIT)
+        self.assertEqual(transaction.failure_count, 0)
+        self.assertEqual(transaction.error_message, None)
         self.assertEqual(transaction.scheduled_at, scheduled_at)
         self.assertEqual(transaction.created_at, now)
         self.assertEqual(transaction.updated_at, now)
@@ -106,7 +108,7 @@ class TestTransactionModel(ModelTestCase):
                 subscription_guid=self.subscription_guid,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
-                payment_uri='/v1/credit_card/tester',
+                payment_uri='/v1/cards/tester',
                 scheduled_at=now,
             )
 
@@ -149,7 +151,7 @@ class TestTransactionModel(ModelTestCase):
                 subscription_guid=self.subscription_guid,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
-                payment_uri='/v1/credit_card/tester',
+                payment_uri='/v1/cards/tester',
                 scheduled_at=now,
             )
             model.create(
@@ -169,7 +171,7 @@ class TestTransactionModel(ModelTestCase):
                 subscription_guid=self.subscription_guid,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
-                payment_uri='/v1/credit_card/tester',
+                payment_uri='/v1/cards/tester',
                 scheduled_at=now,
             )
             model.create(
@@ -178,7 +180,7 @@ class TestTransactionModel(ModelTestCase):
                 refund_to_guid=tx_guid, 
                 amount=50,
                 scheduled_at=now,
-                payment_uri='/v1/credit_card/tester',
+                payment_uri='/v1/cards/tester',
             )
 
     def test_create_refund_with_wrong_target(self):
@@ -190,7 +192,7 @@ class TestTransactionModel(ModelTestCase):
                 subscription_guid=self.subscription_guid,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
-                payment_uri='/v1/credit_card/tester',
+                payment_uri='/v1/cards/tester',
                 scheduled_at=now,
             )
             refund_guid = model.create(
@@ -218,7 +220,7 @@ class TestTransactionModel(ModelTestCase):
                 subscription_guid=self.subscription_guid,
                 transaction_type=999,
                 amount=123,
-                payment_uri='/v1/credit_card/tester',
+                payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
@@ -230,7 +232,7 @@ class TestTransactionModel(ModelTestCase):
                 subscription_guid=self.subscription_guid,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/credit_card/tester',
+                payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
@@ -254,7 +256,7 @@ class TestTransactionModel(ModelTestCase):
                 subscription_guid=self.subscription_guid,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/credit_card/tester',
+                payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
@@ -290,7 +292,7 @@ class TestTransactionModel(ModelTestCase):
                 subscription_guid=self.subscription_guid,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/credit_card/tester',
+                payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
@@ -310,7 +312,7 @@ class TestTransactionModel(ModelTestCase):
                 subscription_guid=self.subscription_guid,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/credit_card/tester',
+                payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
@@ -333,11 +335,10 @@ class TestTransactionModel(ModelTestCase):
             processor.payout(None)
 
     def test_process_one_charge(self):
-        from billy.models.processors.base import PaymentProcessor
         model = self.make_one(self.session)
         now = datetime.datetime.utcnow()
 
-        payment_uri = '/v1/credit_card/tester'
+        payment_uri = '/v1/cards/tester'
 
         with db_transaction.manager:
             guid = model.create(
@@ -351,24 +352,23 @@ class TestTransactionModel(ModelTestCase):
         transaction = model.get(guid)
         customer = transaction.subscription.customer
 
-        processor = PaymentProcessor()
-        mocked_processor = flexmock(processor)
+        mock_processor = flexmock()
         (
-            mocked_processor
+            mock_processor 
             .should_receive('create_customer')
             .with_args(customer)
             .replace_with(lambda c: 'AC_MOCK')
             .once()
         )
         (
-            mocked_processor
+            mock_processor 
             .should_receive('prepare_customer')
             .with_args(customer, payment_uri)
             .replace_with(lambda c, payment_uri: None)
             .once()
         )
         (
-            mocked_processor
+            mock_processor 
             .should_receive('charge')
             .with_args(transaction)
             .replace_with(lambda t: 'TX_MOCK')
@@ -377,7 +377,7 @@ class TestTransactionModel(ModelTestCase):
 
         with freeze_time('2013-08-20'):
             with db_transaction.manager:
-                model.process_one(processor, transaction)
+                model.process_one(mock_processor, transaction)
                 updated_at = datetime.datetime.utcnow()
 
         transaction = model.get(guid)
@@ -390,11 +390,10 @@ class TestTransactionModel(ModelTestCase):
                          'AC_MOCK')
 
     def test_process_one_payout(self):
-        from billy.models.processors.base import PaymentProcessor
         model = self.make_one(self.session)
         now = datetime.datetime.utcnow()
 
-        payment_uri = '/v1/credit_card/tester'
+        payment_uri = '/v1/cards/tester'
 
         with db_transaction.manager:
             guid = model.create(
@@ -408,24 +407,23 @@ class TestTransactionModel(ModelTestCase):
         transaction = model.get(guid)
         customer = transaction.subscription.customer
 
-        processor = PaymentProcessor()
-        mocked_processor = flexmock(processor)
+        mock_processor = flexmock()
         (
-            mocked_processor
+            mock_processor 
             .should_receive('create_customer')
             .with_args(customer)
             .replace_with(lambda c: 'AC_MOCK')
             .once()
         )
         (
-            mocked_processor
+            mock_processor 
             .should_receive('prepare_customer')
             .with_args(customer, payment_uri)
             .replace_with(lambda c, payment_uri: None)
             .once()
         )
         (
-            mocked_processor
+            mock_processor 
             .should_receive('payout')
             .with_args(transaction)
             .replace_with(lambda t: 'TX_MOCK')
@@ -434,7 +432,7 @@ class TestTransactionModel(ModelTestCase):
 
         with freeze_time('2013-08-20'):
             with db_transaction.manager:
-                model.process_one(processor, transaction)
+                model.process_one(mock_processor, transaction)
                 updated_at = datetime.datetime.utcnow()
 
         transaction = model.get(guid)
@@ -445,3 +443,125 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.created_at, now)
         self.assertEqual(transaction.subscription.customer.external_id, 
                          'AC_MOCK')
+
+    def test_process_one_with_failure(self):
+        model = self.make_one(self.session)
+        now = datetime.datetime.utcnow()
+
+        payment_uri = '/v1/cards/tester'
+
+        with db_transaction.manager:
+            guid = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=100,
+                payment_uri=payment_uri,
+                scheduled_at=now,
+            )
+
+        transaction = model.get(guid)
+        customer = transaction.subscription.customer
+
+        def mock_charge(transaction):
+            raise RuntimeError('Failed to charge')
+
+        mock_processor = flexmock()
+        (
+            mock_processor 
+            .should_receive('create_customer')
+            .with_args(customer)
+            .replace_with(lambda c: 'AC_MOCK')
+            .once()
+        )
+        (
+            mock_processor 
+            .should_receive('prepare_customer')
+            .with_args(customer, payment_uri)
+            .replace_with(lambda c, payment_uri: None)
+            .once()
+        )
+        (
+            mock_processor 
+            .should_receive('charge')
+            .with_args(transaction)
+            .replace_with(mock_charge)
+            .once()
+        )
+
+        with db_transaction.manager:
+            model.process_one(mock_processor, transaction)
+            updated_at = datetime.datetime.utcnow()
+
+        transaction = model.get(guid)
+        self.assertEqual(transaction.status, model.STATUS_RETRYING)
+        self.assertEqual(transaction.updated_at, updated_at)
+        self.assertEqual(transaction.failure_count, 1)
+        self.assertEqual(transaction.error_message, 'Failed to charge')
+        self.assertEqual(transaction.subscription.customer.external_id, 
+                         'AC_MOCK')
+
+    def test_process_one_with_system_exit_and_keyboard_interrupt(self):
+        model = self.make_one(self.session)
+        now = datetime.datetime.utcnow()
+
+        payment_uri = '/v1/cards/tester'
+
+        with db_transaction.manager:
+            guid = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=100,
+                payment_uri=payment_uri,
+                scheduled_at=now,
+            )
+
+        transaction = model.get(guid)
+
+        def mock_create_customer_system_exit(transaction):
+            raise SystemExit
+
+        mock_processor = flexmock()
+        (
+            mock_processor 
+            .should_receive('create_customer')
+            .replace_with(mock_create_customer_system_exit)
+        )
+
+        with self.assertRaises(SystemExit):
+            model.process_one(mock_processor, transaction)
+
+        def mock_create_customer_keyboard_interrupt(transaction):
+            raise KeyboardInterrupt
+
+        mock_processor = flexmock()
+        (
+            mock_processor 
+            .should_receive('create_customer')
+            .replace_with(mock_create_customer_keyboard_interrupt)
+        )
+
+        with self.assertRaises(KeyboardInterrupt):
+            model.process_one(mock_processor, transaction)
+
+    def test_process_one_with_already_done(self):
+        model = self.make_one(self.session)
+        now = datetime.datetime.utcnow()
+
+        payment_uri = '/v1/cards/tester'
+
+        with db_transaction.manager:
+            guid = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=100,
+                payment_uri=payment_uri,
+                scheduled_at=now,
+            )
+            transaction = model.get(guid)
+            transaction.status = model.STATUS_DONE
+            self.session.add(transaction)
+
+        processor = flexmock()
+        transaction = model.get(guid)
+        with self.assertRaises(ValueError):
+            model.process_one(processor, transaction)

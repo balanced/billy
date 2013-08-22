@@ -4,7 +4,7 @@ import datetime
 import transaction
 from freezegun import freeze_time
 
-from billy.tests.helper import ModelTestCase
+from billy.tests.unit.helper import ModelTestCase
 
 
 @freeze_time('2013-08-16')

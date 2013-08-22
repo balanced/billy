@@ -34,7 +34,6 @@ class ModelTestCase(unittest.TestCase):
 
     def setUp(self):
         from billy.models import tables
-        from billy.tests.helper import create_session
         self.session = create_session()
         self._old_now_func = tables.set_now_func(datetime.datetime.utcnow)
 

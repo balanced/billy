@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from zope.sqlalchemy import ZopeTransactionExtension
    
 
-def setup_database(**settings):
+def setup_database(global_config, **settings):
     """Setup database
     
     """

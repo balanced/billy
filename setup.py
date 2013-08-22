@@ -36,4 +36,10 @@ setup(
         'flexmock',
     ],
     install_requires=requires,
+    entry_points="""\
+    [paste.app_factory]
+    main = billy:main
+    [console_scripts]
+    initialize_billy_db = billy.scripts.initializedb:main
+    """,
 )

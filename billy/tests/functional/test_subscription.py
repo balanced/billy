@@ -59,3 +59,100 @@ class TestPlanViews(ViewTestCase):
         self.assertEqual(res.json['amount'], amount)
         self.assertEqual(res.json['customer_guid'], customer_guid)
         self.assertEqual(res.json['plan_guid'], plan_guid)
+
+    def test_create_subscription_with_bad_api(self):
+        self.testapp.post(
+            '/v1/subscriptions/',
+            dict(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+            ),
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )
+
+    def test_get_subscription(self):
+        res = self.testapp.post(
+            '/v1/subscriptions/', 
+            dict(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        created_subscriptions = res.json
+
+        guid = created_subscriptions['guid']
+        res = self.testapp.get(
+            '/v1/subscriptions/{}'.format(guid), 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.assertEqual(res.json, created_subscriptions)
+
+    def test_get_non_existing_subscription(self):
+        self.testapp.get(
+            '/v1/subscriptions/NON_EXIST', 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=404
+        )
+
+    def test_get_subscription_with_bad_api_key(self):
+        res = self.testapp.post(
+            '/v1/subscriptions/', 
+            dict(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+
+        guid = res.json['guid']
+        res = self.testapp.get(
+            '/v1/subscriptions/{}'.format(guid), 
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )
+
+    def test_get_subscription_of_other_company(self):
+        from billy.models.company import CompanyModel
+        from billy.models.customer import CustomerModel
+        from billy.models.plan import PlanModel
+
+        company_model = CompanyModel(self.testapp.session)
+        customer_model = CustomerModel(self.testapp.session)
+        plan_model = PlanModel(self.testapp.session)
+        with db_transaction.manager:
+            other_company_guid = company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY',
+            )
+            other_customer_guid = customer_model.create(
+                company_guid=other_company_guid
+            )
+            other_plan_guid = plan_model.create(
+                company_guid=other_company_guid,
+                frequency=plan_model.FREQ_WEEKLY,
+                plan_type=plan_model.TYPE_CHARGE,
+                amount=10,
+            )
+        other_company = company_model.get(other_company_guid)
+        other_api_key = str(other_company.api_key)
+
+        res = self.testapp.post(
+            '/v1/subscriptions/', 
+            dict(
+                customer_guid=other_customer_guid,
+                plan_guid=other_plan_guid,
+            ),
+            extra_environ=dict(REMOTE_USER=other_api_key), 
+            status=200,
+        )
+        other_guid = res.json['guid']
+
+        self.testapp.get(
+            '/v1/subscriptions/{}'.format(other_guid), 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=403,
+        )

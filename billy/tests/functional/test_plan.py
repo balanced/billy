@@ -134,9 +134,8 @@ class TestPlanViews(ViewTestCase):
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
-        created_plan = res.json
 
-        guid = created_plan['guid']
+        guid = res.json['guid']
         res = self.testapp.get(
             '/v1/plans/{}'.format(guid), 
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 

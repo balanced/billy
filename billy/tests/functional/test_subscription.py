@@ -156,3 +156,59 @@ class TestPlanViews(ViewTestCase):
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=403,
         )
+
+    def test_create_subscription_to_other_company_customer(self):
+        from billy.models.company import CompanyModel
+        from billy.models.customer import CustomerModel
+
+        company_model = CompanyModel(self.testapp.session)
+        customer_model = CustomerModel(self.testapp.session)
+        with db_transaction.manager:
+            other_company_guid = company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY',
+            )
+            other_customer_guid = customer_model.create(
+                company_guid=other_company_guid
+            )
+
+        other_company = company_model.get(other_company_guid)
+        other_api_key = str(other_company.api_key)
+
+        self.testapp.post(
+            '/v1/subscriptions/', 
+            dict(
+                customer_guid=other_customer_guid,
+                plan_guid=self.plan_guid,
+            ),
+            extra_environ=dict(REMOTE_USER=other_api_key), 
+            status=403,
+        )
+
+    def test_create_subscription_to_other_company_plan(self):
+        from billy.models.company import CompanyModel
+        from billy.models.plan import PlanModel
+
+        company_model = CompanyModel(self.testapp.session)
+        plan_model = PlanModel(self.testapp.session)
+        with db_transaction.manager:
+            other_company_guid = company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY',
+            )
+            other_plan_guid = plan_model.create(
+                company_guid=other_company_guid,
+                frequency=plan_model.FREQ_WEEKLY,
+                plan_type=plan_model.TYPE_CHARGE,
+                amount=10,
+            )
+        other_company = company_model.get(other_company_guid)
+        other_api_key = str(other_company.api_key)
+
+        self.testapp.post(
+            '/v1/subscriptions/', 
+            dict(
+                customer_guid=self.customer_guid,
+                plan_guid=other_plan_guid,
+            ),
+            extra_environ=dict(REMOTE_USER=other_api_key), 
+            status=403,
+        )

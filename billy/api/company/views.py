@@ -1,5 +1,6 @@
 import transaction as db_transaction
 from pyramid.view import view_config
+from pyramid.httpexceptions import HTTPNotFound
 
 from billy.models.company import CompanyModel
 
@@ -40,4 +41,6 @@ def company_get(request):
     model = CompanyModel(request.session)
     guid = request.matchdict['company_guid']
     company = model.get(guid)
+    if company is None:
+        return HTTPNotFound('No such company {}'.format(guid))
     return company

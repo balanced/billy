@@ -12,6 +12,7 @@ class TestCompanyViews(ViewTestCase):
         )
         self.failUnless('processor_key' not in res.json)
         self.failUnless('guid' in res.json)
+        self.failUnless('api_key' in res.json)
         self.failUnless('created_at' in res.json)
         self.failUnless('updated_at' in res.json)
 
@@ -26,3 +27,6 @@ class TestCompanyViews(ViewTestCase):
         guid = created_company['guid']
         res = self.testapp.get('/v1/companies/{}'.format(guid), status=200)
         self.assertEqual(res.json, created_company)
+
+    def test_get_non_existing_company(self):
+        self.testapp.get('/v1/companies/NON_EXIST', status=404)

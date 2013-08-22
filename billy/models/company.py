@@ -28,6 +28,20 @@ class CompanyModel(object):
             raise KeyError('No such company {}'.format(guid))
         return query
 
+    def get_by_api_key(self, api_key, raise_error=False, ignore_deleted=True):
+        """Get a company by its API key
+
+        """
+        query = (
+            self.session.query(tables.Company)
+            .filter_by(api_key=api_key)
+            .filter_by(deleted=not ignore_deleted)
+            .first()
+        )
+        if raise_error and query is None:
+            raise KeyError('No such company with API key {}'.format(api_key))
+        return query
+
     def create(self, processor_key, name=None):
         """Create a company and return its id
 

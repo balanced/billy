@@ -33,6 +33,27 @@ class TestCompanyModel(ModelTestCase):
         company = model.get(guid, ignore_deleted=False, raise_error=True)
         self.assertEqual(company.guid, guid)
 
+    def test_get_by_api_key(self):
+        model = self.make_one(self.session)
+
+        company = model.get_by_api_key('NON_EXIST_API')
+        self.assertEqual(company, None)
+
+        with self.assertRaises(KeyError):
+            model.get_by_api_key('NON_EXIST_API', raise_error=True)
+
+        with transaction.manager:
+            guid = model.create(processor_key='my_secret_key')
+            company = model.get(guid)
+            api_key = company.api_key
+            model.delete(guid)
+
+        with self.assertRaises(KeyError):
+            model.get_by_api_key(api_key, raise_error=True)
+
+        company = model.get_by_api_key(api_key, ignore_deleted=False, raise_error=True)
+        self.assertEqual(company.guid, guid)
+
     def test_create(self):
         model = self.make_one(self.session)
         name = 'awesome company'

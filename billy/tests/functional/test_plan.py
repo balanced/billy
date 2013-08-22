@@ -1,10 +1,13 @@
 from __future__ import unicode_literals
+import datetime
 
 import transaction as db_transaction
+from freezegun import freeze_time
 
 from billy.tests.functional.helper import ViewTestCase
 
 
+@freeze_time('2013-08-16')
 class TestPlanViews(ViewTestCase):
 
     def setUp(self):
@@ -21,6 +24,8 @@ class TestPlanViews(ViewTestCase):
         amount = '55.66'
         frequency = 'weekly'
         interval = 123
+        now = datetime.datetime.utcnow()
+        now_iso = now.isoformat()
 
         res = self.testapp.post(
             '/v1/plans/',
@@ -34,13 +39,12 @@ class TestPlanViews(ViewTestCase):
             status=200,
         )
         self.failUnless('guid' in res.json)
-        self.failUnless('created_at' in res.json)
-        self.failUnless('updated_at' in res.json)
+        self.assertEqual(res.json['created_at'], now_iso)
+        self.assertEqual(res.json['updated_at'], now_iso)
         self.assertEqual(res.json['plan_type'], plan_type)
         self.assertEqual(res.json['amount'], amount)
         self.assertEqual(res.json['frequency'], frequency)
         self.assertEqual(res.json['interval'], interval)
-        self.assertEqual(res.json['created_at'], res.json['updated_at'])
         self.assertEqual(res.json['company_guid'], self.company_guid)
 
     def test_create_plan_with_different_types(self):

@@ -1,10 +1,13 @@
 from __future__ import unicode_literals
+import datetime
 
 import transaction as db_transaction
+from freezegun import freeze_time
 
 from billy.tests.functional.helper import ViewTestCase
 
 
+@freeze_time('2013-08-16')
 class TestCustomerViews(ViewTestCase):
 
     def setUp(self):
@@ -17,6 +20,9 @@ class TestCustomerViews(ViewTestCase):
         self.api_key = str(company.api_key)
 
     def test_create_customer(self):
+        now = datetime.datetime.utcnow()
+        now_iso = now.isoformat()
+
         res = self.testapp.post(
             '/v1/customers/',
             dict(external_id='MOCK_EXTERNAL_ID'),
@@ -24,9 +30,8 @@ class TestCustomerViews(ViewTestCase):
             status=200,
         )
         self.failUnless('guid' in res.json)
-        self.failUnless('created_at' in res.json)
-        self.failUnless('updated_at' in res.json)
-        self.assertEqual(res.json['created_at'], res.json['updated_at'])
+        self.assertEqual(res.json['created_at'], now_iso)
+        self.assertEqual(res.json['updated_at'], now_iso)
         self.assertEqual(res.json['external_id'], 'MOCK_EXTERNAL_ID')
         self.assertEqual(res.json['company_guid'], self.company_guid)
 

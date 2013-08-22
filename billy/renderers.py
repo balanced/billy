@@ -10,7 +10,7 @@ def company_adapter(company, request):
         guid=company.guid,
         api_key=company.api_key,
         created_at=company.created_at.isoformat(),
-        updated_at=company.created_at.isoformat(),
+        updated_at=company.updated_at.isoformat(),
     )
 
 
@@ -19,7 +19,7 @@ def customer_adapter(customer, request):
         guid=customer.guid,
         external_id=customer.external_id, 
         created_at=customer.created_at.isoformat(),
-        updated_at=customer.created_at.isoformat(),
+        updated_at=customer.updated_at.isoformat(),
         company_guid=customer.company_guid, 
     )
 
@@ -46,8 +46,23 @@ def plan_adapter(plan, request):
         amount=str(plan.amount),
         interval=plan.interval,
         created_at=plan.created_at.isoformat(),
-        updated_at=plan.created_at.isoformat(),
+        updated_at=plan.updated_at.isoformat(),
         company_guid=plan.company_guid,
+    )
+
+
+def subscription_adapter(subscription, request):
+    return dict(
+        guid=subscription.guid, 
+        amount=str(subscription.amount),
+        period=subscription.period,
+        canceled=subscription.canceled,
+        next_transaction_at=subscription.next_transaction_at.isoformat(),
+        created_at=subscription.created_at.isoformat(),
+        updated_at=subscription.updated_at.isoformat(),
+        started_at=subscription.started_at.isoformat(),
+        customer_guid=subscription.customer_guid,
+        plan_guid=subscription.plan_guid,
     )
 
 
@@ -56,4 +71,5 @@ def includeme(config):
     json_renderer.add_adapter(tables.Company, company_adapter)
     json_renderer.add_adapter(tables.Customer, customer_adapter)
     json_renderer.add_adapter(tables.Plan, plan_adapter)
+    json_renderer.add_adapter(tables.Subscription, subscription_adapter)
     config.add_renderer('json', json_renderer)

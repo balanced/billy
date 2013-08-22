@@ -1,12 +1,19 @@
 from __future__ import unicode_literals
+import datetime
+
+from freezegun import freeze_time
 
 from billy.tests.functional.helper import ViewTestCase
 
 
+@freeze_time('2013-08-16')
 class TestCompanyViews(ViewTestCase):
 
     def test_create_company(self):
         processor_key = 'MOCK_PROCESSOR_KEY'
+        now = datetime.datetime.utcnow()
+        now_iso = now.isoformat()
+        
         res = self.testapp.post(
             '/v1/companies/', 
             dict(processor_key=processor_key), 
@@ -15,9 +22,8 @@ class TestCompanyViews(ViewTestCase):
         self.failUnless('processor_key' not in res.json)
         self.failUnless('guid' in res.json)
         self.failUnless('api_key' in res.json)
-        self.failUnless('created_at' in res.json)
-        self.failUnless('updated_at' in res.json)
-        self.assertEqual(res.json['created_at'], res.json['updated_at'])
+        self.assertEqual(res.json['created_at'], now_iso)
+        self.assertEqual(res.json['updated_at'], now_iso)
 
     def test_get_company(self):
         processor_key = 'MOCK_PROCESSOR_KEY'

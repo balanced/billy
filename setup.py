@@ -9,7 +9,8 @@ here = os.path.abspath(os.path.dirname(__file__))
 readme = open(os.path.join(here, 'README.md')).read()
 requires = open(os.path.join(here, 'requirements.txt')).read()
 requires = map(lambda r: r.strip(), requires.splitlines())
-
+test_requires = open(os.path.join(here, 'test_requirements.txt')).read()
+test_requires = map(lambda r: r.strip(), test_requires.splitlines())
 
 setup(
     name='billy',
@@ -29,13 +30,8 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
-    tests_require=[
-        'nose-cov',
-        'webtest',
-        'freezegun',
-        'flexmock',
-    ],
     install_requires=requires,
+    tests_require=test_requires,
     entry_points="""\
     [paste.app_factory]
     main = billy:main

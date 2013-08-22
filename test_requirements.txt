@@ -1,0 +1,4 @@
+nose-cov
+webtest
+freezegun
+flexmock

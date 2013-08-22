@@ -1,5 +1,6 @@
 import transaction as db_transaction
 from pyramid.view import view_config
+from pyramid.httpexceptions import HTTPNotFound
 
 from billy.models.customer import CustomerModel
 
@@ -46,4 +47,6 @@ def customer_get(request):
     model = CustomerModel(request.session)
     guid = request.matchdict['customer_guid']
     customer = model.get(guid)
+    if customer is None:
+        return HTTPNotFound('No such customer {}'.format(guid))
     return customer 

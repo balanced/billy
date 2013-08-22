@@ -111,6 +111,13 @@ class TestPlanViews(ViewTestCase):
         )
         self.assertEqual(res.json, created_plan)
 
+    def test_get_non_existing_plan(self):
+        self.testapp.get(
+            '/v1/plans/NON_EXIST', 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=404
+        )
+
     def test_get_plan_with_bad_api_key(self):
         res = self.testapp.post(
             '/v1/plans/', 

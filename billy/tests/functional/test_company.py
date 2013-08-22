@@ -17,6 +17,7 @@ class TestCompanyViews(ViewTestCase):
         self.failUnless('api_key' in res.json)
         self.failUnless('created_at' in res.json)
         self.failUnless('updated_at' in res.json)
+        self.assertEqual(res.json['created_at'], res.json['updated_at'])
 
     def test_get_company(self):
         processor_key = 'MOCK_PROCESSOR_KEY'
@@ -63,3 +64,33 @@ class TestCompanyViews(ViewTestCase):
             extra_environ=dict(REMOTE_USER=api_key),
             status=404
         )
+
+    def test_get_other_company(self):
+        processor_key = 'MOCK_PROCESSOR_KEY'
+
+        res = self.testapp.post(
+            '/v1/companies/', 
+            dict(processor_key=processor_key), 
+            status=200
+        )
+        api_key1 = str(res.json['api_key'])
+        guid1 = res.json['guid']
+
+        res = self.testapp.post(
+            '/v1/companies/', 
+            dict(processor_key=processor_key), 
+            status=200
+        )
+        api_key2 = str(res.json['api_key'])
+        guid2 = res.json['guid']
+
+        self.testapp.get(
+            '/v1/companies/{}'.format(guid2), 
+            extra_environ=dict(REMOTE_USER=api_key1), 
+            status=403,
+        )
+        self.testapp.get(
+            '/v1/companies/{}'.format(guid1), 
+            extra_environ=dict(REMOTE_USER=api_key2), 
+            status=403,
+        )       

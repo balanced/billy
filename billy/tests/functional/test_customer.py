@@ -26,6 +26,7 @@ class TestCustomerViews(ViewTestCase):
         self.failUnless('guid' in res.json)
         self.failUnless('created_at' in res.json)
         self.failUnless('updated_at' in res.json)
+        self.assertEqual(res.json['created_at'], res.json['updated_at'])
         self.assertEqual(res.json['external_id'], 'MOCK_EXTERNAL_ID')
 
     def test_create_customer_with_bad_api_key(self):
@@ -71,4 +72,23 @@ class TestCustomerViews(ViewTestCase):
             '/v1/customers/NON_EXIST', 
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=404
+        )
+
+    def test_get_customer_of_other_company(self):
+        from billy.models.company import CompanyModel
+        model = CompanyModel(self.testapp.session)
+        with db_transaction.manager:
+            other_company_guid = model.create(processor_key='MOCK_PROCESSOR_KEY')
+        other_company = model.get(other_company_guid)
+        other_api_key = str(other_company.api_key)
+        res = self.testapp.post(
+            '/v1/customers/', 
+            extra_environ=dict(REMOTE_USER=other_api_key), 
+            status=200,
+        )
+        guid = res.json['guid']
+        res = self.testapp.get(
+            '/v1/customers/{}'.format(guid), 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=403,
         )

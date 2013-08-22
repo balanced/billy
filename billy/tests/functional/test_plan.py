@@ -40,6 +40,7 @@ class TestPlanViews(ViewTestCase):
         self.assertEqual(res.json['amount'], amount)
         self.assertEqual(res.json['frequency'], frequency)
         self.assertEqual(res.json['interval'], interval)
+        self.assertEqual(res.json['created_at'], res.json['updated_at'])
 
     def test_create_plan_with_different_types(self):
         def assert_plan_type(plan_type):
@@ -127,5 +128,29 @@ class TestPlanViews(ViewTestCase):
         res = self.testapp.get(
             '/v1/plans/{}'.format(guid), 
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )
+
+    def test_get_plan_of_other_company(self):
+        from billy.models.company import CompanyModel
+        model = CompanyModel(self.testapp.session)
+        with db_transaction.manager:
+            other_company_guid = model.create(processor_key='MOCK_PROCESSOR_KEY')
+        other_company = model.get(other_company_guid)
+        other_api_key = str(other_company.api_key)
+        res = self.testapp.post(
+            '/v1/plans/', 
+            dict(
+                plan_type='charge',
+                amount='55.66',
+                frequency='weekly',
+            ),
+            extra_environ=dict(REMOTE_USER=other_api_key), 
+            status=200,
+        )
+        guid = res.json['guid']
+        res = self.testapp.get(
+            '/v1/plans/{}'.format(guid), 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
             status=403,
         )

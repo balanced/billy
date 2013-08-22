@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import transaction as db_transaction
 from pyramid.view import view_config
 from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPForbidden
 
 from billy.models.company import CompanyModel
 from billy.api.auth import auth_api_key
@@ -41,8 +42,12 @@ def company_get(request):
     """Get and return a company
 
     """
-    company = auth_api_key(request)
+    api_company = auth_api_key(request)
+    model = CompanyModel(request.session)
     guid = request.matchdict['company_guid']
-    if guid != company.guid:
+    company = model.get(guid)
+    if company is None:
         return HTTPNotFound('No such company {}'.format(guid))
+    if guid != api_company.guid:
+        return HTTPForbidden('You have no premission to access company {}'.format(guid))
     return company

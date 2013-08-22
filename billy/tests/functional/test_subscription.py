@@ -8,13 +8,13 @@ from billy.tests.functional.helper import ViewTestCase
 
 
 @freeze_time('2013-08-16')
-class TestPlanViews(ViewTestCase):
+class TestSubscriptionViews(ViewTestCase):
 
     def setUp(self):
         from billy.models.company import CompanyModel
         from billy.models.customer import CustomerModel
         from billy.models.plan import PlanModel
-        super(TestPlanViews, self).setUp()
+        super(TestSubscriptionViews, self).setUp()
         company_model = CompanyModel(self.testapp.session)
         customer_model = CustomerModel(self.testapp.session)
         plan_model = PlanModel(self.testapp.session)

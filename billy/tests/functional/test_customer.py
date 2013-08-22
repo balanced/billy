@@ -28,6 +28,7 @@ class TestCustomerViews(ViewTestCase):
         self.failUnless('updated_at' in res.json)
         self.assertEqual(res.json['created_at'], res.json['updated_at'])
         self.assertEqual(res.json['external_id'], 'MOCK_EXTERNAL_ID')
+        self.assertEqual(res.json['company_guid'], self.company_guid)
 
     def test_create_customer_with_bad_api_key(self):
         self.testapp.post(

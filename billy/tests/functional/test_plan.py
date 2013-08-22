@@ -41,6 +41,7 @@ class TestPlanViews(ViewTestCase):
         self.assertEqual(res.json['frequency'], frequency)
         self.assertEqual(res.json['interval'], interval)
         self.assertEqual(res.json['created_at'], res.json['updated_at'])
+        self.assertEqual(res.json['company_guid'], self.company_guid)
 
     def test_create_plan_with_different_types(self):
         def assert_plan_type(plan_type):

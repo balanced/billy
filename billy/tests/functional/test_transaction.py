@@ -140,7 +140,6 @@ class TestTransactionViews(ViewTestCase):
         from billy.models.plan import PlanModel
         from billy.models.subscription import SubscriptionModel
         from billy.models.transaction import TransactionModel
-        super(TestTransactionViews, self).setUp()
         company_model = CompanyModel(self.testapp.session)
         customer_model = CustomerModel(self.testapp.session)
         plan_model = PlanModel(self.testapp.session)
@@ -170,7 +169,6 @@ class TestTransactionViews(ViewTestCase):
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
-
         self.testapp.get(
             '/v1/transactions/{}'.format(other_transaction_guid), 
             extra_environ=dict(REMOTE_USER=self.api_key), 

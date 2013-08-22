@@ -3,6 +3,7 @@ from pyramid.view import view_config
 from pyramid.httpexceptions import HTTPNotFound
 
 from billy.models.company import CompanyModel
+from billy.api.auth import auth_api_key
 
 
 @view_config(route_name='company_list', 
@@ -38,9 +39,8 @@ def company_get(request):
     """Get and return a company
 
     """
-    model = CompanyModel(request.session)
+    company = auth_api_key(request)
     guid = request.matchdict['company_guid']
-    company = model.get(guid)
-    if company is None:
+    if guid != company.guid:
         return HTTPNotFound('No such company {}'.format(guid))
     return company

@@ -1,8 +1,10 @@
 import transaction as db_transaction
 from pyramid.view import view_config
 from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPForbidden
 
 from billy.models.customer import CustomerModel
+from billy.api.auth import auth_api_key
 
 
 @view_config(route_name='customer_list', 
@@ -22,12 +24,11 @@ def customer_list_post(request):
     """Create a new customer 
 
     """
+    company = auth_api_key(request)
     model = CustomerModel(request.session)
     # TODO: do validation here
     external_id = request.params.get('external_id')
-    # TODO: company guid should be retrived from API key
-    # this is just a temporary hack for development
-    company_guid = request.params.get('company_guid')
+    company_guid = company.guid
     with db_transaction.manager:
         guid = model.create(
             external_id=external_id,
@@ -44,9 +45,13 @@ def customer_get(request):
     """Get and return a customer 
 
     """
+    company = auth_api_key(request)
     model = CustomerModel(request.session)
     guid = request.matchdict['customer_guid']
     customer = model.get(guid)
     if customer is None:
         return HTTPNotFound('No such customer {}'.format(guid))
+    if customer.company_guid != company.guid:
+        return HTTPForbidden('You have no permission to access customer {}'
+                             .format(guid))
     return customer 

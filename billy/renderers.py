@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from pyramid.renderers import JSON
 
 from billy.models import tables

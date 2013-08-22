@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import transaction as db_transaction
 from pyramid.view import view_config
 from pyramid.httpexceptions import HTTPNotFound

@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import transaction as db_transaction
 
 from billy.tests.functional.helper import ViewTestCase
@@ -29,7 +31,7 @@ class TestCustomerViews(ViewTestCase):
     def test_create_customer_with_bad_api_key(self):
         self.testapp.post(
             '/v1/customers/',
-            extra_environ=dict(REMOTE_USER='BAD_API_KEY'), 
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
             status=403,
         )
 
@@ -48,6 +50,21 @@ class TestCustomerViews(ViewTestCase):
             status=200,
         )
         self.assertEqual(res.json, created_customer)
+
+    def test_get_customer_with_bad_api_key(self):
+        res = self.testapp.post(
+            '/v1/customers/', 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        created_customer = res.json
+
+        guid = created_customer['guid']
+        res = self.testapp.get(
+            '/v1/customers/{}'.format(guid), 
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )
 
     def test_get_non_existing_customer(self):
         self.testapp.get(

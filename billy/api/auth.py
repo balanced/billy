@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from pyramid.httpexceptions import HTTPForbidden
 
 from billy.models.company import CompanyModel

@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from pyramid.config import Configurator
 
 from billy.models import setup_database

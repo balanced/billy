@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from pyramid.request import Request
 from pyramid.decorator import reify
 

@@ -66,10 +66,44 @@ def subscription_adapter(subscription, request):
     )
 
 
+def transaction_adapter(transaction, request):
+    from billy.models.transaction import TransactionModel
+    type_map = {
+        TransactionModel.TYPE_CHARGE: 'charge',
+        TransactionModel.TYPE_PAYOUT: 'payout',
+        TransactionModel.TYPE_REFUND: 'refund',
+    }
+    transaction_type = type_map[transaction.transaction_type]
+
+    status_map = {
+        TransactionModel.STATUS_INIT: 'init',
+        TransactionModel.STATUS_RETRYING: 'retrying',
+        TransactionModel.STATUS_FAILED: 'failed',
+        TransactionModel.STATUS_DONE: 'done',
+    }
+    status = status_map[transaction.status]
+
+    return dict(
+        guid=transaction.guid, 
+        transaction_type=transaction_type,
+        status=status,
+        amount=str(transaction.amount),
+        payment_uri=transaction.payment_uri,
+        external_id=transaction.external_id,
+        failure_count=transaction.failure_count,
+        error_message=transaction.error_message,
+        created_at=transaction.created_at.isoformat(),
+        updated_at=transaction.updated_at.isoformat(),
+        scheduled_at=transaction.scheduled_at.isoformat(),
+        subscription_guid=transaction.subscription_guid,
+    )
+
+
 def includeme(config):
     json_renderer = JSON()
     json_renderer.add_adapter(tables.Company, company_adapter)
     json_renderer.add_adapter(tables.Customer, customer_adapter)
     json_renderer.add_adapter(tables.Plan, plan_adapter)
     json_renderer.add_adapter(tables.Subscription, subscription_adapter)
+    json_renderer.add_adapter(tables.Transaction, transaction_adapter)
     config.add_renderer('json', json_renderer)

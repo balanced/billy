@@ -26,6 +26,7 @@ def subscription_list_post(request):
     customer_guid = request.params['customer_guid']
     plan_guid = request.params['plan_guid']
     amount = request.params.get('amount')
+    # TODO: add started at parameter
 
     customer = customer_model.get(customer_guid)
     if customer.company_guid != company.guid:
@@ -40,6 +41,7 @@ def subscription_list_post(request):
             plan_guid=plan_guid, 
             amount=amount, 
         )
+    # TODO: yield transaction and handle right away?
     subscription = model.get(guid)
     return subscription 
 

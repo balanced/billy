@@ -6,3 +6,4 @@ def includeme(config):
     config.include('.customer', route_prefix='/v1')
     config.include('.plan', route_prefix='/v1')
     config.include('.subscription', route_prefix='/v1')
+    config.include('.transaction', route_prefix='/v1')

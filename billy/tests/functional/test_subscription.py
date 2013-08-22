@@ -171,16 +171,13 @@ class TestPlanViews(ViewTestCase):
                 company_guid=other_company_guid
             )
 
-        other_company = company_model.get(other_company_guid)
-        other_api_key = str(other_company.api_key)
-
         self.testapp.post(
             '/v1/subscriptions/', 
             dict(
                 customer_guid=other_customer_guid,
                 plan_guid=self.plan_guid,
             ),
-            extra_environ=dict(REMOTE_USER=other_api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
             status=403,
         )
 
@@ -200,8 +197,6 @@ class TestPlanViews(ViewTestCase):
                 plan_type=plan_model.TYPE_CHARGE,
                 amount=10,
             )
-        other_company = company_model.get(other_company_guid)
-        other_api_key = str(other_company.api_key)
 
         self.testapp.post(
             '/v1/subscriptions/', 
@@ -209,6 +204,6 @@ class TestPlanViews(ViewTestCase):
                 customer_guid=self.customer_guid,
                 plan_guid=other_plan_guid,
             ),
-            extra_environ=dict(REMOTE_USER=other_api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
             status=403,
         )

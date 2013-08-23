@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+import logging
+
 import balanced
 
 from billy.models.processors.base import PaymentProcessor
@@ -11,7 +13,9 @@ class BalancedProcessor(PaymentProcessor):
         customer_cls=balanced.Customer, 
         debit_cls=balanced.Debit,
         credit_cls=balanced.Credit,
+        logger=None,
     ):
+        self.logger = logger or logging.getLogger(__name__)
         self.customer_cls = customer_cls
         self.debit_cls = debit_cls
         self.credit_cls = credit_cls
@@ -22,12 +26,16 @@ class BalancedProcessor(PaymentProcessor):
         return cent
 
     def create_customer(self, customer):
+        self.logger.debug('Creating Balanced customer for %s', customer.guid)
         record = self.customer_cls(**{
             'meta.billy_customer_guid': customer.guid, 
         }).save()
+        self.logger.info('Created Balanced customer for %s', customer.guid)
         return record.id
 
     def prepare_customer(self, customer, payment_uri=None):
+        self.logger.debug('Preparing customer %s with payment_uri=%s', 
+                          customer.guid, payment_uri)
         # when payment_uri is None, it means we are going to use the 
         # default funding instrument, just return
         if payment_uri is None:
@@ -37,9 +45,17 @@ class BalancedProcessor(PaymentProcessor):
         balanced_customer = self.customer_cls.find(external_id)
         # TODO: use a better way to determine type of URI?
         if '/bank_accounts/' in payment_uri:
+            self.logger.debug('Adding bank account %s to %s', 
+                              payment_uri, customer.guid)
             balanced_customer.add_bank_account(payment_uri)
+            self.logger.info('Added bank account %s to %s', 
+                             payment_uri, customer.guid)
         elif '/cards/' in payment_uri:
+            self.logger.debug('Adding credit card %s to %s', 
+                              payment_uri, customer.guid)
             balanced_customer.add_card(payment_uri)
+            self.logger.info('Added credit card %s to %s', 
+                             payment_uri, customer.guid)
         else:
             raise ValueError('Invalid payment_uri {}'.format(payment_uri))
 
@@ -50,6 +66,9 @@ class BalancedProcessor(PaymentProcessor):
         method_name, 
         extra_kwargs
     ):
+        api_key = transaction.subscription.plan.company.processor_key
+        # TODO: what about thread safty issue?
+        balanced.configure(api_key)
         # make sure we won't duplicate debit
         try:
             record = (
@@ -63,6 +82,8 @@ class BalancedProcessor(PaymentProcessor):
         # transaction, however, we failed to update database. No need to do
         # it again, just return the id
         if record is not None:
+            self.logger.warn('Balanced transaction record for %s already '
+                             'exist', transaction.guid)
             return record.id
 
         # TODO: handle error here
@@ -80,9 +101,11 @@ class BalancedProcessor(PaymentProcessor):
             meta=dict(billy_transaction_guid=transaction.guid),
         )
         kwargs.update(extra_kwargs)
-        # TODO: handle error here
+
         method = getattr(balanced_customer, method_name)
+        self.logger.debug('Calling %s with args %s', method, kwargs)
         record = method(**kwargs)
+        self.logger.info('Called %s with args %s', method, kwargs)
         return record.id
 
     def charge(self, transaction):

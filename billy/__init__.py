@@ -16,6 +16,8 @@ def main(global_config, **settings):
         settings=settings, 
         request_factory=APIRequest, 
     )
+    # add basic authentication parsing
+    config.add_tween('billy.api.auth.basic_auth_tween_factory')
     # provides table entity to json renderers
     config.include('.renderers')
     # provides api views

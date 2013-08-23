@@ -38,17 +38,9 @@ class TestProcessTransactions(unittest.TestCase):
         self.assertMultiLineEqual(usage_out.getvalue(), expected)
 
     def test_main(self):
-        import balanced
         from billy.models.transaction import TransactionModel
         from billy.scripts import initializedb
         from billy.scripts import process_transactions
-
-        (
-            flexmock(balanced)
-            .should_receive('configure')
-            .with_args('MOCK_BALANCED_API_KEY')
-            .once()
-        )
 
         (
             flexmock(TransactionModel)
@@ -63,8 +55,6 @@ class TestProcessTransactions(unittest.TestCase):
             use = egg:billy
 
             sqlalchemy.url = sqlite:///%(here)s/billy.sqlite
-
-            balanced.api_key = MOCK_BALANCED_API_KEY
             """))
         initializedb.main([initializedb.__file__, cfg_path])
         process_transactions.main([process_transactions.__file__, cfg_path])

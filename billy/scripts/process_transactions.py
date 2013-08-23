@@ -1,7 +1,7 @@
 import os
 import sys
+import logging
 
-import balanced
 import transaction as db_transaction
 from pyramid.paster import (
     get_appsettings,
@@ -21,6 +21,8 @@ def usage(argv):
 
 
 def main(argv=sys.argv):
+    logger = logging.getLogger(__name__)
+
     if len(argv) != 2:
         usage(argv)
     config_uri = argv[1]
@@ -28,11 +30,11 @@ def main(argv=sys.argv):
     settings = get_appsettings(config_uri)
     settings = setup_database({}, **settings)
 
-    balanced.configure(settings['balanced.api_key'])
     session = settings['session']
     tx_model = TransactionModel(session)
     processor = BalancedProcessor()
 
+    logger.info('Processing transaction ...')
     with db_transaction.manager:
         tx_model.process_transactions(processor)
-    print('done')
+    logger.info('Done')

@@ -178,6 +178,7 @@ class SubscriptionModel(object):
 
             # okay, we have no more transaction to process, just break
             if not subscriptions:
+                self.logger.info('No more subscriptions to process')
                 break
 
             for subscription in subscriptions:
@@ -194,6 +195,20 @@ class SubscriptionModel(object):
                     amount = subscription.plan.amount 
                 else:
                     amount = subscription.amount
+                type_map = {
+                    tx_model.TYPE_CHARGE: 'charge',
+                    tx_model.TYPE_PAYOUT: 'payout',
+                }
+                self.logger.debug(
+                    'Creating transaction for %s, transaction_type=%s, '
+                    'payment_uri=%s, amount=%s, scheduled_at=%s, period=%s', 
+                    subscription.guid, 
+                    type_map[transaction_type],
+                    subscription.payment_uri,
+                    amount,
+                    subscription.next_transaction_at, 
+                    subscription.period, 
+                )
                 # create the new transaction for this subscription
                 guid = tx_model.create(
                     subscription_guid=subscription.guid, 
@@ -201,6 +216,17 @@ class SubscriptionModel(object):
                     amount=amount, 
                     transaction_type=transaction_type, 
                     scheduled_at=subscription.next_transaction_at, 
+                )
+                self.logger.info(
+                    'Created transaction for %s, guid=%s, transaction_type=%s, '
+                    'payment_uri=%s, amount=%s, scheduled_at=%s, period=%s', 
+                    guid,
+                    subscription.guid, 
+                    type_map[transaction_type],
+                    subscription.payment_uri,
+                    amount,
+                    subscription.next_transaction_at, 
+                    subscription.period, 
                 )
                 # advance the next transaction time
                 subscription.period += 1

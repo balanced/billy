@@ -10,6 +10,7 @@ from pyramid.paster import (
 )
 
 from billy.models import setup_database
+from billy.models.subscription import SubscriptionModel
 from billy.models.transaction import TransactionModel
 from billy.models.processors.balanced_payments import BalancedProcessor
 
@@ -32,10 +33,13 @@ def main(argv=sys.argv):
     settings = setup_database({}, **settings)
 
     session = settings['session']
+    subscription_model = SubscriptionModel(session)
     tx_model = TransactionModel(session)
     processor = BalancedProcessor()
 
-    logger.info('Processing transaction ...')
     with db_transaction.manager:
+        logger.info('Yielding transaction ...')
+        subscription_model.yield_transactions()
+        logger.info('Processing transaction ...')
         tx_model.process_transactions(processor)
     logger.info('Done')

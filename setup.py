@@ -37,5 +37,6 @@ setup(
     main = billy:main
     [console_scripts]
     initialize_billy_db = billy.scripts.initializedb:main
+    process_billy_tx = billy.scripts.process_transactions:main
     """,
 )

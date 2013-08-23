@@ -5,11 +5,12 @@ import unittest
 import tempfile
 import shutil
 import textwrap
-import sqlite3
 import StringIO
 
+from flexmock import flexmock
 
-class TestInitializedb(unittest.TestCase):
+
+class TestProcessTransactions(unittest.TestCase):
 
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
@@ -18,26 +19,43 @@ class TestInitializedb(unittest.TestCase):
         shutil.rmtree(self.temp_dir)
 
     def test_usage(self):
-        from billy.scripts import initializedb
+        from billy.scripts.process_transactions import main
 
-        filename = '/path/to/initializedb'
+        filename = '/path/to/process_transactions'
 
         old_stdout = sys.stdout
         usage_out = StringIO.StringIO()
         sys.stdout = usage_out
         try:
             with self.assertRaises(SystemExit):
-                initializedb.main([filename])
+                main([filename])
         finally:
             sys.stdout = old_stdout
         expected = textwrap.dedent("""\
-        usage: initializedb <config_uri>
-        (example: "initializedb development.ini")
+        usage: process_transactions <config_uri>
+        (example: "process_transactions development.ini")
         """)
         self.assertMultiLineEqual(usage_out.getvalue(), expected)
 
     def test_main(self):
+        import balanced
+        from billy.models.transaction import TransactionModel
         from billy.scripts import initializedb
+        from billy.scripts import process_transactions
+
+        (
+            flexmock(balanced)
+            .should_receive('configure')
+            .with_args('MOCK_BALANCED_API_KEY')
+            .once()
+        )
+
+        (
+            flexmock(TransactionModel)
+            .should_receive('process_transactions')
+            .once()
+        )
+
         cfg_path = os.path.join(self.temp_dir, 'config.ini')
         with open(cfg_path, 'wt') as f:
             f.write(textwrap.dedent("""\
@@ -45,20 +63,9 @@ class TestInitializedb(unittest.TestCase):
             use = egg:billy
 
             sqlalchemy.url = sqlite:///%(here)s/billy.sqlite
+
+            balanced.api_key = MOCK_BALANCED_API_KEY
             """))
         initializedb.main([initializedb.__file__, cfg_path])
-
-        sqlite_path = os.path.join(self.temp_dir, 'billy.sqlite')
-        self.assertTrue(os.path.exists(sqlite_path))
-
-        conn = sqlite3.connect(sqlite_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        tables = [row[0] for row in cursor.fetchall()]
-        self.assertEqual(set(tables), set([
-            'company',
-            'customer',
-            'plan',
-            'subscription',
-            'transaction',
-        ]))
+        process_transactions.main([process_transactions.__file__, cfg_path])
+        # TODO: do more check here?

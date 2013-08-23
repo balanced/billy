@@ -119,6 +119,7 @@ class TransactionModel(object):
         """
         if transaction.status == self.STATUS_DONE:
             raise ValueError('Cannot process a finished transaction')
+        self.logger.debug('Processing transaction %s', transaction.guid)
         now = tables.now_func()
         customer = transaction.subscription.customer
         try:
@@ -159,6 +160,10 @@ class TransactionModel(object):
         transaction.updated_at = tables.now_func()
         self.session.add(transaction)
         self.session.flush()
+        
+        self.logger.info('Processed transaction %s, status=%s, external_id=%s',
+                         transaction.guid, transaction.status, 
+                         transaction.external_id)
 
     def process_transactions(self, processor):
         """Process all transactions 

@@ -220,8 +220,8 @@ class SubscriptionModel(object):
                 self.logger.info(
                     'Created transaction for %s, guid=%s, transaction_type=%s, '
                     'payment_uri=%s, amount=%s, scheduled_at=%s, period=%s', 
-                    guid,
                     subscription.guid, 
+                    guid,
                     type_map[transaction_type],
                     subscription.payment_uri,
                     amount,

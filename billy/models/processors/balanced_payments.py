@@ -103,9 +103,9 @@ class BalancedProcessor(PaymentProcessor):
         kwargs.update(extra_kwargs)
 
         method = getattr(balanced_customer, method_name)
-        self.logger.debug('Calling %s with args %s', method, kwargs)
+        self.logger.debug('Calling %s with args %s', method.__name__, kwargs)
         record = method(**kwargs)
-        self.logger.info('Called %s with args %s', method, kwargs)
+        self.logger.info('Called %s with args %s', method.__name__, kwargs)
         return record.id
 
     def charge(self, transaction):

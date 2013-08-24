@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import base64
 
 from webtest.app import TestRequest
 
@@ -14,7 +15,7 @@ class TestAuth(ViewTestCase):
     def test_get_remote(self):
         get_remote_user = self.make_one()
 
-        encoded = 'USERNAME:PASSWORD'.encode('base64')
+        encoded = base64.b64encode('USERNAME:PASSWORD')
         auth = 'basic {}'.format(encoded)
 
         request = TestRequest(dict(HTTP_AUTHORIZATION=auth))
@@ -24,7 +25,7 @@ class TestAuth(ViewTestCase):
     def test_get_remote_without_base64_part(self):
         get_remote_user = self.make_one()
 
-        encoded = 'USERNAME'.encode('base64')
+        encoded = base64.b64encode('USERNAME')
         auth = 'basic {}'.format(encoded)
 
         request = TestRequest(dict(HTTP_AUTHORIZATION=auth))
@@ -58,7 +59,7 @@ class TestAuth(ViewTestCase):
     def test_basic_auth_tween(self):
         from billy.api.auth import basic_auth_tween_factory
 
-        encoded = 'USERNAME:PASSWORD'.encode('base64')
+        encoded = base64.b64encode('USERNAME:PASSWORD')
         auth = 'basic {}'.format(encoded)
         request = TestRequest(dict(HTTP_AUTHORIZATION=auth))
 

@@ -75,6 +75,38 @@ class TestTransactionViews(ViewTestCase):
         self.assertEqual(res.json['subscription_guid'], 
                          transaction.subscription_guid)
 
+    def test_transaction_list_by_company(self):
+        from billy.models.transaction import TransactionModel
+        transaction_model = TransactionModel(self.testapp.session)
+        guids = [self.transaction_guid]
+        with db_transaction.manager:
+            for i in range(9):
+                guid = transaction_model.create(
+                    subscription_guid=self.subscription_guid,
+                    transaction_type=transaction_model.TYPE_CHARGE,
+                    amount=10 * i,
+                    payment_uri='/v1/cards/tester',
+                    scheduled_at=datetime.datetime.utcnow(),
+                )
+                guids.append(guid)
+        res = self.testapp.get(
+            '/v1/transactions/?offset=5&limit=3',
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.assertEqual(res.json['offset'], 5)
+        self.assertEqual(res.json['limit'], 3)
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(set(result_guids), set(guids[5:8]))
+
+    def test_transaction_list_by_company_with_bad_api_key(self):
+        self.testapp.get(
+            '/v1/transactions/',
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )
+
     def test_get_transaction_with_different_types(self):
         from billy.models.transaction import TransactionModel
         transaction_model = TransactionModel(self.testapp.session)

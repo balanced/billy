@@ -2,3 +2,4 @@ nose-cov
 webtest
 freezegun
 flexmock
+wsgiproxy2

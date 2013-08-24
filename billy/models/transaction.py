@@ -156,6 +156,8 @@ class TransactionModel(object):
                 self.session.add(customer)
                 self.session.flush()
 
+            self.logger.info('External customer %s', customer.external_id)
+
             # prepare customer (add bank account or credit card)
             processor.prepare_customer(customer, transaction.payment_uri)
 
@@ -174,6 +176,10 @@ class TransactionModel(object):
             # TODO: provide more expressive error message?
             transaction.error_message = unicode(e)
             transaction.failure_count += 1
+            self.logger.error('Failed to process transaction %s, '
+                              'failure_count=%s', 
+                              transaction.guid, transaction.failure_count, 
+                              exc_info=True)
             # TODO: maybe we should limit failure count here?
             #       such as too many faiure then transit to FAILED status?
             transaction.updated_at = now

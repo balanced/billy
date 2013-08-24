@@ -384,6 +384,36 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(transaction.updated_at, scheduled_at)
         self.assertEqual(transaction.status, TransactionModel.STATUS_INIT)
 
+    def test_yield_transactions_for_specific_subscriptions(self):
+        from billy.models.transaction import TransactionModel
+
+        model = self.make_one(self.session)
+        tx_model = TransactionModel(self.session)
+
+        with db_transaction.manager:
+            guid1 = model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+            )
+            model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+            )
+            guid2 = model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+            )
+            model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+            )
+            tx_guids = model.yield_transactions([guid1, guid2])
+
+        self.assertEqual(len(tx_guids), 2)
+        subscription_guids = [tx_model.get(tx_guid).subscription_guid 
+                              for tx_guid in tx_guids]
+        self.assertEqual(set(subscription_guids), set([guid1, guid2]))
+
     def test_yield_transactions_with_multiple_period(self):
         model = self.make_one(self.session)
 

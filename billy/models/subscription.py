@@ -146,10 +146,13 @@ class SubscriptionModel(object):
         self.session.flush()
         return tx_guid 
 
-    def yield_transactions(self, now=None):
+    def yield_transactions(self, subscription_guids=None, now=None):
         """Generate new necessary transactions according to subscriptions we 
         had return guid list
 
+        :param subscription_guids: A list subscription guid to yield 
+            transaction_type from, if None is given, all subscriptions
+            in the database will be the yielding source
         :param now: the current date time to use, now_func() will be used by 
             default
         :return: a generated transaction guid list
@@ -169,12 +172,14 @@ class SubscriptionModel(object):
         # in this case, we need to make sure all transactions are yielded
         while True:
             # find subscriptions which should yield new transactions
-            subscriptions = (
+            query = (
                 self.session.query(Subscription)
                 .filter(Subscription.next_transaction_at <= now)
                 .filter(not_(Subscription.canceled))
-                .all()
             )
+            if subscription_guids is not None:
+                query = query.filter(Subscription.guid.in_(subscription_guids))
+            subscriptions = query.all()
 
             # okay, we have no more transaction to process, just break
             if not subscriptions:

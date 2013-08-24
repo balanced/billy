@@ -55,6 +55,29 @@ class TransactionModel(object):
             raise KeyError('No such transaction {}'.format(guid))
         return query
 
+    def list_by_company_guid(self, company_guid, offset=None, limit=None):
+        """Get transactions of a company by given guid
+
+        """
+        Transaction = tables.Transaction
+        Subscription = tables.Subscription
+        Plan = tables.Plan
+        Company = tables.Company
+        query = (
+            self.session
+            .query(Transaction)
+            .join((Subscription, 
+                   Subscription.guid == Transaction.subscription_guid))
+            .join((Plan, Plan.guid == Subscription.plan_guid))
+            .join((Company, Company.guid == Plan.company_guid))
+            .filter(Company.guid == company_guid)
+        )
+        if offset is not None:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+        return query
+
     def create(
         self, 
         subscription_guid, 

@@ -65,6 +65,132 @@ class TestTransactionModel(ModelTestCase):
         transaction = model.get(guid, raise_error=True)
         self.assertEqual(transaction.guid, guid)
 
+    def test_list_by_company_guid(self):
+        model = self.make_one(self.session)
+        # Following code basicly crerates another company with records 
+        # like this:
+        #
+        #     + Company (other)
+        #         + Customer1 (shared by two subscriptions)
+        #         + Plan1
+        #             + Subscription1
+        #                 + Transaction1
+        #         + Plan2
+        #             + Subscription2
+        #                 + Transaction2
+        #
+        with db_transaction.manager:
+            other_company_guid = self.company_model.create('my_secret_key')
+            other_plan_guid1 = self.plan_model.create(
+                company_guid=other_company_guid,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=10,
+                frequency=self.plan_model.FREQ_MONTHLY,
+            )
+            other_plan_guid2 = self.plan_model.create(
+                company_guid=other_company_guid,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=10,
+                frequency=self.plan_model.FREQ_MONTHLY,
+            )
+            other_customer_guid = self.customer_model.create(
+                company_guid=other_company_guid,
+            )
+            other_subscription_guid1 = self.subscription_model.create(
+                customer_guid=other_customer_guid,
+                plan_guid=other_plan_guid1,
+                payment_uri='/v1/cards/tester',
+            )
+            other_subscription_guid2 = self.subscription_model.create(
+                customer_guid=other_customer_guid,
+                plan_guid=other_plan_guid2,
+                payment_uri='/v1/cards/tester',
+            )
+        with db_transaction.manager:
+            other_guid1 = model.create(
+                subscription_guid=other_subscription_guid1,
+                transaction_type=model.TYPE_CHARGE,
+                amount=10,
+                payment_uri='/v1/cards/tester',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+            other_guid2 = model.create(
+                subscription_guid=other_subscription_guid2,
+                transaction_type=model.TYPE_CHARGE,
+                amount=10,
+                payment_uri='/v1/cards/tester',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+        # Following code basicly crerates our records under default company
+        # like this:
+        #
+        #     + Company (default)
+        #         + Customer1
+        #         + Plan1
+        #             + Subscription1
+        #                 + Transaction1
+        #                 + Transaction2
+        #                 + Transaction3
+        #
+        with db_transaction.manager:
+            guid1 = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=10,
+                payment_uri='/v1/cards/tester',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+            guid2 = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=10,
+                payment_uri='/v1/cards/tester',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+            guid3 = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=10,
+                payment_uri='/v1/cards/tester',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+        result_guids = [tx.guid for tx in 
+                        model.list_by_company_guid(self.company_guid)]
+        self.assertEqual(set(result_guids), set([guid1, guid2, guid3]))
+        result_guids = [tx.guid for tx in 
+                        model.list_by_company_guid(other_company_guid)]
+        self.assertEqual(set(result_guids), set([other_guid1, other_guid2]))
+
+    def test_list_by_company_guid_with_offset_limit(self):
+        model = self.make_one(self.session)
+        guids = []
+        with db_transaction.manager:
+            for i in range(10):
+                guid = model.create(
+                    subscription_guid=self.subscription_guid,
+                    transaction_type=model.TYPE_CHARGE,
+                    amount=10 * i,
+                    payment_uri='/v1/cards/tester',
+                    scheduled_at=datetime.datetime.utcnow(),
+                )
+                guids.append(guid)
+
+        def assert_list(offset, limit, expected):
+            result = model.list_by_company_guid(
+                self.company_guid, 
+                offset=offset, 
+                limit=limit,
+            )
+            result_guids = [tx.guid for tx in result]
+            self.assertEqual(set(result_guids), set(expected))
+        assert_list(0, 0, [])
+        assert_list(10, 10, [])
+        assert_list(0, 10, guids)
+        assert_list(0, 1, guids[:1])
+        assert_list(1, 1, guids[1:2])
+        assert_list(5, 1000, guids[5:])
+        assert_list(5, 10, guids[5:])
+
     def test_create(self):
         model = self.make_one(self.session)
 

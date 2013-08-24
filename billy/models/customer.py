@@ -35,10 +35,13 @@ class CustomerModel(object):
         """Create a customer and return its id
 
         """
+        now = tables.now_func()
         customer = tables.Customer(
             guid='CU' + make_guid(),
             company_guid=company_guid,
             external_id=external_id, 
+            created_at=now,
+            updated_at=now,
         )
         self.session.add(customer)
         self.session.flush()

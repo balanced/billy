@@ -82,6 +82,7 @@ class TransactionModel(object):
                 raise ValueError('Cannot set refund_to_guid to a refund '
                                  'transaction')
 
+        now = tables.now_func()
         transaction = tables.Transaction(
             guid='TX' + make_guid(),
             subscription_guid=subscription_guid,
@@ -91,6 +92,8 @@ class TransactionModel(object):
             status=self.STATUS_INIT, 
             scheduled_at=scheduled_at, 
             refund_to_guid=refund_to_guid, 
+            created_at=now, 
+            updated_at=now, 
         )
         self.session.add(transaction)
         self.session.flush()

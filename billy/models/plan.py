@@ -73,6 +73,7 @@ class PlanModel(object):
             raise ValueError('Invalid frequency {}'.format(frequency))
         if interval < 1:
             raise ValueError('Interval can only be >= 1')
+        now = tables.now_func()
         plan = tables.Plan(
             guid='PL' + make_guid(),
             company_guid=company_guid,
@@ -83,6 +84,8 @@ class PlanModel(object):
             external_id=external_id, 
             name=name, 
             description=description,
+            updated_at=now,
+            created_at=now,
         )
         self.session.add(plan)
         self.session.flush()

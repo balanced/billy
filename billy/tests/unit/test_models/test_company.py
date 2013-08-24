@@ -3,6 +3,7 @@ import datetime
 
 import transaction
 from freezegun import freeze_time
+from flexmock import flexmock
 
 from billy.tests.unit.helper import ModelTestCase
 
@@ -76,6 +77,26 @@ class TestCompanyModel(ModelTestCase):
         self.assertEqual(company.deleted, False)
         self.assertEqual(company.created_at, now)
         self.assertEqual(company.updated_at, now)
+
+    def test_create_different_created_updated_time(self):
+        from billy.models import tables
+        model = self.make_one(self.session)
+
+        results = [
+            datetime.datetime(2013, 8, 16, 1),
+            datetime.datetime(2013, 8, 16, 2),
+        ]
+
+        def mock_utcnow():
+            return results.pop(0)
+
+        tables.set_now_func(mock_utcnow)
+
+        with transaction.manager:
+            guid = model.create('my_secret_key')
+
+        company = model.get(guid)
+        self.assertEqual(company.created_at, company.updated_at)
 
     def test_update(self):
         model = self.make_one(self.session)

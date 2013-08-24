@@ -46,11 +46,14 @@ class CompanyModel(object):
         """Create a company and return its id
 
         """
+        now = tables.now_func()
         company = tables.Company(
             guid='CP' + make_guid(),
             processor_key=processor_key,
             api_key=make_api_key(),
             name=name, 
+            created_at=now,
+            updated_at=now,
         )
         self.session.add(company)
         self.session.flush()

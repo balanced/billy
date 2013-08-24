@@ -98,6 +98,32 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.created_at, now)
         self.assertEqual(transaction.updated_at, now)
 
+    def test_create_different_created_updated_time(self):
+        from billy.models import tables
+        model = self.make_one(self.session)
+
+        results = [
+            datetime.datetime(2013, 8, 16, 1),
+            datetime.datetime(2013, 8, 16, 2),
+        ]
+
+        def mock_utcnow():
+            return results.pop(0)
+
+        tables.set_now_func(mock_utcnow)
+
+        with db_transaction.manager:
+            guid = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=100,
+                payment_uri='/v1/cards/tester',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+
+        transaction = model.get(guid)
+        self.assertEqual(transaction.created_at, transaction.updated_at)
+
     def test_create_refund(self):
         model = self.make_one(self.session)
 

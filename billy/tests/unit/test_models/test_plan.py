@@ -87,6 +87,31 @@ class TestPlanModel(ModelTestCase):
         self.assertEqual(plan.created_at, now)
         self.assertEqual(plan.updated_at, now)
 
+    def test_create_different_created_updated_time(self):
+        from billy.models import tables
+        model = self.make_one(self.session)
+
+        results = [
+            datetime.datetime(2013, 8, 16, 1),
+            datetime.datetime(2013, 8, 16, 2),
+        ]
+
+        def mock_utcnow():
+            return results.pop(0)
+
+        tables.set_now_func(mock_utcnow)
+
+        with transaction.manager:
+            guid = model.create(
+                company_guid=self.company_guid,
+                plan_type=model.TYPE_CHARGE,
+                amount=999,
+                frequency=model.FREQ_MONTHLY,
+            )
+
+        plan = model.get(guid)
+        self.assertEqual(plan.created_at, plan.updated_at)
+
     def test_create_with_zero_interval(self):
         model = self.make_one(self.session)
 

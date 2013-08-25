@@ -22,7 +22,7 @@ def usage(argv):
     sys.exit(1)
 
 
-def main(argv=sys.argv):
+def main(argv=sys.argv, processor=None):
     logger = logging.getLogger(__name__)
 
     if len(argv) != 2:
@@ -35,7 +35,8 @@ def main(argv=sys.argv):
     session = settings['session']
     subscription_model = SubscriptionModel(session)
     tx_model = TransactionModel(session)
-    processor = BalancedProcessor()
+    if processor is None:
+        processor = BalancedProcessor()
 
     with db_transaction.manager:
         logger.info('Yielding transaction ...')

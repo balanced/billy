@@ -151,7 +151,7 @@ class TestProcessTransactions(unittest.TestCase):
         # And the time is not advanced, so we should only have two transactions
         # to be yielded and processed. However, we assume bad thing happens
         # durring the process. We let the second call to charge of processor 
-        # raise a KeyboardInterrupt error. So, it would looks like this
+        # raises a KeyboardInterrupt error. So, it would look like this
         #
         #   charge for transaction from Subscription1
         #   charge for transaction from Subscription2 (Crash)

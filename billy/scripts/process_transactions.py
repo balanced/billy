@@ -38,9 +38,13 @@ def main(argv=sys.argv, processor=None):
     if processor is None:
         processor = BalancedProcessor()
 
+    # yield all transactions and commit before we process them, so that
+    # we won't double process them. 
     with db_transaction.manager:
         logger.info('Yielding transaction ...')
         subscription_model.yield_transactions()
+
+    with db_transaction.manager:
         logger.info('Processing transaction ...')
         tx_model.process_transactions(processor)
     logger.info('Done')

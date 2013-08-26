@@ -62,15 +62,13 @@ class TransactionModel(object):
         Transaction = tables.Transaction
         Subscription = tables.Subscription
         Plan = tables.Plan
-        Company = tables.Company
         query = (
             self.session
             .query(Transaction)
             .join((Subscription, 
                    Subscription.guid == Transaction.subscription_guid))
             .join((Plan, Plan.guid == Subscription.plan_guid))
-            .join((Company, Company.guid == Plan.company_guid))
-            .filter(Company.guid == company_guid)
+            .filter(Plan.company_guid == company_guid)
         )
         if offset is not None:
             query = query.offset(offset)
@@ -144,7 +142,8 @@ class TransactionModel(object):
 
         """
         if transaction.status == self.STATUS_DONE:
-            raise ValueError('Cannot process a finished transaction')
+            raise ValueError('Cannot process a finished transaction {}'
+                             .format(transaction.guid))
         self.logger.debug('Processing transaction %s', transaction.guid)
         now = tables.now_func()
         customer = transaction.subscription.customer

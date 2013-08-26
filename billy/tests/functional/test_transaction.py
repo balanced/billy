@@ -107,6 +107,46 @@ class TestTransactionViews(ViewTestCase):
             status=403,
         )
 
+    def test_transaction_list_by_subscription(self):
+        from billy.models.transaction import TransactionModel
+        transaction_model = TransactionModel(self.testapp.session)
+        guids1 = [self.transaction_guid]
+        with db_transaction.manager:
+            # create 4 transactions
+            for i in range(4):
+                guid = transaction_model.create(
+                    subscription_guid=self.subscription_guid,
+                    transaction_type=transaction_model.TYPE_CHARGE,
+                    amount=10 * i,
+                    payment_uri='/v1/cards/tester',
+                    scheduled_at=datetime.datetime.utcnow(),
+                )
+                guids1.append(guid)
+            # create 6 transaction for another subscription
+            self.subscription_guid2 = subscription_model.create(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+            )
+            for i in range(6):
+                guid = transaction_model.create(
+                    subscription_guid=subscription_guid2,
+                    transaction_type=transaction_model.TYPE_CHARGE,
+                    amount=10 * i,
+                    payment_uri='/v1/cards/tester',
+                    scheduled_at=datetime.datetime.utcnow(),
+                )
+                guids2.append(guid)
+        res = self.testapp.get(
+            '/v1/transactions/?offset=5&limit=3',
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.assertEqual(res.json['offset'], 5)
+        self.assertEqual(res.json['limit'], 3)
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(set(result_guids), set(guids[5:8]))
+
     def test_get_transaction_with_different_types(self):
         from billy.models.transaction import TransactionModel
         transaction_model = TransactionModel(self.testapp.session)

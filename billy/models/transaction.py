@@ -76,6 +76,22 @@ class TransactionModel(object):
             query = query.limit(limit)
         return query
 
+    def list_by_subscription_guid(self, subscription_guid, offset=None, limit=None):
+        """Get transactions of a subscription by given guid
+
+        """
+        Transaction = tables.Transaction
+        query = (
+            self.session
+            .query(Transaction)
+            .filter(Transaction.subscription_guid == subscription_guid)
+        )
+        if offset is not None:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+        return query
+
     def create(
         self, 
         subscription_guid, 

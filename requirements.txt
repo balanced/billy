@@ -8,3 +8,4 @@ waitress==0.8.6
 pyramid_debugtoolbar==1.0.6
 pyramid_tm==0.7
 iso8601==0.1.4
+pytz==2013b

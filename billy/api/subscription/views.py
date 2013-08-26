@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import pytz
 import iso8601
 import transaction as db_transaction
 from pyramid.view import view_config
@@ -30,7 +31,9 @@ def subscription_list_post(request):
     started_at = request.params.get('started_at')
     if started_at is not None:
         started_at = iso8601.parse_date(started_at)
-        # TODO: what if it is not in UTC timezone?
+        # convert it to UTC and naive
+        started_at = started_at.astimezone(pytz.utc)
+        started_at = started_at.replace(tzinfo=None)
 
     customer = customer_model.get(customer_guid)
     if customer.company_guid != company.guid:

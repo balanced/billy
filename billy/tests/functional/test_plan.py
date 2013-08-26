@@ -96,11 +96,6 @@ class TestPlanViews(ViewTestCase):
         assert_bad_parameters(dict(
             plan_type='charge',
             frequency='weekly',
-            amount='0',
-        ))
-        assert_bad_parameters(dict(
-            plan_type='charge',
-            frequency='weekly',
             amount='-123',
         ))
         assert_bad_parameters(dict(
@@ -121,6 +116,24 @@ class TestPlanViews(ViewTestCase):
             amount='55.66',
             interval='-123',
         ))
+
+    def test_create_plan_with_empty_interval(self):
+        # TODO: this case is a little bit strange, empty interval string
+        # value should result in the default interval 1, however, WTForms
+        # will yield None in this case, so we need to deal it specifically.
+        # not sure is it a bug of WTForm, maybe we should workaround this later
+        res = self.testapp.post(
+            '/v1/plans/',
+            dict(
+                plan_type='charge',
+                amount='55.66',
+                frequency='weekly',
+                interval='',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.assertEqual(res.json['interval'], 1)
 
     def test_create_plan_with_different_types(self):
         def assert_plan_type(plan_type):

@@ -101,6 +101,29 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(subscription.created_at, now)
         self.assertEqual(subscription.updated_at, now)
 
+    def test_create_different_created_updated_time(self):
+        from billy.models import tables
+        model = self.make_one(self.session)
+
+        results = [
+            datetime.datetime(2013, 8, 16, 1),
+            datetime.datetime(2013, 8, 16, 2),
+        ]
+
+        def mock_utcnow():
+            return results.pop(0)
+
+        tables.set_now_func(mock_utcnow)
+
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+            )
+
+        subscription = model.get(guid)
+        self.assertEqual(subscription.created_at, subscription.updated_at)
+
     def test_create_with_started_at(self):
         model = self.make_one(self.session)
         customer_guid = self.customer_tom_guid
@@ -117,6 +140,16 @@ class TestSubscriptionModel(ModelTestCase):
         subscription = model.get(guid)
         self.assertEqual(subscription.guid, guid)
         self.assertEqual(subscription.started_at, started_at)
+
+    def test_create_with_past_started_at(self):
+        model = self.make_one(self.session)
+        started_at = datetime.datetime.utcnow() - datetime.timedelta(days=1)
+        with self.assertRaises(ValueError):
+            model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+                started_at=started_at
+            )
 
     def test_create_with_bad_amount(self):
         model = self.make_one(self.session)

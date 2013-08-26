@@ -52,9 +52,11 @@ class SubscriptionModel(object):
         """
         if amount is not None and amount <= 0:
             raise ValueError('Amount should be a non-zero postive float number')
+        now = tables.now_func()
         if started_at is None:
-            started_at = tables.now_func()
-        # TODO: should we allow a past started_at value?
+            started_at = now
+        elif started_at < now:
+            raise ValueError('Past started_at time is not allowed')
         subscription = tables.Subscription(
             guid='SU' + make_guid(),
             customer_guid=customer_guid,
@@ -64,6 +66,8 @@ class SubscriptionModel(object):
             external_id=external_id, 
             started_at=started_at, 
             next_transaction_at=started_at, 
+            created_at=now,
+            updated_at=now,
         )
         self.session.add(subscription)
         self.session.flush()

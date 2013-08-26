@@ -13,7 +13,6 @@ from pyramid.path import DottedNameResolver
 from billy.models import setup_database
 from billy.models.subscription import SubscriptionModel
 from billy.models.transaction import TransactionModel
-from billy.models.processors.balanced_payments import BalancedProcessor
 
 
 def usage(argv):

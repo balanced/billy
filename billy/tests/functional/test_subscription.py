@@ -63,6 +63,18 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(res.json['customer_guid'], customer_guid)
         self.assertEqual(res.json['plan_guid'], plan_guid)
 
+    def test_create_subscription_with_past_started_at(self):
+        self.testapp.post(
+            '/v1/subscriptions/',
+            dict(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+                started_at='2013-08-15T23:59:59Z',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
+
     def test_create_subscription_with_bad_parameters(self):
         def assert_bad_parameters(params):
             self.testapp.post(

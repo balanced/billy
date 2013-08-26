@@ -8,6 +8,7 @@ from wtforms import DecimalField
 from wtforms import Field
 from wtforms import validators
 
+from billy.models import tables
 from billy.models.customer import CustomerModel
 from billy.models.plan import PlanModel
 from billy.api.utils import RecordExistValidator
@@ -31,6 +32,24 @@ class ISO8601Field(Field):
         self.data = self.data.replace(tzinfo=None)
 
 
+class NoPastValidator(object):
+    """Make sure a datetime is not in past
+
+    """
+
+    def __init__(self, now_func=tables.now_func):
+        self.now_func = now_func
+
+    def __call__(self, form, field):
+        if not field.data:
+            return
+        now = self.now_func()
+        if field.data < now:
+            msg = field.gettext('Datetime {} in the past is not allowed'
+                                .format(field.data))
+            raise ValueError(msg)
+
+
 class SubscriptionCreateForm(Form):
     customer_guid = TextField('Customer GUID', [
         validators.Required(),
@@ -47,4 +66,5 @@ class SubscriptionCreateForm(Form):
     ])
     started_at = ISO8601Field('Started at datetime', [
         validators.Optional(),
+        NoPastValidator(),
     ])

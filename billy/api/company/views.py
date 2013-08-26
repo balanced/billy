@@ -7,6 +7,8 @@ from pyramid.httpexceptions import HTTPForbidden
 
 from billy.models.company import CompanyModel
 from billy.api.auth import auth_api_key
+from billy.api.utils import validate_form
+from .forms import CompanyCreateForm
 
 
 @view_config(route_name='company_list', 
@@ -26,9 +28,11 @@ def company_list_post(request):
     """Create a new company
 
     """
+    form = validate_form(CompanyCreateForm, request)
+    processor_key = form.data['processor_key']
+
     model = CompanyModel(request.session)
     # TODO: do validation here
-    processor_key = request.params['processor_key']
     with db_transaction.manager:
         guid = model.create(processor_key=processor_key)
     company = model.get(guid)

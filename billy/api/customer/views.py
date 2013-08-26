@@ -7,6 +7,8 @@ from pyramid.httpexceptions import HTTPForbidden
 
 from billy.models.customer import CustomerModel
 from billy.api.auth import auth_api_key
+from billy.api.utils import validate_form
+from .forms import CustomerCreateForm
 
 
 @view_config(route_name='customer_list', 
@@ -27,10 +29,13 @@ def customer_list_post(request):
 
     """
     company = auth_api_key(request)
+    form = validate_form(CustomerCreateForm, request)
+    
+    external_id = form.data.get('external_id')
+    company_guid = company.guid
+
     model = CustomerModel(request.session)
     # TODO: do validation here
-    external_id = request.params.get('external_id')
-    company_guid = company.guid
     with db_transaction.manager:
         guid = model.create(
             external_id=external_id,

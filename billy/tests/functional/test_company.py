@@ -25,6 +25,12 @@ class TestCompanyViews(ViewTestCase):
         self.assertEqual(res.json['created_at'], now_iso)
         self.assertEqual(res.json['updated_at'], now_iso)
 
+    def test_create_company_with_bad_parameters(self):
+        self.testapp.post(
+            '/v1/companies/', 
+            status=400,
+        )
+
     def test_get_company(self):
         processor_key = 'MOCK_PROCESSOR_KEY'
         res = self.testapp.post(

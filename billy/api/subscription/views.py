@@ -20,10 +20,6 @@ def subscription_list_post(request):
     """Create a new subscription 
 
     """
-    model = SubscriptionModel(request.session)
-    plan_model = PlanModel(request.session)
-    customer_model = CustomerModel(request.session)
-
     company = auth_api_key(request)
     form = validate_form(SubscriptionCreateForm, request)
 
@@ -31,6 +27,10 @@ def subscription_list_post(request):
     plan_guid = form.data['plan_guid']
     amount = form.data.get('amount')
     started_at = form.data.get('started_at')
+
+    model = SubscriptionModel(request.session)
+    plan_model = PlanModel(request.session)
+    customer_model = CustomerModel(request.session)
 
     customer = customer_model.get(customer_guid)
     if customer.company_guid != company.guid:

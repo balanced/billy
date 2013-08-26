@@ -63,6 +63,61 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(res.json['customer_guid'], customer_guid)
         self.assertEqual(res.json['plan_guid'], plan_guid)
 
+    def test_create_subscription_with_bad_parameters(self):
+        self.testapp.post(
+            '/v1/subscriptions/',
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
+        self.testapp.post(
+            '/v1/subscriptions/',
+            dict(
+                customer_guid=self.customer_guid,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
+        self.testapp.post(
+            '/v1/subscriptions/',
+            dict(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+                amount='BAD_AMOUNT',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
+        self.testapp.post(
+            '/v1/subscriptions/',
+            dict(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+                amount='-123.45',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
+        self.testapp.post(
+            '/v1/subscriptions/',
+            dict(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+                amount='0',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
+        self.testapp.post(
+            '/v1/subscriptions/',
+            dict(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+                started_at='BAD_DATETIME',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
+
     def test_create_subscription_with_started_at(self):
         customer_guid = self.customer_guid
         plan_guid = self.plan_guid

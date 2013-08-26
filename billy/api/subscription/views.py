@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 
-import pytz
-import iso8601
 import transaction as db_transaction
 from pyramid.view import view_config
 from pyramid.httpexceptions import HTTPNotFound
@@ -11,6 +9,8 @@ from billy.models.customer import CustomerModel
 from billy.models.plan import PlanModel
 from billy.models.subscription import SubscriptionModel 
 from billy.api.auth import auth_api_key
+from billy.api.utils import validate_form
+from .forms import SubscriptionCreateForm
 
 
 @view_config(route_name='subscription_list', 
@@ -20,20 +20,17 @@ def subscription_list_post(request):
     """Create a new subscription 
 
     """
-    company = auth_api_key(request)
     model = SubscriptionModel(request.session)
     plan_model = PlanModel(request.session)
     customer_model = CustomerModel(request.session)
-    # TODO: do validation here
-    customer_guid = request.params['customer_guid']
-    plan_guid = request.params['plan_guid']
-    amount = request.params.get('amount')
-    started_at = request.params.get('started_at')
-    if started_at is not None:
-        started_at = iso8601.parse_date(started_at)
-        # convert it to UTC and naive
-        started_at = started_at.astimezone(pytz.utc)
-        started_at = started_at.replace(tzinfo=None)
+
+    company = auth_api_key(request)
+    form = validate_form(SubscriptionCreateForm, request)
+
+    customer_guid = form.data['customer_guid']
+    plan_guid = form.data['plan_guid']
+    amount = form.data.get('amount')
+    started_at = form.data.get('started_at')
 
     customer = customer_model.get(customer_guid)
     if customer.company_guid != company.guid:
@@ -52,7 +49,7 @@ def subscription_list_post(request):
         model.yield_transactions([guid])
         # TODO: process transactions right away?
     subscription = model.get(guid)
-    return subscription 
+    return subscription
 
 
 @view_config(route_name='subscription', 

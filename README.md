@@ -52,7 +52,7 @@ process_billy_tx development.ini
 
 You can setup a crontab job to run the process_billy_tx periodically.
 
-## Running Tests
+## Running Unit and Functional Tests
 
 To run tests, after installing billy project and all dependencies, you need
 to install dependencies for testing, here you type:
@@ -71,4 +71,22 @@ or, if you prefer run specific tests, you can run
 
 ```
 nosetests billy/tests/functional
+```
+
+## Running Integration Tests
+
+To run integration tests, here you type
+
+```
+nosetests billy/tests/integration
+```
+
+The default testing target URL is `http://127.0.0.1:6543`, to modify it, you can 
+set environment variable `BILLY_TEST_URL`. To change balanced API key, you can set
+`BILLY_TEST_PROCESSOR_KEY` variable. For example
+
+```
+export BILLY_TEST_URL=http://example-billy-api.com
+export BILLY_TEST_PROCESSOR_KEY=MY_SECRET_KEY_HERE
+nosetests billy/tests/integration
 ```

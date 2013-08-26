@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import iso8601
 import transaction as db_transaction
 from pyramid.view import view_config
 from pyramid.httpexceptions import HTTPNotFound
@@ -26,7 +27,10 @@ def subscription_list_post(request):
     customer_guid = request.params['customer_guid']
     plan_guid = request.params['plan_guid']
     amount = request.params.get('amount')
-    # TODO: add started at parameter
+    started_at = request.params.get('started_at')
+    if started_at is not None:
+        started_at = iso8601.parse_date(started_at)
+        # TODO: what if it is not in UTC timezone?
 
     customer = customer_model.get(customer_guid)
     if customer.company_guid != company.guid:
@@ -40,6 +44,7 @@ def subscription_list_post(request):
             customer_guid=customer_guid, 
             plan_guid=plan_guid, 
             amount=amount, 
+            started_at=started_at, 
         )
         model.yield_transactions([guid])
         # TODO: process transactions right away?

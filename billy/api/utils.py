@@ -32,7 +32,26 @@ def validate_form(form_cls, request):
 
     """
     form = form_cls(request.params)
+    # Notice: this make validators can query to database
+    form.session = request.session
     validation_result = form.validate()
     if not validation_result:
         raise form_errors_to_bad_request(form.errors)
     return form
+
+
+class RecordExistValidator(object):
+    """This validator make sure there is a record exists for a given GUID
+
+    """
+
+    def __init__(self, model_cls):
+        self.model_cls = model_cls
+
+    def __call__(self, form, field):
+        # Notice: we should set form.session before we call validate
+        model = self.model_cls(form.session)
+        if model.get(field.data) is None:
+            msg = field.gettext('No such {} record {}'
+                                .format(self.model_cls.__name__, field.data))
+            raise ValueError(msg)

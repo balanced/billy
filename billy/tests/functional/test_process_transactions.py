@@ -40,12 +40,17 @@ class TestProcessTransactions(unittest.TestCase):
 
     def test_main(self):
         from billy.models.transaction import TransactionModel
+        from billy.models.processors.balanced_payments import BalancedProcessor
         from billy.scripts import initializedb
         from billy.scripts import process_transactions
+
+        def mock_process_transactions(processor):
+            self.assertIsInstance(processor, BalancedProcessor)
 
         (
             flexmock(TransactionModel)
             .should_receive('process_transactions')
+            .replace_with(mock_process_transactions)
             .once()
         )
 
@@ -56,6 +61,7 @@ class TestProcessTransactions(unittest.TestCase):
             use = egg:billy
 
             sqlalchemy.url = sqlite:///%(here)s/billy.sqlite
+            billy.processor_factory = billy.models.processors.balanced_payments.BalancedProcessor
             """))
         initializedb.main([initializedb.__file__, cfg_path])
         process_transactions.main([process_transactions.__file__, cfg_path])

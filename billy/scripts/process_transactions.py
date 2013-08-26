@@ -8,6 +8,7 @@ from pyramid.paster import (
     get_appsettings,
     setup_logging,
 )
+from pyramid.path import DottedNameResolver
 
 from billy.models import setup_database
 from billy.models.subscription import SubscriptionModel
@@ -35,8 +36,12 @@ def main(argv=sys.argv, processor=None):
     session = settings['session']
     subscription_model = SubscriptionModel(session)
     tx_model = TransactionModel(session)
+
+    resolver = DottedNameResolver()
     if processor is None:
-        processor = BalancedProcessor()
+        processor_factory = settings['billy.processor_factory']
+        processor_factory = resolver.maybe_resolve(processor_factory)
+        processor = processor_factory()
 
     # yield all transactions and commit before we process them, so that
     # we won't double process them. 

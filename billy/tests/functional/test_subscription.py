@@ -40,6 +40,9 @@ class TestSubscriptionViews(ViewTestCase):
         amount = '55.66'
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat()
+        # next week
+        next_transaction_at = datetime.datetime(2013, 8, 23)
+        next_iso = next_transaction_at.isoformat()
 
         res = self.testapp.post(
             '/v1/subscriptions/',
@@ -54,8 +57,8 @@ class TestSubscriptionViews(ViewTestCase):
         self.failUnless('guid' in res.json)
         self.assertEqual(res.json['created_at'], now_iso)
         self.assertEqual(res.json['updated_at'], now_iso)
-        self.assertEqual(res.json['next_transaction_at'], now_iso)
-        self.assertEqual(res.json['period'], 0)
+        self.assertEqual(res.json['next_transaction_at'], next_iso)
+        self.assertEqual(res.json['period'], 1)
         self.assertEqual(res.json['amount'], amount)
         self.assertEqual(res.json['customer_guid'], customer_guid)
         self.assertEqual(res.json['plan_guid'], plan_guid)

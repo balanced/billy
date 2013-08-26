@@ -41,7 +41,8 @@ def subscription_list_post(request):
             plan_guid=plan_guid, 
             amount=amount, 
         )
-    # TODO: yield transaction and handle right away?
+        model.yield_transactions([guid])
+        # TODO: process transactions right away?
     subscription = model.get(guid)
     return subscription 
 

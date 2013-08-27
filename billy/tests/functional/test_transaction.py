@@ -81,14 +81,15 @@ class TestTransactionViews(ViewTestCase):
         guids = [self.transaction_guid]
         with db_transaction.manager:
             for i in range(9):
-                guid = transaction_model.create(
-                    subscription_guid=self.subscription_guid,
-                    transaction_type=transaction_model.TYPE_CHARGE,
-                    amount=10 * i,
-                    payment_uri='/v1/cards/tester',
-                    scheduled_at=datetime.datetime.utcnow(),
-                )
-                guids.append(guid)
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    guid = transaction_model.create(
+                        subscription_guid=self.subscription_guid,
+                        transaction_type=transaction_model.TYPE_CHARGE,
+                        amount=10 * i,
+                        payment_uri='/v1/cards/tester',
+                        scheduled_at=datetime.datetime.utcnow(),
+                    )
+                    guids.append(guid)
         res = self.testapp.get(
             '/v1/transactions/?offset=5&limit=3',
             extra_environ=dict(REMOTE_USER=self.api_key), 

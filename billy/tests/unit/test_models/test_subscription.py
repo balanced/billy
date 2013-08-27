@@ -468,12 +468,14 @@ class TestSubscriptionModel(ModelTestCase):
         sub_tx_guids = [tx.guid for tx in subscription.transactions]
         self.assertEqual(set(tx_guids), set(sub_tx_guids))
 
+        from billy.models import tables
+        q = self.session.query(tables.Transaction).filter_by(subscription_guid=guid)
         tx_dates = [tx.scheduled_at for tx in subscription.transactions]
-        self.assertEqual(tx_dates, [
+        self.assertEqual(set(tx_dates), set([
             datetime.datetime(2013, 8, 16),
             datetime.datetime(2013, 9, 16),
             datetime.datetime(2013, 10, 16),
-        ])
+        ]))
 
     def test_yield_transactions_with_amount_overwrite(self):
         model = self.make_one(self.session)

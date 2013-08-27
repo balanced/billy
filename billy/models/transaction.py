@@ -69,6 +69,7 @@ class TransactionModel(object):
                    Subscription.guid == Transaction.subscription_guid))
             .join((Plan, Plan.guid == Subscription.plan_guid))
             .filter(Plan.company_guid == company_guid)
+            .order_by(Transaction.created_at.asc())
         )
         if offset is not None:
             query = query.offset(offset)

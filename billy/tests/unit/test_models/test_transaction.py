@@ -166,14 +166,15 @@ class TestTransactionModel(ModelTestCase):
         guids = []
         with db_transaction.manager:
             for i in range(10):
-                guid = model.create(
-                    subscription_guid=self.subscription_guid,
-                    transaction_type=model.TYPE_CHARGE,
-                    amount=10 * i,
-                    payment_uri='/v1/cards/tester',
-                    scheduled_at=datetime.datetime.utcnow(),
-                )
-                guids.append(guid)
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i)):
+                    guid = model.create(
+                        subscription_guid=self.subscription_guid,
+                        transaction_type=model.TYPE_CHARGE,
+                        amount=10 * i,
+                        payment_uri='/v1/cards/tester',
+                        scheduled_at=datetime.datetime.utcnow(),
+                    )
+                    guids.append(guid)
 
         def assert_list(offset, limit, expected):
             result = model.list_by_company_guid(

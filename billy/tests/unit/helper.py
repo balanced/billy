@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import os
 import unittest
 import datetime
 
@@ -17,9 +18,10 @@ def create_session(echo=False):
     from sqlalchemy.orm import sessionmaker
     from zope.sqlalchemy import ZopeTransactionExtension
     from billy.models.tables import DeclarativeBase
-    engine = create_engine('sqlite:///', convert_unicode=True, echo=echo)
+    db_url = os.environ.get('BILLY_UNIT_TEST_DB', 'sqlite:///')
+    engine = create_engine(db_url, convert_unicode=True, echo=echo)
     DeclarativeBase.metadata.bind = engine
-    DeclarativeBase.metadata.create_all(bind=engine)
+    DeclarativeBase.metadata.create_all()
 
     DBSession = scoped_session(sessionmaker(
         autocommit=False,
@@ -40,4 +42,5 @@ class ModelTestCase(unittest.TestCase):
     def tearDown(self):
         from billy.models import tables
         self.session.remove()
+        tables.DeclarativeBase.metadata.drop_all()
         tables.set_now_func(self._old_now_func)

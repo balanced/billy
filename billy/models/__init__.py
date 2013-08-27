@@ -1,10 +1,13 @@
 from __future__ import unicode_literals
+import datetime
 
 from sqlalchemy import engine_from_config
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from zope.sqlalchemy import ZopeTransactionExtension
    
+from . import tables
+
 
 def setup_database(global_config, **settings):
     """Setup database
@@ -21,11 +24,5 @@ def setup_database(global_config, **settings):
             bind=settings['engine']
         ))
 
-    # SQLite does not support utc_timestamp function, therefore, we need to
-    # replace it with utcnow of datetime here
-    if settings['engine'].name == 'sqlite':
-        import datetime
-        from . import tables
-        tables.set_now_func(datetime.datetime.utcnow)
-        
+    tables.set_now_func(datetime.datetime.utcnow)
     return settings

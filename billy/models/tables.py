@@ -59,9 +59,9 @@ class Company(DeclarativeBase):
     #: is this company deleted?
     deleted = Column(Boolean, default=False, nullable=False)
     #: the created datetime of this company
-    created_at = Column(DateTime(timezone=True), default=now_func)
+    created_at = Column(DateTime, default=now_func)
     #: the updated datetime of this company
-    updated_at = Column(DateTime(timezone=True), default=now_func)
+    updated_at = Column(DateTime, default=now_func)
 
     #: plans of this company
     plans = relationship('Plan', cascade='all, delete-orphan', backref='company')
@@ -91,9 +91,9 @@ class Customer(DeclarativeBase):
     #: is this company deleted?
     deleted = Column(Boolean, default=False, nullable=False)
     #: the created datetime of this company
-    created_at = Column(DateTime(timezone=True), default=now_func)
+    created_at = Column(DateTime, default=now_func)
     #: the updated datetime of this company
-    updated_at = Column(DateTime(timezone=True), default=now_func)
+    updated_at = Column(DateTime, default=now_func)
 
     #: subscriptions of this customer
     subscriptions = relationship('Subscription', cascade='all, delete-orphan', backref='customer')
@@ -123,7 +123,7 @@ class Plan(DeclarativeBase):
     #: a short name of this plan
     name = Column(Unicode(128))
     #: a long description of this plan
-    description = Column(UnicodeText(1024))
+    description = Column(UnicodeText)
     #: the amount to bill user
     # TODO: make sure how many digi of number we need
     # TODO: Fix SQLite doesn't support decimal issue?
@@ -136,9 +136,9 @@ class Plan(DeclarativeBase):
     #: is this plan deleted?
     deleted = Column(Boolean, default=False, nullable=False)
     #: the created datetime of this plan
-    created_at = Column(DateTime(timezone=True), default=now_func)
+    created_at = Column(DateTime, default=now_func)
     #: the updated datetime of this plan
-    updated_at = Column(DateTime(timezone=True), default=now_func)
+    updated_at = Column(DateTime, default=now_func)
 
     #: subscriptions of this plan
     subscriptions = relationship('Subscription', cascade='all, delete-orphan', backref='plan')
@@ -180,17 +180,17 @@ class Subscription(DeclarativeBase):
     #: is this subscription canceled?
     canceled = Column(Boolean, default=False, nullable=False)
     #: the next datetime to charge or pay out
-    next_transaction_at = Column(DateTime(timezone=True), nullable=False)
+    next_transaction_at = Column(DateTime, nullable=False)
     #: how many transaction has been generated
     period = Column(Integer, nullable=False, default=0)
     #: the started datetime of this subscription
-    started_at = Column(DateTime(timezone=True), nullable=False)
+    started_at = Column(DateTime, nullable=False)
     #: the canceled datetime of this subscription 
-    canceled_at = Column(DateTime(timezone=True), default=None)
+    canceled_at = Column(DateTime, default=None)
     #: the created datetime of this subscription 
-    created_at = Column(DateTime(timezone=True), default=now_func)
+    created_at = Column(DateTime, default=now_func)
     #: the updated datetime of this subscription 
-    updated_at = Column(DateTime(timezone=True), default=now_func)
+    updated_at = Column(DateTime, default=now_func)
 
     #: transactions of this subscription
     transactions = relationship('Transaction', cascade='all, delete-orphan', 
@@ -241,11 +241,11 @@ class Transaction(DeclarativeBase):
     #: error message when failed
     error_message = Column(UnicodeText)
     #: the scheduled datetime of this transaction should be processed
-    scheduled_at = Column(DateTime(timezone=True), default=now_func)
+    scheduled_at = Column(DateTime, default=now_func)
     #: the created datetime of this subscription 
-    created_at = Column(DateTime(timezone=True), default=now_func)
+    created_at = Column(DateTime, default=now_func)
     #: the updated datetime of this subscription 
-    updated_at = Column(DateTime(timezone=True), default=now_func)
+    updated_at = Column(DateTime, default=now_func)
 
     #: target transaction of refund transaction
     refund_to = relationship(

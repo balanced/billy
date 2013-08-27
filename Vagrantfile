@@ -86,8 +86,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     chef.cookbooks_path = "chef/cookbooks"
     chef.add_recipe "billy"
 
-    # You may also specify custom JSON attributes:
-    # chef.json = { :mysql_password => "foo" }
+    chef.json = { 
+      :postgresql => {
+        :password => {
+          :postgres => "billie jean"
+        }
+      }
+    }
   end
 
   # Enable provisioning with chef server, specifying the chef server URL,

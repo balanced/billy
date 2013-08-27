@@ -23,5 +23,5 @@ def main(global_config, **settings):
     # provides api views
     config.include('.api')
 
-    config.scan()
+    config.scan(ignore=b'billy.tests')
     return config.make_wsgi_app()

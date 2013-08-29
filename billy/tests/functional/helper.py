@@ -11,11 +11,14 @@ class ViewTestCase(unittest.TestCase):
         from billy.models import setup_database
         from billy.models.tables import DeclarativeBase
 
+        if hasattr(self, 'settings'):
+            settings = self.settings
+        else:
+            settings = {}
+
         # init database
         db_url = os.environ.get('BILLY_FUNC_TEST_DB', 'sqlite://')
-        settings = {
-            'sqlalchemy.url': db_url
-        }
+        settings['sqlalchemy.url'] = db_url
         if hasattr(ViewTestCase, '_engine'):
             settings['engine'] = ViewTestCase._engine
         settings = setup_database({}, **settings)
@@ -35,4 +38,3 @@ class ViewTestCase(unittest.TestCase):
         from billy.models.tables import DeclarativeBase
         self.testapp.session.remove()
         DeclarativeBase.metadata.drop_all()
-

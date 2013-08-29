@@ -8,6 +8,7 @@ from pyramid.httpexceptions import HTTPForbidden
 from billy.models.customer import CustomerModel 
 from billy.models.plan import PlanModel
 from billy.models.subscription import SubscriptionModel 
+from billy.models.transaction import TransactionModel 
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
 from .forms import SubscriptionCreateForm
@@ -31,6 +32,7 @@ def subscription_list_post(request):
     model = SubscriptionModel(request.session)
     plan_model = PlanModel(request.session)
     customer_model = CustomerModel(request.session)
+    tx_model = TransactionModel(request.session)
 
     customer = customer_model.get(customer_guid)
     if customer.company_guid != company.guid:
@@ -39,6 +41,7 @@ def subscription_list_post(request):
     if plan.company_guid != company.guid:
         return HTTPForbidden('Can only subscribe to your own plan')
 
+    # create subscription and yield transactions
     with db_transaction.manager:
         guid = model.create(
             customer_guid=customer_guid, 
@@ -46,8 +49,12 @@ def subscription_list_post(request):
             amount=amount, 
             started_at=started_at, 
         )
-        model.yield_transactions([guid])
-        # TODO: process transactions right away?
+        tx_guids = model.yield_transactions([guid])
+    # this is not a deferred subscription, just process transactions right away
+    if started_at is None:
+        with db_transaction.manager:
+            tx_model.process_transactions(request.processor, tx_guids)
+
     subscription = model.get(guid)
     return subscription
 

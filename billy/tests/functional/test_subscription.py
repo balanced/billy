@@ -2,9 +2,25 @@ from __future__ import unicode_literals
 import datetime
 
 import transaction as db_transaction
+from flexmock import flexmock
 from freezegun import freeze_time
 
 from billy.tests.functional.helper import ViewTestCase
+
+
+class DummyProcessor(object):
+
+    def create_customer(self, customer):
+        pass
+
+    def prepare_customer(self, customer, payment_uri=None):
+        pass
+
+    def charge(self, transaction):
+        pass
+
+    def payout(self, transaction):
+        pass
 
 
 @freeze_time('2013-08-16')
@@ -14,6 +30,9 @@ class TestSubscriptionViews(ViewTestCase):
         from billy.models.company import CompanyModel
         from billy.models.customer import CustomerModel
         from billy.models.plan import PlanModel
+        self.settings = {
+            'billy.processor_factory': DummyProcessor
+        }
         super(TestSubscriptionViews, self).setUp()
         company_model = CompanyModel(self.testapp.session)
         customer_model = CustomerModel(self.testapp.session)
@@ -35,6 +54,9 @@ class TestSubscriptionViews(ViewTestCase):
         self.api_key = str(company.api_key)
 
     def test_create_subscription(self):
+        from billy.models.subscription import SubscriptionModel
+        from billy.models.transaction import TransactionModel
+
         customer_guid = self.customer_guid
         plan_guid = self.plan_guid
         amount = '55.66'
@@ -43,6 +65,27 @@ class TestSubscriptionViews(ViewTestCase):
         # next week
         next_transaction_at = datetime.datetime(2013, 8, 23)
         next_iso = next_transaction_at.isoformat()
+
+        def mock_charge(transaction):
+            self.assertEqual(transaction.subscription.customer_guid, 
+                             customer_guid)
+            self.assertEqual(transaction.subscription.plan_guid, 
+                             plan_guid)
+            return 'MOCK_PROCESSOR_TRANSACTION_ID'
+
+        mock_processor = flexmock(DummyProcessor)
+        (
+            mock_processor
+            .should_receive('create_customer')
+            .once()
+        )
+
+        (
+            mock_processor
+            .should_receive('charge')
+            .replace_with(mock_charge)
+            .once()
+        )
 
         res = self.testapp.post(
             '/v1/subscriptions/',
@@ -62,6 +105,14 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(res.json['amount'], amount)
         self.assertEqual(res.json['customer_guid'], customer_guid)
         self.assertEqual(res.json['plan_guid'], plan_guid)
+
+        subscription_model = SubscriptionModel(self.testapp.session)
+        subscription = subscription_model.get(res.json['guid'])
+        self.assertEqual(len(subscription.transactions), 1)
+        transaction = subscription.transactions[0]
+        self.assertEqual(transaction.external_id, 
+                         'MOCK_PROCESSOR_TRANSACTION_ID')
+        self.assertEqual(transaction.status, TransactionModel.STATUS_DONE)
 
     def test_create_subscription_with_past_started_at(self):
         self.testapp.post(

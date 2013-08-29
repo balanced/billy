@@ -197,7 +197,7 @@ class TransactionModel(object):
                          transaction.guid, transaction.status, 
                          transaction.external_id)
 
-    def process_transactions(self, processor):
+    def process_transactions(self, processor, guids=None):
         """Process all transactions 
 
         """
@@ -209,6 +209,8 @@ class TransactionModel(object):
                 self.STATUS_RETRYING]
             ))
         )
+        if guids is not None:
+            query = query.filter(Transaction.guid.in_(guids))
 
         processed_transaction_guids = []
         for transaction in query:

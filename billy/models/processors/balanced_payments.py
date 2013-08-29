@@ -26,14 +26,22 @@ class BalancedProcessor(PaymentProcessor):
         return cent
 
     def create_customer(self, customer):
+        # TODO: what about thread safty issue?
+        api_key = customer.company.processor_key
+        balanced.configure(api_key)
+
         self.logger.debug('Creating Balanced customer for %s', customer.guid)
         record = self.customer_cls(**{
             'meta.billy_customer_guid': customer.guid, 
         }).save()
         self.logger.info('Created Balanced customer for %s', customer.guid)
-        return record.id
+        return record.uri
 
     def prepare_customer(self, customer, payment_uri=None):
+        # TODO: what about thread safty issue?
+        api_key = customer.company.processor_key
+        balanced.configure(api_key)
+
         self.logger.debug('Preparing customer %s with payment_uri=%s', 
                           customer.guid, payment_uri)
         # when payment_uri is None, it means we are going to use the 
@@ -66,8 +74,8 @@ class BalancedProcessor(PaymentProcessor):
         method_name, 
         extra_kwargs
     ):
-        api_key = transaction.subscription.plan.company.processor_key
         # TODO: what about thread safty issue?
+        api_key = transaction.subscription.plan.company.processor_key
         balanced.configure(api_key)
         # make sure we won't duplicate debit
         try:
@@ -84,7 +92,7 @@ class BalancedProcessor(PaymentProcessor):
         if record is not None:
             self.logger.warn('Balanced transaction record for %s already '
                              'exist', transaction.guid)
-            return record.id
+            return record.uri
 
         # TODO: handle error here
         # get balanced customer record
@@ -106,7 +114,7 @@ class BalancedProcessor(PaymentProcessor):
         self.logger.debug('Calling %s with args %s', method.__name__, kwargs)
         record = method(**kwargs)
         self.logger.info('Called %s with args %s', method.__name__, kwargs)
-        return record.id
+        return record.uri
 
     def charge(self, transaction):
         extra_kwargs = {}

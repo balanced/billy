@@ -62,11 +62,21 @@ class TestBalancedProcessorModel(ModelTestCase):
         return BalancedProcessor(*args, **kwargs)
 
     def test_create_customer(self):
+        import balanced
+
         customer = self.customer_model.get(self.customer_guid)
+
+        # make sure API key is set correctly
+        (
+            flexmock(balanced)
+            .should_receive('configure')
+            .with_args('my_secret_key')
+            .once()
+        )
 
         # mock balanced customer instance
         mock_balanced_customer = (
-            flexmock(id='MOCK_BALANCED_CUSTOMER_ID')
+            flexmock(uri='MOCK_BALANCED_CUSTOMER_URI')
             .should_receive('save')
             .replace_with(lambda: mock_balanced_customer)
             .once()
@@ -79,15 +89,25 @@ class TestBalancedProcessorModel(ModelTestCase):
 
         processor = self.make_one(customer_cls=BalancedCustomer)
         customer_id = processor.create_customer(customer)
-        self.assertEqual(customer_id, 'MOCK_BALANCED_CUSTOMER_ID')
+        self.assertEqual(customer_id, 'MOCK_BALANCED_CUSTOMER_URI')
 
     def test_prepare_customer_with_card(self):
+        import balanced
+
         with db_transaction.manager:
             self.customer_model.update(
                 guid=self.customer_guid,
-                external_id='MOCK_BALANCED_CUSTOMER_ID',
+                external_id='MOCK_BALANCED_CUSTOMER_URI',
             )
         customer = self.customer_model.get(self.customer_guid)
+
+        # make sure API key is set correctly
+        (
+            flexmock(balanced)
+            .should_receive('configure')
+            .with_args('my_secret_key')
+            .once()
+        )
 
         # mock balanced.Customer instance
         mock_balanced_customer = (
@@ -100,12 +120,12 @@ class TestBalancedProcessorModel(ModelTestCase):
 
         # mock balanced.Customer class
         class BalancedCustomer(object): 
-            def find(self, id):
+            def find(self, uri):
                 pass
         (
             flexmock(BalancedCustomer)
             .should_receive('find')
-            .with_args('MOCK_BALANCED_CUSTOMER_ID')
+            .with_args('MOCK_BALANCED_CUSTOMER_URI')
             .replace_with(lambda _: mock_balanced_customer)
             .once()
         )
@@ -114,12 +134,22 @@ class TestBalancedProcessorModel(ModelTestCase):
         processor.prepare_customer(customer, '/v1/cards/my_card')
 
     def test_prepare_customer_with_bank_account(self):
+        import balanced
+
         with db_transaction.manager:
             self.customer_model.update(
                 guid=self.customer_guid,
-                external_id='MOCK_BALANCED_CUSTOMER_ID',
+                external_id='MOCK_BALANCED_CUSTOMER_URI',
             )
         customer = self.customer_model.get(self.customer_guid)
+
+        # make sure API key is set correctly
+        (
+            flexmock(balanced)
+            .should_receive('configure')
+            .with_args('my_secret_key')
+            .once()
+        )
 
         # mock balanced.Customer instance
         mock_balanced_customer = (
@@ -132,12 +162,12 @@ class TestBalancedProcessorModel(ModelTestCase):
 
         # mock balanced.Customer class
         class BalancedCustomer(object): 
-            def find(self, id):
+            def find(self, uri):
                 pass
         (
             flexmock(BalancedCustomer)
             .should_receive('find')
-            .with_args('MOCK_BALANCED_CUSTOMER_ID')
+            .with_args('MOCK_BALANCED_CUSTOMER_URI')
             .replace_with(lambda _: mock_balanced_customer)
             .once()
         )
@@ -149,7 +179,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         with db_transaction.manager:
             self.customer_model.update(
                 guid=self.customer_guid,
-                external_id='MOCK_BALANCED_CUSTOMER_ID',
+                external_id='MOCK_BALANCED_CUSTOMER_URI',
             )
         customer = self.customer_model.get(self.customer_guid)
 
@@ -163,12 +193,12 @@ class TestBalancedProcessorModel(ModelTestCase):
 
         # mock balanced.Customer class
         class BalancedCustomer(object): 
-            def find(self, id):
+            def find(self, uri):
                 pass
         (
             flexmock(BalancedCustomer)
             .should_receive('find')
-            .with_args('MOCK_BALANCED_CUSTOMER_ID')
+            .with_args('MOCK_BALANCED_CUSTOMER_URI')
             .replace_with(lambda _: mock_balanced_customer)
             .never()
         )
@@ -180,7 +210,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         with db_transaction.manager:
             self.customer_model.update(
                 guid=self.customer_guid,
-                external_id='MOCK_BALANCED_CUSTOMER_ID',
+                external_id='MOCK_BALANCED_CUSTOMER_URI',
             )
         customer = self.customer_model.get(self.customer_guid)
 
@@ -189,12 +219,12 @@ class TestBalancedProcessorModel(ModelTestCase):
 
         # mock balanced.Customer class
         class BalancedCustomer(object): 
-            def find(self, id):
+            def find(self, uri):
                 pass
         (
             flexmock(BalancedCustomer)
             .should_receive('find')
-            .with_args('MOCK_BALANCED_CUSTOMER_ID')
+            .with_args('MOCK_BALANCED_CUSTOMER_URI')
             .replace_with(lambda _: mock_balanced_customer)
             .once()
         )
@@ -224,9 +254,17 @@ class TestBalancedProcessorModel(ModelTestCase):
             transaction = tx_model.get(guid)
             self.customer_model.update(
                 guid=transaction.subscription.customer_guid,
-                external_id='MOCK_BALANCED_CUSTOMER_ID',
+                external_id='MOCK_BALANCED_CUSTOMER_URI',
             )
         transaction = tx_model.get(guid)
+
+        # make sure API key is set correctly
+        (
+            flexmock(balanced)
+            .should_receive('configure')
+            .with_args('my_secret_key')
+            .once()
+        )
 
         # mock result page object of balanced.RESOURCE.query.filter(...)
 
@@ -256,7 +294,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         Resource.query = mock_query
 
         # mock balanced.RESOURCE instance
-        mock_resource = flexmock(id='MOCK_BALANCED_RESOURCE_ID')
+        mock_resource = flexmock(uri='MOCK_BALANCED_RESOURCE_URI')
 
         # mock balanced.Customer instance
         kwargs = dict(
@@ -279,12 +317,12 @@ class TestBalancedProcessorModel(ModelTestCase):
 
         # mock balanced.Customer class
         class BalancedCustomer(object): 
-            def find(self, id):
+            def find(self, uri):
                 pass
         (
             flexmock(BalancedCustomer)
             .should_receive('find')
-            .with_args('MOCK_BALANCED_CUSTOMER_ID')
+            .with_args('MOCK_BALANCED_CUSTOMER_URI')
             .replace_with(lambda _: mock_balanced_customer)
             .once()
         )
@@ -295,7 +333,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         )
         method = getattr(processor, processor_method_name)
         balanced_tx_id = method(transaction)
-        self.assertEqual(balanced_tx_id, 'MOCK_BALANCED_RESOURCE_ID')
+        self.assertEqual(balanced_tx_id, 'MOCK_BALANCED_RESOURCE_URI')
 
     def _test_operation_with_created_record(
         self, 
@@ -315,7 +353,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         transaction = tx_model.get(guid)
 
         # mock balanced.RESOURCE instance
-        mock_resource = flexmock(id='MOCK_BALANCED_RESOURCE_ID')
+        mock_resource = flexmock(uri='MOCK_BALANCED_RESOURCE_URI')
 
         # mock result page object of balanced.RESOURCE.query.filter(...)
         mock_page = (
@@ -342,8 +380,8 @@ class TestBalancedProcessorModel(ModelTestCase):
 
         processor = self.make_one(**{cls_name: Resource})
         method = getattr(processor, processor_method_name)
-        balanced_res_id = method(transaction)
-        self.assertEqual(balanced_res_id, 'MOCK_BALANCED_RESOURCE_ID')
+        balanced_res_uri = method(transaction)
+        self.assertEqual(balanced_res_uri, 'MOCK_BALANCED_RESOURCE_URI')
 
     def test_charge(self):
         self._test_operation(

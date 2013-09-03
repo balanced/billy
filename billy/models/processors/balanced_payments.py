@@ -26,7 +26,6 @@ class BalancedProcessor(PaymentProcessor):
         return cent
 
     def create_customer(self, customer):
-        # TODO: what about thread safty issue?
         api_key = customer.company.processor_key
         balanced.configure(api_key)
 
@@ -38,7 +37,6 @@ class BalancedProcessor(PaymentProcessor):
         return record.uri
 
     def prepare_customer(self, customer, payment_uri=None):
-        # TODO: what about thread safty issue?
         api_key = customer.company.processor_key
         balanced.configure(api_key)
 
@@ -74,7 +72,6 @@ class BalancedProcessor(PaymentProcessor):
         method_name, 
         extra_kwargs
     ):
-        # TODO: what about thread safty issue?
         api_key = transaction.subscription.plan.company.processor_key
         balanced.configure(api_key)
         # make sure we won't duplicate debit

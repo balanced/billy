@@ -69,4 +69,21 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(subscription['customer_guid'], customer['guid'])
         self.assertEqual(subscription['plan_guid'], plan['guid'])
 
-        # TODO: check transaction here?
+        # transactions
+        res = self.testapp.get(
+            '/v1/transactions/', 
+            headers=[self.make_auth(api_key)],
+            status=200
+        )
+        transactions = res.json
+        self.assertEqual(len(transactions['items']), 1)
+        transaction = res.json['items'][0]
+        self.assertEqual(transaction['subscription_guid'], subscription['guid'])
+        self.assertEqual(transaction['status'], 'done')
+
+        debit = balanced.Debit.find(transaction['external_id'])
+        self.assertEqual(debit.meta['billy_transaction_guid'], transaction['guid'])
+        self.assertEqual(debit.amount, 1234)
+        self.assertEqual(debit.status, 'succeeded')
+
+        # TODO: refund it?

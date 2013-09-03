@@ -6,6 +6,19 @@ from billy.tests.integration.helper import IntegrationTestCase
 class TestBasicScenarios(IntegrationTestCase):
 
     def test_simple_subscription(self):
+        import balanced
+        balanced.configure(self.processor_key)
+        marketplace = balanced.Marketplace.find(self.marketplace_uri)
+
+        # create a card to charge
+        card = marketplace.create_card(
+            name='BILLY_INTERGRATION_TESTER',
+            card_number='5105105105105100',
+            expiration_month='12',
+            expiration_year='2020',
+            security_code='123',
+        )
+
         # create a company
         res = self.testapp.post(
             '/v1/companies/', 
@@ -47,6 +60,7 @@ class TestBasicScenarios(IntegrationTestCase):
             dict(
                 customer_guid=customer['guid'],
                 plan_guid=plan['guid'],
+                payment_uri=card.uri,
             ),
             headers=[self.make_auth(api_key)],
             status=200

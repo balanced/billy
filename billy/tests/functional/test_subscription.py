@@ -60,6 +60,7 @@ class TestSubscriptionViews(ViewTestCase):
         customer_guid = self.customer_guid
         plan_guid = self.plan_guid
         amount = '55.66'
+        payment_uri = 'MOCK_CARD_URI'
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat()
         # next week
@@ -93,6 +94,7 @@ class TestSubscriptionViews(ViewTestCase):
                 customer_guid=customer_guid,
                 plan_guid=plan_guid,
                 amount=amount,
+                payment_uri=payment_uri,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
@@ -105,6 +107,7 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(res.json['amount'], amount)
         self.assertEqual(res.json['customer_guid'], customer_guid)
         self.assertEqual(res.json['plan_guid'], plan_guid)
+        self.assertEqual(res.json['payment_uri'], payment_uri)
 
         subscription_model = SubscriptionModel(self.testapp.session)
         subscription = subscription_model.get(res.json['guid'])

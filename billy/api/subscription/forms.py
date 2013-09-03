@@ -59,6 +59,9 @@ class SubscriptionCreateForm(Form):
         validators.Required(),
         RecordExistValidator(PlanModel),
     ])
+    payment_uri = TextField('Payment URI', [
+        validators.Optional(),
+    ])
     amount = DecimalField('Amount', [
         validators.Optional(),
         # TODO: what is the minimum amount limitation we have?

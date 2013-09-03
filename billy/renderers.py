@@ -55,6 +55,7 @@ def subscription_adapter(subscription, request):
     return dict(
         guid=subscription.guid, 
         amount=str(subscription.amount),
+        payment_uri=subscription.payment_uri,
         period=subscription.period,
         canceled=subscription.canceled,
         next_transaction_at=subscription.next_transaction_at.isoformat(),

@@ -27,6 +27,7 @@ def subscription_list_post(request):
     customer_guid = form.data['customer_guid']
     plan_guid = form.data['plan_guid']
     amount = form.data.get('amount')
+    payment_uri = form.data.get('payment_uri')
     started_at = form.data.get('started_at')
 
     model = SubscriptionModel(request.session)
@@ -47,6 +48,7 @@ def subscription_list_post(request):
             customer_guid=customer_guid, 
             plan_guid=plan_guid, 
             amount=amount, 
+            payment_uri=payment_uri,
             started_at=started_at, 
         )
         tx_guids = model.yield_transactions([guid])

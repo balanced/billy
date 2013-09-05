@@ -31,3 +31,9 @@ class PaymentProcessor(object):
 
         """
         raise NotImplementedError
+
+    def refund(self, transaction):
+        """Refund a transaction
+
+        """
+        raise NotImplementedError

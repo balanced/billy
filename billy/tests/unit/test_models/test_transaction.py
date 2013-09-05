@@ -365,6 +365,24 @@ class TestTransactionModel(ModelTestCase):
                 scheduled_at=now,
             )
 
+        with db_transaction.manager:
+            tx_guid = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_PAYOUT,
+                amount=100,
+                payment_uri='/v1/cards/tester',
+                scheduled_at=now,
+            )
+
+        with self.assertRaises(ValueError):
+            model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_REFUND,
+                refund_to_guid=refund_guid, 
+                amount=50,
+                scheduled_at=now,
+            )
+
     def test_create_with_wrong_type(self):
         model = self.make_one(self.session)
 

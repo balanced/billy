@@ -100,9 +100,8 @@ class TransactionModel(object):
                 raise ValueError('payment_uri cannot be set to a refund '
                                  'transaction')
             refund_transaction = self.get(refund_to_guid, raise_error=True)
-            if refund_transaction.transaction_type == self.TYPE_REFUND:
-                raise ValueError('Cannot set refund_to_guid to a refund '
-                                 'transaction')
+            if refund_transaction.transaction_type != self.TYPE_CHARGE:
+                raise ValueError('Only charge transaction can be refunded')
 
         now = tables.now_func()
         transaction = tables.Transaction(

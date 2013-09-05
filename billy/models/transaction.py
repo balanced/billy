@@ -166,8 +166,6 @@ class TransactionModel(object):
                 method = processor.payout
             elif transaction.transaction_type == self.TYPE_REFUND:
                 method = processor.refund
-            else:
-                raise RuntimeError('Invalid transaction type to process')
 
             transaction_id = method(transaction)
             # TODO: generate an invoice here?

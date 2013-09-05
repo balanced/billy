@@ -116,6 +116,9 @@ class SubscriptionModel(object):
         subscription.canceled = True
         subscription.canceled_at = now
         tx_guid = None
+
+        # should we do refund
+        do_refund = False
         # we want to do a prorated refund here, however, if there is no any 
         # issued transaction, then no need to do a refund, just skip
         if (
@@ -128,6 +131,9 @@ class SubscriptionModel(object):
                 .order_by(tables.Transaction.scheduled_at.desc())
                 .first()
             )
+            do_refund = True
+
+        if do_refund:
             if prorated_refund:
                 previous_datetime = previous_transaction.scheduled_at
                 # the total time delta in the period
@@ -162,6 +168,8 @@ class SubscriptionModel(object):
                     scheduled_at=subscription.next_transaction_at, 
                     refund_to_guid=previous_transaction.guid, 
                 )
+
+        # TODO: cancel not done transactions here
 
         self.session.add(subscription)
         self.session.flush()

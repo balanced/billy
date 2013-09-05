@@ -442,6 +442,7 @@ class TestSubscriptionViews(ViewTestCase):
             subscription_guid = subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
+                amount=100,
             )
             tx_guid = tx_model.create(
                 subscription_guid=subscription_guid,
@@ -502,3 +503,109 @@ class TestSubscriptionViews(ViewTestCase):
         )
         guids = [item['guid'] for item in res.json['items']]
         self.assertEqual(set(guids), set([tx_guid, transaction.guid]))
+
+    def test_cancel_subscription_with_refund_amount(self):
+        from billy.models.subscription import SubscriptionModel
+        from billy.models.transaction import TransactionModel
+
+        subscription_model = SubscriptionModel(self.testapp.session)
+        tx_model = TransactionModel(self.testapp.session)
+        now = datetime.datetime.utcnow()
+
+        with db_transaction.manager:
+            subscription_guid = subscription_model.create(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+            )
+            tx_guid = tx_model.create(
+                subscription_guid=subscription_guid,
+                transaction_type=tx_model.TYPE_CHARGE,
+                amount=10, 
+                scheduled_at=now,
+            )
+            subscription = subscription_model.get(subscription_guid)
+            subscription.period = 1
+            subscription.next_transaction_at = datetime.datetime(2013, 8, 23)
+            self.testapp.session.add(subscription)
+
+            transaction = tx_model.get(tx_guid)
+            transaction.status = tx_model.STATUS_DONE
+            transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            self.testapp.session.add(transaction)
+
+        refund_called = []
+
+        def mock_refund(transaction):
+            refund_called.append(transaction)
+            return 'MOCK_PROCESSOR_REFUND_URI'
+
+        mock_processor = flexmock(DummyProcessor)
+        (
+            mock_processor
+            .should_receive('refund')
+            .replace_with(mock_refund)
+            .once()
+        )
+
+        res = self.testapp.post(
+            '/v1/subscriptions/{}/cancel'.format(subscription_guid), 
+            dict(refund_amount='2.34'),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        subscription = res.json
+
+        transaction = refund_called[0]
+        self.testapp.session.add(transaction)
+        self.assertEqual(transaction.refund_to.guid, tx_guid)
+        self.assertEqual(transaction.subscription_guid, subscription_guid)
+        self.assertEqual(transaction.amount, decimal.Decimal('2.34'))
+        self.assertEqual(transaction.status, tx_model.STATUS_DONE)
+
+        res = self.testapp.get(
+            '/v1/transactions/', 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        guids = [item['guid'] for item in res.json['items']]
+        self.assertEqual(set(guids), set([tx_guid, transaction.guid]))
+
+    def test_cancel_subscription_with_bad_arguments(self):
+        from billy.models.subscription import SubscriptionModel
+        from billy.models.transaction import TransactionModel
+
+        subscription_model = SubscriptionModel(self.testapp.session)
+        tx_model = TransactionModel(self.testapp.session)
+        now = datetime.datetime.utcnow()
+
+        with db_transaction.manager:
+            subscription_guid = subscription_model.create(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+                amount=100,
+            )
+            tx_guid = tx_model.create(
+                subscription_guid=subscription_guid,
+                transaction_type=tx_model.TYPE_CHARGE,
+                amount=100, 
+                scheduled_at=now,
+            )
+            subscription = subscription_model.get(subscription_guid)
+            subscription.period = 1
+            subscription.next_transaction_at = datetime.datetime(2013, 8, 23)
+            self.testapp.session.add(subscription)
+
+            transaction = tx_model.get(tx_guid)
+            transaction.status = tx_model.STATUS_DONE
+            transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            self.testapp.session.add(transaction)
+
+        def assert_bad_parameters(kwargs):
+            self.testapp.post(
+                '/v1/subscriptions/{}/cancel'.format(subscription_guid), 
+                kwargs,
+                extra_environ=dict(REMOTE_USER=self.api_key), 
+                status=400,
+            )
+        assert_bad_parameters(dict(prorated_refund=True, refund_amount=10))
+        assert_bad_parameters(dict(refund_amount='100.01'))

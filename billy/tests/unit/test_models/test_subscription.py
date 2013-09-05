@@ -294,7 +294,7 @@ class TestSubscriptionModel(ModelTestCase):
         # we should not allow refunding amount that grather than original
         # subscription amount
         with self.assertRaises(ValueError):
-            model.cancel(guid, refund_amount=10.01)
+            model.cancel(guid, refund_amount=decimal.Decimal('10.01'))
 
     def test_subscription_cancel_with_refund_amount(self):
         from billy.models.transaction import TransactionModel

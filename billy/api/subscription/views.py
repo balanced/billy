@@ -12,6 +12,7 @@ from billy.models.subscription import SubscriptionModel
 from billy.models.transaction import TransactionModel 
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
+from billy.api.utils import form_errors_to_bad_request
 from .forms import SubscriptionCreateForm
 from .forms import SubscriptionCancelForm
 
@@ -106,13 +107,32 @@ def subscription_cancel(request):
 
     guid = request.matchdict['subscription_guid']
     prorated_refund = asbool(form.data.get('prorated_refund', False))
+    refund_amount = form.data.get('refund_amount')
 
     model = SubscriptionModel(request.session)
     tx_model = TransactionModel(request.session)
     get_and_check_subscription(request, company, guid)
 
+    # TODO: maybe we can find a better way to integrate this with the 
+    # form validation?
+    if refund_amount is not None:
+        subscription = model.get(guid)
+        if subscription.amount is not None:
+            amount = subscription.amount
+        else:
+            amount = subscription.plan.amount
+        if refund_amount > amount:
+            return form_errors_to_bad_request(dict(
+                refund_amount=['refund_amount cannot be greater than '
+                               'subscription amount {}'.format(amount)]
+            ))
+
     with db_transaction.manager:
-        tx_guid = model.cancel(guid, prorated_refund=prorated_refund)
+        tx_guid = model.cancel(
+            guid, 
+            prorated_refund=prorated_refund,
+            refund_amount=refund_amount, 
+        )
     if tx_guid is not None:
         with db_transaction.manager:
             tx_model.process_transactions(request.processor, [tx_guid])

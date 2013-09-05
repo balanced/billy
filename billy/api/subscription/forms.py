@@ -51,6 +51,19 @@ class NoPastValidator(object):
             raise ValueError(msg)
 
 
+class RefundAmountConflict(object):
+    """Make sure prorated_refund=True with refund_amount is not allowed
+
+    """
+    def __call__(self, form, field):
+        prorated_refund = form['prorated_refund'].data
+        if prorated_refund and field.data is not None:
+            raise ValueError(
+                field.gettext('You cannot set refund_amount with '
+                              'prorated_refund=True')
+            )
+
+
 class SubscriptionCreateForm(Form):
     customer_guid = TextField('Customer GUID', [
         validators.Required(),
@@ -78,3 +91,9 @@ class SubscriptionCancelForm(Form):
     prorated_refund = BooleanField('Prorated refund', [
         validators.Optional(),
     ], default=False)
+    refund_amount = DecimalField('Refund amount', [
+        validators.Optional(),
+        RefundAmountConflict(),
+        # TODO: what is the minimum amount limitation we have?
+        validators.NumberRange(min=0.01),
+    ])

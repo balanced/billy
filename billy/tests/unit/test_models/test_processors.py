@@ -515,3 +515,63 @@ class TestBalancedProcessorModel(ModelTestCase):
         )
         refund_uri = processor.refund(transaction)
         self.assertEqual(refund_uri, 'MOCK_BALANCED_REFUND_URI')
+
+    def test_refund_with_created_record(self):
+        tx_model = self.transaction_model
+        with db_transaction.manager:
+            charge_guid = tx_model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=tx_model.TYPE_CHARGE,
+                amount=100,
+                payment_uri='/v1/credit_card/tester',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+            charge_transaction = tx_model.get(charge_guid)
+            charge_transaction.status = tx_model.STATUS_DONE
+            charge_transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            self.session.add(charge_transaction)
+            self.session.flush()
+
+            refund_guid = tx_model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=tx_model.TYPE_REFUND,
+                refund_to_guid=charge_guid,
+                amount=56,
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+
+        transaction = tx_model.get(refund_guid)
+
+        # mock balanced.Refund instance
+        mock_refund = flexmock(uri='MOCK_BALANCED_REFUND_URI')
+
+        # mock result page object of balanced.Refund.query.filter(...)
+
+        def mock_one():
+            return mock_refund
+
+        mock_page = (
+            flexmock()
+            .should_receive('one')
+            .replace_with(mock_one)
+            .once()
+            .mock()
+        )
+
+        # mock balanced.Refund.query
+        mock_query = (
+            flexmock()
+            .should_receive('filter')
+            .with_args(**{'meta.billy.transaction_guid': transaction.guid})
+            .replace_with(lambda **kw: mock_page)
+            .mock()
+        )
+
+        # mock balanced.Refund class
+        class Refund(object): 
+            pass
+        Refund.query = mock_query
+
+        processor = self.make_one(refund_cls=Refund)
+        refund_uri = processor.refund(transaction)
+        self.assertEqual(refund_uri, 'MOCK_BALANCED_REFUND_URI')

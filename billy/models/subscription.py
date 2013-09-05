@@ -92,15 +92,22 @@ class SubscriptionModel(object):
         self.session.add(subscription)
         self.session.flush()
 
-    def cancel(self, guid, prorated_refund=False):
+    def cancel(self, guid, prorated_refund=False, refund_amount=None):
         """Cancel a subscription
 
         :param guid: the guid of subscription to cancel
         :param prorated_refund: Should we generate a prorated refund 
             transaction according to remaining time of subscription period?
+        :param refund_amount: if refund_amount is given, it will be used 
+            to refund customer, you cannot set prorated_refund with 
+            refund_amount
         :return: if prorated_refund is True, and the subscription is 
             refundable, the refund transaction guid will be returned
         """
+        if prorated_refund and refund_amount is not None:
+            raise ValueError('You cannot set refund_amount when '
+                             'prorated_refund is True')
+
         subscription = self.get(guid, raise_error=True)
         if subscription.canceled:
             raise SubscriptionCanceledError('Subscription {} is already '
@@ -111,28 +118,38 @@ class SubscriptionModel(object):
         tx_guid = None
         # we want to do a prorated refund here, however, if there is no any 
         # issued transaction, then no need to do a refund, just skip
-        if prorated_refund and subscription.period:
+        if (
+            (prorated_refund or refund_amount is not None) and 
+            subscription.period
+        ):
             previous_transaction = (
                 self.session.query(tables.Transaction)
                 .filter_by(subscription_guid=subscription.guid)
                 .order_by(tables.Transaction.scheduled_at.desc())
                 .first()
             )
-            previous_datetime = previous_transaction.scheduled_at
-            # the total time delta in the period
-            total_delta = (
-                subscription.next_transaction_at - previous_datetime
-            )
-            total_seconds = decimal.Decimal(total_delta.total_seconds())
-            # the passed time so far since last transaction
-            elapsed_delta = now - previous_datetime
-            elapsed_seconds = decimal.Decimal(elapsed_delta.total_seconds())
+            if prorated_refund:
+                previous_datetime = previous_transaction.scheduled_at
+                # the total time delta in the period
+                total_delta = (
+                    subscription.next_transaction_at - previous_datetime
+                )
+                total_seconds = decimal.Decimal(total_delta.total_seconds())
+                # the passed time so far since last transaction
+                elapsed_delta = now - previous_datetime
+                elapsed_seconds = decimal.Decimal(elapsed_delta.total_seconds())
 
-            # TODO: what about calculate in different granularity here?
-            #       such as day or hour granularity?
-            rate = 1 - (elapsed_seconds / total_seconds)
-            amount = previous_transaction.amount * rate
-            amount = round_down_cent(amount)
+                # TODO: what about calculate in different granularity here?
+                #       such as day or hour granularity?
+                rate = 1 - (elapsed_seconds / total_seconds)
+                amount = previous_transaction.amount * rate
+                amount = round_down_cent(amount)
+            else:
+                amount = round_down_cent(decimal.Decimal(refund_amount))
+                if amount > previous_transaction.amount:
+                    raise ValueError('refund_amount cannot be grather than '
+                                     'subscription amount {}'
+                                     .format(previous_transaction.amount))
 
             tx_model = TransactionModel(self.session)
             # make sure we will not refund zero dollar

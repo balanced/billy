@@ -277,7 +277,48 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(transaction.transaction_type, tx_model.TYPE_REFUND)
         self.assertEqual(transaction.amount, decimal.Decimal('8'))
 
-    def test_subscription_cancel_with_prorated_refund_and_amount(self):
+    def test_subscription_cancel_with_wrong_arguments(self):
+        model = self.make_one(self.session)
+
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+            )
+            model.yield_transactions()
+
+        # we should not allow both prorated_refund and refund_amount to 
+        # be set
+        with self.assertRaises(ValueError):
+            model.cancel(guid, prorated_refund=True, refund_amount=10)
+        # we should not allow refunding amount that grather than original
+        # subscription amount
+        with self.assertRaises(ValueError):
+            model.cancel(guid, refund_amount=10.01)
+
+    def test_subscription_cancel_with_refund_amount(self):
+        from billy.models.transaction import TransactionModel
+        model = self.make_one(self.session)
+        tx_model = TransactionModel(self.session)
+
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+            )
+            tx_guids = model.yield_transactions()
+
+        # let's cancel and refund the latest transaction with amount 5.66
+        with db_transaction.manager:
+            refund_guid = model.cancel(guid, refund_amount=5.66)
+
+        transaction = tx_model.get(refund_guid)
+        self.assertEqual(transaction.refund_to_guid, tx_guids[0])
+        self.assertEqual(transaction.subscription_guid, guid)
+        self.assertEqual(transaction.transaction_type, tx_model.TYPE_REFUND)
+        self.assertEqual(transaction.amount, decimal.Decimal('5.66'))
+
+    def test_subscription_cancel_with_prorated_refund_and_amount_overwrite(self):
         from billy.models.transaction import TransactionModel
         model = self.make_one(self.session)
         tx_model = TransactionModel(self.session)

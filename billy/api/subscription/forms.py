@@ -5,6 +5,7 @@ import iso8601
 from wtforms import Form
 from wtforms import TextField
 from wtforms import DecimalField
+from wtforms import BooleanField
 from wtforms import Field
 from wtforms import validators
 
@@ -71,3 +72,9 @@ class SubscriptionCreateForm(Form):
         validators.Optional(),
         NoPastValidator(),
     ])
+
+
+class SubscriptionCancelForm(Form):
+    prorated_refund = BooleanField('Prorated refund', [
+        validators.Optional(),
+    ], default=False)

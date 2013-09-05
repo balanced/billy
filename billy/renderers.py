@@ -52,6 +52,9 @@ def plan_adapter(plan, request):
 
 
 def subscription_adapter(subscription, request):
+    canceled_at = None
+    if subscription.canceled_at is not None:
+        canceled_at = subscription.canceled_at.isoformat()
     return dict(
         guid=subscription.guid, 
         amount=str(subscription.amount),
@@ -62,6 +65,7 @@ def subscription_adapter(subscription, request):
         created_at=subscription.created_at.isoformat(),
         updated_at=subscription.updated_at.isoformat(),
         started_at=subscription.started_at.isoformat(),
+        canceled_at=canceled_at,
         customer_guid=subscription.customer_guid,
         plan_guid=subscription.plan_guid,
     )

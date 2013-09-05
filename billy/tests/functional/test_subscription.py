@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import datetime
+import decimal
 
 import transaction as db_transaction
 from flexmock import flexmock
@@ -20,6 +21,9 @@ class DummyProcessor(object):
         pass
 
     def payout(self, transaction):
+        pass
+
+    def refund(self, transaction):
         pass
 
 
@@ -102,6 +106,7 @@ class TestSubscriptionViews(ViewTestCase):
         self.failUnless('guid' in res.json)
         self.assertEqual(res.json['created_at'], now_iso)
         self.assertEqual(res.json['updated_at'], now_iso)
+        self.assertEqual(res.json['canceled_at'], None)
         self.assertEqual(res.json['next_transaction_at'], next_iso)
         self.assertEqual(res.json['period'], 1)
         self.assertEqual(res.json['amount'], amount)
@@ -368,3 +373,108 @@ class TestSubscriptionViews(ViewTestCase):
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=403,
         )
+
+    def test_cancel_subscription(self):
+        from billy.models.subscription import SubscriptionModel
+        from billy.models.transaction import TransactionModel
+
+        subscription_model = SubscriptionModel(self.testapp.session)
+        tx_model = TransactionModel(self.testapp.session)
+        now = datetime.datetime.utcnow()
+
+        with db_transaction.manager:
+            subscription_guid = subscription_model.create(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+            )
+            tx_model.create(
+                subscription_guid=subscription_guid,
+                transaction_type=tx_model.TYPE_CHARGE,
+                amount=100, 
+                scheduled_at=now,
+            )
+
+        with freeze_time('2013-08-16 07:00:00'):
+            canceled_at = datetime.datetime.utcnow()
+            res = self.testapp.post(
+                '/v1/subscriptions/{}/cancel'.format(subscription_guid), 
+                extra_environ=dict(REMOTE_USER=self.api_key), 
+                status=200,
+            )
+
+        subscription = res.json
+        self.assertEqual(subscription['canceled'], True)
+        self.assertEqual(subscription['canceled_at'], canceled_at.isoformat())
+
+    def test_cancel_subscription_with_prorated_refund(self):
+        from billy.models.subscription import SubscriptionModel
+        from billy.models.transaction import TransactionModel
+
+        subscription_model = SubscriptionModel(self.testapp.session)
+        tx_model = TransactionModel(self.testapp.session)
+        now = datetime.datetime.utcnow()
+
+        with db_transaction.manager:
+            subscription_guid = subscription_model.create(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+            )
+            tx_guid = tx_model.create(
+                subscription_guid=subscription_guid,
+                transaction_type=tx_model.TYPE_CHARGE,
+                amount=100, 
+                scheduled_at=now,
+            )
+            subscription = subscription_model.get(subscription_guid)
+            subscription.period = 1
+            subscription.next_transaction_at = datetime.datetime(2013, 8, 23)
+            self.testapp.session.add(subscription)
+
+            transaction = tx_model.get(tx_guid)
+            transaction.status = tx_model.STATUS_DONE
+            transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            self.testapp.session.add(transaction)
+
+        refund_called = []
+
+        def mock_refund(transaction):
+            refund_called.append(transaction)
+            return 'MOCK_PROCESSOR_REFUND_URI'
+
+        mock_processor = flexmock(DummyProcessor)
+        (
+            mock_processor
+            .should_receive('refund')
+            .replace_with(mock_refund)
+            .once()
+        )
+
+        with freeze_time('2013-08-17'):
+            canceled_at = datetime.datetime.utcnow()
+            res = self.testapp.post(
+                '/v1/subscriptions/{}/cancel'.format(subscription_guid), 
+                dict(prorated_refund=True),
+                extra_environ=dict(REMOTE_USER=self.api_key), 
+                status=200,
+            )
+
+        subscription = res.json
+        self.assertEqual(subscription['canceled'], True)
+        self.assertEqual(subscription['canceled_at'], canceled_at.isoformat())
+
+        transaction = refund_called[0]
+        self.testapp.session.add(transaction)
+        self.assertEqual(transaction.refund_to.guid, tx_guid)
+        self.assertEqual(transaction.subscription_guid, subscription_guid)
+        # only one day is elapsed, and it is a weekly plan, so
+        # it should be 100 - (100 / 7) and round to cent, 85.71
+        self.assertEqual(transaction.amount, decimal.Decimal('85.71'))
+        self.assertEqual(transaction.status, tx_model.STATUS_DONE)
+
+        res = self.testapp.get(
+            '/v1/transactions/', 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        guids = [item['guid'] for item in res.json['items']]
+        self.assertEqual(set(guids), set([tx_guid, transaction.guid]))

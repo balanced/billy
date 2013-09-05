@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import transaction as db_transaction
 from pyramid.view import view_config
+from pyramid.settings import asbool
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPForbidden
 
@@ -12,6 +13,21 @@ from billy.models.transaction import TransactionModel
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
 from .forms import SubscriptionCreateForm
+from .forms import SubscriptionCancelForm
+
+
+def get_and_check_subscription(request, company, guid):
+    """Get and check permission to access a subscription
+
+    """
+    model = SubscriptionModel(request.session)
+    subscription = model.get(guid)
+    if subscription is None:
+        raise HTTPNotFound('No such subscription {}'.format(guid))
+    if subscription.customer.company_guid != company.guid:
+        raise HTTPForbidden('You have no permission to access subscription {}'
+                            .format(guid))
+    return subscription
 
 
 @view_config(route_name='subscription_list', 
@@ -69,12 +85,37 @@ def subscription_get(request):
 
     """
     company = auth_api_key(request)
-    model = SubscriptionModel(request.session)
     guid = request.matchdict['subscription_guid']
+    subscription = get_and_check_subscription(request, company, guid)
+    return subscription 
+
+
+@view_config(route_name='subscription_cancel', 
+             request_method='POST', 
+             renderer='json')
+def subscription_cancel(request):
+    """Cancel a subscription
+
+    """
+    # TODO: it appears a DELETE request with body is not a good idea
+    # for HTTP protocol as many server doesn't support this, this is why
+    # we use another view with post method, maybe we should use a better 
+    # approach later
+    company = auth_api_key(request)
+    form = validate_form(SubscriptionCancelForm, request)
+
+    guid = request.matchdict['subscription_guid']
+    prorated_refund = asbool(form.data.get('prorated_refund', False))
+
+    model = SubscriptionModel(request.session)
+    tx_model = TransactionModel(request.session)
+    get_and_check_subscription(request, company, guid)
+
+    with db_transaction.manager:
+        tx_guid = model.cancel(guid, prorated_refund=prorated_refund)
+    if tx_guid is not None:
+        with db_transaction.manager:
+            tx_model.process_transactions(request.processor, [tx_guid])
+
     subscription = model.get(guid)
-    if subscription is None:
-        return HTTPNotFound('No such subscription {}'.format(guid))
-    if subscription.customer.company_guid != company.guid:
-        return HTTPForbidden('You have no permission to access subscription {}'
-                             .format(guid))
     return subscription 

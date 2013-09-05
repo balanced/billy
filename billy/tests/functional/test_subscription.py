@@ -406,6 +406,30 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(subscription['canceled'], True)
         self.assertEqual(subscription['canceled_at'], canceled_at.isoformat())
 
+    def test_cancel_subscription_to_other_company(self):
+        from billy.models.subscription import SubscriptionModel
+        from billy.models.company import CompanyModel 
+
+        subscription_model = SubscriptionModel(self.testapp.session)
+        company_model = CompanyModel(self.testapp.session)
+
+        with db_transaction.manager:
+            subscription_guid = subscription_model.create(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+            )
+            other_company_guid = company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY',
+            )
+            other_company = company_model.get(other_company_guid)
+            other_api_key = str(other_company.api_key)
+
+        self.testapp.post(
+            '/v1/subscriptions/{}/cancel'.format(subscription_guid), 
+            extra_environ=dict(REMOTE_USER=other_api_key), 
+            status=403,
+        )
+
     def test_cancel_subscription_with_prorated_refund(self):
         from billy.models.subscription import SubscriptionModel
         from billy.models.transaction import TransactionModel

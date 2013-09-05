@@ -108,6 +108,8 @@ class SubscriptionModel(object):
             raise ValueError('You cannot set refund_amount when '
                              'prorated_refund is True')
 
+        tx_model = TransactionModel(self.session)
+
         subscription = self.get(guid, raise_error=True)
         if subscription.canceled:
             raise SubscriptionCanceledError('Subscription {} is already '
@@ -131,7 +133,10 @@ class SubscriptionModel(object):
                 .order_by(tables.Transaction.scheduled_at.desc())
                 .first()
             )
-            do_refund = True
+            # it is possible the previous transaction is failed or retrying,
+            # so that we should only refund finished transaction
+            if previous_transaction.status == TransactionModel.STATUS_DONE:
+                do_refund = True
 
         if do_refund:
             if prorated_refund:
@@ -157,7 +162,6 @@ class SubscriptionModel(object):
                                      'subscription amount {}'
                                      .format(previous_transaction.amount))
 
-            tx_model = TransactionModel(self.session)
             # make sure we will not refund zero dollar
             # TODO: or... should we?
             if amount:
@@ -169,7 +173,21 @@ class SubscriptionModel(object):
                     refund_to_guid=previous_transaction.guid, 
                 )
 
-        # TODO: cancel not done transactions here
+        # cancel not done transactions (exclude refund transaction)
+        Transaction = tables.Transaction
+        not_done_transactions = (
+            self.session.query(Transaction)
+            .filter_by(subscription_guid=guid)
+            .filter(Transaction.transaction_type != TransactionModel.TYPE_REFUND)
+            .filter(Transaction.status.in_([
+                tx_model.STATUS_INIT,
+                tx_model.STATUS_RETRYING,
+            ]))
+        )
+        not_done_transactions.update(dict(
+            status=tx_model.STATUS_CANCELED,
+            updated_at=now, 
+        ), synchronize_session='fetch')
 
         self.session.add(subscription)
         self.session.flush()

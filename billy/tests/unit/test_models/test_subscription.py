@@ -251,6 +251,52 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(subscription.canceled, True)
         self.assertEqual(subscription.canceled_at, now)
 
+    def test_subscription_cancel_not_done_transactions(self):
+        from billy.models.transaction import TransactionModel
+        model = self.make_one(self.session)
+        tx_model = TransactionModel(self.session)
+
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+            )
+
+        # okay, 08-16, 09-16, 10-16, 11-16, so we should have 4 new transactions
+        # and we assume the transactions status as shown as following:
+        # 
+        #     [DONE, RETRYING, INIT, FAILED]
+        #
+        # when we cancel the subscription, the status should be
+        # 
+        #     [DONE, CANCELED, CANCELED, FAILED]
+        #
+        init_status = [
+            tx_model.STATUS_DONE,
+            tx_model.STATUS_RETRYING,
+            tx_model.STATUS_INIT,
+            tx_model.STATUS_FAILED,
+        ]
+        with freeze_time('2013-11-16'):
+            with db_transaction.manager:
+                tx_guids = model.yield_transactions()
+                for tx_guid, status in zip(tx_guids, init_status):
+                    transaction = tx_model.get(tx_guid)
+                    transaction.status = status
+                    self.session.add(transaction)
+                self.session.add(transaction)
+            with db_transaction.manager:
+                model.cancel(guid)
+
+        transactions = [tx_model.get(tx_guid) for tx_guid in tx_guids]
+        status_list = [tx.status for tx in transactions]
+        self.assertEqual(status_list, [
+            tx_model.STATUS_DONE, 
+            tx_model.STATUS_CANCELED,
+            tx_model.STATUS_CANCELED,
+            tx_model.STATUS_FAILED,
+        ])
+
     def test_subscription_cancel_with_prorated_refund(self):
         from billy.models.transaction import TransactionModel
         model = self.make_one(self.session)
@@ -263,6 +309,10 @@ class TestSubscriptionModel(ModelTestCase):
                     plan_guid=self.monthly_plan_guid,
                 )
                 tx_guids = model.yield_transactions()
+                transaction = tx_model.get(tx_guids[0])
+                transaction.status = tx_model.STATUS_DONE
+                transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+                self.session.add(transaction)
 
         # it is a monthly plan, there is 30 days in June, and only
         # 6 days are elapsed, so 6 / 30 days, the rate should be 1 - 0.2 = 0.8
@@ -278,14 +328,20 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(transaction.amount, decimal.Decimal('8'))
 
     def test_subscription_cancel_with_wrong_arguments(self):
+        from billy.models.transaction import TransactionModel
         model = self.make_one(self.session)
+        tx_model = TransactionModel(self.session)
 
         with db_transaction.manager:
             guid = model.create(
                 customer_guid=self.customer_tom_guid,
                 plan_guid=self.monthly_plan_guid,
             )
-            model.yield_transactions()
+            tx_guids = model.yield_transactions()
+            transaction = tx_model.get(tx_guids[0])
+            transaction.status = tx_model.STATUS_DONE
+            transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            self.session.add(transaction)
 
         # we should not allow both prorated_refund and refund_amount to 
         # be set
@@ -307,6 +363,10 @@ class TestSubscriptionModel(ModelTestCase):
                 plan_guid=self.monthly_plan_guid,
             )
             tx_guids = model.yield_transactions()
+            transaction = tx_model.get(tx_guids[0])
+            transaction.status = tx_model.STATUS_DONE
+            transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            self.session.add(transaction)
 
         # let's cancel and refund the latest transaction with amount 5.66
         with db_transaction.manager:
@@ -330,7 +390,11 @@ class TestSubscriptionModel(ModelTestCase):
                     plan_guid=self.monthly_plan_guid,
                     amount=100,
                 )
-                model.yield_transactions()
+                tx_guids = model.yield_transactions()
+                transaction = tx_model.get(tx_guids[0])
+                transaction.status = tx_model.STATUS_DONE
+                transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+                self.session.add(transaction)
 
         # it is a monthly plan, there is 30 days in June, and only
         # 6 days are elapsed, so 6 / 30 days, the rate should be 1 - 0.2 = 0.8
@@ -355,7 +419,11 @@ class TestSubscriptionModel(ModelTestCase):
                     customer_guid=self.customer_tom_guid,
                     plan_guid=self.monthly_plan_guid,
                 )
-                model.yield_transactions()
+                tx_guids = model.yield_transactions()
+                transaction = tx_model.get(tx_guids[0])
+                transaction.status = tx_model.STATUS_DONE
+                transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+                self.session.add(transaction)
 
         # 17 / 30 days, the rate should be 1 - 0.56666..., which is
         # 0.43333...

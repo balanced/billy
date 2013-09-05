@@ -230,7 +230,7 @@ class Transaction(DeclarativeBase):
     #: the ID of transaction record in payment processing system
     external_id = Column(Unicode(128), index=True)
     #: current status of this transaction, could be
-    #  0=init, 1=retrying, 2=done, 3=failed
+    #  0=init, 1=retrying, 2=done, 3=failed, 4=canceled
     status = Column(Integer, index=True, nullable=False)
     #: the amount to do transaction (charge, payout or refund)
     amount = Column(Numeric(10, 2), nullable=False)

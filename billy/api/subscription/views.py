@@ -127,6 +127,8 @@ def subscription_cancel(request):
                                'subscription amount {}'.format(amount)]
             ))
 
+    # TODO: make sure the subscription is not already canceled
+
     with db_transaction.manager:
         tx_guid = model.cancel(
             guid, 

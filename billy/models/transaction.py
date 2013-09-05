@@ -28,12 +28,15 @@ class TransactionModel(object):
     STATUS_DONE = 2
     #: this transaction is failed
     STATUS_FAILED = 3
+    #: this transaction is canceled
+    STATUS_CANCELED = 4
 
     STATUS_ALL = [
         STATUS_INIT,
         STATUS_RETRYING,
         STATUS_DONE,
         STATUS_FAILED,
+        STATUS_CANCELED,
     ]
 
     def __init__(self, session, logger=None):

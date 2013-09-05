@@ -1,0 +1,6 @@
+nose-cov
+webtest
+freezegun
+flexmock
+wsgiproxy2
+nose-exclude

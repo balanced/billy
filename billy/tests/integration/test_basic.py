@@ -82,7 +82,7 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(transaction['status'], 'done')
 
         debit = balanced.Debit.find(transaction['external_id'])
-        self.assertEqual(debit.meta['billy_transaction_guid'], transaction['guid'])
+        self.assertEqual(debit.meta['billy.transaction_guid'], transaction['guid'])
         self.assertEqual(debit.amount, 1234)
         self.assertEqual(debit.status, 'succeeded')
 

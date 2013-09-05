@@ -264,8 +264,10 @@ class TestSubscriptionModel(ModelTestCase):
                 )
                 tx_guids = model.yield_transactions()
 
-        # 15 / 30 days, the rate should be 0.5
-        with freeze_time('2013-06-16'):
+        # it is a monthly plan, there is 30 days in June, and only
+        # 6 days are elapsed, so 6 / 30 days, the rate should be 1 - 0.2 = 0.8
+        # and we have 10 as the amount, we should return 8 to customer
+        with freeze_time('2013-06-07'):
             with db_transaction.manager:
                 refund_guid = model.cancel(guid, prorated_refund=True)
 
@@ -273,7 +275,7 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(transaction.refund_to_guid, tx_guids[0])
         self.assertEqual(transaction.subscription_guid, guid)
         self.assertEqual(transaction.transaction_type, tx_model.TYPE_REFUND)
-        self.assertEqual(transaction.amount, decimal.Decimal('5'))
+        self.assertEqual(transaction.amount, decimal.Decimal('8'))
 
     def test_subscription_cancel_with_prorated_refund_and_amount(self):
         from billy.models.transaction import TransactionModel
@@ -289,15 +291,17 @@ class TestSubscriptionModel(ModelTestCase):
                 )
                 model.yield_transactions()
 
-        # 15 / 30 days, the rate should be 0.5
-        with freeze_time('2013-06-16'):
+        # it is a monthly plan, there is 30 days in June, and only
+        # 6 days are elapsed, so 6 / 30 days, the rate should be 1 - 0.2 = 0.8
+        # and we have 100 as the amount, we should return 80 to customer
+        with freeze_time('2013-06-07'):
             with db_transaction.manager:
                 refund_guid = model.cancel(guid, prorated_refund=True)
 
         transaction = tx_model.get(refund_guid)
         # the orignal price is 10, then overwritten by subscription as 100
         # and we refund half, then the refund amount should be 50
-        self.assertEqual(transaction.amount, decimal.Decimal('50'))
+        self.assertEqual(transaction.amount, decimal.Decimal('80'))
 
     def test_subscription_cancel_with_prorated_refund_rounding(self):
         from billy.models.transaction import TransactionModel
@@ -312,13 +316,14 @@ class TestSubscriptionModel(ModelTestCase):
                 )
                 model.yield_transactions()
 
-        # 17 / 30 days, the rate should be 0.56666...
+        # 17 / 30 days, the rate should be 1 - 0.56666..., which is
+        # 0.43333...
         with freeze_time('2013-06-18'):
             with db_transaction.manager:
                 refund_guid = model.cancel(guid, prorated_refund=True)
 
         transaction = tx_model.get(refund_guid)
-        self.assertEqual(transaction.amount, decimal.Decimal('5.66'))
+        self.assertEqual(transaction.amount, decimal.Decimal('4.33'))
 
     def test_subscription_cancel_with_zero_refund(self):
         model = self.make_one(self.session)

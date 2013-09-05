@@ -130,7 +130,7 @@ class SubscriptionModel(object):
 
             # TODO: what about calculate in different granularity here?
             #       such as day or hour granularity?
-            rate = elapsed_seconds / total_seconds
+            rate = 1 - (elapsed_seconds / total_seconds)
             amount = previous_transaction.amount * rate
             amount = round_down_cent(amount)
 

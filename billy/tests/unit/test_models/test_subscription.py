@@ -335,6 +335,9 @@ class TestSubscriptionModel(ModelTestCase):
                     plan_guid=self.monthly_plan_guid,
                 )
                 model.yield_transactions()
+        # the subscription period is finished, nothing to refund
+        with freeze_time('2013-07-01'):
+            with db_transaction.manager:
                 refund_guid = model.cancel(guid, prorated_refund=True)
 
         self.assertEqual(refund_guid, None)

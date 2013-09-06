@@ -3,7 +3,6 @@ import datetime
 
 import transaction
 from freezegun import freeze_time
-from flexmock import flexmock
 
 from billy.tests.unit.helper import ModelTestCase
 

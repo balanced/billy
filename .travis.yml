@@ -3,8 +3,9 @@ python:
   - "2.7"
 # command to install dependencies
 install: 
+  - "pip install flake8"
   - "pip install -r requirements.txt --use-mirrors"
   - "pip install -r test_requirements.txt --use-mirrors"
   - "python setup.py develop"
 # command to run tests
-script: "python setup.py nosetests"
+script: "python setup.py nosetests && flake8 billy --ignore=E501,W291,W293"

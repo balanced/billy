@@ -7,6 +7,9 @@ from billy.utils.generic import make_guid
 
 class TransactionModel(object):
 
+    #: the default maximum retry count
+    DEFAULT_MAXIMUM_RETRY = 10
+
     #: charge type transaction
     TYPE_CHARGE = 0
     #: refund type transaction
@@ -140,7 +143,12 @@ class TransactionModel(object):
         self.session.add(transaction)
         self.session.flush()
 
-    def process_one(self, processor, transaction, maximum_retry=10):
+    def process_one(
+        self, 
+        processor, 
+        transaction, 
+        maximum_retry=DEFAULT_MAXIMUM_RETRY
+    ):
         """Process one transaction
 
         """
@@ -204,7 +212,12 @@ class TransactionModel(object):
                          transaction.guid, transaction.status, 
                          transaction.external_id)
 
-    def process_transactions(self, processor, guids=None, maximum_retry=10):
+    def process_transactions(
+        self, 
+        processor, 
+        guids=None, 
+        maximum_retry=DEFAULT_MAXIMUM_RETRY
+    ):
         """Process all transactions 
 
         """

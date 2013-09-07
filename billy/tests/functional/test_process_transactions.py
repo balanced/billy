@@ -44,8 +44,9 @@ class TestProcessTransactions(unittest.TestCase):
         from billy.scripts import initializedb
         from billy.scripts import process_transactions
 
-        def mock_process_transactions(processor):
+        def mock_process_transactions(processor, maximum_retry):
             self.assertIsInstance(processor, BalancedProcessor)
+            self.assertEqual(maximum_retry, 5566)
 
         (
             flexmock(TransactionModel)
@@ -62,6 +63,7 @@ class TestProcessTransactions(unittest.TestCase):
 
             sqlalchemy.url = sqlite:///%(here)s/billy.sqlite
             billy.processor_factory = billy.models.processors.balanced_payments.BalancedProcessor
+            billy.transaction.maximum_retry = 5566
             """))
         initializedb.main([initializedb.__file__, cfg_path])
         process_transactions.main([process_transactions.__file__, cfg_path])

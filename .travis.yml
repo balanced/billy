@@ -3,7 +3,7 @@ python:
   - "2.7"
 # command to install dependencies
 install: 
-  - "pip install flake8"
+  - "pip install flake8 --use-mirrors"
   - "pip install -r requirements.txt --use-mirrors"
   - "pip install -r test_requirements.txt --use-mirrors"
   - "python setup.py develop"

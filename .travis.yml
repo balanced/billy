@@ -7,5 +7,6 @@ install:
   - "pip install -r requirements.txt --use-mirrors"
   - "pip install -r test_requirements.txt --use-mirrors"
   - "python setup.py develop"
+before_script: "flake8 billy --ignore=E501,W291,W293"
 # command to run tests
-script: "python setup.py nosetests && flake8 billy --ignore=E501,W291,W293"
+script: "python setup.py nosetests"

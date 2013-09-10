@@ -585,8 +585,6 @@ class TestSubscriptionModel(ModelTestCase):
         sub_tx_guids = [tx.guid for tx in subscription.transactions]
         self.assertEqual(set(tx_guids), set(sub_tx_guids))
 
-        from billy.models import tables
-        q = self.session.query(tables.Transaction).filter_by(subscription_guid=guid)
         tx_dates = [tx.scheduled_at for tx in subscription.transactions]
         self.assertEqual(set(tx_dates), set([
             datetime.datetime(2013, 8, 16),

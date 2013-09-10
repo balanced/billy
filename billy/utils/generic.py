@@ -54,6 +54,7 @@ def make_api_key(size=32):
     random = os.urandom(size)
     return b58encode(random)
 
+
 def round_down_cent(amount):
     """Round down money value to cent (truncate to), for example, $5.66666
     will be rounded to $5.66

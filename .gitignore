@@ -43,3 +43,6 @@ env
 # SQLite database
 *.db
 *.sqlite
+
+# Vagrant
+.vagrant

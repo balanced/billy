@@ -46,6 +46,10 @@ def subscription_list_post(request):
     amount = form.data.get('amount')
     payment_uri = form.data.get('payment_uri')
     started_at = form.data.get('started_at')
+    maximum_retry = int(request.registry.settings.get(
+        'billy.transaction.maximum_retry', 
+        TransactionModel.DEFAULT_MAXIMUM_RETRY,
+    ))
 
     model = SubscriptionModel(request.session)
     plan_model = PlanModel(request.session)
@@ -72,7 +76,11 @@ def subscription_list_post(request):
     # this is not a deferred subscription, just process transactions right away
     if started_at is None:
         with db_transaction.manager:
-            tx_model.process_transactions(request.processor, tx_guids)
+            tx_model.process_transactions(
+                processor=request.processor, 
+                guids=tx_guids,
+                maximum_retry=maximum_retry,
+            )
 
     subscription = model.get(guid)
     return subscription
@@ -108,6 +116,10 @@ def subscription_cancel(request):
     guid = request.matchdict['subscription_guid']
     prorated_refund = asbool(form.data.get('prorated_refund', False))
     refund_amount = form.data.get('refund_amount')
+    maximum_retry = int(request.registry.settings.get(
+        'billy.transaction.maximum_retry', 
+        TransactionModel.DEFAULT_MAXIMUM_RETRY,
+    ))
 
     model = SubscriptionModel(request.session)
     tx_model = TransactionModel(request.session)
@@ -137,7 +149,11 @@ def subscription_cancel(request):
         )
     if tx_guid is not None:
         with db_transaction.manager:
-            tx_model.process_transactions(request.processor, [tx_guid])
+            tx_model.process_transactions(
+                processor=request.processor, 
+                guids=[tx_guid],
+                maximum_retry=maximum_retry,
+            )
 
     subscription = model.get(guid)
     return subscription 

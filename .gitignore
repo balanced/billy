@@ -17,12 +17,12 @@ develop-eggs
 .installed.cfg
 lib
 lib64
-cover
 
 # Installer logs
 pip-log.txt
 
 # Unit test / coverage reports
+cover
 .coverage
 .tox
 nosetests.xml
@@ -30,15 +30,16 @@ nosetests.xml
 # Translations
 *.mo
 
-# Mr Developer
+# Mrs. Developer
 .mr.developer.cfg
 .project
 .pydevproject
+*.sublime-project
+*.sublime-workspace
 
+# virtualenv
+env
 
-.idea
-venv-billy
-scratch.py
-
-env/
-cover/
+# SQLite database
+*.db
+*.sqlite

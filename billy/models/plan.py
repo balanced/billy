@@ -1,11 +1,13 @@
 from __future__ import unicode_literals
-import logging
 
 from billy.models import tables
+from billy.models.base import BaseTableModel
 from billy.utils.generic import make_guid
 
 
-class PlanModel(object):
+class PlanModel(BaseTableModel):
+
+    TABLE = tables.Plan
 
     #: Daily frequency
     FREQ_DAILY = 0
@@ -32,26 +34,6 @@ class PlanModel(object):
         TYPE_CHARGE,
         TYPE_PAYOUT, 
     ]
-
-    def __init__(self, session, logger=None):
-        self.logger = logger or logging.getLogger(__name__)
-        self.session = session
-
-    def get(self, guid, raise_error=False, ignore_deleted=True):
-        """Find a plan by guid and return it
-
-        :param guid: The guild of plan to get
-        :param raise_error: Raise KeyError when cannot find one
-        """
-        query = (
-            self.session.query(tables.Plan)
-            .filter_by(guid=guid)
-            .filter_by(deleted=not ignore_deleted)
-            .first()
-        )
-        if raise_error and query is None:
-            raise KeyError('No such plan {}'.format(guid))
-        return query
 
     def create(
         self, 

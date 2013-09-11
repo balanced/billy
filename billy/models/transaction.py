@@ -2,11 +2,14 @@ from __future__ import unicode_literals
 import logging
 
 from billy.models import tables
+from billy.models.base import BaseTableModel
 from billy.utils.generic import make_guid
 
 
-class TransactionModel(object):
+class TransactionModel(BaseTableModel):
 
+    TABLE = tables.Transaction
+    
     #: the default maximum retry count
     DEFAULT_MAXIMUM_RETRY = 10
 
@@ -41,25 +44,6 @@ class TransactionModel(object):
         STATUS_FAILED,
         STATUS_CANCELED,
     ]
-
-    def __init__(self, session, logger=None):
-        self.logger = logger or logging.getLogger(__name__)
-        self.session = session
-
-    def get(self, guid, raise_error=False):
-        """Find a transaction by guid and return it
-
-        :param guid: The guild of transaction to get
-        :param raise_error: Raise KeyError when cannot find one
-        """
-        query = (
-            self.session.query(tables.Transaction)
-            .filter_by(guid=guid)
-            .first()
-        )
-        if raise_error and query is None:
-            raise KeyError('No such transaction {}'.format(guid))
-        return query
 
     def list_by_company_guid(self, company_guid, offset=None, limit=None):
         """Get transactions of a company by given guid

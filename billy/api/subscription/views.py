@@ -62,6 +62,7 @@ def subscription_list_post(request):
     plan = plan_model.get(plan_guid)
     if plan.company_guid != company.guid:
         return HTTPForbidden('Can only subscribe to your own plan')
+    # TODO: make sure user cannot subscribe to a deleted plan or customer
 
     # create subscription and yield transactions
     with db_transaction.manager:

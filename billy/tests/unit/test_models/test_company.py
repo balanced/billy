@@ -25,12 +25,8 @@ class TestCompanyModel(ModelTestCase):
 
         with transaction.manager:
             guid = model.create(processor_key='my_secret_key')
-            model.delete(guid)
 
-        with self.assertRaises(KeyError):
-            model.get(guid, raise_error=True)
-
-        company = model.get(guid, ignore_deleted=False, raise_error=True)
+        company = model.get(guid)
         self.assertEqual(company.guid, guid)
 
     def test_get_by_api_key(self):
@@ -167,7 +163,4 @@ class TestCompanyModel(ModelTestCase):
             model.delete(guid)
 
         company = model.get(guid)
-        self.assertEqual(company, None)
-
-        company = model.get(guid, ignore_deleted=False)
         self.assertEqual(company.deleted, True)

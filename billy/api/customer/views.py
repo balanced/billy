@@ -34,6 +34,8 @@ def customer_list_post(request):
     external_id = form.data.get('external_id')
     company_guid = company.guid
 
+    # TODO: make sure user cannot create a customer to a deleted company
+
     model = CustomerModel(request.session)
     # TODO: do validation here
     with db_transaction.manager:

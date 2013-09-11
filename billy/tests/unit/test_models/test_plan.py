@@ -40,12 +40,8 @@ class TestPlanModel(ModelTestCase):
                 amount=99.99,
                 frequency=model.FREQ_WEEKLY,
             )
-            model.delete(guid)
 
-        with self.assertRaises(KeyError):
-            model.get(guid, raise_error=True)
-
-        plan = model.get(guid, ignore_deleted=False, raise_error=True)
+        plan = model.get(guid)
         self.assertEqual(plan.guid, guid)
 
     def test_create(self):
@@ -266,7 +262,4 @@ class TestPlanModel(ModelTestCase):
             model.delete(guid)
 
         plan = model.get(guid)
-        self.assertEqual(plan, None)
-
-        plan = model.get(guid, ignore_deleted=False)
         self.assertEqual(plan.deleted, True)

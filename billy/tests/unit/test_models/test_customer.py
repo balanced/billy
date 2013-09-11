@@ -33,12 +33,8 @@ class TestCustomerModel(ModelTestCase):
 
         with transaction.manager:
             guid = model.create(company_guid=self.company_guid)
-            model.delete(guid)
 
-        with self.assertRaises(KeyError):
-            model.get(guid, raise_error=True)
-
-        customer = model.get(guid, ignore_deleted=False, raise_error=True)
+        customer = model.get(guid, raise_error=True)
         self.assertEqual(customer.guid, guid)
 
     def test_create(self):
@@ -151,7 +147,4 @@ class TestCustomerModel(ModelTestCase):
             model.delete(guid)
 
         customer = model.get(guid)
-        self.assertEqual(customer, None)
-
-        customer = model.get(guid, ignore_deleted=False)
         self.assertEqual(customer.deleted, True)

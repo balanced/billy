@@ -1,8 +1,8 @@
 from __future__ import unicode_literals
-import logging
 import decimal
 
 from billy.models import tables
+from billy.models.base import BaseTableModel
 from billy.models.plan import PlanModel
 from billy.models.transaction import TransactionModel
 from billy.models.schedule import next_transaction_datetime
@@ -17,26 +17,9 @@ class SubscriptionCanceledError(RuntimeError):
     """
 
 
-class SubscriptionModel(object):
+class SubscriptionModel(BaseTableModel):
 
-    def __init__(self, session, logger=None):
-        self.logger = logger or logging.getLogger(__name__)
-        self.session = session
-
-    def get(self, guid, raise_error=False):
-        """Find a subscription by guid and return it
-
-        :param guid: The guild of subscription to get
-        :param raise_error: Raise KeyError when cannot find one
-        """
-        query = (
-            self.session.query(tables.Subscription)
-            .filter_by(guid=guid)
-            .first()
-        )
-        if raise_error and query is None:
-            raise KeyError('No such subscription {}'.format(guid))
-        return query
+    TABLE = tables.Subscription
 
     def create(
         self, 

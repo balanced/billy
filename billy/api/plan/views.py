@@ -29,6 +29,8 @@ def plan_list_post(request):
         interval = 1
     company_guid = company.guid
 
+    # TODO: make sure user cannot create a post to a deleted company
+
     model = PlanModel(request.session)
     type_map = dict(
         charge=model.TYPE_CHARGE,

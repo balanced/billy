@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import logging
 
 from billy.models import tables
 from billy.models.base import BaseTableModel
@@ -9,7 +8,7 @@ from billy.utils.generic import make_guid
 class TransactionModel(BaseTableModel):
 
     TABLE = tables.Transaction
-    
+
     #: the default maximum retry count
     DEFAULT_MAXIMUM_RETRY = 10
 

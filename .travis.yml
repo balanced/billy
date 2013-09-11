@@ -1,0 +1,18 @@
+language: python
+python:
+  - "2.7"
+env:
+  - BILLY_UNIT_TEST_DB=sqlite:// BILLY_FUNC_TEST_DB=sqlite://
+  - BILLY_UNIT_TEST_DB=postgresql://postgres:@127.0.0.1/billy BILLY_FUNC_TEST_DB=postgresql://postgres:@127.0.0.1/billy
+# command to install dependencies
+install: 
+  - "pip install psycopg2 --use-mirrors"
+  - "pip install flake8 --use-mirrors"
+  - "pip install -r requirements.txt --use-mirrors"
+  - "pip install -r test_requirements.txt --use-mirrors"
+  - "python setup.py develop"
+before_script: 
+  - "psql -c 'create database billy;' -U postgres"
+  - "flake8 billy --ignore=E501,W291,W293"
+# command to run tests
+script: "python setup.py nosetests"

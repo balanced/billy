@@ -671,6 +671,62 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.subscription.customer.external_id, 
                          'AC_MOCK')
 
+    def test_process_one_with_failure_exceed_limitation(self):
+        model = self.make_one(self.session)
+        now = datetime.datetime.utcnow()
+
+        payment_uri = '/v1/cards/tester'
+        maximum_retry = 3
+
+        with db_transaction.manager:
+            self.customer_model.update(self.customer_guid, external_id='AC_MOCK')
+            guid = model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_type=model.TYPE_CHARGE,
+                amount=100,
+                payment_uri=payment_uri,
+                scheduled_at=now,
+            )
+
+        transaction = model.get(guid)
+
+        def mock_charge(transaction):
+            raise RuntimeError('Failed to charge')
+
+        mock_processor = flexmock()
+        (
+            mock_processor 
+            .should_receive('prepare_customer')
+            .replace_with(lambda c, payment_uri: None)
+            .times(4)
+        )
+        (
+            mock_processor 
+            .should_receive('charge')
+            .replace_with(mock_charge)
+            .times(4)
+        )
+
+        for _ in range(3):
+            with db_transaction.manager:
+                transaction = model.get(guid)
+                model.process_one(
+                    processor=mock_processor, 
+                    transaction=transaction, 
+                    maximum_retry=maximum_retry
+                )
+            transaction = model.get(guid)
+            self.assertEqual(transaction.status, model.STATUS_RETRYING)
+        with db_transaction.manager:
+            transaction = model.get(guid)
+            model.process_one(
+                processor=mock_processor, 
+                transaction=transaction, 
+                maximum_retry=maximum_retry
+            )
+        transaction = model.get(guid)
+        self.assertEqual(transaction.status, model.STATUS_FAILED)
+
     def test_process_one_with_system_exit_and_keyboard_interrupt(self):
         model = self.make_one(self.session)
         now = datetime.datetime.utcnow()

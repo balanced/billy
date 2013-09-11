@@ -36,6 +36,11 @@ def main(argv=sys.argv, processor=None):
     subscription_model = SubscriptionModel(session)
     tx_model = TransactionModel(session)
 
+    maximum_retry = int(settings.get(
+        'billy.transaction.maximum_retry', 
+        TransactionModel.DEFAULT_MAXIMUM_RETRY,
+    ))
+
     resolver = DottedNameResolver()
     if processor is None:
         processor_factory = settings['billy.processor_factory']
@@ -50,5 +55,5 @@ def main(argv=sys.argv, processor=None):
 
     with db_transaction.manager:
         logger.info('Processing transaction ...')
-        tx_model.process_transactions(processor)
+        tx_model.process_transactions(processor, maximum_retry=maximum_retry)
     logger.info('Done')

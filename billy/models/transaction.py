@@ -7,6 +7,9 @@ from billy.utils.generic import make_guid
 
 class TransactionModel(object):
 
+    #: the default maximum retry count
+    DEFAULT_MAXIMUM_RETRY = 10
+
     #: charge type transaction
     TYPE_CHARGE = 0
     #: refund type transaction
@@ -140,7 +143,12 @@ class TransactionModel(object):
         self.session.add(transaction)
         self.session.flush()
 
-    def process_one(self, processor, transaction):
+    def process_one(
+        self, 
+        processor, 
+        transaction, 
+        maximum_retry=DEFAULT_MAXIMUM_RETRY
+    ):
         """Process one transaction
 
         """
@@ -183,8 +191,12 @@ class TransactionModel(object):
                               'failure_count=%s', 
                               transaction.guid, transaction.failure_count, 
                               exc_info=True)
-            # TODO: maybe we should limit failure count here?
-            #       such as too many faiure then transit to FAILED status?
+            # the failure times exceed the limitation
+            if transaction.failure_count > maximum_retry:
+                self.logger.error('Exceed maximum retry limitation %s, '
+                                  'transaction %s failed', maximum_retry, 
+                                  transaction.guid)
+                transaction.status = self.STATUS_FAILED
             transaction.updated_at = now
             self.session.add(transaction)
             self.session.flush()
@@ -200,7 +212,12 @@ class TransactionModel(object):
                          transaction.guid, transaction.status, 
                          transaction.external_id)
 
-    def process_transactions(self, processor, guids=None):
+    def process_transactions(
+        self, 
+        processor, 
+        guids=None, 
+        maximum_retry=DEFAULT_MAXIMUM_RETRY
+    ):
         """Process all transactions 
 
         """
@@ -217,6 +234,6 @@ class TransactionModel(object):
 
         processed_transaction_guids = []
         for transaction in query:
-            self.process_one(processor, transaction)
+            self.process_one(processor, transaction, maximum_retry=maximum_retry)
             processed_transaction_guids.append(transaction.guid)
         return processed_transaction_guids

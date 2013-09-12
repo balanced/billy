@@ -64,9 +64,11 @@ class Company(DeclarativeBase):
     updated_at = Column(DateTime, default=now_func)
 
     #: plans of this company
-    plans = relationship('Plan', cascade='all, delete-orphan', backref='company')
+    plans = relationship('Plan', cascade='all, delete-orphan', 
+                         backref='company')
     #: customers of this company
-    customers = relationship('Customer', cascade='all, delete-orphan', backref='company')
+    customers = relationship('Customer', cascade='all, delete-orphan', 
+                             backref='company')
 
 
 class Customer(DeclarativeBase):
@@ -96,7 +98,8 @@ class Customer(DeclarativeBase):
     updated_at = Column(DateTime, default=now_func)
 
     #: subscriptions of this customer
-    subscriptions = relationship('Subscription', cascade='all, delete-orphan', backref='customer')
+    subscriptions = relationship('Subscription', cascade='all, delete-orphan', 
+                                 backref='customer')
 
 
 class Plan(DeclarativeBase):
@@ -141,7 +144,8 @@ class Plan(DeclarativeBase):
     updated_at = Column(DateTime, default=now_func)
 
     #: subscriptions of this plan
-    subscriptions = relationship('Subscription', cascade='all, delete-orphan', backref='plan')
+    subscriptions = relationship('Subscription', cascade='all, delete-orphan', 
+                                 backref='plan')
 
 
 class Subscription(DeclarativeBase):

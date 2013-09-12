@@ -28,7 +28,7 @@ class TestPlanViews(ViewTestCase):
         now_iso = now.isoformat()
 
         res = self.testapp.post(
-            '/v1/plans/',
+            '/v1/plans',
             dict(
                 plan_type=plan_type,
                 amount=amount,
@@ -50,7 +50,7 @@ class TestPlanViews(ViewTestCase):
     def test_create_plan_with_bad_parameters(self):
         def assert_bad_parameters(params):
             self.testapp.post(
-                '/v1/plans/',
+                '/v1/plans',
                 params,
                 extra_environ=dict(REMOTE_USER=self.api_key), 
                 status=400,
@@ -123,7 +123,7 @@ class TestPlanViews(ViewTestCase):
         # will yield None in this case, so we need to deal it specifically.
         # not sure is it a bug of WTForm, maybe we should workaround this later
         res = self.testapp.post(
-            '/v1/plans/',
+            '/v1/plans',
             dict(
                 plan_type='charge',
                 amount='55.66',
@@ -138,7 +138,7 @@ class TestPlanViews(ViewTestCase):
     def test_create_plan_with_different_types(self):
         def assert_plan_type(plan_type):
             res = self.testapp.post(
-                '/v1/plans/',
+                '/v1/plans',
                 dict(
                     plan_type=plan_type,
                     amount='55.66',
@@ -155,7 +155,7 @@ class TestPlanViews(ViewTestCase):
     def test_create_plan_with_different_frequency(self):
         def assert_frequency(frequency):
             res = self.testapp.post(
-                '/v1/plans/',
+                '/v1/plans',
                 dict(
                     plan_type='charge',
                     amount='55.66',
@@ -173,7 +173,7 @@ class TestPlanViews(ViewTestCase):
 
     def test_create_plan_with_bad_api_key(self):
         self.testapp.post(
-            '/v1/plans/',
+            '/v1/plans',
             dict(
                 plan_type='charge',
                 amount='55.66',
@@ -185,7 +185,7 @@ class TestPlanViews(ViewTestCase):
 
     def test_get_plan(self):
         res = self.testapp.post(
-            '/v1/plans/', 
+            '/v1/plans', 
             dict(
                 plan_type='charge',
                 amount='55.66',
@@ -213,7 +213,7 @@ class TestPlanViews(ViewTestCase):
 
     def test_get_plan_with_bad_api_key(self):
         res = self.testapp.post(
-            '/v1/plans/', 
+            '/v1/plans', 
             dict(
                 plan_type='charge',
                 amount='55.66',
@@ -238,7 +238,7 @@ class TestPlanViews(ViewTestCase):
         other_company = model.get(other_company_guid)
         other_api_key = str(other_company.api_key)
         res = self.testapp.post(
-            '/v1/plans/', 
+            '/v1/plans', 
             dict(
                 plan_type='charge',
                 amount='55.66',
@@ -251,5 +251,37 @@ class TestPlanViews(ViewTestCase):
         res = self.testapp.get(
             '/v1/plans/{}'.format(guid), 
             extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=403,
+        )
+
+    def test_plan_list(self):
+        from billy.models.plan import PlanModel 
+        plan_model = PlanModel(self.testapp.session)
+        with db_transaction.manager:
+            guids = []
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    guid = plan_model.create(
+                        company_guid=self.company_guid,
+                        plan_type=plan_model.TYPE_CHARGE,
+                        amount=55.66,
+                        frequency=plan_model.FREQ_DAILY,
+                    )
+                    guids.append(guid)
+        guids = list(reversed(guids))
+
+        res = self.testapp.get(
+            '/v1/plans',
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, guids)
+
+    def test_plan_list_with_bad_api_key(self):
+        self.testapp.get(
+            '/v1/plans',
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
             status=403,
         )

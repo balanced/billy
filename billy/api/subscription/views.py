@@ -13,6 +13,7 @@ from billy.models.transaction import TransactionModel
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
 from billy.api.utils import form_errors_to_bad_request
+from billy.api.utils import list_by_company_guid
 from .forms import SubscriptionCreateForm
 from .forms import SubscriptionCancelForm
 
@@ -29,6 +30,16 @@ def get_and_check_subscription(request, company, guid):
         raise HTTPForbidden('You have no permission to access subscription {}'
                             .format(guid))
     return subscription
+
+
+@view_config(route_name='subscription_list', 
+             request_method='GET', 
+             renderer='json')
+def subscription_list_get(request):
+    """Get and return subscriptions
+
+    """
+    return list_by_company_guid(request, SubscriptionModel)
 
 
 @view_config(route_name='subscription_list', 
@@ -62,6 +73,7 @@ def subscription_list_post(request):
     plan = plan_model.get(plan_guid)
     if plan.company_guid != company.guid:
         return HTTPForbidden('Can only subscribe to your own plan')
+    # TODO: make sure user cannot subscribe to a deleted plan or customer
 
     # create subscription and yield transactions
     with db_transaction.manager:
@@ -97,6 +109,35 @@ def subscription_get(request):
     guid = request.matchdict['subscription_guid']
     subscription = get_and_check_subscription(request, company, guid)
     return subscription 
+
+
+@view_config(route_name='subscription_transaction_list', 
+             request_method='GET', 
+             renderer='json')
+def subscription_transaction_list(request):
+    """Get and return transactions of subscription
+
+    """
+    company = auth_api_key(request)
+
+    offset = int(request.params.get('offset', 0))
+    limit = int(request.params.get('limit', 20))
+    guid = request.matchdict['subscription_guid']
+
+    tx_model = TransactionModel(request.session)
+    subscription = get_and_check_subscription(request, company, guid)
+
+    transactions = tx_model.list_by_subscription_guid(
+        subscription_guid=subscription.guid,
+        offset=offset,
+        limit=limit,
+    )
+    result = dict(
+        items=list(transactions),
+        offset=offset,
+        limit=limit,
+    )
+    return result
 
 
 @view_config(route_name='subscription_cancel', 

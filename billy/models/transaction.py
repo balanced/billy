@@ -1,11 +1,14 @@
 from __future__ import unicode_literals
-import logging
 
 from billy.models import tables
+from billy.models.base import BaseTableModel
+from billy.models.base import decorate_offset_limit
 from billy.utils.generic import make_guid
 
 
-class TransactionModel(object):
+class TransactionModel(BaseTableModel):
+
+    TABLE = tables.Transaction
 
     #: the default maximum retry count
     DEFAULT_MAXIMUM_RETRY = 10
@@ -42,26 +45,8 @@ class TransactionModel(object):
         STATUS_CANCELED,
     ]
 
-    def __init__(self, session, logger=None):
-        self.logger = logger or logging.getLogger(__name__)
-        self.session = session
-
-    def get(self, guid, raise_error=False):
-        """Find a transaction by guid and return it
-
-        :param guid: The guild of transaction to get
-        :param raise_error: Raise KeyError when cannot find one
-        """
-        query = (
-            self.session.query(tables.Transaction)
-            .filter_by(guid=guid)
-            .first()
-        )
-        if raise_error and query is None:
-            raise KeyError('No such transaction {}'.format(guid))
-        return query
-
-    def list_by_company_guid(self, company_guid, offset=None, limit=None):
+    @decorate_offset_limit
+    def list_by_company_guid(self, company_guid):
         """Get transactions of a company by given guid
 
         """
@@ -75,12 +60,22 @@ class TransactionModel(object):
                    Subscription.guid == Transaction.subscription_guid))
             .join((Plan, Plan.guid == Subscription.plan_guid))
             .filter(Plan.company_guid == company_guid)
-            .order_by(Transaction.created_at.asc())
+            .order_by(Transaction.created_at.desc())
         )
-        if offset is not None:
-            query = query.offset(offset)
-        if limit is not None:
-            query = query.limit(limit)
+        return query
+
+    @decorate_offset_limit
+    def list_by_subscription_guid(self, subscription_guid):
+        """Get transactions of a subscription by given guid
+
+        """
+        Transaction = tables.Transaction
+        query = (
+            self.session
+            .query(Transaction)
+            .filter(Transaction.subscription_guid == subscription_guid)
+            .order_by(Transaction.created_at.desc())
+        )
         return query
 
     def create(

@@ -1,8 +1,9 @@
 from __future__ import unicode_literals
-import logging
 import decimal
 
 from billy.models import tables
+from billy.models.base import BaseTableModel
+from billy.models.base import decorate_offset_limit
 from billy.models.plan import PlanModel
 from billy.models.transaction import TransactionModel
 from billy.models.schedule import next_transaction_datetime
@@ -17,25 +18,24 @@ class SubscriptionCanceledError(RuntimeError):
     """
 
 
-class SubscriptionModel(object):
+class SubscriptionModel(BaseTableModel):
 
-    def __init__(self, session, logger=None):
-        self.logger = logger or logging.getLogger(__name__)
-        self.session = session
+    TABLE = tables.Subscription
 
-    def get(self, guid, raise_error=False):
-        """Find a subscription by guid and return it
+    @decorate_offset_limit
+    def list_by_company_guid(self, company_guid):
+        """Get subscriptions of a company by given guid
 
-        :param guid: The guild of subscription to get
-        :param raise_error: Raise KeyError when cannot find one
         """
+        Subscription = tables.Subscription
+        Plan = tables.Plan
         query = (
-            self.session.query(tables.Subscription)
-            .filter_by(guid=guid)
-            .first()
+            self.session
+            .query(Subscription)
+            .join((Plan, Plan.guid == Subscription.plan_guid))
+            .filter(Plan.company_guid == company_guid)
+            .order_by(tables.Subscription.created_at.desc())
         )
-        if raise_error and query is None:
-            raise KeyError('No such subscription {}'.format(guid))
         return query
 
     def create(

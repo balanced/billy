@@ -21,7 +21,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # create a company
         res = self.testapp.post(
-            '/v1/companies/', 
+            '/v1/companies', 
             dict(processor_key=self.processor_key), 
             status=200
         )
@@ -30,7 +30,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # create a customer
         res = self.testapp.post(
-            '/v1/customers/', 
+            '/v1/customers', 
             headers=[self.make_auth(api_key)],
             status=200
         )
@@ -39,7 +39,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # create a plan
         res = self.testapp.post(
-            '/v1/plans/', 
+            '/v1/plans', 
             dict(
                 plan_type='charge',
                 amount='12.34',
@@ -56,7 +56,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # create a subscription
         res = self.testapp.post(
-            '/v1/subscriptions/', 
+            '/v1/subscriptions', 
             dict(
                 customer_guid=customer['guid'],
                 plan_guid=plan['guid'],
@@ -71,7 +71,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # transactions
         res = self.testapp.get(
-            '/v1/transactions/', 
+            '/v1/transactions', 
             headers=[self.make_auth(api_key)],
             status=200
         )

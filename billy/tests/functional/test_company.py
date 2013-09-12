@@ -15,7 +15,7 @@ class TestCompanyViews(ViewTestCase):
         now_iso = now.isoformat()
         
         res = self.testapp.post(
-            '/v1/companies/', 
+            '/v1/companies', 
             dict(processor_key=processor_key), 
             status=200
         )
@@ -27,14 +27,14 @@ class TestCompanyViews(ViewTestCase):
 
     def test_create_company_with_bad_parameters(self):
         self.testapp.post(
-            '/v1/companies/', 
+            '/v1/companies', 
             status=400,
         )
 
     def test_get_company(self):
         processor_key = 'MOCK_PROCESSOR_KEY'
         res = self.testapp.post(
-            '/v1/companies/', 
+            '/v1/companies', 
             dict(processor_key=processor_key), 
             status=200
         )
@@ -51,7 +51,7 @@ class TestCompanyViews(ViewTestCase):
     def test_get_company_with_bad_api_key(self):
         processor_key = 'MOCK_PROCESSOR_KEY'
         res = self.testapp.post(
-            '/v1/companies/', 
+            '/v1/companies', 
             dict(processor_key=processor_key), 
             status=200
         )
@@ -66,7 +66,7 @@ class TestCompanyViews(ViewTestCase):
     def test_get_non_existing_company(self):
         processor_key = 'MOCK_PROCESSOR_KEY'
         res = self.testapp.post(
-            '/v1/companies/', 
+            '/v1/companies', 
             dict(processor_key=processor_key), 
             status=200
         )
@@ -81,7 +81,7 @@ class TestCompanyViews(ViewTestCase):
         processor_key = 'MOCK_PROCESSOR_KEY'
 
         res = self.testapp.post(
-            '/v1/companies/', 
+            '/v1/companies', 
             dict(processor_key=processor_key), 
             status=200
         )
@@ -89,7 +89,7 @@ class TestCompanyViews(ViewTestCase):
         guid1 = res.json['guid']
 
         res = self.testapp.post(
-            '/v1/companies/', 
+            '/v1/companies', 
             dict(processor_key=processor_key), 
             status=200
         )

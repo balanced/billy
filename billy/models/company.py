@@ -1,32 +1,14 @@
 from __future__ import unicode_literals
-import logging
 
 from billy.models import tables
+from billy.models.base import BaseTableModel
 from billy.utils.generic import make_guid
 from billy.utils.generic import make_api_key
 
 
-class CompanyModel(object):
+class CompanyModel(BaseTableModel):
 
-    def __init__(self, session, logger=None):
-        self.logger = logger or logging.getLogger(__name__)
-        self.session = session
-
-    def get(self, guid, raise_error=False, ignore_deleted=True):
-        """Find a company by guid and return it
-
-        :param guid: The guild of company to get
-        :param raise_error: Raise KeyError when cannot find one
-        """
-        query = (
-            self.session.query(tables.Company)
-            .filter_by(guid=guid)
-            .filter_by(deleted=not ignore_deleted)
-            .first()
-        )
-        if raise_error and query is None:
-            raise KeyError('No such company {}'.format(guid))
-        return query
+    TABLE = tables.Company
 
     def get_by_api_key(self, api_key, raise_error=False, ignore_deleted=True):
         """Get a company by its API key

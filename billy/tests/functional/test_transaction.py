@@ -90,6 +90,7 @@ class TestTransactionViews(ViewTestCase):
                         scheduled_at=datetime.datetime.utcnow(),
                     )
                     guids.append(guid)
+        guids = list(reversed(guids))
         res = self.testapp.get(
             '/v1/transactions/?offset=5&limit=3',
             extra_environ=dict(REMOTE_USER=self.api_key), 

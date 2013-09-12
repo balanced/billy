@@ -609,3 +609,76 @@ class TestSubscriptionViews(ViewTestCase):
             )
         assert_bad_parameters(dict(prorated_refund=True, refund_amount=10))
         assert_bad_parameters(dict(refund_amount='100.01'))
+
+    def test_transaction_list_by_subscription(self):
+        from billy.models.transaction import TransactionModel
+        from billy.models.subscription import SubscriptionModel
+        subscription_model = SubscriptionModel(self.testapp.session)
+        transaction_model = TransactionModel(self.testapp.session)
+        with db_transaction.manager:
+            subscription_guid1 = subscription_model.create(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+            )
+            subscription_guid2 = subscription_model.create(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+            )
+        guids1 = []
+        guids2 = []
+        with db_transaction.manager:
+            for i in range(10):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    guid = transaction_model.create(
+                        subscription_guid=subscription_guid1,
+                        transaction_type=transaction_model.TYPE_CHARGE,
+                        amount=10 * i,
+                        payment_uri='/v1/cards/tester',
+                        scheduled_at=datetime.datetime.utcnow(),
+                    )
+                    guids1.append(guid)
+            for i in range(20):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    guid = transaction_model.create(
+                        subscription_guid=subscription_guid2,
+                        transaction_type=transaction_model.TYPE_CHARGE,
+                        amount=10 * i,
+                        payment_uri='/v1/cards/tester',
+                        scheduled_at=datetime.datetime.utcnow(),
+                    )
+                    guids2.append(guid)
+        guids1 = list(reversed(guids1))
+        guids2 = list(reversed(guids2))
+
+        res = self.testapp.get(
+            '/v1/subscriptions/{}/transactions'.format(subscription_guid1),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, guids1)
+
+        res = self.testapp.get(
+            '/v1/subscriptions/{}/transactions'.format(subscription_guid2),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, guids2)
+
+    def test_transaction_list_by_subscription_with_bad_api_key(self):
+        from billy.models.subscription import SubscriptionModel
+        subscription_model = SubscriptionModel(self.testapp.session)
+        with db_transaction.manager:
+            subscription_guid = subscription_model.create(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+            )
+
+        self.testapp.get(
+            '/v1/subscriptions/{}/transactions'.format(subscription_guid),
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )

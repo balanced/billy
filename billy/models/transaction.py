@@ -44,6 +44,13 @@ class TransactionModel(BaseTableModel):
         STATUS_CANCELED,
     ]
 
+    def _decorate_offset_limit(self, query, offset=None, limit=None):
+        if offset is not None:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+        return query
+
     def list_by_company_guid(self, company_guid, offset=None, limit=None):
         """Get transactions of a company by given guid
 
@@ -58,12 +65,23 @@ class TransactionModel(BaseTableModel):
                    Subscription.guid == Transaction.subscription_guid))
             .join((Plan, Plan.guid == Subscription.plan_guid))
             .filter(Plan.company_guid == company_guid)
-            .order_by(Transaction.created_at.asc())
+            .order_by(Transaction.created_at.desc())
         )
-        if offset is not None:
-            query = query.offset(offset)
-        if limit is not None:
-            query = query.limit(limit)
+        query = self._decorate_offset_limit(query, offset, limit)
+        return query
+
+    def list_by_subscription_guid(self, subscription_guid, offset=None, limit=None):
+        """Get transactions of a subscription by given guid
+
+        """
+        Transaction = tables.Transaction
+        query = (
+            self.session
+            .query(Transaction)
+            .filter(Transaction.subscription_guid == subscription_guid)
+            .order_by(Transaction.created_at.desc())
+        )
+        query = self._decorate_offset_limit(query, offset, limit)
         return query
 
     def create(

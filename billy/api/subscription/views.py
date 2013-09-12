@@ -100,6 +100,35 @@ def subscription_get(request):
     return subscription 
 
 
+@view_config(route_name='subscription_transaction_list', 
+             request_method='GET', 
+             renderer='json')
+def subscription_transaction_list(request):
+    """Get and return transactions of subscription
+
+    """
+    company = auth_api_key(request)
+
+    offset = int(request.params.get('offset', 0))
+    limit = int(request.params.get('limit', 20))
+    guid = request.matchdict['subscription_guid']
+
+    tx_model = TransactionModel(request.session)
+    subscription = get_and_check_subscription(request, company, guid)
+
+    transactions = tx_model.list_by_subscription_guid(
+        subscription_guid=subscription.guid,
+        offset=offset,
+        limit=limit,
+    )
+    result = dict(
+        items=list(transactions),
+        offset=offset,
+        limit=limit,
+    )
+    return result
+
+
 @view_config(route_name='subscription_cancel', 
              request_method='POST', 
              renderer='json')

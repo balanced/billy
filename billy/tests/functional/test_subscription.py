@@ -122,6 +122,19 @@ class TestSubscriptionViews(ViewTestCase):
                          'MOCK_PROCESSOR_TRANSACTION_ID')
         self.assertEqual(transaction.status, TransactionModel.STATUS_DONE)
 
+    def test_create_subscription_with_none_amount(self):
+        res = self.testapp.post(
+            '/v1/subscriptions',
+            dict(
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
+                payment_uri='MOCK_CARD_URI',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.assertEqual(res.json['amount'], None)
+
     def test_create_subscription_with_past_started_at(self):
         self.testapp.post(
             '/v1/subscriptions',

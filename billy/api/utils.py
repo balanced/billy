@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 
 from pyramid.httpexceptions import HTTPBadRequest
 
+from .auth import auth_api_key
+
 
 def form_errors_to_bad_request(errors):
     """Convert WTForm errors into readable bad request
@@ -55,3 +57,24 @@ class RecordExistValidator(object):
             msg = field.gettext('No such {} record {}'
                                 .format(self.model_cls.__name__, field.data))
             raise ValueError(msg)
+
+
+def list_by_company_guid(request, model_cls):
+    """List records by company guid
+
+    """
+    company = auth_api_key(request)
+    model = model_cls(request.session)
+    offset = int(request.params.get('offset', 0))
+    limit = int(request.params.get('limit', 20))
+    items = model.list_by_company_guid(
+        company_guid=company.guid,
+        offset=offset,
+        limit=limit,
+    )
+    result = dict(
+        items=list(items),
+        offset=offset,
+        limit=limit,
+    )
+    return result

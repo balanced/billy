@@ -93,7 +93,7 @@ class TestSubscriptionViews(ViewTestCase):
         )
 
         res = self.testapp.post(
-            '/v1/subscriptions/',
+            '/v1/subscriptions',
             dict(
                 customer_guid=customer_guid,
                 plan_guid=plan_guid,
@@ -124,7 +124,7 @@ class TestSubscriptionViews(ViewTestCase):
 
     def test_create_subscription_with_past_started_at(self):
         self.testapp.post(
-            '/v1/subscriptions/',
+            '/v1/subscriptions',
             dict(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
@@ -137,7 +137,7 @@ class TestSubscriptionViews(ViewTestCase):
     def test_create_subscription_with_bad_parameters(self):
         def assert_bad_parameters(params):
             self.testapp.post(
-                '/v1/subscriptions/',
+                '/v1/subscriptions',
                 params, 
                 extra_environ=dict(REMOTE_USER=self.api_key), 
                 status=400,
@@ -184,7 +184,7 @@ class TestSubscriptionViews(ViewTestCase):
         next_iso = next_transaction_at.isoformat()
 
         res = self.testapp.post(
-            '/v1/subscriptions/',
+            '/v1/subscriptions',
             dict(
                 customer_guid=customer_guid,
                 plan_guid=plan_guid,
@@ -212,7 +212,7 @@ class TestSubscriptionViews(ViewTestCase):
         next_iso = next_transaction_at.isoformat()
 
         res = self.testapp.post(
-            '/v1/subscriptions/',
+            '/v1/subscriptions',
             dict(
                 customer_guid=customer_guid,
                 plan_guid=plan_guid,
@@ -228,7 +228,7 @@ class TestSubscriptionViews(ViewTestCase):
 
     def test_create_subscription_with_bad_api(self):
         self.testapp.post(
-            '/v1/subscriptions/',
+            '/v1/subscriptions',
             dict(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
@@ -239,7 +239,7 @@ class TestSubscriptionViews(ViewTestCase):
 
     def test_get_subscription(self):
         res = self.testapp.post(
-            '/v1/subscriptions/', 
+            '/v1/subscriptions', 
             dict(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
@@ -266,7 +266,7 @@ class TestSubscriptionViews(ViewTestCase):
 
     def test_get_subscription_with_bad_api_key(self):
         res = self.testapp.post(
-            '/v1/subscriptions/', 
+            '/v1/subscriptions', 
             dict(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
@@ -307,7 +307,7 @@ class TestSubscriptionViews(ViewTestCase):
         other_api_key = str(other_company.api_key)
 
         res = self.testapp.post(
-            '/v1/subscriptions/', 
+            '/v1/subscriptions', 
             dict(
                 customer_guid=other_customer_guid,
                 plan_guid=other_plan_guid,
@@ -338,7 +338,7 @@ class TestSubscriptionViews(ViewTestCase):
             )
 
         self.testapp.post(
-            '/v1/subscriptions/', 
+            '/v1/subscriptions', 
             dict(
                 customer_guid=other_customer_guid,
                 plan_guid=self.plan_guid,
@@ -365,7 +365,7 @@ class TestSubscriptionViews(ViewTestCase):
             )
 
         self.testapp.post(
-            '/v1/subscriptions/', 
+            '/v1/subscriptions', 
             dict(
                 customer_guid=self.customer_guid,
                 plan_guid=other_plan_guid,
@@ -497,7 +497,7 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(transaction.status, tx_model.STATUS_DONE)
 
         res = self.testapp.get(
-            '/v1/transactions/', 
+            '/v1/transactions', 
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
@@ -563,7 +563,7 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(transaction.status, tx_model.STATUS_DONE)
 
         res = self.testapp.get(
-            '/v1/transactions/', 
+            '/v1/transactions', 
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
@@ -679,6 +679,36 @@ class TestSubscriptionViews(ViewTestCase):
 
         self.testapp.get(
             '/v1/subscriptions/{}/transactions'.format(subscription_guid),
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )
+
+    def test_subscription_list(self):
+        from billy.models.subscription import SubscriptionModel
+        subscription_model = SubscriptionModel(self.testapp.session)
+        with db_transaction.manager:
+            guids = []
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    guid = subscription_model.create(
+                        customer_guid=self.customer_guid,
+                        plan_guid=self.plan_guid,
+                    )
+                    guids.append(guid)
+        guids = list(reversed(guids))
+
+        res = self.testapp.get(
+            '/v1/subscriptions',
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, guids)
+
+    def test_subscription_list_with_bad_api_key(self):
+        self.testapp.get(
+            '/v1/subscriptions',
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
             status=403,
         )

@@ -24,7 +24,7 @@ class TestCustomerViews(ViewTestCase):
         now_iso = now.isoformat()
 
         res = self.testapp.post(
-            '/v1/customers/',
+            '/v1/customers',
             dict(external_id='MOCK_EXTERNAL_ID'),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
@@ -37,14 +37,14 @@ class TestCustomerViews(ViewTestCase):
 
     def test_create_customer_with_bad_api_key(self):
         self.testapp.post(
-            '/v1/customers/',
+            '/v1/customers',
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
             status=403,
         )
 
     def test_get_customer(self):
         res = self.testapp.post(
-            '/v1/customers/', 
+            '/v1/customers', 
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
@@ -60,7 +60,7 @@ class TestCustomerViews(ViewTestCase):
 
     def test_get_customer_with_bad_api_key(self):
         res = self.testapp.post(
-            '/v1/customers/', 
+            '/v1/customers', 
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
@@ -88,7 +88,7 @@ class TestCustomerViews(ViewTestCase):
         other_company = model.get(other_company_guid)
         other_api_key = str(other_company.api_key)
         res = self.testapp.post(
-            '/v1/customers/', 
+            '/v1/customers', 
             extra_environ=dict(REMOTE_USER=other_api_key), 
             status=200,
         )
@@ -96,5 +96,32 @@ class TestCustomerViews(ViewTestCase):
         res = self.testapp.get(
             '/v1/customers/{}'.format(guid), 
             extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=403,
+        )
+
+    def test_customer_list(self):
+        from billy.models.customer import CustomerModel 
+        customer_model = CustomerModel(self.testapp.session)
+        with db_transaction.manager:
+            guids = []
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    guid = customer_model.create(self.company_guid)
+                    guids.append(guid)
+        guids = list(reversed(guids))
+
+        res = self.testapp.get(
+            '/v1/customers',
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, guids)
+
+    def test_customer_list_with_bad_api_key(self):
+        self.testapp.get(
+            '/v1/customers',
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
             status=403,
         )

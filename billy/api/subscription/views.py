@@ -13,6 +13,7 @@ from billy.models.transaction import TransactionModel
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
 from billy.api.utils import form_errors_to_bad_request
+from billy.api.utils import list_by_company_guid
 from .forms import SubscriptionCreateForm
 from .forms import SubscriptionCancelForm
 
@@ -29,6 +30,16 @@ def get_and_check_subscription(request, company, guid):
         raise HTTPForbidden('You have no permission to access subscription {}'
                             .format(guid))
     return subscription
+
+
+@view_config(route_name='subscription_list', 
+             request_method='GET', 
+             renderer='json')
+def subscription_list_get(request):
+    """Get and return subscriptions
+
+    """
+    return list_by_company_guid(request, SubscriptionModel)
 
 
 @view_config(route_name='subscription_list', 

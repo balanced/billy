@@ -92,7 +92,7 @@ class TestTransactionViews(ViewTestCase):
                     guids.append(guid)
         guids = list(reversed(guids))
         res = self.testapp.get(
-            '/v1/transactions/?offset=5&limit=3',
+            '/v1/transactions?offset=5&limit=3',
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
@@ -104,7 +104,7 @@ class TestTransactionViews(ViewTestCase):
 
     def test_transaction_list_by_company_with_bad_api_key(self):
         self.testapp.get(
-            '/v1/transactions/',
+            '/v1/transactions',
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
             status=403,
         )

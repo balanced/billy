@@ -7,4 +7,4 @@ def includeme(config):
                      '/subscriptions/{subscription_guid}/transactions')
     config.add_route('subscription_cancel', 
                      '/subscriptions/{subscription_guid}/cancel')
-    config.add_route('subscription_list', '/subscriptions/')
+    config.add_route('subscription_list', '/subscriptions')

@@ -8,7 +8,18 @@ from pyramid.httpexceptions import HTTPForbidden
 from billy.models.plan import PlanModel 
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
+from billy.api.utils import list_by_company_guid
 from .forms import PlanCreateForm
+
+
+@view_config(route_name='plan_list', 
+             request_method='GET', 
+             renderer='json')
+def plan_list_get(request):
+    """Get and return plans
+
+    """
+    return list_by_company_guid(request, PlanModel)
 
 
 @view_config(route_name='plan_list', 

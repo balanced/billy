@@ -754,3 +754,59 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertFalse(tx_guids)
         subscription = model.get(guid)
         self.assertEqual(len(subscription.transactions), 3)
+
+    def test_list_by_company_guid(self):
+        model = self.make_one(self.session)
+
+        # create another company with subscriptions
+        with db_transaction.manager:
+            other_company_guid = self.company_model.create('my_secret_key')
+            other_plan_guid = self.plan_model.create(
+                company_guid=other_company_guid,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=10,
+                frequency=self.plan_model.FREQ_MONTHLY,
+            )
+            other_customer_guid = self.customer_model.create(
+                company_guid=other_company_guid,
+            )
+            guids1 = []
+            for i in range(2):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i)):
+                    guid = model.create(
+                        customer_guid=other_customer_guid,
+                        plan_guid=other_plan_guid,
+                    )
+                    guids1.append(guid)
+        with db_transaction.manager:
+            guids2 = []
+            for i in range(3):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i)):
+                    guid = model.create(
+                        customer_guid=self.customer_tom_guid,
+                        plan_guid=self.monthly_plan_guid,
+                    )
+                    guids2.append(guid)
+
+        guids1 = list(reversed(guids1))
+        guids2 = list(reversed(guids2))
+
+        def assert_list_by_company_guid(
+            company_guid, 
+            expected, 
+            offset=None, 
+            limit=None,
+        ):
+            result = model.list_by_company_guid(
+                company_guid, 
+                offset=offset, 
+                limit=limit,
+            )
+            result_guids = [s.guid for s in result]
+            self.assertEqual(result_guids, expected)
+
+        assert_list_by_company_guid(other_company_guid, guids1)
+        assert_list_by_company_guid(other_company_guid, guids1[1:], offset=1)
+        assert_list_by_company_guid(other_company_guid, guids1[2:], offset=2)
+        assert_list_by_company_guid(other_company_guid, guids1[:1], limit=1)
+        assert_list_by_company_guid(self.company_guid, guids1)

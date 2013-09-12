@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from billy.models import tables
 from billy.models.base import BaseTableModel
+from billy.models.base import decorate_offset_limit
 from billy.utils.generic import make_guid
 
 
@@ -44,14 +45,8 @@ class TransactionModel(BaseTableModel):
         STATUS_CANCELED,
     ]
 
-    def _decorate_offset_limit(self, query, offset=None, limit=None):
-        if offset is not None:
-            query = query.offset(offset)
-        if limit is not None:
-            query = query.limit(limit)
-        return query
-
-    def list_by_company_guid(self, company_guid, offset=None, limit=None):
+    @decorate_offset_limit
+    def list_by_company_guid(self, company_guid):
         """Get transactions of a company by given guid
 
         """
@@ -67,10 +62,10 @@ class TransactionModel(BaseTableModel):
             .filter(Plan.company_guid == company_guid)
             .order_by(Transaction.created_at.desc())
         )
-        query = self._decorate_offset_limit(query, offset, limit)
         return query
 
-    def list_by_subscription_guid(self, subscription_guid, offset=None, limit=None):
+    @decorate_offset_limit
+    def list_by_subscription_guid(self, subscription_guid):
         """Get transactions of a subscription by given guid
 
         """
@@ -81,7 +76,6 @@ class TransactionModel(BaseTableModel):
             .filter(Transaction.subscription_guid == subscription_guid)
             .order_by(Transaction.created_at.desc())
         )
-        query = self._decorate_offset_limit(query, offset, limit)
         return query
 
     def create(

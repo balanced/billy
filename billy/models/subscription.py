@@ -3,6 +3,7 @@ import decimal
 
 from billy.models import tables
 from billy.models.base import BaseTableModel
+from billy.models.base import decorate_offset_limit
 from billy.models.plan import PlanModel
 from billy.models.transaction import TransactionModel
 from billy.models.schedule import next_transaction_datetime
@@ -20,6 +21,22 @@ class SubscriptionCanceledError(RuntimeError):
 class SubscriptionModel(BaseTableModel):
 
     TABLE = tables.Subscription
+
+    @decorate_offset_limit
+    def list_by_company_guid(self, company_guid):
+        """Get subscriptions of a company by given guid
+
+        """
+        Subscription = tables.Subscription
+        Plan = tables.Plan
+        query = (
+            self.session
+            .query(Subscription)
+            .join((Plan, Plan.guid == Subscription.plan_guid))
+            .filter(Plan.company_guid == company_guid)
+            .order_by(tables.Subscription.created_at.desc())
+        )
+        return query
 
     def create(
         self, 

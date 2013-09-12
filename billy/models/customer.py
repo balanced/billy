@@ -2,10 +2,11 @@ from __future__ import unicode_literals
 
 from billy.models import tables
 from billy.models.base import BaseTableModel
+from billy.models.base import ListByCompanyMixin
 from billy.utils.generic import make_guid
 
 
-class CustomerModel(BaseTableModel):
+class CustomerModel(BaseTableModel, ListByCompanyMixin):
 
     TABLE = tables.Customer
 

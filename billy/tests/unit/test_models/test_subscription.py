@@ -809,4 +809,4 @@ class TestSubscriptionModel(ModelTestCase):
         assert_list_by_company_guid(other_company_guid, guids1[1:], offset=1)
         assert_list_by_company_guid(other_company_guid, guids1[2:], offset=2)
         assert_list_by_company_guid(other_company_guid, guids1[:1], limit=1)
-        assert_list_by_company_guid(self.company_guid, guids1)
+        assert_list_by_company_guid(self.company_guid, guids2)

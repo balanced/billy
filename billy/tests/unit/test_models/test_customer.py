@@ -148,3 +148,48 @@ class TestCustomerModel(ModelTestCase):
 
         customer = model.get(guid)
         self.assertEqual(customer.deleted, True)
+
+    def test_list_by_company_guid(self):
+        model = self.make_one(self.session)
+
+        # create another company with customers
+        with transaction.manager:
+            other_company_guid = self.company_model.create('my_secret_key')
+            guids1 = []
+            for i in range(2):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i)):
+                    guid = model.create(
+                        company_guid=other_company_guid,
+                    )
+                    guids1.append(guid)
+        with transaction.manager:
+            guids2 = []
+            for i in range(3):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i)):
+                    guid = model.create(
+                        company_guid=self.company_guid,
+                    )
+                    guids2.append(guid)
+
+        guids1 = list(reversed(guids1))
+        guids2 = list(reversed(guids2))
+
+        def assert_list_by_company_guid(
+            company_guid, 
+            expected, 
+            offset=None, 
+            limit=None,
+        ):
+            result = model.list_by_company_guid(
+                company_guid, 
+                offset=offset, 
+                limit=limit,
+            )
+            result_guids = [s.guid for s in result]
+            self.assertEqual(result_guids, expected)
+
+        assert_list_by_company_guid(other_company_guid, guids1)
+        assert_list_by_company_guid(other_company_guid, guids1[1:], offset=1)
+        assert_list_by_company_guid(other_company_guid, guids1[2:], offset=2)
+        assert_list_by_company_guid(other_company_guid, guids1[:1], limit=1)
+        assert_list_by_company_guid(self.company_guid, guids2)

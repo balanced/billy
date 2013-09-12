@@ -55,9 +55,12 @@ def subscription_adapter(subscription, request):
     canceled_at = None
     if subscription.canceled_at is not None:
         canceled_at = subscription.canceled_at.isoformat()
+    amount = None
+    if subscription.amount is not None:
+        amount = str(subscription.amount)
     return dict(
         guid=subscription.guid, 
-        amount=str(subscription.amount),
+        amount=amount,
         payment_uri=subscription.payment_uri,
         period=subscription.period,
         canceled=subscription.canceled,

@@ -5,6 +5,7 @@ from pyramid.view import view_config
 from pyramid.settings import asbool
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPForbidden
+from pyramid.httpexceptions import HTTPBadRequest
 
 from billy.models.customer import CustomerModel 
 from billy.models.plan import PlanModel
@@ -70,10 +71,13 @@ def subscription_list_post(request):
     customer = customer_model.get(customer_guid)
     if customer.company_guid != company.guid:
         return HTTPForbidden('Can only subscribe to your own customer')
+    if customer.deleted:
+        return HTTPBadRequest('Cannot subscript to a deleted customer')
     plan = plan_model.get(plan_guid)
     if plan.company_guid != company.guid:
         return HTTPForbidden('Can only subscribe to your own plan')
-    # TODO: make sure user cannot subscribe to a deleted plan or customer
+    if plan.deleted:
+        return HTTPBadRequest('Cannot subscript to a deleted plan')
 
     # create subscription and yield transactions
     with db_transaction.manager:
@@ -165,11 +169,11 @@ def subscription_cancel(request):
     model = SubscriptionModel(request.session)
     tx_model = TransactionModel(request.session)
     get_and_check_subscription(request, company, guid)
+    subscription = model.get(guid)
 
     # TODO: maybe we can find a better way to integrate this with the 
     # form validation?
     if refund_amount is not None:
-        subscription = model.get(guid)
         if subscription.amount is not None:
             amount = subscription.amount
         else:
@@ -180,7 +184,8 @@ def subscription_cancel(request):
                                'subscription amount {}'.format(amount)]
             ))
 
-    # TODO: make sure the subscription is not already canceled
+    if subscription.canceled:
+        return HTTPBadRequest('Cannot cancel a canceled subscription')
 
     with db_transaction.manager:
         tx_guid = model.cancel(

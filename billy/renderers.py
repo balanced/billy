@@ -21,6 +21,7 @@ def customer_adapter(customer, request):
         created_at=customer.created_at.isoformat(),
         updated_at=customer.updated_at.isoformat(),
         company_guid=customer.company_guid, 
+        deleted=customer.deleted, 
     )
 
 
@@ -48,6 +49,7 @@ def plan_adapter(plan, request):
         created_at=plan.created_at.isoformat(),
         updated_at=plan.updated_at.isoformat(),
         company_guid=plan.company_guid,
+        deleted=plan.deleted,
     )
 
 

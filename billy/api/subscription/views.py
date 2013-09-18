@@ -169,11 +169,11 @@ def subscription_cancel(request):
     model = SubscriptionModel(request.session)
     tx_model = TransactionModel(request.session)
     get_and_check_subscription(request, company, guid)
+    subscription = model.get(guid)
 
     # TODO: maybe we can find a better way to integrate this with the 
     # form validation?
     if refund_amount is not None:
-        subscription = model.get(guid)
         if subscription.amount is not None:
             amount = subscription.amount
         else:
@@ -184,7 +184,8 @@ def subscription_cancel(request):
                                'subscription amount {}'.format(amount)]
             ))
 
-    # TODO: make sure the subscription is not already canceled
+    if subscription.canceled:
+        return HTTPBadRequest('Cannot cancel a canceled subscription')
 
     with db_transaction.manager:
         tx_guid = model.cancel(

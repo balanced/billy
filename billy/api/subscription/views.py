@@ -5,6 +5,7 @@ from pyramid.view import view_config
 from pyramid.settings import asbool
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPForbidden
+from pyramid.httpexceptions import HTTPBadRequest
 
 from billy.models.customer import CustomerModel 
 from billy.models.plan import PlanModel
@@ -70,10 +71,13 @@ def subscription_list_post(request):
     customer = customer_model.get(customer_guid)
     if customer.company_guid != company.guid:
         return HTTPForbidden('Can only subscribe to your own customer')
+    if customer.deleted:
+        return HTTPBadRequest('Cannot subscript to a deleted customer')
     plan = plan_model.get(plan_guid)
     if plan.company_guid != company.guid:
         return HTTPForbidden('Can only subscribe to your own plan')
-    # TODO: make sure user cannot subscribe to a deleted plan or customer
+    if plan.deleted:
+        return HTTPBadRequest('Cannot subscript to a deleted plan')
 
     # create subscription and yield transactions
     with db_transaction.manager:

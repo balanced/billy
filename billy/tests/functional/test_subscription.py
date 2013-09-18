@@ -113,6 +113,7 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(res.json['customer_guid'], customer_guid)
         self.assertEqual(res.json['plan_guid'], plan_guid)
         self.assertEqual(res.json['payment_uri'], payment_uri)
+        self.assertEqual(res.json['canceled'], False)
 
         subscription_model = SubscriptionModel(self.testapp.session)
         subscription = subscription_model.get(res.json['guid'])
@@ -121,6 +122,55 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(transaction.external_id, 
                          'MOCK_PROCESSOR_TRANSACTION_ID')
         self.assertEqual(transaction.status, TransactionModel.STATUS_DONE)
+
+    def test_create_subscription_to_a_deleted_plan(self):
+        from billy.models.plan import PlanModel
+
+        plan_model = PlanModel(self.testapp.session)
+
+        with db_transaction.manager:
+            plan_guid = plan_model.create(
+                company_guid=self.company_guid,
+                frequency=plan_model.FREQ_WEEKLY,
+                plan_type=plan_model.TYPE_CHARGE,
+                amount=10,
+            )
+            plan_model.delete(plan_guid)
+
+        self.testapp.post(
+            '/v1/subscriptions',
+            dict(
+                customer_guid=self.customer_guid,
+                plan_guid=plan_guid,
+                amount='123',
+                payment_uri='MOCK_CARD_URI',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
+
+    def test_create_subscription_to_a_deleted_customer(self):
+        from billy.models.customer import CustomerModel
+
+        customer_model = CustomerModel(self.testapp.session)
+
+        with db_transaction.manager:
+            customer_guid = customer_model.create(
+                company_guid=self.company_guid
+            )
+            customer_model.delete(customer_guid)
+
+        self.testapp.post(
+            '/v1/subscriptions',
+            dict(
+                customer_guid=customer_guid,
+                plan_guid=self.plan_guid,
+                amount='123',
+                payment_uri='MOCK_CARD_URI',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
 
     def test_create_subscription_with_none_amount(self):
         res = self.testapp.post(

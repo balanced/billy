@@ -21,6 +21,7 @@ def customer_adapter(customer, request):
         created_at=customer.created_at.isoformat(),
         updated_at=customer.updated_at.isoformat(),
         company_guid=customer.company_guid, 
+        deleted=customer.deleted, 
     )
 
 

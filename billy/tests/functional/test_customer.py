@@ -34,6 +34,7 @@ class TestCustomerViews(ViewTestCase):
         self.assertEqual(res.json['updated_at'], now_iso)
         self.assertEqual(res.json['external_id'], 'MOCK_EXTERNAL_ID')
         self.assertEqual(res.json['company_guid'], self.company_guid)
+        self.assertEqual(res.json['deleted'], False)
 
     def test_create_customer_with_bad_api_key(self):
         self.testapp.post(
@@ -123,5 +124,73 @@ class TestCustomerViews(ViewTestCase):
         self.testapp.get(
             '/v1/customers',
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )
+
+    def test_delete_customer(self):
+        res = self.testapp.post(
+            '/v1/customers',
+            dict(external_id='MOCK_EXTERNAL_ID'),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        created_customer = res.json
+        res = self.testapp.delete(
+            '/v1/customers/{}'.format(created_customer['guid']),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        deleted_customer = res.json
+        self.assertEqual(deleted_customer['deleted'], True)
+
+    def test_delete_a_deleted_customer(self):
+        res = self.testapp.post(
+            '/v1/customers',
+            dict(external_id='MOCK_EXTERNAL_ID'),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        created_customer = res.json
+        self.testapp.delete(
+            '/v1/customers/{}'.format(created_customer['guid']),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.testapp.delete(
+            '/v1/customers/{}'.format(created_customer['guid']),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
+
+    def test_delete_customer_with_bad_api_key(self):
+        res = self.testapp.post(
+            '/v1/customers',
+            dict(external_id='MOCK_EXTERNAL_ID'),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        created_customer = res.json
+        self.testapp.delete(
+            '/v1/customers/{}'.format(created_customer['guid']),
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )
+
+    def test_delete_customer_of_other_company(self):
+        from billy.models.company import CompanyModel
+        model = CompanyModel(self.testapp.session)
+        with db_transaction.manager:
+            other_company_guid = model.create(processor_key='MOCK_PROCESSOR_KEY')
+        other_company = model.get(other_company_guid)
+        other_api_key = str(other_company.api_key)
+        res = self.testapp.post(
+            '/v1/customers', 
+            extra_environ=dict(REMOTE_USER=other_api_key), 
+            status=200,
+        )
+        guid = res.json['guid']
+        self.testapp.delete(
+            '/v1/customers/{}'.format(guid), 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
             status=403,
         )

@@ -46,6 +46,7 @@ class TestPlanViews(ViewTestCase):
         self.assertEqual(res.json['frequency'], frequency)
         self.assertEqual(res.json['interval'], interval)
         self.assertEqual(res.json['company_guid'], self.company_guid)
+        self.assertEqual(res.json['deleted'], False)
 
     def test_create_plan_with_bad_parameters(self):
         def assert_bad_parameters(params):
@@ -283,5 +284,92 @@ class TestPlanViews(ViewTestCase):
         self.testapp.get(
             '/v1/plans',
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )
+
+    def test_delete_plan(self):
+        res = self.testapp.post(
+            '/v1/plans', 
+            dict(
+                plan_type='charge',
+                amount='55.66',
+                frequency='weekly',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        created_plan = res.json
+        res = self.testapp.delete(
+            '/v1/plans/{}'.format(created_plan['guid']), 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        deleted_plan = res.json
+        self.assertEqual(deleted_plan['deleted'], True)
+
+    def test_delete_a_deleted_plan(self):
+        res = self.testapp.post(
+            '/v1/plans', 
+            dict(
+                plan_type='charge',
+                amount='55.66',
+                frequency='weekly',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        created_plan = res.json
+        self.testapp.delete(
+            '/v1/plans/{}'.format(created_plan['guid']), 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        # TODO: should we use conflict or other code rather than
+        # 400 here?
+        self.testapp.delete(
+            '/v1/plans/{}'.format(created_plan['guid']), 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
+
+    def test_delete_plan_with_bad_api_key(self):
+        res = self.testapp.post(
+            '/v1/plans', 
+            dict(
+                plan_type='charge',
+                amount='55.66',
+                frequency='weekly',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        created_plan = res.json
+        self.testapp.delete(
+            '/v1/plans/{}'.format(created_plan['guid']), 
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )
+
+    def test_delete_plan_of_other_company(self):
+        from billy.models.company import CompanyModel
+        model = CompanyModel(self.testapp.session)
+        with db_transaction.manager:
+            other_company_guid = model.create(processor_key='MOCK_PROCESSOR_KEY')
+        other_company = model.get(other_company_guid)
+        other_api_key = str(other_company.api_key)
+        res = self.testapp.post(
+            '/v1/plans', 
+            dict(
+                plan_type='charge',
+                amount='55.66',
+                frequency='weekly',
+            ),
+            extra_environ=dict(REMOTE_USER=other_api_key), 
+            status=200,
+        )
+        guid = res.json['guid']
+        self.testapp.delete(
+            '/v1/plans/{}'.format(guid), 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
             status=403,
         )

@@ -48,6 +48,7 @@ def plan_adapter(plan, request):
         created_at=plan.created_at.isoformat(),
         updated_at=plan.updated_at.isoformat(),
         company_guid=plan.company_guid,
+        deleted=plan.deleted,
     )
 
 

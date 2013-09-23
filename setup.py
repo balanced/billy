@@ -13,7 +13,7 @@ test_requires = open(os.path.join(here, 'test_requirements.txt')).read()
 test_requires = map(lambda r: r.strip(), test_requires.splitlines())
 
 setup(
-    name='billy',
+    name='billing',
     version='0.0.1',
     description='Recurring payment system',
     long_description=readme,

@@ -5,7 +5,7 @@ from billy.tests.integration.helper import IntegrationTestCase
 
 class TestBasicScenarios(IntegrationTestCase):
 
-    def test_simple_subscription(self):
+    def test_simple_subscription_and_cancel(self):
         import balanced
         balanced.configure(self.processor_key)
         marketplace = balanced.Marketplace.find(self.marketplace_uri)
@@ -80,10 +80,58 @@ class TestBasicScenarios(IntegrationTestCase):
         transaction = res.json['items'][0]
         self.assertEqual(transaction['subscription_guid'], subscription['guid'])
         self.assertEqual(transaction['status'], 'done')
+        self.assertEqual(transaction['transaction_type'], 'charge')
 
         debit = balanced.Debit.find(transaction['external_id'])
         self.assertEqual(debit.meta['billy.transaction_guid'], transaction['guid'])
         self.assertEqual(debit.amount, 1234)
         self.assertEqual(debit.status, 'succeeded')
 
-        # TODO: refund it?
+        # cancel the subscription and refund
+        res = self.testapp.post(
+            '/v1/subscriptions/{}/cancel'.format(subscription['guid']), 
+            dict(
+                refund_amount=12.34,
+            ),
+            headers=[self.make_auth(api_key)],
+            status=200
+        )
+        subscription = res.json
+        self.assertEqual(subscription['canceled'], True)
+
+        # get transactions
+        res = self.testapp.get(
+            '/v1/transactions', 
+            headers=[self.make_auth(api_key)],
+            status=200
+        )
+        transactions = res.json
+        self.assertEqual(len(transactions['items']), 2)
+        transaction = res.json['items'][0]
+        self.assertEqual(transaction['subscription_guid'], subscription['guid'])
+        self.assertEqual(transaction['status'], 'done')
+        self.assertEqual(transaction['transaction_type'], 'refund')
+
+        refund = balanced.Debit.find(transaction['external_id'])
+        self.assertEqual(refund.meta['billy.transaction_guid'], 
+                         transaction['guid'])
+        self.assertEqual(refund.amount, 1234)
+        self.assertEqual(refund.status, 'succeeded')
+
+        # delete the plan
+        res = self.testapp.delete(
+            '/v1/plans/{}'.format(plan['guid']), 
+            headers=[self.make_auth(api_key)],
+            status=200
+        )
+        plan = res.json
+        self.assertEqual(plan['deleted'], True)
+
+        # delete the customer
+        res = self.testapp.delete(
+            '/v1/customers/{}'.format(customer['guid']), 
+            headers=[self.make_auth(api_key)],
+            status=200
+        )
+        customer = res.json
+        self.assertEqual(customer['deleted'], True)

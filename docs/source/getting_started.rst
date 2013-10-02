@@ -246,8 +246,8 @@ In this case, to subscribe a student to your course plan, you can give it a
         -d "payment_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
         -d "started_at=2013-10-01T00:00:00"
 
-Cancel the subscription
------------------------
+Cancel a subscription
+---------------------
 
 TODO:
 

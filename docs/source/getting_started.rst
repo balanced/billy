@@ -249,5 +249,36 @@ In this case, to subscribe a student to your course plan, you can give it a
 Cancel a subscription
 ---------------------
 
-TODO:
+When a customer doesn't want to continue a subscription anymore, you will need
+to cancel it. To cancel it, that's simple. For example, you want to cancel a
+subscription `SUR6jKqqSyaFfGeeAsGaXFqZ`, then just call
+
+::
+
+    curl http://billing.balancedpayments.com/v1/subscriptions/SUR6jKqqSyaFfGeeAsGaXFqZ/cancel \
+        -X POST \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+
+sometimes, you also want to issue a prorated refund when canceling the 
+subscription. Let's say, there are 30 days from the latest transaction to 
+the next transaction. And 10 days has already elapsed, you want to do a 
+prorated refund to the customer for the rest 20 days. In this case, 
+you can use `prorated_refund` parameter to let Billy do the refunding for you. 
+Call it like this
+
+::
+
+    curl http://billing.balancedpayments.com/v1/subscriptions/SUR6jKqqSyaFfGeeAsGaXFqZ/cancel \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
+        -d "prorated_refund=1"
+
+If you want to refund an arbitrarity amount to the customer, you can use the
+`refund_amount` parameter. For instance, you want to refund $5 USD to the 
+customer, just call
+
+::
+
+    curl http://billing.balancedpayments.com/v1/subscriptions/SUR6jKqqSyaFfGeeAsGaXFqZ/cancel \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
+        -d "refund_amount=5"
 

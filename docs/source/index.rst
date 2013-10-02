@@ -18,6 +18,7 @@ by `Balanced Payments`_. Feel free to fork on GitHub_.
    :maxdepth: 2
 
    getting_started
+   api_reference
 
 
 Indices and tables

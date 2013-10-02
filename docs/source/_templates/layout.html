@@ -1,0 +1,13 @@
+{% extends "!layout.html" %}
+{% block sidebarlogo %}
+    <a 
+        href="https://www.balancedpayments.com/" 
+        title="An open source recurring payment project powered by Balanced Payments"
+    >
+        <img 
+            src="https://d3n06lmttbcmxe.cloudfront.net/images/homepage_logo-01-2x.png" 
+            style="margin-bottom: 30px; width: 180px; height: auto; " 
+        />
+    </a>
+    {{ super() }}
+{% endblock %}

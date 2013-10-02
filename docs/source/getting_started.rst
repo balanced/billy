@@ -178,6 +178,74 @@ Then, here comes our subscription response:
 Great! The Billy system just charged the credit card for you, and it will 
 charge that credit card monthly afterward.
 
+Subscribe with an overwritten amount
+------------------------------------
+
+In some cases, you may want to subscribe a customer to a plan with a 
+different amount from the plan. For example, you want to give a discount
+to one of your old customers. In this case, you can pass an optional parameter
+`amount` to overwrite the amount from plan.
+
+In the context of our hosting plan story, you want to give a 30% discount to 
+an old customer, the original price is $5 USD, so the discounted amount would be
+3.5. Then here you can call
+
+::
+
+    curl http://billing.balancedpayments.com/v1/subscriptions \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
+        -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
+        -d "plan_guid=PL97ZvyeA4wzM3WUyEG8xwps" \
+        -d "payment_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
+        -d "amount=3.5"
+
+Schedule your subscription at a specific time
+---------------------------------------------
+
+By default, when you subscribe to a plan, the first transaction will be filed
+and processed immediately. And transactions will appear in the same time of 
+following days. For instance, if the `frequency` is `daily`, and you call the
+API at 2013-01-01 7:10 AM, then the schedule will look like this
+
+ * Transaction 1, at 2013-01-01 07:10 AM
+ * Transaction 2, at 2013-01-02 07:10 AM
+ * Transaction 3, at 2013-01-03 07:10 AM
+ * ...
+
+If the `frequency` is `monthly`, and the date is end of the month, the
+closes day in that month will be used, for example, call the API at 
+2013-01-30 7:00 AM, then the schedule will be
+
+ * Transaction 1, at 2013-01-30 07:10 AM
+ * Transaction 2, at 2013-02-28 07:10 AM
+ * Transaction 3, at 2013-03-30 07:10 AM
+ * ...
+
+So, what if you want to schedule those transactions at a specific time rahter 
+than the API calling time? It's simple, you can use the optional `started_at` 
+parameter. For example, you have a violin course for beginners, to make things 
+clear, you only want to collect your fee at 1st days of each month. The 
+transaction schedule would look like this
+
+ * Transaction 1, at 2013-01-01 00:00 AM
+ * Transaction 2, at 2013-02-01 00:00 AM
+ * Transaction 3, at 2013-03-01 00:00 AM
+ * ...
+
+In this case, to subscribe a student to your course plan, you can give it a 
+`started_at` at the 1st of the next month. The `started_at` should be in ISO 
+8601 format. Here is the call:
+
+
+::
+
+    curl http://billing.balancedpayments.com/v1/subscriptions \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
+        -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
+        -d "plan_guid=PL97ZvyeA4wzM3WUyEG8xwps" \
+        -d "payment_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
+        -d "started_at=2013-10-01T00:00:00"
+
 Cancel the subscription
 -----------------------
 

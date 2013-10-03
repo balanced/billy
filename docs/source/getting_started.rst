@@ -22,14 +22,14 @@ You will need to pass your API key in order to access any other API of the
 Billy server. As Billy's default payment processor is `Balanced Payments`_,
 you will need to have an account and get a Balanced API key for registerion.
 
-.. _`Balanced Payments`: http://balancedpayments.com
+.. _`Balanced Payments`: https://balancedpayments.com
 
 Okay, let's say your Balanced API key is `ef13dce2093b11e388de026ba7d31e6f`.
 To register a company, here you call
 
 ::
 
-    curl http://billing.balancedpayments.com/v1/companies/ -X POST \
+    curl https://billing.balancedpayments.com/v1/companies/ -X POST \
         -d "processor_key=ef13dce2093b11e388de026ba7d31e6f"
 
 
@@ -64,7 +64,7 @@ want to create a Billy plan for the first hosting plan, then here we call
 
 ::
 
-    curl http://billing.balancedpayments.com/v1/plans \
+    curl https://billing.balancedpayments.com/v1/plans \
         -X POST \
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
         -d "plan_type=charge" \
@@ -104,7 +104,7 @@ the API like this
 
 ::
 
-   curl http://billing.balancedpayments.com/v1/customers \
+   curl https://billing.balancedpayments.com/v1/customers \
        -X POST \
        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: 
 
@@ -128,7 +128,7 @@ can set the `external_id` parameter as the URI of customer in Balanced.
 
 ::
 
-   curl http://billing.balancedpayments.com/v1/customers \
+   curl https://billing.balancedpayments.com/v1/customers \
        -X POST \
        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
        -d "external_id=/v1/customers/AC1jqOF9TocQXGIXjuMVrpMu"
@@ -150,7 +150,7 @@ With that `payment_uri`, here we call
 
 ::
 
-    curl http://billing.balancedpayments.com/v1/subscriptions \
+    curl https://billing.balancedpayments.com/v1/subscriptions \
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
         -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
         -d "plan_guid=PL97ZvyeA4wzM3WUyEG8xwps" \
@@ -192,7 +192,7 @@ an old customer, the original price is $5 USD, so the discounted amount would be
 
 ::
 
-    curl http://billing.balancedpayments.com/v1/subscriptions \
+    curl https://billing.balancedpayments.com/v1/subscriptions \
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
         -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
         -d "plan_guid=PL97ZvyeA4wzM3WUyEG8xwps" \
@@ -239,7 +239,7 @@ In this case, to subscribe a student to your course plan, you can give it a
 
 ::
 
-    curl http://billing.balancedpayments.com/v1/subscriptions \
+    curl https://billing.balancedpayments.com/v1/subscriptions \
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
         -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
         -d "plan_guid=PL97ZvyeA4wzM3WUyEG8xwps" \
@@ -255,7 +255,7 @@ subscription `SUR6jKqqSyaFfGeeAsGaXFqZ`, then just call
 
 ::
 
-    curl http://billing.balancedpayments.com/v1/subscriptions/SUR6jKqqSyaFfGeeAsGaXFqZ/cancel \
+    curl https://billing.balancedpayments.com/v1/subscriptions/SUR6jKqqSyaFfGeeAsGaXFqZ/cancel \
         -X POST \
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
 
@@ -268,7 +268,7 @@ Call it like this
 
 ::
 
-    curl http://billing.balancedpayments.com/v1/subscriptions/SUR6jKqqSyaFfGeeAsGaXFqZ/cancel \
+    curl https://billing.balancedpayments.com/v1/subscriptions/SUR6jKqqSyaFfGeeAsGaXFqZ/cancel \
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
         -d "prorated_refund=1"
 
@@ -278,7 +278,7 @@ customer, just call
 
 ::
 
-    curl http://billing.balancedpayments.com/v1/subscriptions/SUR6jKqqSyaFfGeeAsGaXFqZ/cancel \
+    curl https://billing.balancedpayments.com/v1/subscriptions/SUR6jKqqSyaFfGeeAsGaXFqZ/cancel \
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
         -d "refund_amount=5"
 

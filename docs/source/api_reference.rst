@@ -47,7 +47,7 @@ Method
 Endpoint
     /v1/companies
 Parameters
-    * **processor_key** - The API key for your Balanced account
+    - **processor_key** - The API key for your Balanced account
 
 Example:
 
@@ -68,7 +68,7 @@ Response:
     }
 
 Retrive
-~~~~~~
+~~~~~~~
 
 Retrive a company record
 
@@ -98,7 +98,132 @@ Response:
 Plan
 ----
 
-TODO:
+A plan is a setup for recurring payment processing, it has the amount to 
+charge or payout and the frequency of transaction.
+
+Create
+~~~~~~
+
+Create a plan and return the record.
+
+Method
+    POST
+Endpoint
+    /v1/plans
+Parameters
+    - **plan_type** - The type of this plan, can be either **charge** for 
+      charging customer or **payout** for paying out.
+    - **frequency** - The frequency to schedule charging or paying out to 
+      customer. Can be either
+
+        - daily
+        - weekly
+        - monthly
+        - yearly
+
+      When it is **monthly** and the schedule started at end of a month, the 
+      closest day to the started one in a month will be selected for following 
+      transactions. For example, the started date time is 2013-01-30, then 
+      following transactions will occur at 2013-02-28, 2013-03-30 and so on.
+    - **amount** - The amount in USD dollar to charge or payout to customer
+    - **interval** - (optional) The interval of frequency period to multiply, 
+      the default value is 1. For example, to charge or payout a customer
+      by two weeks frequency, you can set the frequency to **weekly**, and set
+      the **interval** to 2, then the schedule will be in a biweekly manner.
+
+
+Example:
+
+::
+
+    curl https://billing.balancedpayments.com/v1/plans \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
+        -d "plan_type=charge" \
+        -d "amount=5" \
+        -d "frequency=monthly"
+
+Response:
+
+::
+
+    {
+        "guid": "PL97ZvyeA4wzM3WUyEG8xwps",
+        "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
+        "plan_type": "charge", 
+        "interval": 1, 
+        "amount": "5.00", 
+        "frequency": "monthly", 
+        "deleted": false, 
+        "created_at": "2013-10-02T05:48:26.210843", 
+        "updated_at": "2013-10-02T05:48:26.210843"
+    }
+
+Retrive
+~~~~~~~
+
+Retrive a plan record
+
+Method
+    GET
+Endpoint
+    /v1/plans/<Plan GUID>
+
+Example:
+
+::
+
+    curl https://billing.balancedpayments.com/v1/plans/PL97ZvyeA4wzM3WUyEG8xwps \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+
+Response:
+
+::
+
+    {
+        "guid": "PL97ZvyeA4wzM3WUyEG8xwps",
+        "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
+        "plan_type": "charge", 
+        "interval": 1, 
+        "amount": "5.00", 
+        "frequency": "monthly", 
+        "deleted": false, 
+        "created_at": "2013-10-02T05:48:26.210843", 
+        "updated_at": "2013-10-02T05:48:26.210843"
+    }
+
+Delete
+~~~~~~
+
+Delete a plan and return record.
+
+Method
+    DELETE
+Endpoint
+    /v1/plans/<Plan GUID>
+
+Example:
+
+::
+
+    curl https://billing.balancedpayments.com/v1/plans/PL97ZvyeA4wzM3WUyEG8xwps \
+        -X DELETE \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+
+Response:
+
+::
+
+    {
+        "guid": "PL97ZvyeA4wzM3WUyEG8xwps",
+        "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
+        "plan_type": "charge", 
+        "interval": 1, 
+        "amount": "5.00", 
+        "frequency": "monthly", 
+        "deleted": true, 
+        "created_at": "2013-10-02T05:48:26.210843", 
+        "updated_at": "2013-10-02T05:48:26.210843"
+    }
 
 Customer
 --------

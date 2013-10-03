@@ -415,7 +415,184 @@ Response:
 Subscription
 ------------
 
-TODO:
+To subscribe a customer to a plan, you can create a subscription record. 
+
+Create
+~~~~~~
+
+Create a subscription and return the record. If the **payment_uri** is given,
+it will be used to charge or payout to customer, however, if it is omitted,
+the default payment method for that customer in Balanced will be used (The
+latest added one will be used). If **started_at** is given, the subscription
+will be scheduled at that date time, otherwise, current time will be
+the started time, also, a transaction will be filed an processed immediately.
+
+Method
+    POST
+Endpoint
+    /v1/subscriptions
+Parameters
+    - **plan_guid** - The GUID of plan to subscribe 
+    - **customer_guid** - The GUID of customer to subscribe
+    - **payment_uri** - (optional) The URI to funding source in Balanced, 
+      could be a tokenlized credit card or bank account URI
+    - **amount** - (optional) The amount in USD dollar of this subscription for 
+      overwriting the one from plan, useful for giving a discount to customer
+    - **started_at** - (optional) The date time of this subscription to started
+      at, should be in ISO 8601 format.
+
+Example:
+
+::
+
+    curl https://billing.balancedpayments.com/v1/subscriptions \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
+        -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
+        -d "plan_guid=PL97ZvyeA4wzM3WUyEG8xwps" \
+        -d "payment_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
+
+Response:
+
+::
+
+    {
+        "guid": "SUR6jKqqSyaFfGeeAsGaXFqZ",
+        "plan_guid": "PL97ZvyeA4wzM3WUyEG8xwps", 
+        "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
+        "payment_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
+        "period": 1, 
+        "amount": null, 
+        "canceled": false, 
+        "canceled_at": null, 
+        "started_at": "2013-10-02T06:35:00.380234", 
+        "next_transaction_at": "2013-11-02T06:35:00.380234", 
+        "created_at": "2013-10-02T06:35:00.380234", 
+        "updated_at": "2013-10-02T06:35:00.380234", 
+    }
+
+Retrive
+~~~~~~~
+
+Retrive a subscription record
+
+Method
+    GET
+Endpoint
+    /v1/subscriptions/<Subscription GUID>
+
+Example:
+
+::
+
+    curl https://billing.balancedpayments.com/v1/subscriptions/SUR6jKqqSyaFfGeeAsGaXFqZ \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+
+Response:
+
+::
+
+    {
+        "guid": "SUR6jKqqSyaFfGeeAsGaXFqZ",
+        "plan_guid": "PL97ZvyeA4wzM3WUyEG8xwps", 
+        "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
+        "payment_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
+        "period": 1, 
+        "amount": null, 
+        "canceled": false, 
+        "canceled_at": null, 
+        "started_at": "2013-10-02T06:35:00.380234", 
+        "next_transaction_at": "2013-11-02T06:35:00.380234", 
+        "created_at": "2013-10-02T06:35:00.380234", 
+        "updated_at": "2013-10-02T06:35:00.380234", 
+    }
+
+Cancel
+~~~~~~
+
+Cancel the subscription.
+
+Method
+    POST
+Endpoint
+    /v1/subscriptions/<Subscription GUID>/cancel
+Parameters
+    - **prorated_refund** - (optional) Set 1 to issue a prorated refund for the 
+      latest transaction
+    - **refund_amount** - (optional) Issue a refund with specific amount for
+      the latest transaction, you cannot set **prorated_refund** to true and 
+      **refund_amount** in the same time
+
+Example:
+
+::
+
+    curl https://billing.balancedpayments.com/v1/subscriptions/SUR6jKqqSyaFfGeeAsGaXFqZ/cancel \
+        -X POST
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+
+Response:
+
+::
+
+    {
+        "guid": "SUR6jKqqSyaFfGeeAsGaXFqZ",
+        "plan_guid": "PL97ZvyeA4wzM3WUyEG8xwps", 
+        "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
+        "payment_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
+        "period": 1, 
+        "amount": null, 
+        "canceled": true, 
+        "canceled_at": "2013-10-03T12:16:00.532295", 
+        "started_at": "2013-10-02T06:35:00.380234", 
+        "next_transaction_at": "2013-11-02T06:35:00.380234", 
+        "created_at": "2013-10-02T06:35:00.380234", 
+        "updated_at": "2013-10-02T06:35:00.380234", 
+    }
+
+List
+~~~~
+
+List all subscriptions of your company
+
+Method
+    GET
+Endpoint
+    /v1/subscriptions
+Parameters
+    - **offset** - Offset for pagination, default value is 0
+    - **limit** - Limit for pagination, default value is 20
+
+Example:
+
+::
+
+    curl https://billing.balancedpayments.com/v1/subscriptions \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+
+Response:
+
+::
+
+    {
+        "items": [
+            {
+                "guid": "SUR6jKqqSyaFfGeeAsGaXFqZ",
+                "plan_guid": "PL97ZvyeA4wzM3WUyEG8xwps", 
+                "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
+                "payment_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
+                "period": 1, 
+                "amount": null, 
+                "canceled": false, 
+                "canceled_at": null, 
+                "started_at": "2013-10-02T06:35:00.380234", 
+                "next_transaction_at": "2013-11-02T06:35:00.380234", 
+                "created_at": "2013-10-02T06:35:00.380234", 
+                "updated_at": "2013-10-02T06:35:00.380234", 
+            }
+        ], 
+        "limit": 20, 
+        "offset": 0
+    }
 
 Transaction
 -----------

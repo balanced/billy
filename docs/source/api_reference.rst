@@ -25,7 +25,7 @@ Company
 -------
 
 A company is an account for the Billy system, you need to pass your Balanced
-API key, so that Billy can process payments with Balanced for you. It has a 
+API key, so that Billy can process payments via Balanced for you. It has a 
 generated API key which is required for any further calls to other methods. 
 
 .. note::
@@ -223,6 +223,48 @@ Response:
         "deleted": true, 
         "created_at": "2013-10-02T05:48:26.210843", 
         "updated_at": "2013-10-02T05:48:26.210843"
+    }
+
+List
+~~~~
+
+List all plans of your company
+
+Method
+    GET
+Endpoint
+    /v1/plans
+Parameters
+    - **offset** - Offset for pagination, default value is 0
+    - **limit** - Limit for pagination, default value is 20
+
+Example:
+
+::
+
+    curl https://billing.balancedpayments.com/v1/plans \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+
+Response:
+
+::
+
+    {
+        "items": [
+            {
+                "guid": "PL97ZvyeA4wzM3WUyEG8xwps",
+                "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
+                "plan_type": "charge", 
+                "interval": 1, 
+                "amount": "5.00", 
+                "frequency": "monthly", 
+                "deleted": true, 
+                "created_at": "2013-10-02T05:48:26.210843", 
+                "updated_at": "2013-10-02T05:48:26.210843"
+            }
+        ], 
+        "limit": 20, 
+        "offset": 0
     }
 
 Customer

@@ -258,7 +258,7 @@ Response:
                 "interval": 1, 
                 "amount": "5.00", 
                 "frequency": "monthly", 
-                "deleted": true, 
+                "deleted": false, 
                 "created_at": "2013-10-02T05:48:26.210843", 
                 "updated_at": "2013-10-02T05:48:26.210843"
             }
@@ -270,7 +270,147 @@ Response:
 Customer
 --------
 
-TODO:
+A customer is an record for customer to your service. Before charging or paying 
+out is performed to a customer, a corresponding `customer record in Balanced`_
+system will be created. If you want to map an existing customer in Balanced,
+you can set the external ID to the URI of customer in balanced.
+
+.. _`customer record in Balanced`: https://docs.balancedpayments.com/current/api.html?language=bash#customers
+
+
+Create
+~~~~~~
+
+Create a customer and return the record. 
+
+Method
+    POST
+Endpoint
+    /v1/customers
+Parameters
+    - **external_id** - (optional) The URI to an existing customer record in
+      Balanced server
+
+Example:
+
+::
+
+   curl https://billing.balancedpayments.com/v1/customers \
+       -X POST \
+       -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: 
+
+Response:
+
+::
+
+    {
+        "guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
+        "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
+        "external_id": null, 
+        "deleted": false, 
+        "created_at": "2013-10-02T06:06:21.239505", 
+        "updated_at": "2013-10-02T06:06:21.239505"
+    }
+
+Retrive
+~~~~~~~
+
+Retrive a customer record
+
+Method
+    GET
+Endpoint
+    /v1/customers/<Customer GUID>
+
+Example:
+
+::
+
+    curl https://billing.balancedpayments.com/v1/customers/CUR1omRKGYYhqNaK1SyZqSbZ \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+
+Response:
+
+::
+
+    {
+        "guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
+        "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
+        "external_id": null, 
+        "deleted": false, 
+        "created_at": "2013-10-02T06:06:21.239505", 
+        "updated_at": "2013-10-02T06:06:21.239505"
+    }
+
+Delete
+~~~~~~
+
+Delete a customer and return record.
+
+Method
+    DELETE
+Endpoint
+    /v1/customers/<Customer GUID>
+
+Example:
+
+::
+
+    curl https://billing.balancedpayments.com/v1/customers/CUR1omRKGYYhqNaK1SyZqSbZ \
+        -X DELETE \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+
+Response:
+
+::
+
+    {
+        "guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
+        "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
+        "external_id": null, 
+        "deleted": true, 
+        "created_at": "2013-10-02T06:06:21.239505", 
+        "updated_at": "2013-10-02T06:06:21.239505"
+    }
+
+List
+~~~~
+
+List all customers of your company
+
+Method
+    GET
+Endpoint
+    /v1/customers
+Parameters
+    - **offset** - Offset for pagination, default value is 0
+    - **limit** - Limit for pagination, default value is 20
+
+Example:
+
+::
+
+    curl https://billing.balancedpayments.com/v1/customers \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+
+Response:
+
+::
+
+    {
+        "items": [
+            {
+                "guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
+                "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
+                "external_id": null, 
+                "deleted": false, 
+                "created_at": "2013-10-02T06:06:21.239505", 
+                "updated_at": "2013-10-02T06:06:21.239505"
+            }
+        ], 
+        "limit": 20, 
+        "offset": 0
+    }
 
 Subscription
 ------------

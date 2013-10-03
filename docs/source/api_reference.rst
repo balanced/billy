@@ -597,4 +597,100 @@ Response:
 Transaction
 -----------
 
-TODO:
+Transactions are records generated from subscriptions. It contains the current
+status, type of transaction, amount, payment URI, failure count and 
+error message. The life cycle of a transaction is shown in following state 
+transition diagram
+
+.. image:: _static/transaction_state_diagram.png
+   :width: 100%
+
+For all status:
+
+ - **INIT** - just created transaction
+ - **RETRYING** - attempt to process but failed, retrying
+ - **CANCELED** - the subscription is canceled before the transaction is done 
+   or failed
+ - **FAILED** - the transaction failure count exceeded limitation
+ - **DONE** - the transaction is processed successfully
+
+Retrive
+~~~~~~~
+
+Retrive a transaction record
+
+Method
+    GET
+Endpoint
+    /v1/transactions/<Transaction GUID>
+
+Example:
+
+::
+
+    curl https://billing.balancedpayments.com/v1/transactions/TXWRvbzADhsBHFhgkVMWB3Lb \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+
+Response:
+
+::
+
+    {
+        "guid": "TXWRvbzADhsBHFhgkVMWB3Lb", 
+        "subscription_guid": "SUWRtr1b8s5tejhEPejybvwR", 
+        "status": "done", 
+        "transaction_type": "charge", 
+        "amount": "5.00", 
+        "payment_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC5ildoSnySGnXRfrYvH49eo", 
+        "external_id": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/debits/WD5P9jvc7fLSoA6gYXxHkPd4", 
+        "failure_count": 0, 
+        "error_message": null, 
+        "scheduled_at": "2013-10-03T05:09:07.702489",
+        "created_at": "2013-10-03T05:09:07.709617", 
+        "updated_at": "2013-10-03T05:09:10.837832"
+    }
+
+List
+~~~~
+
+List all transactions of your company
+
+Method
+    GET
+Endpoint
+    /v1/transactions
+Parameters
+    - **offset** - Offset for pagination, default value is 0
+    - **limit** - Limit for pagination, default value is 20
+
+Example:
+
+::
+
+    curl https://billing.balancedpayments.com/v1/transactions \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+
+Response:
+
+::
+
+    {
+        "items": [
+            {
+                "guid": "TXWRvbzADhsBHFhgkVMWB3Lb", 
+                "subscription_guid": "SUWRtr1b8s5tejhEPejybvwR", 
+                "status": "done", 
+                "transaction_type": "charge", 
+                "amount": "5.00", 
+                "payment_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC5ildoSnySGnXRfrYvH49eo", 
+                "external_id": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/debits/WD5P9jvc7fLSoA6gYXxHkPd4", 
+                "failure_count": 0, 
+                "error_message": null, 
+                "scheduled_at": "2013-10-03T05:09:07.702489",
+                "created_at": "2013-10-03T05:09:07.709617", 
+                "updated_at": "2013-10-03T05:09:10.837832"
+            }
+        ], 
+        "limit": 20, 
+        "offset": 0
+    }

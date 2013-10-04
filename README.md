@@ -2,6 +2,9 @@
 
 Billy - The Open Source Recurring Billing System, powered by Balanced
 
+[![Build Status](https://travis-ci.org/balanced/billy.png)](https://travis-ci.org/balanced/billy)
+
+
 (In active development. Consider it pre-alpha)
 
 ## Running It

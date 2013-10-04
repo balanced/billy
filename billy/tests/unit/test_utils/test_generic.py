@@ -49,3 +49,31 @@ class TestGenericUtils(unittest.TestCase):
         assert_round_down('0.5566', '0.55')
         assert_round_down('0.7788', '0.77')
         assert_round_down('1.23456789', '1.23')
+
+    def test_get_git_rev(self):
+        import os
+        import tempfile
+        from billy.utils.generic import get_git_rev
+        temp_dir = tempfile.mkdtemp()
+
+        git_dir = os.path.join(temp_dir, '.git')
+        head_file = os.path.join(git_dir, 'HEAD')
+        refs_dir = os.path.join(git_dir, 'refs')
+        heads_dir = os.path.join(refs_dir, 'heads')
+        master_file = os.path.join(heads_dir, 'master')
+
+        os.mkdir(git_dir)
+        os.mkdir(refs_dir)
+        os.mkdir(heads_dir)
+
+        with open(head_file, 'wt') as f:
+            f.write('ref: refs/heads/master')
+
+        with open(master_file, 'wt') as f:
+            f.write('DUMMY_REV')
+
+        self.assertEqual(get_git_rev(temp_dir), 'DUMMY_REV')
+
+        rev = get_git_rev()
+        self.assertNotEqual(rev, None)
+        self.assertEqual(len(rev), 40)

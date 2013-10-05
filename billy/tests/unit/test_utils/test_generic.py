@@ -77,3 +77,10 @@ class TestGenericUtils(unittest.TestCase):
         rev = get_git_rev()
         self.assertNotEqual(rev, None)
         self.assertEqual(len(rev), 40)
+
+        # sometimes it would be a hash revision value there rahter than
+        # ref: /path/to/ref
+        with open(head_file, 'wt') as f:
+            f.write('DUMMY_HASH_REV')
+
+        self.assertEqual(get_git_rev(temp_dir), 'DUMMY_HASH_REV')

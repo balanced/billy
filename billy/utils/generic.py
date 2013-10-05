@@ -78,7 +78,9 @@ def get_git_rev(project_dir=None):
     head_file = os.path.join(git_dir, 'HEAD')
     with open(head_file, 'rt') as f:
         content = f.read().strip()
-    ref_file = os.path.join(git_dir, content[5:])
-    with open(ref_file, 'rt') as f:
-        rev = f.read().strip()
-    return rev
+    if content.startswith('ref: '):
+        ref_file = os.path.join(git_dir, content[5:])
+        with open(ref_file, 'rt') as f:
+            rev = f.read().strip()
+        return rev
+    return content

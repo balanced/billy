@@ -893,3 +893,20 @@ class TestTransactionModel(ModelTestCase):
             tx_guids = model.process_transactions(processor)
 
         self.assertEqual(set(tx_guids), set([guid1, guid2, guid3]))
+
+    def test_get_last_transaction(self):
+        model = self.make_one(self.session)
+
+        guids = []
+        for dt in ['2013-08-17', '2013-08-15', '2013-08-15']:
+            with freeze_time(dt):
+                with db_transaction.manager:
+                    guid = model.create(
+                        subscription_guid=self.subscription_guid,
+                        transaction_type=model.TYPE_CHARGE,
+                        amount=10,
+                        payment_uri='/v1/cards/tester',
+                        scheduled_at=datetime.datetime.utcnow(),
+                    )
+                    guids.append(guid)
+        self.assertEqual(model.get_last_transaction().guid, guids[0])

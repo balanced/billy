@@ -63,3 +63,24 @@ def round_down_cent(amount):
     :return: the rounded money amount
     """
     return amount.quantize(decimal.Decimal('.01'), rounding=decimal.ROUND_DOWN)
+
+
+def get_git_rev(project_dir=None):
+    """Get current GIT reversion if it is available, otherwise, None is 
+    returned
+
+    """
+    if project_dir is None:
+        import billy
+        pkg_dir = os.path.dirname(billy.__file__)
+        project_dir, _ = os.path.split(pkg_dir)
+    git_dir = os.path.join(project_dir, '.git')
+    head_file = os.path.join(git_dir, 'HEAD')
+    with open(head_file, 'rt') as f:
+        content = f.read().strip()
+    if content.startswith('ref: '):
+        ref_file = os.path.join(git_dir, content[5:])
+        with open(ref_file, 'rt') as f:
+            rev = f.read().strip()
+        return rev
+    return content

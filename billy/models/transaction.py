@@ -45,6 +45,17 @@ class TransactionModel(BaseTableModel):
         STATUS_CANCELED,
     ]
 
+    def get_last_transaction(self):
+        """Get last transaction
+
+        """
+        query = (
+            self.session
+            .query(tables.Transaction)
+            .order_by(tables.Transaction.created_at.desc())
+        )
+        return query.first()
+
     @decorate_offset_limit
     def list_by_company_guid(self, company_guid):
         """Get transactions of a company by given guid

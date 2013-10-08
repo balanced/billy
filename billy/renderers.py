@@ -90,6 +90,7 @@ def transaction_adapter(transaction, request):
         TransactionModel.STATUS_RETRYING: 'retrying',
         TransactionModel.STATUS_FAILED: 'failed',
         TransactionModel.STATUS_DONE: 'done',
+        TransactionModel.STATUS_CANCELED: 'canceled',
     }
     status = status_map[transaction.status]
 

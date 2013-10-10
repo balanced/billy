@@ -47,3 +47,6 @@ env
 # Vagrant
 .vagrant
 docs/_build/
+
+# intellij
+*.iml

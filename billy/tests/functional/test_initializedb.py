@@ -31,8 +31,8 @@ class TestInitializedb(unittest.TestCase):
         finally:
             sys.stdout = old_stdout
         expected = textwrap.dedent("""\
-        usage: initializedb <config_uri>
-        (example: "initializedb development.ini")
+        usage: initializedb <config_uri> [alembic_uri]
+        (example: "initializedb development.ini alembic.ini")
         """)
         self.assertMultiLineEqual(usage_out.getvalue(), expected)
 
@@ -46,7 +46,51 @@ class TestInitializedb(unittest.TestCase):
 
             sqlalchemy.url = sqlite:///%(here)s/billy.sqlite
             """))
-        initializedb.main([initializedb.__file__, cfg_path])
+
+        alembic_path = os.path.join(self.temp_dir, 'alembic.ini')
+        with open(alembic_path, 'wt') as f:
+            f.write(textwrap.dedent("""\
+            [alembic]
+            script_location = alembic
+            sqlalchemy.url = sqlite:///%(here)s/billy.sqlite
+
+            [loggers]
+            keys = root,sqlalchemy,alembic
+
+            [handlers]
+            keys = console
+
+            [formatters]
+            keys = generic
+
+            [logger_root]
+            level = WARN
+            handlers = console
+            qualname =
+
+            [logger_sqlalchemy]
+            level = WARN
+            handlers =
+            qualname = sqlalchemy.engine
+
+            [logger_alembic]
+            level = INFO
+            handlers =
+            qualname = alembic
+
+            [handler_console]
+            class = StreamHandler
+            args = (sys.stderr,)
+            level = NOTSET
+            formatter = generic
+
+            [formatter_generic]
+            format = %(levelname)-5.5s [%(name)s] %(message)s
+            datefmt = %H:%M:%S
+
+            """))
+
+        initializedb.main([initializedb.__file__, cfg_path, alembic_path])
 
         sqlite_path = os.path.join(self.temp_dir, 'billy.sqlite')
         self.assertTrue(os.path.exists(sqlite_path))
@@ -61,4 +105,10 @@ class TestInitializedb(unittest.TestCase):
             'plan',
             'subscription',
             'transaction',
+            'alembic_version',
         ]))
+
+        # make sure we have an alembic version there
+        cursor.execute("SELECT * FROM alembic_version;")
+        version = cursor.fetchone()[0]
+        self.assertNotEqual(version, None)

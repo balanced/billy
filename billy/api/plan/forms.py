@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 from wtforms import Form
 from wtforms import RadioField
 from wtforms import IntegerField
-from wtforms import DecimalField
 from wtforms import validators
 
 
@@ -30,10 +29,10 @@ class PlanCreateForm(Form):
             ('yearly', 'Yearly'),
         ]
     )
-    amount = DecimalField('Amount', [
+    amount = IntegerField('Amount', [
         validators.Required(),
         # TODO: what is the minimum amount limitation we have?
-        validators.NumberRange(min=0.01)
+        validators.NumberRange(min=1)
     ])
     interval = IntegerField(
         'Interval', 

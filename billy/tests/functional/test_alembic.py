@@ -106,17 +106,25 @@ class TestAlembic(unittest.TestCase):
         command.stamp(self.alembic_cfg, 'base')
 
         command.upgrade(self.alembic_cfg, 'b3d4192b123')
-        for table in [Plan, Subscription, Transaction]:
-            amounts = self.session.query(table.amount).all()
-            amounts = map(lambda item: float(item[0]), amounts)
-            # make sure all float dollars are converted into integer cents
-            self.assertEqual(set(amounts), set([1234, 5566, 1000]))
+        # Notice: this with statement here makes sure the database transaction
+        # will be closed after querying, otherwise, we have two connections
+        # to postgresql (one by testing code, one by Alembic), when we are
+        # doing following downgrade, there is tabel alert, it appears
+        # there will be a deadlock when there is a overlap of two transaction
+        # scope
+        with db_transaction.manager:
+            for table in [Plan, Subscription, Transaction]:
+                amounts = self.session.query(table.amount).all()
+                amounts = map(lambda item: float(item[0]), amounts)
+                # make sure all float dollars are converted into integer cents
+                self.assertEqual(set(amounts), set([1234, 5566, 1000]))
 
         command.downgrade(self.alembic_cfg, 'base')
-        for table in [Plan, Subscription, Transaction]:
-            amounts = self.session.query(table.amount).all()
-            amounts = map(lambda item: item[0], amounts)
-            self.assertEqual(
-                set(amounts), 
-                set(map(decimal.Decimal, ['12.34', '55.66', '10']))
-            )
+        with db_transaction.manager:
+            for table in [Plan, Subscription, Transaction]:
+                amounts = self.session.query(table.amount).all()
+                amounts = map(lambda item: item[0], amounts)
+                self.assertEqual(
+                    set(amounts), 
+                    set(map(decimal.Decimal, ['12.34', '55.66', '10']))
+                )

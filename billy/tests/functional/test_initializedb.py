@@ -55,38 +55,18 @@ class TestInitializedb(unittest.TestCase):
             sqlalchemy.url = sqlite:///%(here)s/billy.sqlite
 
             [loggers]
-            keys = root,sqlalchemy,alembic
+            keys = root
 
             [handlers]
-            keys = console
+            keys = 
 
             [formatters]
-            keys = generic
+            keys = 
 
             [logger_root]
             level = WARN
-            handlers = console
             qualname =
-
-            [logger_sqlalchemy]
-            level = WARN
             handlers =
-            qualname = sqlalchemy.engine
-
-            [logger_alembic]
-            level = INFO
-            handlers =
-            qualname = alembic
-
-            [handler_console]
-            class = StreamHandler
-            args = (sys.stderr,)
-            level = NOTSET
-            formatter = generic
-
-            [formatter_generic]
-            format = %(levelname)-5.5s [%(name)s] %(message)s
-            datefmt = %H:%M:%S
 
             """))
 

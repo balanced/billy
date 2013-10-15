@@ -125,7 +125,7 @@ Parameters
       closest day to the started one in a month will be selected for following 
       transactions. For example, the started date time is 2013-01-30, then 
       following transactions will occur at 2013-02-28, 2013-03-30 and so on.
-    - **amount** - The amount in USD dollar to charge or payout to customer
+    - **amount** - The amount in USD cents to charge or payout to customer
     - **interval** - (optional) The interval of frequency period to multiply, 
       the default value is 1. For example, to charge or payout a customer
       by two weeks frequency, you can set the frequency to **weekly**, and set
@@ -139,7 +139,7 @@ Example:
     curl https://billing.balancedpayments.com/v1/plans \
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
         -d "plan_type=charge" \
-        -d "amount=5" \
+        -d "amount=500" \
         -d "frequency=monthly"
 
 Response:
@@ -151,7 +151,7 @@ Response:
         "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
         "plan_type": "charge", 
         "interval": 1, 
-        "amount": "5.00", 
+        "amount": 500, 
         "frequency": "monthly", 
         "deleted": false, 
         "created_at": "2013-10-02T05:48:26.210843", 
@@ -184,7 +184,7 @@ Response:
         "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
         "plan_type": "charge", 
         "interval": 1, 
-        "amount": "5.00", 
+        "amount": 500, 
         "frequency": "monthly", 
         "deleted": false, 
         "created_at": "2013-10-02T05:48:26.210843", 
@@ -218,7 +218,7 @@ Response:
         "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
         "plan_type": "charge", 
         "interval": 1, 
-        "amount": "5.00", 
+        "amount": 500, 
         "frequency": "monthly", 
         "deleted": true, 
         "created_at": "2013-10-02T05:48:26.210843", 
@@ -256,7 +256,7 @@ Response:
                 "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
                 "plan_type": "charge", 
                 "interval": 1, 
-                "amount": "5.00", 
+                "amount": 500, 
                 "frequency": "monthly", 
                 "deleted": false, 
                 "created_at": "2013-10-02T05:48:26.210843", 
@@ -436,7 +436,7 @@ Parameters
     - **customer_guid** - The GUID of customer to subscribe
     - **payment_uri** - (optional) The URI to funding source in Balanced, 
       could be a tokenlized credit card or bank account URI
-    - **amount** - (optional) The amount in USD dollar of this subscription for 
+    - **amount** - (optional) The amount in USD cents of this subscription for 
       overwriting the one from plan, useful for giving a discount to customer
     - **started_at** - (optional) The date time of this subscription to started
       at, should be in ISO 8601 format.
@@ -640,7 +640,7 @@ Response:
         "subscription_guid": "SUWRtr1b8s5tejhEPejybvwR", 
         "status": "done", 
         "transaction_type": "charge", 
-        "amount": "5.00", 
+        "amount": 500, 
         "payment_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC5ildoSnySGnXRfrYvH49eo", 
         "external_id": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/debits/WD5P9jvc7fLSoA6gYXxHkPd4", 
         "failure_count": 0, 
@@ -681,7 +681,7 @@ Response:
                 "subscription_guid": "SUWRtr1b8s5tejhEPejybvwR", 
                 "status": "done", 
                 "transaction_type": "charge", 
-                "amount": "5.00", 
+                "amount": 500, 
                 "payment_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC5ildoSnySGnXRfrYvH49eo", 
                 "external_id": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/debits/WD5P9jvc7fLSoA6gYXxHkPd4", 
                 "failure_count": 0, 

@@ -66,6 +66,7 @@ class TestAlembic(unittest.TestCase):
 
     def tearDown(self):
         # drop all tables
+        self.session.remove()
         self.declarative_base.metadata.drop_all()
         shutil.rmtree(self.temp_dir)
 
@@ -93,6 +94,7 @@ class TestAlembic(unittest.TestCase):
 
         with db_transaction.manager:
             for amount in ['12.34', '55.66', '10']:
+                amount = decimal.Decimal(amount)
                 plan = Plan(amount=amount)
                 subscription = Subscription(amount=amount)
                 transaction = Transaction(amount=amount)

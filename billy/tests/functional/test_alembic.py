@@ -20,10 +20,15 @@ class TestAlembic(unittest.TestCase):
         from alembic.config import Config
         self.temp_dir = tempfile.mkdtemp()
         # init database
+        default_sqlite_url = 'sqlite:///{}/billy.sqlite'.format(self.temp_dir)
         self.db_url = os.environ.get(
             'BILLY_FUNC_TEST_DB', 
-            'sqlite:///{}/billy.sqlite'.format(self.temp_dir),
+            default_sqlite_url,
         )
+        # as these tests cannot work with in-memory sqlite, so, when it is
+        # a sqlite URL, we use the one in temp folder anyway
+        if self.db_url.startswith('sqlite:'):
+            self.db_url = default_sqlite_url
         self.engine = create_engine(self.db_url, convert_unicode=True)
         self.declarative_base = declarative_base()
         self.declarative_base.metadata.bind = self.engine

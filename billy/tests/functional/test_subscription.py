@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 import datetime
-import decimal
 
 import transaction as db_transaction
 from flexmock import flexmock
@@ -52,7 +51,7 @@ class TestSubscriptionViews(ViewTestCase):
                 company_guid=self.company_guid,
                 frequency=plan_model.FREQ_WEEKLY,
                 plan_type=plan_model.TYPE_CHARGE,
-                amount=10,
+                amount=1000,
             )
         company = company_model.get(self.company_guid)
         self.api_key = str(company.api_key)
@@ -63,7 +62,7 @@ class TestSubscriptionViews(ViewTestCase):
 
         customer_guid = self.customer_guid
         plan_guid = self.plan_guid
-        amount = '55.66'
+        amount = 5566
         payment_uri = 'MOCK_CARD_URI'
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat()
@@ -239,7 +238,7 @@ class TestSubscriptionViews(ViewTestCase):
     def test_create_subscription_with_started_at(self):
         customer_guid = self.customer_guid
         plan_guid = self.plan_guid
-        amount = '55.66'
+        amount = 5566
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat()
         # next week
@@ -269,7 +268,7 @@ class TestSubscriptionViews(ViewTestCase):
     def test_create_subscription_with_started_at_and_timezone(self):
         customer_guid = self.customer_guid
         plan_guid = self.plan_guid
-        amount = '55.66'
+        amount = 5566
         # next week
         next_transaction_at = datetime.datetime(2013, 8, 17)
         next_iso = next_transaction_at.isoformat()
@@ -536,12 +535,12 @@ class TestSubscriptionViews(ViewTestCase):
             subscription_guid = subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
-                amount=100,
+                amount=10000,
             )
             tx_guid = tx_model.create(
                 subscription_guid=subscription_guid,
                 transaction_type=tx_model.TYPE_CHARGE,
-                amount=100, 
+                amount=10000, 
                 scheduled_at=now,
             )
             subscription = subscription_model.get(subscription_guid)
@@ -586,8 +585,8 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(transaction.refund_to.guid, tx_guid)
         self.assertEqual(transaction.subscription_guid, subscription_guid)
         # only one day is elapsed, and it is a weekly plan, so
-        # it should be 100 - (100 / 7) and round to cent, 85.71
-        self.assertEqual(transaction.amount, decimal.Decimal('85.71'))
+        # it should be 10000 - (10000 / 7) and round to cent, 8571
+        self.assertEqual(transaction.amount, 8571)
         self.assertEqual(transaction.status, tx_model.STATUS_DONE)
 
         res = self.testapp.get(
@@ -614,7 +613,7 @@ class TestSubscriptionViews(ViewTestCase):
             tx_guid = tx_model.create(
                 subscription_guid=subscription_guid,
                 transaction_type=tx_model.TYPE_CHARGE,
-                amount=10, 
+                amount=1000, 
                 scheduled_at=now,
             )
             subscription = subscription_model.get(subscription_guid)
@@ -643,7 +642,7 @@ class TestSubscriptionViews(ViewTestCase):
 
         res = self.testapp.post(
             '/v1/subscriptions/{}/cancel'.format(subscription_guid), 
-            dict(refund_amount='2.34'),
+            dict(refund_amount=234),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
@@ -653,7 +652,7 @@ class TestSubscriptionViews(ViewTestCase):
         self.testapp.session.add(transaction)
         self.assertEqual(transaction.refund_to.guid, tx_guid)
         self.assertEqual(transaction.subscription_guid, subscription_guid)
-        self.assertEqual(transaction.amount, decimal.Decimal('2.34'))
+        self.assertEqual(transaction.amount, 234)
         self.assertEqual(transaction.status, tx_model.STATUS_DONE)
 
         res = self.testapp.get(
@@ -676,12 +675,12 @@ class TestSubscriptionViews(ViewTestCase):
             subscription_guid = subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
-                amount=100,
+                amount=10000,
             )
             tx_guid = tx_model.create(
                 subscription_guid=subscription_guid,
                 transaction_type=tx_model.TYPE_CHARGE,
-                amount=100, 
+                amount=10000, 
                 scheduled_at=now,
             )
             subscription = subscription_model.get(subscription_guid)
@@ -702,7 +701,7 @@ class TestSubscriptionViews(ViewTestCase):
                 status=400,
             )
         assert_bad_parameters(dict(prorated_refund=True, refund_amount=10))
-        assert_bad_parameters(dict(refund_amount='100.01'))
+        assert_bad_parameters(dict(refund_amount=10001))
 
     def test_transaction_list_by_subscription(self):
         from billy.models.transaction import TransactionModel

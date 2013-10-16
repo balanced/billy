@@ -68,7 +68,7 @@ want to create a Billy plan for the first hosting plan, then here we call
         -X POST \
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
         -d "plan_type=charge" \
-        -d "amount=5" \
+        -d "amount=500" \
         -d "frequency=monthly"
 
 
@@ -76,8 +76,9 @@ As we mentioned above, to call API other than the one for registering a
 company, you need to pass your API key, it's simple, all you need to do is
 set it as the username for HTTP authentication. You want to charge your hosting
 service customer periodically, so the `plan_type` is `charge` here. The price
-for the plan is 5 USD dollars, so here you set the `amount` to `5`. And 
-finally, it is a monthly plan, so you set the `frequency` to `monthly`.
+for the plan is 5 USD dollars, but all amounts of Billy are in cents, so here 
+you set the `amount` to `500`. And finally, it is a monthly plan, so you set the 
+`frequency` to `monthly`.
 
 Here we are, you should see the response
 
@@ -88,7 +89,7 @@ Here we are, you should see the response
         "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
         "plan_type": "charge", 
         "interval": 1, 
-        "amount": "5.00", 
+        "amount": 500, 
         "frequency": "monthly", 
         "deleted": false, 
         "created_at": "2013-10-02T05:48:26.210843", 
@@ -188,7 +189,7 @@ to one of your old customers. In this case, you can pass an optional parameter
 
 In the context of our hosting plan story, you want to give a 30% discount to 
 an old customer, the original price is $5 USD, so the discounted amount would be
-3.5. Then here you can call
+350 cents. Then here you can call
 
 ::
 
@@ -197,7 +198,7 @@ an old customer, the original price is $5 USD, so the discounted amount would be
         -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
         -d "plan_guid=PL97ZvyeA4wzM3WUyEG8xwps" \
         -d "payment_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
-        -d "amount=3.5"
+        -d "amount=350"
 
 Schedule your subscription at a specific time
 ---------------------------------------------
@@ -280,5 +281,5 @@ customer, just call
 
     curl https://billing.balancedpayments.com/v1/subscriptions/SUR6jKqqSyaFfGeeAsGaXFqZ/cancel \
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
-        -d "refund_amount=5"
+        -d "refund_amount=500"
 

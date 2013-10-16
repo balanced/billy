@@ -42,7 +42,7 @@ class TestBasicScenarios(IntegrationTestCase):
             '/v1/plans', 
             dict(
                 plan_type='charge',
-                amount='12.34',
+                amount=1234,
                 frequency='daily',
             ),
             headers=[self.make_auth(api_key)],
@@ -50,7 +50,7 @@ class TestBasicScenarios(IntegrationTestCase):
         )
         plan = res.json
         self.assertEqual(plan['plan_type'], 'charge')
-        self.assertEqual(plan['amount'], '12.34')
+        self.assertEqual(plan['amount'], 1234)
         self.assertEqual(plan['frequency'], 'daily')
         self.assertEqual(plan['company_guid'], company['guid'])
 
@@ -91,7 +91,7 @@ class TestBasicScenarios(IntegrationTestCase):
         res = self.testapp.post(
             '/v1/subscriptions/{}/cancel'.format(subscription['guid']), 
             dict(
-                refund_amount=12.34,
+                refund_amount=1234,
             ),
             headers=[self.make_auth(api_key)],
             status=200

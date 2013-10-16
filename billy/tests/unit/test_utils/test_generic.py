@@ -38,17 +38,14 @@ class TestGenericUtils(unittest.TestCase):
                 Decimal(expected)
             )
 
-        assert_round_down('0.0', '0.0')
-        assert_round_down('0.1', '0.1')
-        assert_round_down('0.11', '0.11')
-        assert_round_down('1.0', '1.0')
-        assert_round_down('1.12', '1.12')
-        assert_round_down('123.0', '123.0')
-        assert_round_down('0.123', '0.12')
-        assert_round_down('0.1234', '0.12')
-        assert_round_down('0.5566', '0.55')
-        assert_round_down('0.7788', '0.77')
-        assert_round_down('1.23456789', '1.23')
+        assert_round_down('0', 0)
+        assert_round_down('0.1', 0)
+        assert_round_down('0.11', 0)
+        assert_round_down('1.0', 1)
+        assert_round_down('1.12', 1)
+        assert_round_down('123.0', 123)
+        assert_round_down('123.456', 123)
+        assert_round_down('1.23456789', 1)
 
     def test_get_git_rev(self):
         import os

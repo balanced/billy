@@ -4,7 +4,7 @@ import pytz
 import iso8601
 from wtforms import Form
 from wtforms import TextField
-from wtforms import DecimalField
+from wtforms import IntegerField
 from wtforms import BooleanField
 from wtforms import Field
 from wtforms import validators
@@ -76,10 +76,10 @@ class SubscriptionCreateForm(Form):
     payment_uri = TextField('Payment URI', [
         validators.Optional(),
     ])
-    amount = DecimalField('Amount', [
+    amount = IntegerField('Amount', [
         validators.Optional(),
         # TODO: what is the minimum amount limitation we have?
-        validators.NumberRange(min=0.01)
+        validators.NumberRange(min=1)
     ])
     started_at = ISO8601Field('Started at datetime', [
         validators.Optional(),
@@ -91,9 +91,9 @@ class SubscriptionCancelForm(Form):
     prorated_refund = BooleanField('Prorated refund', [
         validators.Optional(),
     ], default=False)
-    refund_amount = DecimalField('Refund amount', [
+    refund_amount = IntegerField('Refund amount', [
         validators.Optional(),
         RefundAmountConflict(),
         # TODO: what is the minimum amount limitation we have?
-        validators.NumberRange(min=0.01),
+        validators.NumberRange(min=1),
     ])

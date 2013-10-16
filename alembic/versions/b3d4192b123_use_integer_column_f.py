@@ -43,7 +43,7 @@ def upgrade():
     op.execute(
         transaction.update().values(dict(amount=transaction.c.amount * 100))
     )
-    # ouch.. SQLlite doens't support alert column syntax,
+    # ouch.. SQLlite doens't support alter column syntax,
     bind = op.get_bind()
     if bind is None or bind.engine.name != 'sqlite':
         # modify the column from Numeric to Integer
@@ -53,7 +53,7 @@ def upgrade():
 
 
 def downgrade():
-    # ouch.. SQLlite doens't support alert column syntax,
+    # ouch.. SQLlite doens't support alter column syntax,
     bind = op.get_bind()
     if bind is None or bind.engine.name != 'sqlite':
         # modify the column from Integer to Numeric

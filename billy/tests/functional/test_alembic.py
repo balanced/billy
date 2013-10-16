@@ -109,7 +109,7 @@ class TestAlembic(unittest.TestCase):
         # Notice: this with statement here makes sure the database transaction
         # will be closed after querying, otherwise, we have two connections
         # to postgresql (one by testing code, one by Alembic), when we are
-        # doing following downgrade, there is tabel alert, it appears
+        # doing following downgrade, there is table alter, it appears
         # there will be a deadlock when there is a overlap of two transaction
         # scope
         with db_transaction.manager:

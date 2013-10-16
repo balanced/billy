@@ -23,9 +23,7 @@ class BalancedProcessor(PaymentProcessor):
         self.refund_cls = refund_cls
 
     def _to_cent(self, amount):
-        cent = amount * 100
-        cent = int(cent)
-        return cent
+        return int(amount)
 
     def create_customer(self, customer):
         api_key = customer.company.processor_key

@@ -21,7 +21,7 @@ class TestPlanViews(ViewTestCase):
 
     def test_create_plan(self):
         plan_type = 'charge'
-        amount = '55.66'
+        amount = 5566
         frequency = 'weekly'
         interval = 123
         now = datetime.datetime.utcnow()
@@ -59,11 +59,11 @@ class TestPlanViews(ViewTestCase):
         assert_bad_parameters(dict())
         assert_bad_parameters(dict(
             frequency='weekly',
-            amount='55.66',
+            amount=5566,
         ))
         assert_bad_parameters(dict(
             plan_type='charge',
-            amount='55.66',
+            amount=5566,
         ))
         assert_bad_parameters(dict(
             plan_type='charge',
@@ -72,22 +72,22 @@ class TestPlanViews(ViewTestCase):
         assert_bad_parameters(dict(
             plan_type='',
             frequency='weekly',
-            amount='55.66',
+            amount=5566,
         ))
         assert_bad_parameters(dict(
             plan_type='super_charge',
             frequency='weekly',
-            amount='55.66',
+            amount=5566,
         ))
         assert_bad_parameters(dict(
             plan_type='charge',
             frequency='',
-            amount='55.66',
+            amount=5566,
         ))
         assert_bad_parameters(dict(
             plan_type='charge',
             frequency='decade',
-            amount='55.66',
+            amount=5566,
         ))
         assert_bad_parameters(dict(
             plan_type='charge',
@@ -102,19 +102,19 @@ class TestPlanViews(ViewTestCase):
         assert_bad_parameters(dict(
             plan_type='charge',
             frequency='weekly',
-            amount='55.66',
+            amount=5566,
             interval='0',
         ))
         assert_bad_parameters(dict(
             plan_type='charge',
             frequency='weekly',
-            amount='55.66',
+            amount=5566,
             interval='0.5',
         ))
         assert_bad_parameters(dict(
             plan_type='charge',
             frequency='weekly',
-            amount='55.66',
+            amount=5566,
             interval='-123',
         ))
 
@@ -127,7 +127,7 @@ class TestPlanViews(ViewTestCase):
             '/v1/plans',
             dict(
                 plan_type='charge',
-                amount='55.66',
+                amount=5566,
                 frequency='weekly',
                 interval='',
             ),
@@ -142,7 +142,7 @@ class TestPlanViews(ViewTestCase):
                 '/v1/plans',
                 dict(
                     plan_type=plan_type,
-                    amount='55.66',
+                    amount=5566,
                     frequency='weekly',
                 ),
                 extra_environ=dict(REMOTE_USER=self.api_key), 
@@ -159,7 +159,7 @@ class TestPlanViews(ViewTestCase):
                 '/v1/plans',
                 dict(
                     plan_type='charge',
-                    amount='55.66',
+                    amount=5566,
                     frequency=frequency,
                 ),
                 extra_environ=dict(REMOTE_USER=self.api_key), 
@@ -177,7 +177,7 @@ class TestPlanViews(ViewTestCase):
             '/v1/plans',
             dict(
                 plan_type='charge',
-                amount='55.66',
+                amount=5566,
                 frequency='weekly',
             ),
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
@@ -189,7 +189,7 @@ class TestPlanViews(ViewTestCase):
             '/v1/plans', 
             dict(
                 plan_type='charge',
-                amount='55.66',
+                amount=5566,
                 frequency='weekly',
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
@@ -217,7 +217,7 @@ class TestPlanViews(ViewTestCase):
             '/v1/plans', 
             dict(
                 plan_type='charge',
-                amount='55.66',
+                amount=5566,
                 frequency='weekly',
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
@@ -242,7 +242,7 @@ class TestPlanViews(ViewTestCase):
             '/v1/plans', 
             dict(
                 plan_type='charge',
-                amount='55.66',
+                amount=5566,
                 frequency='weekly',
             ),
             extra_environ=dict(REMOTE_USER=other_api_key), 
@@ -292,7 +292,7 @@ class TestPlanViews(ViewTestCase):
             '/v1/plans', 
             dict(
                 plan_type='charge',
-                amount='55.66',
+                amount=5566,
                 frequency='weekly',
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
@@ -312,7 +312,7 @@ class TestPlanViews(ViewTestCase):
             '/v1/plans', 
             dict(
                 plan_type='charge',
-                amount='55.66',
+                amount=5566,
                 frequency='weekly',
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
@@ -337,7 +337,7 @@ class TestPlanViews(ViewTestCase):
             '/v1/plans', 
             dict(
                 plan_type='charge',
-                amount='55.66',
+                amount=5566,
                 frequency='weekly',
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
@@ -361,7 +361,7 @@ class TestPlanViews(ViewTestCase):
             '/v1/plans', 
             dict(
                 plan_type='charge',
-                amount='55.66',
+                amount=5566,
                 frequency='weekly',
             ),
             extra_environ=dict(REMOTE_USER=other_api_key), 

@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 import datetime
-import decimal
 
 import transaction
 from freezegun import freeze_time
@@ -47,7 +46,7 @@ class TestPlanModel(ModelTestCase):
     def test_create(self):
         model = self.make_one(self.session)
         name = 'monthly billing to user John'
-        amount = decimal.Decimal('5566.77')
+        amount = 556677
         frequency = model.FREQ_MONTHLY
         plan_type = model.TYPE_CHARGE
         interval = 5

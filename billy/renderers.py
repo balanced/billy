@@ -44,7 +44,7 @@ def plan_adapter(plan, request):
         guid=plan.guid, 
         plan_type=plan_type,
         frequency=frequency,
-        amount=str(plan.amount),
+        amount=plan.amount,
         interval=plan.interval,
         created_at=plan.created_at.isoformat(),
         updated_at=plan.updated_at.isoformat(),
@@ -57,12 +57,9 @@ def subscription_adapter(subscription, request):
     canceled_at = None
     if subscription.canceled_at is not None:
         canceled_at = subscription.canceled_at.isoformat()
-    amount = None
-    if subscription.amount is not None:
-        amount = str(subscription.amount)
     return dict(
         guid=subscription.guid, 
-        amount=amount,
+        amount=subscription.amount,
         payment_uri=subscription.payment_uri,
         period=subscription.period,
         canceled=subscription.canceled,
@@ -98,7 +95,7 @@ def transaction_adapter(transaction, request):
         guid=transaction.guid, 
         transaction_type=transaction_type,
         status=status,
-        amount=str(transaction.amount),
+        amount=transaction.amount,
         payment_uri=transaction.payment_uri,
         external_id=transaction.external_id,
         failure_count=transaction.failure_count,

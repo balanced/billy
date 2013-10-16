@@ -6,7 +6,6 @@ from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
 from sqlalchemy import Boolean
 from sqlalchemy import DateTime
-from sqlalchemy import Numeric
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import backref
@@ -130,7 +129,7 @@ class Plan(DeclarativeBase):
     #: the amount to bill user
     # TODO: make sure how many digi of number we need
     # TODO: Fix SQLite doesn't support decimal issue?
-    amount = Column(Numeric(10, 2), nullable=False)
+    amount = Column(Integer, nullable=False)
     #: the fequency to bill user, 0=daily, 1=weekly, 2=monthly
     frequency = Column(Integer, nullable=False)
     #: interval of period, for example, interval 3 with weekly frequency
@@ -178,7 +177,7 @@ class Subscription(DeclarativeBase):
     #: the payment URI to charge/payout, such as bank account or credit card
     payment_uri = Column(Unicode(128), index=True)
     #: if this amount is not null, the amount of plan will be overwritten
-    amount = Column(Numeric(10, 2))
+    amount = Column(Integer)
     #: the external ID given by user
     external_id = Column(Unicode(128), index=True)
     #: is this subscription canceled?
@@ -237,7 +236,7 @@ class Transaction(DeclarativeBase):
     #  0=init, 1=retrying, 2=done, 3=failed, 4=canceled
     status = Column(Integer, index=True, nullable=False)
     #: the amount to do transaction (charge, payout or refund)
-    amount = Column(Numeric(10, 2), nullable=False)
+    amount = Column(Integer, nullable=False)
     #: the payment URI
     payment_uri = Column(Unicode(128), index=True)
     #: count of failure times

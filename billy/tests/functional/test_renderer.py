@@ -89,7 +89,7 @@ class TestRenderer(ViewTestCase):
             guid=plan.guid, 
             plan_type='charge',
             frequency='weekly',
-            amount=str(plan.amount),
+            amount=plan.amount,
             interval=plan.interval,
             created_at=plan.created_at.isoformat(),
             updated_at=plan.updated_at.isoformat(),
@@ -144,7 +144,7 @@ class TestRenderer(ViewTestCase):
             self.assertEqual(json_data['amount'], expected_amount)
 
         assert_amount(None, None)
-        assert_amount(12.34, '12.34')
+        assert_amount(1234, 1234)
 
         def assert_canceled_at(canceled_at, expected_canceled_at):
             subscription.canceled_at = canceled_at 
@@ -165,7 +165,7 @@ class TestRenderer(ViewTestCase):
             guid=transaction.guid, 
             transaction_type='charge',
             status='init',
-            amount=str(transaction.amount),
+            amount=transaction.amount,
             payment_uri=transaction.payment_uri,
             external_id=transaction.external_id,
             failure_count=transaction.failure_count,

@@ -55,10 +55,10 @@ def make_api_key(size=32):
 
 
 def round_down_cent(amount):
-    """Round down money value to cent (drop float points), for example, $5.66666
-    will be rounded to $5
+    """Round down money value in cent (drop float points), for example, ¢5.66666
+    will be rounded to ¢5
 
-    :param amount: the money amount to be rounded
+    :param amount: the money amount in cent to be rounded
     :return: the rounded money amount
     """
     return int(amount)

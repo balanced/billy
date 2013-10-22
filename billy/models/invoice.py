@@ -26,15 +26,6 @@ class InvoiceModel(BaseTableModel):
     #: failed to refund status
     STATUS_REFUND_FAILED = 7
 
-    #   - 0=init 
-    #   - 1=processing
-    #   - 2=settled
-    #   - 3=canceled
-    #   - 4=process failed
-    #   - 5=refunding
-    #   - 6=refunded
-    #   - 7=refund failed
-
     STATUS_ALL = [
         STATUS_INIT,
         STATUS_PROCESSING,

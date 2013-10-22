@@ -359,7 +359,6 @@ class Invoice(DeclarativeBase):
     updated_at = Column(DateTime, default=now_func)
 
     #: transactions of this invoice
-    # TODO:
     transactions = relationship(
         'InvoiceTransaction', 
         cascade='all, delete-orphan', 

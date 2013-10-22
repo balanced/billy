@@ -259,3 +259,51 @@ class Transaction(DeclarativeBase):
         uselist=False, 
         single_parent=True,
     )
+
+
+class Invoice(DeclarativeBase):
+    """An invoice
+
+    """
+    __tablename__ = 'invoice'
+
+    guid = Column(Unicode(64), primary_key=True)
+    #: the guid of customer who owns this invoice
+    customer_guid = Column(
+        Unicode(64), 
+        ForeignKey(
+            'customer.guid', 
+            ondelete='CASCADE', onupdate='CASCADE'
+        ), 
+        index=True,
+        nullable=False,
+    )
+    #: the payment URI to charge to, such as bank account or credit card
+    payment_uri = Column(Unicode(128), index=True)
+    #: the total amount of this invoice
+    amount = Column(Integer)
+    #: current status of this invoice, could be
+    #   - 0=init 
+    #   - 1=processing
+    #   - 2=settled
+    #   - 3=canceled
+    #   - 4=process failed
+    #   - 5=refunding
+    #   - 6=refunded
+    #   - 7=refund failed
+    status = Column(Integer, index=True, nullable=False)
+    #: a short optional title of this invoice
+    title = Column(Unicode(128))
+
+    #: the created datetime of this invoice 
+    created_at = Column(DateTime, default=now_func)
+    #: the updated datetime of this invoice 
+    updated_at = Column(DateTime, default=now_func)
+
+    #: transactions of this invoice
+    # TODO:
+    #transactions = relationship(
+    #    'InvoiceTransaction', 
+    #    cascade='all, delete-orphan', 
+    #    backref='subscription'
+    #)

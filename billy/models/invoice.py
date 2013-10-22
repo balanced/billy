@@ -11,21 +11,39 @@ class InvoiceModel(BaseTableModel):
 
     #: initialized status
     STATUS_INIT = 0
-    #: we are retrying this transaction
-    STATUS_RETRYING = 1
-    #: this transaction is done
-    STATUS_DONE = 2
-    #: this transaction is failed
-    STATUS_FAILED = 3
-    #: this transaction is canceled
-    STATUS_CANCELED = 4
+    #: processing invoice status
+    STATUS_PROCESSING = 1
+    #: settled status (processed successfully)
+    STATUS_SETTLED = 2
+    #: canceled status
+    STATUS_CANCELED = 3
+    #: failed to process status
+    STATUS_PROCESS_FAILED = 4
+    #: refunding status
+    STATUS_REFUNDING = 5
+    #: refunded status
+    STATUS_REFUNDED = 6
+    #: failed to refund status
+    STATUS_REFUND_FAILED = 7
+
+    #   - 0=init 
+    #   - 1=processing
+    #   - 2=settled
+    #   - 3=canceled
+    #   - 4=process failed
+    #   - 5=refunding
+    #   - 6=refunded
+    #   - 7=refund failed
 
     STATUS_ALL = [
         STATUS_INIT,
-        STATUS_RETRYING,
-        STATUS_DONE,
-        STATUS_FAILED,
+        STATUS_PROCESSING,
+        STATUS_SETTLED,
         STATUS_CANCELED,
+        STATUS_PROCESS_FAILED,
+        STATUS_REFUNDING,
+        STATUS_REFUNDED,
+        STATUS_REFUND_FAILED,
     ]
 
     def create(

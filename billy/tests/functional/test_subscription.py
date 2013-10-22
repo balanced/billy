@@ -515,6 +515,7 @@ class TestSubscriptionViews(ViewTestCase):
             )
             tx_model.create(
                 subscription_guid=subscription_guid,
+                transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_CHARGE,
                 amount=100, 
                 scheduled_at=now,
@@ -547,6 +548,7 @@ class TestSubscriptionViews(ViewTestCase):
             )
             tx_model.create(
                 subscription_guid=subscription_guid,
+                transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_CHARGE,
                 amount=100, 
                 scheduled_at=now,
@@ -603,6 +605,7 @@ class TestSubscriptionViews(ViewTestCase):
             )
             tx_guid = tx_model.create(
                 subscription_guid=subscription_guid,
+                transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_CHARGE,
                 amount=10000, 
                 scheduled_at=now,
@@ -676,6 +679,7 @@ class TestSubscriptionViews(ViewTestCase):
             )
             tx_guid = tx_model.create(
                 subscription_guid=subscription_guid,
+                transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_CHARGE,
                 amount=1000, 
                 scheduled_at=now,
@@ -743,6 +747,7 @@ class TestSubscriptionViews(ViewTestCase):
             )
             tx_guid = tx_model.create(
                 subscription_guid=subscription_guid,
+                transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_CHARGE,
                 amount=10000, 
                 scheduled_at=now,
@@ -788,6 +793,7 @@ class TestSubscriptionViews(ViewTestCase):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
                     guid = transaction_model.create(
                         subscription_guid=subscription_guid1,
+                        transaction_cls=transaction_model.CLS_SUBSCRIPTION,
                         transaction_type=transaction_model.TYPE_CHARGE,
                         amount=10 * i,
                         payment_uri='/v1/cards/tester',
@@ -798,6 +804,7 @@ class TestSubscriptionViews(ViewTestCase):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
                     guid = transaction_model.create(
                         subscription_guid=subscription_guid2,
+                        transaction_cls=transaction_model.CLS_SUBSCRIPTION,
                         transaction_type=transaction_model.TYPE_CHARGE,
                         amount=10 * i,
                         payment_uri='/v1/cards/tester',

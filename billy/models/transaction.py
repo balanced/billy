@@ -26,6 +26,16 @@ class TransactionModel(BaseTableModel):
         TYPE_PAYOUT, 
     ]
 
+    #: subscription transaction
+    CLS_SUBSCRIPTION = 0
+    #: invoice transaction
+    CLS_INVOICE = 1
+
+    CLS_ALL = [
+        CLS_SUBSCRIPTION,
+        CLS_INVOICE,
+    ]
+
     #: initialized status
     STATUS_INIT = 0
     #: we are retrying this transaction
@@ -61,16 +71,42 @@ class TransactionModel(BaseTableModel):
         """Get transactions of a company by given guid
 
         """
+        from sqlalchemy.sql.expression import or_
         Transaction = tables.Transaction
+        SubscriptionTransaction = tables.SubscriptionTransaction
+        InvoiceTransaction = tables.InvoiceTransaction
         Subscription = tables.Subscription
+        Invoice = tables.Invoice
         Plan = tables.Plan
+        Customer = tables.Customer
+
+        subscription_transaction_guids = (
+            self.session
+            .query(SubscriptionTransaction.guid)
+            .join((
+                Subscription, 
+                Subscription.guid == SubscriptionTransaction.subscription_guid
+            ))
+            .join((Plan, Plan.guid == Subscription.plan_guid))
+            .filter(Plan.company_guid == company_guid)
+            .subquery()
+        )
+        invoice_transaction_guids = (
+            self.session
+            .query(InvoiceTransaction.guid)
+            .join((Invoice, 
+                   Invoice.guid == InvoiceTransaction.invoice_guid))
+            .join((Customer, Customer.guid == Invoice.customer_guid))
+            .filter(Customer.company_guid == company_guid)
+            .subquery()
+        )
         query = (
             self.session
             .query(Transaction)
-            .join((Subscription, 
-                   Subscription.guid == Transaction.subscription_guid))
-            .join((Plan, Plan.guid == Subscription.plan_guid))
-            .filter(Plan.company_guid == company_guid)
+            .filter(or_(
+                Transaction.guid.in_(subscription_transaction_guids),
+                Transaction.guid.in_(invoice_transaction_guids),
+            ))
             .order_by(Transaction.created_at.desc())
         )
         return query
@@ -80,7 +116,7 @@ class TransactionModel(BaseTableModel):
         """Get transactions of a subscription by given guid
 
         """
-        Transaction = tables.Transaction
+        Transaction = tables.SubscriptionTransaction
         query = (
             self.session
             .query(Transaction)
@@ -91,10 +127,12 @@ class TransactionModel(BaseTableModel):
 
     def create(
         self, 
-        subscription_guid, 
         transaction_type, 
+        transaction_cls, 
         amount,
         scheduled_at,
+        subscription_guid=None, 
+        invoice_guid=None, 
         payment_uri=None,
         refund_to_guid=None,
     ):
@@ -104,6 +142,9 @@ class TransactionModel(BaseTableModel):
         if transaction_type not in self.TYPE_ALL:
             raise ValueError('Invalid transaction_type {}'
                              .format(transaction_type))
+        if transaction_cls not in self.CLS_ALL:
+            raise ValueError('Invalid transaction_cls {}'
+                             .format(transaction_cls))
         if refund_to_guid is not None:
             if transaction_type != self.TYPE_REFUND:
                 raise ValueError('refund_to_guid can only be set to a refund '
@@ -115,10 +156,19 @@ class TransactionModel(BaseTableModel):
             if refund_transaction.transaction_type != self.TYPE_CHARGE:
                 raise ValueError('Only charge transaction can be refunded')
 
+        if transaction_cls == self.CLS_SUBSCRIPTION:
+            table_cls = tables.SubscriptionTransaction
+            if subscription_guid is None:
+                raise ValueError('subscription_guid cannot be None')
+            extra_args = dict(subscription_guid=subscription_guid)
+        elif transaction_cls == self.CLS_INVOICE:
+            table_cls = tables.InvoiceTransaction
+            if invoice_guid is None:
+                raise ValueError('invoice_guid cannot be None')
+            extra_args = dict(invoice_guid=invoice_guid)
         now = tables.now_func()
-        transaction = tables.Transaction(
+        transaction = table_cls(
             guid='TX' + make_guid(),
-            subscription_guid=subscription_guid,
             transaction_type=transaction_type,
             amount=amount, 
             payment_uri=payment_uri, 
@@ -127,6 +177,7 @@ class TransactionModel(BaseTableModel):
             refund_to_guid=refund_to_guid, 
             created_at=now, 
             updated_at=now, 
+            **extra_args
         )
         self.session.add(transaction)
         self.session.flush()

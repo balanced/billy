@@ -196,29 +196,23 @@ class Subscription(DeclarativeBase):
     updated_at = Column(DateTime, default=now_func)
 
     #: transactions of this subscription
-    transactions = relationship('Transaction', cascade='all, delete-orphan', 
-                                backref='subscription')
+    transactions = relationship(
+        'SubscriptionTransaction', 
+        cascade='all, delete-orphan', 
+        backref='subscription',
+    )
 
 
 class Transaction(DeclarativeBase):
-    """A transaction of subscription, typically, this can be a bank charging
-    or credit card debiting operation. It could also be a refunding or paying
-    out operation.
+    """A transaction 
 
     """
     __tablename__ = 'transaction'
+    __mapper_args__ = {
+        'polymorphic_on': 'transaction_cls',
+    } 
 
     guid = Column(Unicode(64), primary_key=True)
-    #: the guid of subscription which generated this transaction
-    subscription_guid = Column(
-        Unicode(64), 
-        ForeignKey(
-            'subscription.guid', 
-            ondelete='CASCADE', onupdate='CASCADE'
-        ), 
-        index=True,
-        nullable=False,
-    )
     #: the guid of target transaction to refund to
     refund_to_guid = Column(
         Unicode(64), 
@@ -228,6 +222,8 @@ class Transaction(DeclarativeBase):
         ), 
         index=True,
     )
+    #: what class of transaction it is, 0=subscription, 1=invoice
+    transaction_cls = Column(Integer, index=True, nullable=False)
     #: what type of transaction it is, 0=charge, 1=refund, 2=payout
     transaction_type = Column(Integer, index=True, nullable=False)
     #: the ID of transaction record in payment processing system
@@ -258,6 +254,68 @@ class Transaction(DeclarativeBase):
         remote_side=[guid], 
         uselist=False, 
         single_parent=True,
+    )
+
+
+class SubscriptionTransaction(Transaction):
+    """A transaction of subscription, typically, this can be a bank charging
+    or credit card debiting operation. It could also be a refunding or paying
+    out operation.
+
+    """
+    __tablename__ = 'subscription_transaction'
+    __mapper_args__ = {
+        'polymorphic_identity': 0,
+    } 
+
+    guid = Column(
+        Unicode(64), 
+        ForeignKey(
+            'transaction.guid', 
+            ondelete='CASCADE', 
+            onupdate='CASCADE'
+        ), 
+        primary_key=True,
+    )
+    #: the guid of subscription which generated this transaction
+    subscription_guid = Column(
+        Unicode(64), 
+        ForeignKey(
+            'subscription.guid', 
+            ondelete='CASCADE', onupdate='CASCADE'
+        ), 
+        index=True,
+        nullable=False,
+    )
+
+
+class InvoiceTransaction(Transaction):
+    """A transaction of invoice
+
+    """
+    __tablename__ = 'invoice_transaction'
+    __mapper_args__ = {
+        'polymorphic_identity': 1,
+    } 
+
+    guid = Column(
+        Unicode(64), 
+        ForeignKey(
+            'transaction.guid', 
+            ondelete='CASCADE', 
+            onupdate='CASCADE'
+        ), 
+        primary_key=True,
+    )
+    #: the guid of invoice which generated this transaction
+    invoice_guid = Column(
+        Unicode(64), 
+        ForeignKey(
+            'invoice.guid', 
+            ondelete='CASCADE', onupdate='CASCADE'
+        ), 
+        index=True,
+        nullable=False,
     )
 
 
@@ -302,8 +360,8 @@ class Invoice(DeclarativeBase):
 
     #: transactions of this invoice
     # TODO:
-    #transactions = relationship(
-    #    'InvoiceTransaction', 
-    #    cascade='all, delete-orphan', 
-    #    backref='subscription'
-    #)
+    transactions = relationship(
+        'InvoiceTransaction', 
+        cascade='all, delete-orphan', 
+        backref='invoice'
+    )

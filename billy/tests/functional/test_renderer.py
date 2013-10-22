@@ -17,12 +17,14 @@ class TestRenderer(ViewTestCase):
         from billy.models.plan import PlanModel
         from billy.models.subscription import SubscriptionModel
         from billy.models.transaction import TransactionModel
+        from billy.models.invoice import InvoiceModel
         super(TestRenderer, self).setUp()
         company_model = CompanyModel(self.testapp.session)
         customer_model = CustomerModel(self.testapp.session)
         plan_model = PlanModel(self.testapp.session)
         subscription_model = SubscriptionModel(self.testapp.session)
         transaction_model = TransactionModel(self.testapp.session)
+        invoice_model = InvoiceModel(self.testapp.session)
         with db_transaction.manager:
             self.company_guid = company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
@@ -42,10 +44,15 @@ class TestRenderer(ViewTestCase):
             )
             self.transaction_guid = transaction_model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
+            )
+            self.invoice_guid = invoice_model.create(
+                customer_guid=self.customer_guid,
+                amount=100,
             )
         self.dummy_request = DummyRequest()
 
@@ -164,6 +171,7 @@ class TestRenderer(ViewTestCase):
         expected = dict(
             guid=transaction.guid, 
             transaction_type='charge',
+            transaction_cls='subscription',
             status='init',
             amount=transaction.amount,
             payment_uri=transaction.payment_uri,
@@ -196,3 +204,31 @@ class TestRenderer(ViewTestCase):
         assert_status(TransactionModel.STATUS_FAILED, 'failed')
         assert_status(TransactionModel.STATUS_DONE, 'done')
         assert_status(TransactionModel.STATUS_CANCELED, 'canceled')
+
+        # test invoice transaction
+        transaction_guid = transaction_model.create(
+            invoice_guid=self.invoice_guid,
+            transaction_cls=transaction_model.CLS_INVOICE,
+            transaction_type=transaction_model.TYPE_CHARGE,
+            amount=10,
+            payment_uri='/v1/cards/tester',
+            scheduled_at=datetime.datetime.utcnow(),
+        )
+        transaction = transaction_model.get(transaction_guid)
+        json_data = transaction_adapter(transaction, self.dummy_request)
+        expected = dict(
+            guid=transaction.guid, 
+            transaction_type='charge',
+            transaction_cls='invoice',
+            status='init',
+            amount=transaction.amount,
+            payment_uri=transaction.payment_uri,
+            external_id=transaction.external_id,
+            failure_count=transaction.failure_count,
+            error_message=transaction.error_message,
+            created_at=transaction.created_at.isoformat(),
+            updated_at=transaction.updated_at.isoformat(),
+            scheduled_at=transaction.scheduled_at.isoformat(),
+            invoice_guid=transaction.invoice_guid,
+        )
+        self.assertEqual(json_data, expected)

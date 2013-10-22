@@ -51,7 +51,7 @@ class SubscriptionModel(BaseTableModel):
 
         """
         if amount is not None and amount <= 0:
-            raise ValueError('Amount should be a non-zero postive float number')
+            raise ValueError('Amount should be a non-zero postive integer')
         now = tables.now_func()
         if started_at is None:
             started_at = now
@@ -109,6 +109,8 @@ class SubscriptionModel(BaseTableModel):
                              'prorated_refund is True')
 
         tx_model = TransactionModel(self.session)
+        Transaction = tables.Transaction
+        SubscriptionTransaction = tables.SubscriptionTransaction
 
         subscription = self.get(guid, raise_error=True)
         if subscription.canceled:
@@ -128,9 +130,9 @@ class SubscriptionModel(BaseTableModel):
             subscription.period
         ):
             previous_transaction = (
-                self.session.query(tables.Transaction)
+                self.session.query(SubscriptionTransaction)
                 .filter_by(subscription_guid=subscription.guid)
-                .order_by(tables.Transaction.scheduled_at.desc())
+                .order_by(SubscriptionTransaction.scheduled_at.desc())
                 .first()
             )
             # it is possible the previous transaction is failed or retrying,
@@ -169,20 +171,26 @@ class SubscriptionModel(BaseTableModel):
                     subscription_guid=subscription.guid, 
                     amount=amount, 
                     transaction_type=tx_model.TYPE_REFUND, 
+                    transaction_cls=tx_model.CLS_SUBSCRIPTION, 
                     scheduled_at=subscription.next_transaction_at, 
                     refund_to_guid=previous_transaction.guid, 
                 )
 
         # cancel not done transactions (exclude refund transaction)
-        Transaction = tables.Transaction
-        not_done_transactions = (
-            self.session.query(Transaction)
-            .filter_by(subscription_guid=guid)
+
+        not_done_transaction_guids = (
+            self.session.query(SubscriptionTransaction.guid)
+            .filter(SubscriptionTransaction.subscription_guid == guid)
             .filter(Transaction.transaction_type != TransactionModel.TYPE_REFUND)
             .filter(Transaction.status.in_([
                 tx_model.STATUS_INIT,
                 tx_model.STATUS_RETRYING,
             ]))
+        )
+        not_done_transactions = (
+            self.session
+            .query(Transaction)
+            .filter(Transaction.guid.in_(not_done_transaction_guids))
         )
         not_done_transactions.update(dict(
             status=tx_model.STATUS_CANCELED,
@@ -267,6 +275,7 @@ class SubscriptionModel(BaseTableModel):
                     payment_uri=subscription.payment_uri, 
                     amount=amount, 
                     transaction_type=transaction_type, 
+                    transaction_cls=tx_model.CLS_SUBSCRIPTION, 
                     scheduled_at=subscription.next_transaction_at, 
                 )
                 self.logger.info(

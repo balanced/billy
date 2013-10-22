@@ -48,6 +48,7 @@ class TestServerInfo(ViewTestCase):
             )
             transaction_guid = transaction_model.create(
                 subscription_guid=subscription_guid,
+                transaction_cls=transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',

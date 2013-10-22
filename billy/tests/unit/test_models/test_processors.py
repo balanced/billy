@@ -248,6 +248,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         with db_transaction.manager:
             guid = tx_model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/credit_card/tester',
@@ -346,6 +347,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         with db_transaction.manager:
             guid = tx_model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/credit_card/tester',
@@ -420,6 +422,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         with db_transaction.manager:
             charge_guid = tx_model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_CHARGE,
                 amount=100,
                 payment_uri='/v1/credit_card/tester',
@@ -433,6 +436,7 @@ class TestBalancedProcessorModel(ModelTestCase):
 
             refund_guid = tx_model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_REFUND,
                 refund_to_guid=charge_guid,
                 amount=56,
@@ -521,6 +525,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         with db_transaction.manager:
             charge_guid = tx_model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_CHARGE,
                 amount=100,
                 payment_uri='/v1/credit_card/tester',
@@ -534,6 +539,7 @@ class TestBalancedProcessorModel(ModelTestCase):
 
             refund_guid = tx_model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_REFUND,
                 refund_to_guid=charge_guid,
                 amount=56,

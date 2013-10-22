@@ -91,9 +91,21 @@ def transaction_adapter(transaction, request):
     }
     status = status_map[transaction.status]
 
+    cls_map = {
+        TransactionModel.CLS_SUBSCRIPTION: 'subscription',
+        TransactionModel.CLS_INVOICE: 'invoice',
+    }
+    transaction_cls = cls_map[transaction.transaction_cls]
+
+    if transaction.transaction_cls == TransactionModel.CLS_SUBSCRIPTION:
+        extra_args = dict(subscription_guid=transaction.subscription_guid)
+    elif transaction.transaction_cls == TransactionModel.CLS_INVOICE:
+        extra_args = dict(invoice_guid=transaction.invoice_guid)
+
     return dict(
         guid=transaction.guid, 
         transaction_type=transaction_type,
+        transaction_cls=transaction_cls,
         status=status,
         amount=transaction.amount,
         payment_uri=transaction.payment_uri,
@@ -103,7 +115,7 @@ def transaction_adapter(transaction, request):
         created_at=transaction.created_at.isoformat(),
         updated_at=transaction.updated_at.isoformat(),
         scheduled_at=transaction.scheduled_at.isoformat(),
-        subscription_guid=transaction.subscription_guid,
+        **extra_args
     )
 
 

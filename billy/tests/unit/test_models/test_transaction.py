@@ -17,12 +17,14 @@ class TestTransactionModel(ModelTestCase):
         from billy.models.customer import CustomerModel
         from billy.models.plan import PlanModel
         from billy.models.subscription import SubscriptionModel
+        from billy.models.invoice import InvoiceModel
         super(TestTransactionModel, self).setUp()
         # build the basic scenario for transaction model
         self.company_model = CompanyModel(self.session)
         self.customer_model = CustomerModel(self.session)
         self.plan_model = PlanModel(self.session)
         self.subscription_model = SubscriptionModel(self.session)
+        self.invoice_model = InvoiceModel(self.session)
         with db_transaction.manager:
             self.company_guid = self.company_model.create('my_secret_key')
             self.plan_guid = self.plan_model.create(
@@ -38,6 +40,10 @@ class TestTransactionModel(ModelTestCase):
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
                 payment_uri='/v1/cards/tester',
+            )
+            self.invoice_guid = self.invoice_model.create(
+                customer_guid=self.customer_guid,
+                amount=100,
             )
 
     def make_one(self, *args, **kwargs):
@@ -56,6 +62,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
@@ -78,6 +85,8 @@ class TestTransactionModel(ModelTestCase):
         #         + Plan2
         #             + Subscription2
         #                 + Transaction2
+        #         + Invoice1
+        #             + Transaction3
         #
         with db_transaction.manager:
             other_company_guid = self.company_model.create('my_secret_key')
@@ -106,9 +115,14 @@ class TestTransactionModel(ModelTestCase):
                 plan_guid=other_plan_guid2,
                 payment_uri='/v1/cards/tester',
             )
+            other_invoice_guid = self.invoice_model.create(
+                customer_guid=other_customer_guid,
+                amount=100,
+            )
         with db_transaction.manager:
             other_guid1 = model.create(
                 subscription_guid=other_subscription_guid1,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
@@ -116,6 +130,15 @@ class TestTransactionModel(ModelTestCase):
             )
             other_guid2 = model.create(
                 subscription_guid=other_subscription_guid2,
+                transaction_cls=model.CLS_SUBSCRIPTION,
+                transaction_type=model.TYPE_CHARGE,
+                amount=10,
+                payment_uri='/v1/cards/tester',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+            other_guid3 = model.create(
+                invoice_guid=other_invoice_guid,
+                transaction_cls=model.CLS_INVOICE,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
@@ -135,6 +158,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             guid1 = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
@@ -142,6 +166,7 @@ class TestTransactionModel(ModelTestCase):
             )
             guid2 = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
@@ -149,6 +174,7 @@ class TestTransactionModel(ModelTestCase):
             )
             guid3 = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
@@ -159,7 +185,10 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(set(result_guids), set([guid1, guid2, guid3]))
         result_guids = [tx.guid for tx in 
                         model.list_by_company_guid(other_company_guid)]
-        self.assertEqual(set(result_guids), set([other_guid1, other_guid2]))
+        self.assertEqual(
+            set(result_guids), 
+            set([other_guid1, other_guid2, other_guid3]),
+        )
 
     def test_list_by_subscription_guid(self):
         model = self.make_one(self.session)
@@ -179,16 +208,35 @@ class TestTransactionModel(ModelTestCase):
                 plan_guid=self.plan_guid,
                 payment_uri='/v1/cards/tester',
             )
+            # add some invoice transactions here to make sure
+            # it will only return subscription transactions
+            model.create(
+                invoice_guid=self.invoice_guid,
+                transaction_cls=model.CLS_INVOICE,
+                transaction_type=model.TYPE_CHARGE,
+                amount=10,
+                payment_uri='/v1/cards/tester',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
             guid_ids1 = []
             for _ in range(3):
                 guid = model.create(
                     subscription_guid=subscription_guid1,
+                    transaction_cls=model.CLS_SUBSCRIPTION,
                     transaction_type=model.TYPE_CHARGE,
                     amount=10,
                     payment_uri='/v1/cards/tester',
                     scheduled_at=datetime.datetime.utcnow(),
                 )
                 guid_ids1.append(guid)
+            model.create(
+                invoice_guid=self.invoice_guid,
+                transaction_cls=model.CLS_INVOICE,
+                transaction_type=model.TYPE_CHARGE,
+                amount=10,
+                payment_uri='/v1/cards/tester',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
 
             subscription_guid2 = self.subscription_model.create(
                 customer_guid=self.customer_guid,
@@ -199,6 +247,7 @@ class TestTransactionModel(ModelTestCase):
             for _ in range(2):
                 guid = model.create(
                     subscription_guid=subscription_guid2,
+                    transaction_cls=model.CLS_SUBSCRIPTION,
                     transaction_type=model.TYPE_CHARGE,
                     amount=10,
                     payment_uri='/v1/cards/tester',
@@ -222,6 +271,7 @@ class TestTransactionModel(ModelTestCase):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i)):
                     guid = model.create(
                         subscription_guid=self.subscription_guid,
+                        transaction_cls=model.CLS_SUBSCRIPTION,
                         transaction_type=model.TYPE_CHARGE,
                         amount=10 * i,
                         payment_uri='/v1/cards/tester',
@@ -251,6 +301,7 @@ class TestTransactionModel(ModelTestCase):
 
         subscription_guid = self.subscription_guid
         transaction_type = model.TYPE_CHARGE
+        transaction_cls = model.CLS_SUBSCRIPTION
         amount = 100
         payment_uri = '/v1/cards/tester'
         now = datetime.datetime.utcnow()
@@ -259,6 +310,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             guid = model.create(
                 subscription_guid=subscription_guid,
+                transaction_cls=transaction_cls,
                 transaction_type=transaction_type,
                 amount=amount,
                 payment_uri=payment_uri,
@@ -270,6 +322,7 @@ class TestTransactionModel(ModelTestCase):
         self.assert_(transaction.guid.startswith('TX'))
         self.assertEqual(transaction.subscription_guid, subscription_guid)
         self.assertEqual(transaction.transaction_type, transaction_type)
+        self.assertEqual(transaction.transaction_cls, transaction_cls)
         self.assertEqual(transaction.amount, amount)
         self.assertEqual(transaction.payment_uri, payment_uri)
         self.assertEqual(transaction.status, model.STATUS_INIT)
@@ -296,6 +349,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
                 payment_uri='/v1/cards/tester',
@@ -313,6 +367,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             tx_guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
                 payment_uri='/v1/cards/tester',
@@ -322,6 +377,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             refund_guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_REFUND,
                 refund_to_guid=tx_guid, 
                 amount=50,
@@ -343,6 +399,7 @@ class TestTransactionModel(ModelTestCase):
         with self.assertRaises(KeyError):
             model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_REFUND,
                 refund_to_guid='TX_NON_EXIST', 
                 amount=50,
@@ -356,6 +413,7 @@ class TestTransactionModel(ModelTestCase):
         with self.assertRaises(ValueError):
             tx_guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
                 payment_uri='/v1/cards/tester',
@@ -363,6 +421,7 @@ class TestTransactionModel(ModelTestCase):
             )
             model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_PAYOUT,
                 refund_to_guid=tx_guid, 
                 amount=50,
@@ -376,6 +435,7 @@ class TestTransactionModel(ModelTestCase):
         with self.assertRaises(ValueError):
             tx_guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
                 payment_uri='/v1/cards/tester',
@@ -383,6 +443,7 @@ class TestTransactionModel(ModelTestCase):
             )
             model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_REFUND,
                 refund_to_guid=tx_guid, 
                 amount=50,
@@ -397,6 +458,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             tx_guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
                 payment_uri='/v1/cards/tester',
@@ -404,6 +466,7 @@ class TestTransactionModel(ModelTestCase):
             )
             refund_guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_REFUND,
                 refund_to_guid=tx_guid, 
                 amount=50,
@@ -413,6 +476,7 @@ class TestTransactionModel(ModelTestCase):
         with self.assertRaises(ValueError):
             model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_REFUND,
                 refund_to_guid=refund_guid, 
                 amount=50,
@@ -422,6 +486,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             tx_guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_PAYOUT,
                 amount=100,
                 payment_uri='/v1/cards/tester',
@@ -431,6 +496,7 @@ class TestTransactionModel(ModelTestCase):
         with self.assertRaises(ValueError):
             model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_REFUND,
                 refund_to_guid=refund_guid, 
                 amount=50,
@@ -443,7 +509,39 @@ class TestTransactionModel(ModelTestCase):
         with self.assertRaises(ValueError):
             model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=999,
+                amount=123,
+                payment_uri='/v1/cards/tester',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+
+    def test_create_with_wrong_cls(self):
+        model = self.make_one(self.session)
+        with self.assertRaises(ValueError):
+            model.create(
+                subscription_guid=self.subscription_guid,
+                transaction_cls=999,
+                transaction_type=model.TYPE_CHARGE,
+                amount=123,
+                payment_uri='/v1/cards/tester',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+
+    def test_create_with_none_guid(self):
+        model = self.make_one(self.session)
+        with self.assertRaises(ValueError):
+            model.create(
+                transaction_cls=model.CLS_SUBSCRIPTION,
+                transaction_type=model.TYPE_CHARGE,
+                amount=123,
+                payment_uri='/v1/cards/tester',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+        with self.assertRaises(ValueError):
+            model.create(
+                transaction_cls=model.CLS_INVOICE,
+                transaction_type=model.TYPE_CHARGE,
                 amount=123,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
@@ -455,6 +553,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
@@ -479,6 +578,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
@@ -515,6 +615,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
@@ -535,6 +636,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
@@ -568,6 +670,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
@@ -623,6 +726,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_PAYOUT,
                 amount=100,
                 payment_uri=payment_uri,
@@ -678,6 +782,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
@@ -736,6 +841,7 @@ class TestTransactionModel(ModelTestCase):
             self.customer_model.update(self.customer_guid, external_id='AC_MOCK')
             guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
@@ -790,6 +896,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
@@ -833,6 +940,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             guid = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
@@ -856,6 +964,7 @@ class TestTransactionModel(ModelTestCase):
         with db_transaction.manager:
             guid1 = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
@@ -864,6 +973,7 @@ class TestTransactionModel(ModelTestCase):
 
             guid2 = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
@@ -873,6 +983,7 @@ class TestTransactionModel(ModelTestCase):
 
             guid3 = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
@@ -881,6 +992,7 @@ class TestTransactionModel(ModelTestCase):
             
             guid4 = model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=model.CLS_SUBSCRIPTION,
                 transaction_type=model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
@@ -903,6 +1015,7 @@ class TestTransactionModel(ModelTestCase):
                 with db_transaction.manager:
                     guid = model.create(
                         subscription_guid=self.subscription_guid,
+                        transaction_cls=model.CLS_SUBSCRIPTION,
                         transaction_type=model.TYPE_CHARGE,
                         amount=10,
                         payment_uri='/v1/cards/tester',

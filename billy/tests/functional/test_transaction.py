@@ -41,6 +41,7 @@ class TestTransactionViews(ViewTestCase):
             )
             self.transaction_guid = transaction_model.create(
                 subscription_guid=self.subscription_guid,
+                transaction_cls=transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
@@ -68,6 +69,7 @@ class TestTransactionViews(ViewTestCase):
         self.assertEqual(res.json['amount'], transaction.amount)
         self.assertEqual(res.json['payment_uri'], transaction.payment_uri)
         self.assertEqual(res.json['transaction_type'], 'charge')
+        self.assertEqual(res.json['transaction_cls'], 'subscription')
         self.assertEqual(res.json['status'], 'init')
         self.assertEqual(res.json['error_message'], None)
         self.assertEqual(res.json['failure_count'], 0)
@@ -84,6 +86,7 @@ class TestTransactionViews(ViewTestCase):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
                     guid = transaction_model.create(
                         subscription_guid=self.subscription_guid,
+                        transaction_cls=transaction_model.CLS_SUBSCRIPTION,
                         transaction_type=transaction_model.TYPE_CHARGE,
                         amount=10 * i,
                         payment_uri='/v1/cards/tester',
@@ -199,6 +202,7 @@ class TestTransactionViews(ViewTestCase):
             other_transaction_guid = transaction_model.create(
                 subscription_guid=other_subscription_guid,
                 transaction_type=transaction_model.TYPE_CHARGE,
+                transaction_cls=transaction_model.CLS_SUBSCRIPTION,
                 amount=10,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),

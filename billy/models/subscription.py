@@ -236,7 +236,7 @@ class SubscriptionModel(BaseTableModel):
                 query = query.filter(Subscription.guid.in_(subscription_guids))
             subscriptions = query.all()
 
-            # okay, we have no more transaction to process, just break
+            # okay, we have no more subscription to process, just break
             if not subscriptions:
                 self.logger.info('No more subscriptions to process')
                 break

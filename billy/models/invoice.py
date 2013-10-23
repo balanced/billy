@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from billy.models import tables
 from billy.models.base import BaseTableModel
+from billy.models.transaction import TransactionModel
 from billy.utils.generic import make_guid
 
 
@@ -60,6 +61,25 @@ class InvoiceModel(BaseTableModel):
             created_at=now,
             updated_at=now,
         )
+        
+        self.session.add(invoice)
+        self.session.flush()
+
+        tx_model = TransactionModel(self.session)
+        # as if we set the payment_uri at very first, we want to charge it
+        # immediately, so we create a transaction right away, also set the 
+        # status to PROCESSING
+        if payment_uri is not None:
+            invoice.status = self.STATUS_PROCESSING
+            tx_model.create(
+                invoice_guid=invoice.guid, 
+                payment_uri=payment_uri, 
+                amount=amount, 
+                transaction_type=tx_model.TYPE_CHARGE, 
+                transaction_cls=tx_model.CLS_INVOICE, 
+                scheduled_at=now, 
+            )
+
         self.session.add(invoice)
         self.session.flush()
         return invoice.guid

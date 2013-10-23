@@ -83,20 +83,20 @@ class TransactionModel(BaseTableModel):
         subscription_transaction_guids = (
             self.session
             .query(SubscriptionTransaction.guid)
-            .join((
+            .join(
                 Subscription, 
                 Subscription.guid == SubscriptionTransaction.subscription_guid
-            ))
-            .join((Plan, Plan.guid == Subscription.plan_guid))
+            )
+            .join(Plan, Plan.guid == Subscription.plan_guid)
             .filter(Plan.company_guid == company_guid)
             .subquery()
         )
         invoice_transaction_guids = (
             self.session
             .query(InvoiceTransaction.guid)
-            .join((Invoice, 
-                   Invoice.guid == InvoiceTransaction.invoice_guid))
-            .join((Customer, Customer.guid == Invoice.customer_guid))
+            .join(Invoice, 
+                  Invoice.guid == InvoiceTransaction.invoice_guid)
+            .join(Customer, Customer.guid == Invoice.customer_guid)
             .filter(Customer.company_guid == company_guid)
             .subquery()
         )

@@ -32,7 +32,7 @@ class SubscriptionModel(BaseTableModel):
         query = (
             self.session
             .query(Subscription)
-            .join((Plan, Plan.guid == Subscription.plan_guid))
+            .join(Plan, Plan.guid == Subscription.plan_guid)
             .filter(Plan.company_guid == company_guid)
             .order_by(tables.Subscription.created_at.desc())
         )

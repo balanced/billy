@@ -209,6 +209,8 @@ class TransactionModel(BaseTableModel):
         """Process one transaction
 
         """
+        from billy.models.invoice import InvoiceModel
+
         if transaction.status == self.STATUS_DONE:
             raise ValueError('Cannot process a finished transaction {}'
                              .format(transaction.guid))
@@ -256,6 +258,16 @@ class TransactionModel(BaseTableModel):
                 transaction.status = self.STATUS_FAILED
             transaction.updated_at = now
             self.session.add(transaction)
+
+            # the transaction is failed, update invoice status
+            if transaction.transaction_cls == self.CLS_INVOICE:
+                if transaction.transaction_type == self.TYPE_CHARGE:
+                    invoice_status = InvoiceModel.STATUS_PROCESS_FAILED
+                elif transaction.transaction_type == self.TYPE_REFUND:
+                    invoice_status = InvoiceModel.STATUS_REFUND_FAILED
+                transaction.invoice.status = invoice_status
+                self.session.add(transaction.invoice)
+
             self.session.flush()
             return
 
@@ -263,8 +275,17 @@ class TransactionModel(BaseTableModel):
         transaction.status = self.STATUS_DONE
         transaction.updated_at = tables.now_func()
         self.session.add(transaction)
-        self.session.flush()
+
+        # the transaction is done, update invoice status
+        if transaction.transaction_cls == self.CLS_INVOICE:
+            if transaction.transaction_type == self.TYPE_CHARGE:
+                invoice_status = InvoiceModel.STATUS_SETTLED
+            elif transaction.transaction_type == self.TYPE_REFUND:
+                invoice_status = InvoiceModel.STATUS_REFUNDED
+            transaction.invoice.status = invoice_status
+            self.session.add(transaction.invoice)
         
+        self.session.flush()
         self.logger.info('Processed transaction %s, status=%s, external_id=%s',
                          transaction.guid, transaction.status, 
                          transaction.external_id)

@@ -38,6 +38,9 @@ class InvoiceModel(BaseTableModel):
         STATUS_REFUND_FAILED,
     ]
 
+    # not set object
+    NOT_SET = object()
+
     def create(
         self, 
         customer_guid, 
@@ -83,3 +86,85 @@ class InvoiceModel(BaseTableModel):
         self.session.add(invoice)
         self.session.flush()
         return invoice.guid
+
+    def update(self, guid, payment_uri=NOT_SET):
+        """Update an invoice
+
+        """
+        tx_model = TransactionModel(self.session)
+        invoice = self.get(guid, raise_error=True)
+        now = tables.now_func()
+        invoice.updated_at = now
+
+        # TODO: think about race condition issue, what if we update the 
+        # payment_uri during processing previous transaction? say
+        # 
+        #     DB Transaction A begin
+        #     Call to Balanced API
+        #                                   DB Transaction B begin
+        #                                   Update invoice payment URI
+        #                                   Update last transaction to CANCELED 
+        #                                   Create a new transaction
+        #                                   DB Transaction B commit
+        #     Update transaction to DONE
+        #     DB Transaction A commit
+        #     DB Transaction conflicts
+        #     DB Transaction rollback
+        # 
+        # call to balanced API is made, but we had confliction between two
+        # database transactions, hum..... maybe we need a lock here?
+        if payment_uri is not self.NOT_SET:
+            last_transaction = (
+                self.session
+                .query(tables.InvoiceTransaction)
+                .filter(tables.InvoiceTransaction.invoice_guid == guid)
+                .order_by(tables.InvoiceTransaction.created_at.desc())
+                .first()
+            )
+
+            invoice.payment_uri = payment_uri
+            if invoice.status == self.STATUS_INIT:
+                tx_model.create(
+                    invoice_guid=invoice.guid, 
+                    payment_uri=payment_uri, 
+                    amount=invoice.amount, 
+                    transaction_type=tx_model.TYPE_CHARGE, 
+                    transaction_cls=tx_model.CLS_INVOICE, 
+                    scheduled_at=now, 
+                )
+            # we are already processing, abort current transaction and create
+            # a new one
+            elif invoice.status == self.STATUS_PROCESSING:
+                assert last_transaction.status in [
+                    tx_model.STATUS_INIT, 
+                    tx_model.STATUS_RETRYING
+                ], 'The last transaction status should be either INIT or ' \
+                   'RETRYING'
+                last_transaction.status = tx_model.STATUS_CANCELED
+                self.session.add(last_transaction)
+                # create a new transaction
+                tx_model.create(
+                    invoice_guid=invoice.guid, 
+                    payment_uri=payment_uri, 
+                    amount=invoice.amount, 
+                    transaction_type=tx_model.TYPE_CHARGE, 
+                    transaction_cls=tx_model.CLS_INVOICE, 
+                    scheduled_at=now, 
+                )
+            # the previous transaction failed, just create a new one
+            elif invoice.status == self.STATUS_PROCESS_FAILED:
+                assert last_transaction.status == tx_model.STATUS_FAILED, \
+                    'The last transaction status should be FAILED'
+                
+                # create a new transaction
+                tx_model.create(
+                    invoice_guid=invoice.guid, 
+                    payment_uri=payment_uri, 
+                    amount=invoice.amount, 
+                    transaction_type=tx_model.TYPE_CHARGE, 
+                    transaction_cls=tx_model.CLS_INVOICE, 
+                    scheduled_at=now, 
+                )
+            invoice.status = self.STATUS_PROCESSING
+        self.session.add(invoice)
+        self.session.flush()

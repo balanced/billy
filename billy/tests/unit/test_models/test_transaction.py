@@ -680,7 +680,10 @@ class TestTransactionModel(ModelTestCase):
         transaction = model.get(guid)
         customer = transaction.subscription.customer
 
-        mock_processor = flexmock()
+        mock_processor = flexmock(
+            payout=None,
+            refund=None,
+        )
         (
             mock_processor 
             .should_receive('create_customer')
@@ -736,7 +739,10 @@ class TestTransactionModel(ModelTestCase):
         transaction = model.get(guid)
         customer = transaction.subscription.customer
 
-        mock_processor = flexmock()
+        mock_processor = flexmock(
+            charge=None,
+            refund=None,
+        )
         (
             mock_processor 
             .should_receive('create_customer')
@@ -795,7 +801,10 @@ class TestTransactionModel(ModelTestCase):
         def mock_charge(transaction):
             raise RuntimeError('Failed to charge')
 
-        mock_processor = flexmock()
+        mock_processor = flexmock(
+            payout=None,
+            refund=None,
+        )
         (
             mock_processor 
             .should_receive('create_customer')
@@ -853,7 +862,10 @@ class TestTransactionModel(ModelTestCase):
         def mock_charge(transaction):
             raise RuntimeError('Failed to charge')
 
-        mock_processor = flexmock()
+        mock_processor = flexmock(
+            payout=None,
+            refund=None,
+        )
         (
             mock_processor 
             .should_receive('prepare_customer')
@@ -908,7 +920,11 @@ class TestTransactionModel(ModelTestCase):
         def mock_create_customer_system_exit(transaction):
             raise SystemExit
 
-        mock_processor = flexmock()
+        mock_processor = flexmock(
+            charge=None,
+            payout=None,
+            refund=None,
+        )
         (
             mock_processor 
             .should_receive('create_customer')
@@ -921,7 +937,11 @@ class TestTransactionModel(ModelTestCase):
         def mock_create_customer_keyboard_interrupt(transaction):
             raise KeyboardInterrupt
 
-        mock_processor = flexmock()
+        mock_processor = flexmock(
+            charge=None,
+            payout=None,
+            refund=None,
+        )
         (
             mock_processor 
             .should_receive('create_customer')
@@ -1000,7 +1020,11 @@ class TestTransactionModel(ModelTestCase):
             )
             model.update(guid4, status=model.STATUS_DONE)
 
-        processor = flexmock()
+        processor = flexmock(
+            charge=None,
+            payout=None,
+            refund=None,
+        )
         with db_transaction.manager:
             tx_guids = model.process_transactions(processor)
 

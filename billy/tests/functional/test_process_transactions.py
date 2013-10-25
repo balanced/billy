@@ -92,6 +92,12 @@ class TestProcessTransactions(unittest.TestCase):
             def prepare_customer(self, customer, payment_uri=None):
                 pass
 
+            def payout(self):
+                assert False
+
+            def refund(self):
+                assert False
+
             def charge(self, transaction):
                 self.called_times += 1
                 if self.called_times == 2:

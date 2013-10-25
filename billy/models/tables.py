@@ -99,6 +99,9 @@ class Customer(DeclarativeBase):
     #: subscriptions of this customer
     subscriptions = relationship('Subscription', cascade='all, delete-orphan', 
                                  backref='customer')
+    #: invoices of this customer
+    invoices = relationship('Invoice', cascade='all, delete-orphan', 
+                            backref='customer')
 
 
 class Plan(DeclarativeBase):

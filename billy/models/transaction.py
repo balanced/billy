@@ -216,7 +216,11 @@ class TransactionModel(BaseTableModel):
                              .format(transaction.guid))
         self.logger.debug('Processing transaction %s', transaction.guid)
         now = tables.now_func()
-        customer = transaction.subscription.customer
+
+        if transaction.transaction_cls == self.CLS_SUBSCRIPTION:
+            customer = transaction.subscription.customer
+        else:
+            customer = transaction.invoice.customer
 
         method = {
             self.TYPE_CHARGE: processor.charge,
@@ -225,7 +229,7 @@ class TransactionModel(BaseTableModel):
         }[transaction.transaction_type]
 
         try:
-            # create customer record in balanced
+            # create customer record in Balanced
             if customer.external_id is None:
                 customer_id = processor.create_customer(customer)
                 customer.external_id = customer_id
@@ -233,7 +237,6 @@ class TransactionModel(BaseTableModel):
                 self.session.flush()
 
             self.logger.info('External customer %s', customer.external_id)
-
             # prepare customer (add bank account or credit card)
             processor.prepare_customer(customer, transaction.payment_uri)
             # do charge/payout/refund 
@@ -255,18 +258,17 @@ class TransactionModel(BaseTableModel):
                                   'transaction %s failed', maximum_retry, 
                                   transaction.guid)
                 transaction.status = self.STATUS_FAILED
+
+                # the transaction is failed, update invoice status
+                if transaction.transaction_cls == self.CLS_INVOICE:
+                    invoice_status = {
+                        self.TYPE_CHARGE: InvoiceModel.STATUS_PROCESS_FAILED,
+                        self.TYPE_REFUND: InvoiceModel.STATUS_REFUND_FAILED,
+                    }[transaction.transaction_type]
+                    transaction.invoice.status = invoice_status
+                    self.session.add(transaction.invoice)
             transaction.updated_at = now
             self.session.add(transaction)
-
-            # the transaction is failed, update invoice status
-            if transaction.transaction_cls == self.CLS_INVOICE:
-                invoice_status = {
-                    self.TYPE_CHARGE: InvoiceModel.STATUS_PROCESS_FAILED,
-                    self.TYPE_REFUND: InvoiceModel.STATUS_REFUND_FAILED,
-                }[transaction.transaction_type]
-                transaction.invoice.status = invoice_status
-                self.session.add(transaction.invoice)
-
             self.session.flush()
             return
 

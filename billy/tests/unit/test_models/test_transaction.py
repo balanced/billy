@@ -1047,3 +1047,62 @@ class TestTransactionModel(ModelTestCase):
                     )
                     guids.append(guid)
         self.assertEqual(model.get_last_transaction().guid, guids[0])
+
+    def test_process_one_invoice_transaction_charge(self):
+        from billy.models.invoice import InvoiceModel
+
+        model = self.make_one(self.session)
+        invoice_model = InvoiceModel(self.session)
+        now = datetime.datetime.utcnow()
+
+        payment_uri = '/v1/cards/tester'
+
+        with db_transaction.manager:
+            invoice_model.update(self.invoice_guid, payment_uri=payment_uri)
+
+        invoice = invoice_model.get(self.invoice_guid)
+        transaction = invoice.transactions[0]
+        customer = transaction.invoice.customer
+        guid = transaction.guid
+
+        mock_processor = flexmock(
+            payout=None,
+            refund=None,
+        )
+        (
+            mock_processor 
+            .should_receive('create_customer')
+            .with_args(customer)
+            .replace_with(lambda c: 'AC_MOCK')
+            .once()
+        )
+        (
+            mock_processor 
+            .should_receive('prepare_customer')
+            .with_args(customer, payment_uri)
+            .replace_with(lambda c, payment_uri: None)
+            .once()
+        )
+        (
+            mock_processor 
+            .should_receive('charge')
+            .with_args(transaction)
+            .replace_with(lambda t: 'TX_MOCK')
+            .once()
+        )
+
+        with freeze_time('2013-08-20'):
+            with db_transaction.manager:
+                model.process_one(mock_processor, transaction)
+                updated_at = datetime.datetime.utcnow()
+
+        transaction = model.get(guid)
+        self.assertEqual(transaction.status, model.STATUS_DONE)
+        self.assertEqual(transaction.external_id, 'TX_MOCK')
+        self.assertEqual(transaction.updated_at, updated_at)
+        self.assertEqual(transaction.scheduled_at, now)
+        self.assertEqual(transaction.created_at, now)
+        self.assertEqual(transaction.invoice.customer.external_id, 'AC_MOCK')
+
+        invoice = invoice_model.get(self.invoice_guid)
+        self.assertEqual(invoice.status, invoice_model.STATUS_SETTLED)

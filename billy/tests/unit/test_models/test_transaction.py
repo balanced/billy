@@ -1112,7 +1112,6 @@ class TestTransactionModel(ModelTestCase):
 
         model = self.make_one(self.session)
         invoice_model = InvoiceModel(self.session)
-        now = datetime.datetime.utcnow()
 
         payment_uri = '/v1/cards/tester'
         maximum_retry = 3

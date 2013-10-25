@@ -1106,3 +1106,65 @@ class TestTransactionModel(ModelTestCase):
 
         invoice = invoice_model.get(self.invoice_guid)
         self.assertEqual(invoice.status, invoice_model.STATUS_SETTLED)
+
+    def test_process_one_invoice_with_failure_exceed_limitation(self):
+        from billy.models.invoice import InvoiceModel
+
+        model = self.make_one(self.session)
+        invoice_model = InvoiceModel(self.session)
+        now = datetime.datetime.utcnow()
+
+        payment_uri = '/v1/cards/tester'
+        maximum_retry = 3
+
+        with db_transaction.manager:
+            self.customer_model.update(self.customer_guid, external_id='AC_MOCK')
+            invoice_model.update(self.invoice_guid, payment_uri=payment_uri)
+
+        invoice = invoice_model.get(self.invoice_guid)
+        transaction = invoice.transactions[0]
+        guid = transaction.guid
+
+        def mock_charge(transaction):
+            raise RuntimeError('Failed to charge')
+
+        mock_processor = flexmock(
+            payout=None,
+            refund=None,
+        )
+        (
+            mock_processor 
+            .should_receive('prepare_customer')
+            .replace_with(lambda c, payment_uri: None)
+            .times(4)
+        )
+        (
+            mock_processor 
+            .should_receive('charge')
+            .replace_with(mock_charge)
+            .times(4)
+        )
+
+        for _ in range(3):
+            with db_transaction.manager:
+                transaction = model.get(guid)
+                model.process_one(
+                    processor=mock_processor, 
+                    transaction=transaction, 
+                    maximum_retry=maximum_retry
+                )
+            transaction = model.get(guid)
+            self.assertEqual(transaction.status, model.STATUS_RETRYING)
+            invoice = invoice_model.get(self.invoice_guid)
+            self.assertEqual(invoice.status, invoice_model.STATUS_PROCESSING)
+        with db_transaction.manager:
+            transaction = model.get(guid)
+            model.process_one(
+                processor=mock_processor, 
+                transaction=transaction, 
+                maximum_retry=maximum_retry
+            )
+        transaction = model.get(guid)
+        self.assertEqual(transaction.status, model.STATUS_FAILED)
+        invoice = invoice_model.get(self.invoice_guid)
+        self.assertEqual(invoice.status, invoice_model.STATUS_PROCESS_FAILED)

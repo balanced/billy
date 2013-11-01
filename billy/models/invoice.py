@@ -6,6 +6,13 @@ from billy.models.transaction import TransactionModel
 from billy.utils.generic import make_guid
 
 
+class InvalidOperationError(RuntimeError):
+    """This error indicates an invalid operation to invoice model, such as 
+    updating an invoice's payment_uri in wrong status
+
+    """
+
+
 class InvoiceModel(BaseTableModel):
 
     TABLE = tables.Invoice
@@ -141,8 +148,8 @@ class InvoiceModel(BaseTableModel):
                 ], 'The last transaction status should be either INIT or ' \
                    'RETRYING'
                 last_transaction.status = tx_model.STATUS_CANCELED
+                last_transaction.canceled_at = now
                 self.session.add(last_transaction)
-                # create a new transaction
                 tx_model.create(
                     invoice_guid=invoice.guid, 
                     payment_uri=payment_uri, 
@@ -155,8 +162,6 @@ class InvoiceModel(BaseTableModel):
             elif invoice.status == self.STATUS_PROCESS_FAILED:
                 assert last_transaction.status == tx_model.STATUS_FAILED, \
                     'The last transaction status should be FAILED'
-                
-                # create a new transaction
                 tx_model.create(
                     invoice_guid=invoice.guid, 
                     payment_uri=payment_uri, 
@@ -164,6 +169,11 @@ class InvoiceModel(BaseTableModel):
                     transaction_type=tx_model.TYPE_CHARGE, 
                     transaction_cls=tx_model.CLS_INVOICE, 
                     scheduled_at=now, 
+                )
+            else:
+                raise InvalidOperationError(
+                    'Invalid operation, you can only update payment_uri when '
+                    'the status is one of INIT, PROCESSING and PROCESS_FAILED'
                 )
             invoice.status = self.STATUS_PROCESSING
         self.session.add(invoice)

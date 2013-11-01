@@ -117,3 +117,155 @@ class TestInvoiceModel(ModelTestCase):
                 customer_guid=self.customer_guid,
                 amount=0,
             )
+
+    def test_update_payment_uri(self):
+        from billy.models.transaction import TransactionModel
+
+        model = self.make_one(self.session)
+        amount = 556677
+        title = 'Foobar invoice'
+        payment_uri = '/v1/cards/1234'
+
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_guid,
+                title=title,
+                amount=amount,
+            )
+
+        invoice = model.get(guid)
+        self.assertEqual(len(invoice.transactions), 0)
+
+        with freeze_time('2013-08-17'):
+            with db_transaction.manager:
+                model.update(guid, payment_uri=payment_uri)
+            update_now = datetime.datetime.utcnow()
+
+        invoice = model.get(guid)
+        self.assertEqual(invoice.status, model.STATUS_PROCESSING)
+        self.assertEqual(invoice.updated_at, update_now)
+        self.assertEqual(len(invoice.transactions), 1)
+
+        transaction = invoice.transactions[0]
+        self.assertEqual(transaction.status, TransactionModel.STATUS_INIT)
+        self.assertEqual(transaction.invoice_guid, guid)
+        self.assertEqual(transaction.amount, amount)
+        self.assertEqual(transaction.payment_uri, payment_uri)
+        self.assertEqual(transaction.scheduled_at, update_now)
+
+    def test_update_payment_uri_while_processing(self):
+        from billy.models.transaction import TransactionModel
+
+        model = self.make_one(self.session)
+        amount = 556677
+        title = 'Foobar invoice'
+        payment_uri = '/v1/cards/1234'
+        new_payment_uri = '/v1/cards/5678'
+        create_now = datetime.datetime.utcnow()
+
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_guid,
+                title=title,
+                amount=amount,
+                payment_uri=payment_uri,
+            )
+            with freeze_time('2013-08-17'):
+                model.update(guid, payment_uri=new_payment_uri)
+                update_now = datetime.datetime.utcnow()
+
+        invoice = model.get(guid)
+        self.assertEqual(invoice.status, model.STATUS_PROCESSING)
+        self.assertEqual(invoice.updated_at, update_now)
+        self.assertEqual(len(invoice.transactions), 2)
+
+        transaction = invoice.transactions[0]
+        self.assertEqual(transaction.status, TransactionModel.STATUS_CANCELED)
+        self.assertEqual(transaction.invoice_guid, guid)
+        self.assertEqual(transaction.amount, amount)
+        self.assertEqual(transaction.payment_uri, payment_uri)
+        self.assertEqual(transaction.scheduled_at, create_now)
+
+        transaction = invoice.transactions[1]
+        self.assertEqual(transaction.status, TransactionModel.STATUS_INIT)
+        self.assertEqual(transaction.invoice_guid, guid)
+        self.assertEqual(transaction.amount, amount)
+        self.assertEqual(transaction.payment_uri, new_payment_uri)
+        self.assertEqual(transaction.scheduled_at, update_now)
+
+    def test_update_payment_uri_while_failed(self):
+        from billy.models.transaction import TransactionModel
+
+        model = self.make_one(self.session)
+        tx_model = TransactionModel(self.session)
+        amount = 556677
+        title = 'Foobar invoice'
+        payment_uri = '/v1/cards/1234'
+        new_payment_uri = '/v1/cards/5678'
+        create_now = datetime.datetime.utcnow()
+
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_guid,
+                title=title,
+                amount=amount,
+                payment_uri=payment_uri,
+            )
+            invoice = model.get(guid)
+            transaction = invoice.transactions[0]
+            transaction.status = tx_model.STATUS_FAILED
+            invoice.status = model.STATUS_PROCESS_FAILED
+            self.session.add(transaction)
+            self.session.add(invoice)
+
+            with freeze_time('2013-08-17'):
+                model.update(guid, payment_uri=new_payment_uri)
+                update_now = datetime.datetime.utcnow()
+
+        invoice = model.get(guid)
+        self.assertEqual(invoice.status, model.STATUS_PROCESSING)
+        self.assertEqual(invoice.updated_at, update_now)
+        self.assertEqual(len(invoice.transactions), 2)
+
+        transaction = invoice.transactions[0]
+        self.assertEqual(transaction.status, TransactionModel.STATUS_FAILED)
+        self.assertEqual(transaction.invoice_guid, guid)
+        self.assertEqual(transaction.amount, amount)
+        self.assertEqual(transaction.payment_uri, payment_uri)
+        self.assertEqual(transaction.scheduled_at, create_now)
+
+        transaction = invoice.transactions[1]
+        self.assertEqual(transaction.status, TransactionModel.STATUS_INIT)
+        self.assertEqual(transaction.invoice_guid, guid)
+        self.assertEqual(transaction.amount, amount)
+        self.assertEqual(transaction.payment_uri, new_payment_uri)
+        self.assertEqual(transaction.scheduled_at, update_now)
+
+    def test_update_payment_uri_with_wrong_status(self):
+        from billy.models.invoice import InvalidOperationError
+
+        model = self.make_one(self.session)
+        amount = 556677
+        title = 'Foobar invoice'
+        payment_uri = '/v1/cards/1234'
+
+        def assert_invalid_update(current_status):
+            with db_transaction.manager:
+                guid = model.create(
+                    customer_guid=self.customer_guid,
+                    title=title,
+                    amount=amount,
+                    payment_uri=payment_uri,
+                )
+                invoice = model.get(guid)
+                invoice.status = current_status
+                self.session.add(invoice)
+
+                with self.assertRaises(InvalidOperationError):
+                    model.update(guid, payment_uri=payment_uri)
+
+        assert_invalid_update(model.STATUS_REFUNDED)
+        assert_invalid_update(model.STATUS_REFUNDING)
+        assert_invalid_update(model.STATUS_REFUND_FAILED)
+        assert_invalid_update(model.STATUS_CANCELED)
+        assert_invalid_update(model.STATUS_SETTLED)

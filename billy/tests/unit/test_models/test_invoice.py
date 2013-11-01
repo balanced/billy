@@ -154,6 +154,7 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(transaction.scheduled_at, update_now)
 
     def test_update_payment_uri_while_processing(self):
+        from billy.models import tables
         from billy.models.transaction import TransactionModel
 
         model = self.make_one(self.session)
@@ -179,14 +180,21 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(invoice.updated_at, update_now)
         self.assertEqual(len(invoice.transactions), 2)
 
-        transaction = invoice.transactions[0]
+        transactions = (
+            self.session
+            .query(tables.InvoiceTransaction)
+            .filter_by(invoice_guid=guid)
+            .order_by(tables.InvoiceTransaction.scheduled_at)
+            .all()
+        )
+        transaction = transactions[0]
         self.assertEqual(transaction.status, TransactionModel.STATUS_CANCELED)
         self.assertEqual(transaction.invoice_guid, guid)
         self.assertEqual(transaction.amount, amount)
         self.assertEqual(transaction.payment_uri, payment_uri)
         self.assertEqual(transaction.scheduled_at, create_now)
 
-        transaction = invoice.transactions[1]
+        transaction = transactions[1]
         self.assertEqual(transaction.status, TransactionModel.STATUS_INIT)
         self.assertEqual(transaction.invoice_guid, guid)
         self.assertEqual(transaction.amount, amount)
@@ -194,6 +202,7 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(transaction.scheduled_at, update_now)
 
     def test_update_payment_uri_while_failed(self):
+        from billy.models import tables
         from billy.models.transaction import TransactionModel
 
         model = self.make_one(self.session)
@@ -227,14 +236,21 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(invoice.updated_at, update_now)
         self.assertEqual(len(invoice.transactions), 2)
 
-        transaction = invoice.transactions[0]
+        transactions = (
+            self.session
+            .query(tables.InvoiceTransaction)
+            .filter_by(invoice_guid=guid)
+            .order_by(tables.InvoiceTransaction.scheduled_at)
+            .all()
+        )
+        transaction = transactions[0]
         self.assertEqual(transaction.status, TransactionModel.STATUS_FAILED)
         self.assertEqual(transaction.invoice_guid, guid)
         self.assertEqual(transaction.amount, amount)
         self.assertEqual(transaction.payment_uri, payment_uri)
         self.assertEqual(transaction.scheduled_at, create_now)
 
-        transaction = invoice.transactions[1]
+        transaction = transactions[1]
         self.assertEqual(transaction.status, TransactionModel.STATUS_INIT)
         self.assertEqual(transaction.invoice_guid, guid)
         self.assertEqual(transaction.amount, amount)

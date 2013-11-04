@@ -86,6 +86,22 @@ class TestRenderer(ViewTestCase):
         )
         self.assertEqual(json_data, expected)
 
+    def test_invoice(self):
+        from billy.models.invoice import InvoiceModel
+        from billy.renderers import invoice_adapter
+        invoice_model = InvoiceModel(self.testapp.session)
+        invoice = invoice_model.get(self.invoice_guid)
+        json_data = invoice_adapter(invoice, self.dummy_request)
+        expected = dict(
+            guid=invoice.guid,
+            created_at=invoice.created_at.isoformat(),
+            updated_at=invoice.updated_at.isoformat(),
+            customer_guid=invoice.customer_guid, 
+            amount=invoice.amount, 
+            payment_uri=None, 
+        )
+        self.assertEqual(json_data, expected)
+
     def test_plan(self):
         from billy.models.plan import PlanModel
         from billy.renderers import plan_adapter

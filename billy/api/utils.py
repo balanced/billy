@@ -55,7 +55,8 @@ class RecordExistValidator(object):
         model = self.model_cls(form.session)
         if model.get(field.data) is None:
             msg = field.gettext('No such {} record {}'
-                                .format(self.model_cls.__name__, field.data))
+                                .format(self.model_cls.TABLE.__name__, 
+                                        field.data))
             raise ValueError(msg)
 
 

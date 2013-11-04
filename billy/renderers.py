@@ -25,6 +25,17 @@ def customer_adapter(customer, request):
     )
 
 
+def invoice_adapter(invoice, request):
+    return dict(
+        guid=invoice.guid,
+        created_at=invoice.created_at.isoformat(),
+        updated_at=invoice.updated_at.isoformat(),
+        customer_guid=invoice.customer_guid, 
+        amount=invoice.amount, 
+        payment_uri=invoice.payment_uri, 
+    )
+
+
 def plan_adapter(plan, request):
     from billy.models.plan import PlanModel
     type_map = {
@@ -123,6 +134,7 @@ def includeme(config):
     json_renderer = JSON()
     json_renderer.add_adapter(tables.Company, company_adapter)
     json_renderer.add_adapter(tables.Customer, customer_adapter)
+    json_renderer.add_adapter(tables.Invoice, invoice_adapter)
     json_renderer.add_adapter(tables.Plan, plan_adapter)
     json_renderer.add_adapter(tables.Subscription, subscription_adapter)
     json_renderer.add_adapter(tables.Transaction, transaction_adapter)

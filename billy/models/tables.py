@@ -342,7 +342,7 @@ class Invoice(DeclarativeBase):
     #: the payment URI to charge to, such as bank account or credit card
     payment_uri = Column(Unicode(128), index=True)
     #: the total amount of this invoice
-    amount = Column(Integer)
+    amount = Column(Integer, nullable=False)
     #: current status of this invoice, could be
     #   - 0=init 
     #   - 1=processing

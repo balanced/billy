@@ -57,6 +57,8 @@ def subscription_list_post(request):
     plan_guid = form.data['plan_guid']
     amount = form.data.get('amount')
     payment_uri = form.data.get('payment_uri')
+    if not payment_uri:
+        payment_uri = None
     started_at = form.data.get('started_at')
     maximum_retry = int(request.registry.settings.get(
         'billy.transaction.maximum_retry', 

@@ -122,6 +122,70 @@ class TestSubscriptionViews(ViewTestCase):
                          'MOCK_PROCESSOR_TRANSACTION_ID')
         self.assertEqual(transaction.status, TransactionModel.STATUS_DONE)
 
+    def test_create_subscription_with_default_payment_uri(self):
+        from billy.models.subscription import SubscriptionModel
+        from billy.models.transaction import TransactionModel
+
+        customer_guid = self.customer_guid
+        plan_guid = self.plan_guid
+        amount = 5566
+        now = datetime.datetime.utcnow()
+        now_iso = now.isoformat()
+        # next week
+        next_transaction_at = datetime.datetime(2013, 8, 23)
+        next_iso = next_transaction_at.isoformat()
+
+        def mock_charge(transaction):
+            self.assertEqual(transaction.subscription.customer_guid, 
+                             customer_guid)
+            self.assertEqual(transaction.subscription.plan_guid, 
+                             plan_guid)
+            return 'MOCK_PROCESSOR_TRANSACTION_ID'
+
+        mock_processor = flexmock(DummyProcessor)
+        (
+            mock_processor
+            .should_receive('create_customer')
+            .once()
+        )
+
+        (
+            mock_processor
+            .should_receive('charge')
+            .replace_with(mock_charge)
+            .once()
+        )
+
+        res = self.testapp.post(
+            '/v1/subscriptions',
+            dict(
+                customer_guid=customer_guid,
+                plan_guid=plan_guid,
+                amount=amount,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.failUnless('guid' in res.json)
+        self.assertEqual(res.json['created_at'], now_iso)
+        self.assertEqual(res.json['updated_at'], now_iso)
+        self.assertEqual(res.json['canceled_at'], None)
+        self.assertEqual(res.json['next_transaction_at'], next_iso)
+        self.assertEqual(res.json['period'], 1)
+        self.assertEqual(res.json['amount'], amount)
+        self.assertEqual(res.json['customer_guid'], customer_guid)
+        self.assertEqual(res.json['plan_guid'], plan_guid)
+        self.assertEqual(res.json['payment_uri'], None)
+        self.assertEqual(res.json['canceled'], False)
+
+        subscription_model = SubscriptionModel(self.testapp.session)
+        subscription = subscription_model.get(res.json['guid'])
+        self.assertEqual(len(subscription.transactions), 1)
+        transaction = subscription.transactions[0]
+        self.assertEqual(transaction.external_id, 
+                         'MOCK_PROCESSOR_TRANSACTION_ID')
+        self.assertEqual(transaction.status, TransactionModel.STATUS_DONE)
+
     def test_create_subscription_to_a_deleted_plan(self):
         from billy.models.plan import PlanModel
 

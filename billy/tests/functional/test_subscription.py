@@ -373,15 +373,15 @@ class TestSubscriptionViews(ViewTestCase):
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
-        created_subscriptions = res.json
+        created_subscription = res.json
 
-        guid = created_subscriptions['guid']
+        guid = created_subscription['guid']
         res = self.testapp.get(
             '/v1/subscriptions/{}'.format(guid), 
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
-        self.assertEqual(res.json, created_subscriptions)
+        self.assertEqual(res.json, created_subscription)
 
     def test_get_non_existing_subscription(self):
         self.testapp.get(

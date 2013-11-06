@@ -165,7 +165,6 @@ class TestInvoiceModel(ModelTestCase):
         return transactions
 
     def test_update_payment_uri_while_processing(self):
-        from billy.models import tables
         from billy.models.transaction import TransactionModel
 
         model = self.make_one(self.session)
@@ -207,7 +206,6 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(transaction.scheduled_at, update_now)
 
     def test_update_payment_uri_while_failed(self):
-        from billy.models import tables
         from billy.models.transaction import TransactionModel
 
         model = self.make_one(self.session)

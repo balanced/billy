@@ -180,6 +180,38 @@ class TestInvoiceViews(ViewTestCase):
             status=403,
         )
 
+    def test_create_invoice_with_bad_api(self):
+        self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=self.customer_guid,
+                amount=1234,
+            ),
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )
+
+    def test_create_invoice_to_a_deleted_customer(self):
+        from billy.models.customer import CustomerModel
+
+        customer_model = CustomerModel(self.testapp.session)
+
+        with db_transaction.manager:
+            customer_guid = customer_model.create(
+                company_guid=self.company_guid
+            )
+            customer_model.delete(customer_guid)
+
+        self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=customer_guid,
+                amount=123,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
+
     def test_get_invoice(self):
         res = self.testapp.post(
             '/v1/invoices', 
@@ -191,14 +223,40 @@ class TestInvoiceViews(ViewTestCase):
             status=200,
         )
         created_invoice = res.json
-
         guid = created_invoice['guid']
+
         res = self.testapp.get(
             '/v1/invoices/{}'.format(guid), 
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
         self.assertEqual(res.json, created_invoice)
+
+    def test_get_non_existing_invoice(self):
+        self.testapp.get(
+            '/v1/invoices/NON_EXIST', 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=404
+        )
+
+    def test_get_invoice_with_bad_api_key(self):
+        res = self.testapp.post(
+            '/v1/invoices', 
+            dict(
+                customer_guid=self.customer_guid,
+                amount=1234,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        created_invoice = res.json
+        guid = created_invoice['guid']
+
+        self.testapp.get(
+            '/v1/invoices/{}'.format(guid), 
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403
+        )
 
     def test_get_invoice_of_other_company(self):
         from billy.models.company import CompanyModel
@@ -230,5 +288,35 @@ class TestInvoiceViews(ViewTestCase):
         self.testapp.get(
             '/v1/invoices/{}'.format(other_guid), 
             extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=403,
+        )
+
+    def test_invoice_list(self):
+        from billy.models.invoice import InvoiceModel
+        invoice_model = InvoiceModel(self.testapp.session)
+        with db_transaction.manager:
+            guids = []
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    guid = invoice_model.create(
+                        customer_guid=self.customer_guid,
+                        amount=(i + 1) * 1000,
+                    )
+                    guids.append(guid)
+        guids = list(reversed(guids))
+
+        res = self.testapp.get(
+            '/v1/invoices',
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, guids)
+
+    def test_invoice_list_with_bad_api_key(self):
+        self.testapp.get(
+            '/v1/invoices',
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
             status=403,
         )

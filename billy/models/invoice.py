@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from billy.models import tables
 from billy.models.base import BaseTableModel
+from billy.models.base import decorate_offset_limit
 from billy.models.transaction import TransactionModel
 from billy.utils.generic import make_guid
 
@@ -47,6 +48,22 @@ class InvoiceModel(BaseTableModel):
 
     # not set object
     NOT_SET = object()
+
+    @decorate_offset_limit
+    def list_by_company_guid(self, company_guid):
+        """Get invoices of a company by given guid
+
+        """
+        Invoice = tables.Invoice
+        Customer = tables.Customer
+        query = (
+            self.session
+            .query(Invoice)
+            .join(Customer, Customer.guid == Invoice.customer_guid)
+            .filter(Customer.company_guid == company_guid)
+            .order_by(tables.Invoice.created_at.desc())
+        )
+        return query
 
     def create(
         self, 

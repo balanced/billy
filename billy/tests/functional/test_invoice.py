@@ -206,7 +206,6 @@ class TestInvoiceViews(ViewTestCase):
 
         company_model = CompanyModel(self.testapp.session)
         customer_model = CustomerModel(self.testapp.session)
-        invoice_model = CustomerModel(self.testapp.session)
         with db_transaction.manager:
             other_company_guid = company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',

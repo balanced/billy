@@ -153,6 +153,17 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(transaction.payment_uri, payment_uri)
         self.assertEqual(transaction.scheduled_at, update_now)
 
+    def _get_transactions_in_order(self, guid):
+        from billy.models import tables
+        transactions = (
+            self.session
+            .query(tables.InvoiceTransaction)
+            .filter_by(invoice_guid=guid)
+            .order_by(tables.InvoiceTransaction.scheduled_at)
+            .all()
+        )
+        return transactions
+
     def test_update_payment_uri_while_processing(self):
         from billy.models import tables
         from billy.models.transaction import TransactionModel
@@ -180,13 +191,7 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(invoice.updated_at, update_now)
         self.assertEqual(len(invoice.transactions), 2)
 
-        transactions = (
-            self.session
-            .query(tables.InvoiceTransaction)
-            .filter_by(invoice_guid=guid)
-            .order_by(tables.InvoiceTransaction.scheduled_at)
-            .all()
-        )
+        transactions = self._get_transactions_in_order(guid)
         transaction = transactions[0]
         self.assertEqual(transaction.status, TransactionModel.STATUS_CANCELED)
         self.assertEqual(transaction.invoice_guid, guid)
@@ -236,13 +241,7 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(invoice.updated_at, update_now)
         self.assertEqual(len(invoice.transactions), 2)
 
-        transactions = (
-            self.session
-            .query(tables.InvoiceTransaction)
-            .filter_by(invoice_guid=guid)
-            .order_by(tables.InvoiceTransaction.scheduled_at)
-            .all()
-        )
+        transactions = self._get_transactions_in_order(guid)
         transaction = transactions[0]
         self.assertEqual(transaction.status, TransactionModel.STATUS_FAILED)
         self.assertEqual(transaction.invoice_guid, guid)

@@ -130,6 +130,32 @@ class TestInvoiceViews(ViewTestCase):
                          'MOCK_PROCESSOR_TRANSACTION_ID')
         self.assertEqual(transaction.status, TransactionModel.STATUS_DONE)
 
+    def test_create_invoice_with_bad_parameters(self):
+        def assert_bad_parameters(params):
+            self.testapp.post(
+                '/v1/invoices',
+                params, 
+                extra_environ=dict(REMOTE_USER=self.api_key), 
+                status=400,
+            )
+        assert_bad_parameters({})
+        assert_bad_parameters(dict(
+            customer_guid=self.customer_guid,
+            payment_uri='MOCK_CARD_URI',
+        ))
+        assert_bad_parameters(dict(
+            customer_guid=self.customer_guid,
+            amount=0,
+        ))
+        assert_bad_parameters(dict(
+            amount=123,
+            payment_uri='MOCK_CARD_URI',
+        ))
+        assert_bad_parameters(dict(
+            customer_guid=self.customer_guid,
+            amount=-123,
+        ))
+
     def test_get_invoice(self):
         res = self.testapp.post(
             '/v1/invoices', 

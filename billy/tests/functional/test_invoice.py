@@ -156,6 +156,30 @@ class TestInvoiceViews(ViewTestCase):
             amount=-123,
         ))
 
+    def test_create_invoice_to_other_company_customer(self):
+        from billy.models.company import CompanyModel
+        from billy.models.customer import CustomerModel
+
+        company_model = CompanyModel(self.testapp.session)
+        customer_model = CustomerModel(self.testapp.session)
+        with db_transaction.manager:
+            other_company_guid = company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY',
+            )
+            other_customer_guid = customer_model.create(
+                company_guid=other_company_guid
+            )
+
+        self.testapp.post(
+            '/v1/invoices', 
+            dict(
+                customer_guid=other_customer_guid,
+                amount=1234,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=403,
+        )
+
     def test_get_invoice(self):
         res = self.testapp.post(
             '/v1/invoices', 
@@ -175,3 +199,37 @@ class TestInvoiceViews(ViewTestCase):
             status=200,
         )
         self.assertEqual(res.json, created_invoice)
+
+    def test_get_invoice_of_other_company(self):
+        from billy.models.company import CompanyModel
+        from billy.models.customer import CustomerModel
+
+        company_model = CompanyModel(self.testapp.session)
+        customer_model = CustomerModel(self.testapp.session)
+        invoice_model = CustomerModel(self.testapp.session)
+        with db_transaction.manager:
+            other_company_guid = company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY',
+            )
+            other_customer_guid = customer_model.create(
+                company_guid=other_company_guid
+            )
+        other_company = company_model.get(other_company_guid)
+        other_api_key = str(other_company.api_key)
+
+        res = self.testapp.post(
+            '/v1/invoices', 
+            dict(
+                customer_guid=other_customer_guid,
+                amount=1234,
+            ),
+            extra_environ=dict(REMOTE_USER=other_api_key), 
+            status=200,
+        )
+        other_guid = res.json['guid']
+
+        self.testapp.get(
+            '/v1/invoices/{}'.format(other_guid), 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=403,
+        )

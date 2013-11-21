@@ -367,3 +367,35 @@ class Invoice(DeclarativeBase):
         cascade='all, delete-orphan', 
         backref='invoice'
     )
+
+    #: items of this invoice
+    items = relationship(
+        'Item', 
+        cascade='all, delete-orphan', 
+        backref='invoice',
+    )
+
+
+class Item(DeclarativeBase):
+    """An item of an invoice
+
+    """
+    __tablename__ = 'item'
+
+    item_id = Column(Integer, autoincrement=True, primary_key=True)
+    #: the guid of invoice which owns this item
+    invoice_guid = Column(
+        Unicode(64), 
+        ForeignKey(
+            'invoice.guid', 
+            ondelete='CASCADE', onupdate='CASCADE'
+        ), 
+        index=True,
+        nullable=False,
+    )
+    #: name of item
+    name = Column(Unicode(128), nullable=False)
+    #: unit of item
+    unit = Column(Unicode(64))
+    #: amount of item
+    amount = Column(Integer, nullable=False)

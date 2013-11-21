@@ -88,6 +88,7 @@ class TestInitializedb(unittest.TestCase):
             'subscription_transaction',
             'invoice_transaction',
             'invoice',
+            'item',
             'alembic_version',
         ]))
 

@@ -70,6 +70,35 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(invoice.created_at, now)
         self.assertEqual(invoice.updated_at, now)
         self.assertEqual(len(invoice.transactions), 0)
+        self.assertEqual(len(invoice.items), 0)
+
+    def test_create_with_items(self):
+        model = self.make_one(self.session)
+        amount = 556677
+        items = [
+            dict(name='foo', amount=1234),
+            dict(name='bar', amount=5678, unit='unit'),
+            dict(name='special service', amount=9999, unit='hours'),
+        ]
+
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_guid,
+                amount=amount,
+                items=items,
+            )
+
+        invoice = model.get(guid)
+        item_result = []
+        for item in invoice.items:
+            item_dict = dict(
+                name=item.name,
+                amount=item.amount,
+            )
+            if item.unit:
+                item_dict['unit'] = item.unit
+            item_result.append(item_dict)
+        self.assertEqual(item_result, items)
 
     def test_create_with_payment_uri(self):
         from billy.models.transaction import TransactionModel

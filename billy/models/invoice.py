@@ -71,6 +71,7 @@ class InvoiceModel(BaseTableModel):
         amount,
         payment_uri=None, 
         title=None,
+        items=None,
     ):
         """Create a invoice and return its id
 
@@ -88,10 +89,21 @@ class InvoiceModel(BaseTableModel):
             created_at=now,
             updated_at=now,
         )
-        
+
         self.session.add(invoice)
         self.session.flush()
 
+        if items:
+            for item in items:
+                item = tables.Item(
+                    invoice_guid=invoice.guid,
+                    name=item['name'],
+                    amount=item['amount'],
+                    unit=item.get('unit')
+                )
+                self.session.add(item)
+        self.session.flush()
+ 
         tx_model = TransactionModel(self.session)
         # as if we set the payment_uri at very first, we want to charge it
         # immediately, so we create a transaction right away, also set the 
@@ -198,5 +210,7 @@ class InvoiceModel(BaseTableModel):
                     'the status is one of INIT, PROCESSING and PROCESS_FAILED'
                 )
             invoice.status = self.STATUS_PROCESSING
+        # TODO: update title
+        # TODO: update items
         self.session.add(invoice)
         self.session.flush()

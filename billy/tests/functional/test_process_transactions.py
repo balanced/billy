@@ -44,9 +44,8 @@ class TestProcessTransactions(unittest.TestCase):
         from billy.scripts import initializedb
         from billy.scripts import process_transactions
 
-        def mock_process_transactions(processor, maximum_retry):
+        def mock_process_transactions(processor):
             self.assertIsInstance(processor, BalancedProcessor)
-            self.assertEqual(maximum_retry, 5566)
 
         (
             flexmock(TransactionModel)

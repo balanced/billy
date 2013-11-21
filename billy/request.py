@@ -4,6 +4,8 @@ from pyramid.request import Request
 from pyramid.decorator import reify
 from pyramid.path import DottedNameResolver
 
+from billy.api.model_factory import ModelFactory
+
 
 class APIRequest(Request):
     
@@ -26,3 +28,10 @@ class APIRequest(Request):
         processor_factory = resolver.maybe_resolve(processor_factory)
         processor = processor_factory()
         return processor
+
+    @reify
+    def model_factory(self):
+        """The factory for creating data models
+
+        """
+        return ModelFactory(self)

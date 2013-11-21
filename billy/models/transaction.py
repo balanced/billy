@@ -55,6 +55,15 @@ class TransactionModel(BaseTableModel):
         STATUS_CANCELED,
     ]
 
+    def __init__(
+        self, 
+        session, 
+        maximum_retry=DEFAULT_MAXIMUM_RETRY,
+        logger=None,
+    ):
+        super(TransactionModel, self).__init__(session, logger=logger)
+        self.maximum_retry = maximum_retry
+
     def get_last_transaction(self):
         """Get last transaction
 
@@ -204,7 +213,6 @@ class TransactionModel(BaseTableModel):
         self, 
         processor, 
         transaction, 
-        maximum_retry=DEFAULT_MAXIMUM_RETRY
     ):
         """Process one transaction
 
@@ -253,9 +261,9 @@ class TransactionModel(BaseTableModel):
                               transaction.guid, transaction.failure_count, 
                               exc_info=True)
             # the failure times exceed the limitation
-            if transaction.failure_count > maximum_retry:
+            if transaction.failure_count > self.maximum_retry:
                 self.logger.error('Exceed maximum retry limitation %s, '
-                                  'transaction %s failed', maximum_retry, 
+                                  'transaction %s failed', self.maximum_retry, 
                                   transaction.guid)
                 transaction.status = self.STATUS_FAILED
 
@@ -294,8 +302,7 @@ class TransactionModel(BaseTableModel):
     def process_transactions(
         self, 
         processor, 
-        guids=None, 
-        maximum_retry=DEFAULT_MAXIMUM_RETRY
+        guids=None,
     ):
         """Process all transactions 
 
@@ -313,6 +320,6 @@ class TransactionModel(BaseTableModel):
 
         processed_transaction_guids = []
         for transaction in query:
-            self.process_one(processor, transaction, maximum_retry=maximum_retry)
+            self.process_one(processor, transaction)
             processed_transaction_guids.append(transaction.guid)
         return processed_transaction_guids

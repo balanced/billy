@@ -27,7 +27,7 @@ def transaction_get(request):
 
     """
     company = auth_api_key(request)
-    model = TransactionModel(request.session)
+    model = request.model_factory.create_transaction_model()
     guid = request.matchdict['transaction_guid']
     transaction = model.get(guid)
     if transaction is None:

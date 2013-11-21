@@ -840,11 +840,11 @@ class TestTransactionModel(ModelTestCase):
                          'AC_MOCK')
 
     def test_process_one_with_failure_exceed_limitation(self):
-        model = self.make_one(self.session)
-        now = datetime.datetime.utcnow()
-
         payment_uri = '/v1/cards/tester'
         maximum_retry = 3
+
+        model = self.make_one(self.session, maximum_retry=maximum_retry)
+        now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
             self.customer_model.update(self.customer_guid, external_id='AC_MOCK')
@@ -885,7 +885,6 @@ class TestTransactionModel(ModelTestCase):
                 model.process_one(
                     processor=mock_processor, 
                     transaction=transaction, 
-                    maximum_retry=maximum_retry
                 )
             transaction = model.get(guid)
             self.assertEqual(transaction.status, model.STATUS_RETRYING)
@@ -894,7 +893,6 @@ class TestTransactionModel(ModelTestCase):
             model.process_one(
                 processor=mock_processor, 
                 transaction=transaction, 
-                maximum_retry=maximum_retry
             )
         transaction = model.get(guid)
         self.assertEqual(transaction.status, model.STATUS_FAILED)
@@ -1181,11 +1179,11 @@ class TestTransactionModel(ModelTestCase):
     def test_process_one_invoice_with_failure_exceed_limitation(self):
         from billy.models.invoice import InvoiceModel
 
-        model = self.make_one(self.session)
-        invoice_model = InvoiceModel(self.session)
-
         payment_uri = '/v1/cards/tester'
         maximum_retry = 3
+
+        model = self.make_one(self.session, maximum_retry=maximum_retry)
+        invoice_model = InvoiceModel(self.session)
 
         with db_transaction.manager:
             self.customer_model.update(self.customer_guid, external_id='AC_MOCK')
@@ -1221,7 +1219,6 @@ class TestTransactionModel(ModelTestCase):
                 model.process_one(
                     processor=mock_processor, 
                     transaction=transaction, 
-                    maximum_retry=maximum_retry
                 )
             transaction = model.get(guid)
             self.assertEqual(transaction.status, model.STATUS_RETRYING)
@@ -1232,7 +1229,6 @@ class TestTransactionModel(ModelTestCase):
             model.process_one(
                 processor=mock_processor, 
                 transaction=transaction, 
-                maximum_retry=maximum_retry
             )
         transaction = model.get(guid)
         self.assertEqual(transaction.status, model.STATUS_FAILED)

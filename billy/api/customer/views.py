@@ -17,7 +17,7 @@ def get_and_check_customer(request, company):
     """Get and check permission to access a customer
 
     """
-    model = CustomerModel(request.session)
+    model = request.model_factory.create_customer_model()
     guid = request.matchdict['customer_guid']
     customer = model.get(guid)
     if customer is None:
@@ -53,7 +53,7 @@ def customer_list_post(request):
 
     # TODO: make sure user cannot create a customer to a deleted company
 
-    model = CustomerModel(request.session)
+    model = request.model_factory.create_customer_model()
     # TODO: do validation here
     with db_transaction.manager:
         guid = model.create(
@@ -84,7 +84,7 @@ def customer_delete(request):
 
     """
     company = auth_api_key(request)
-    model = CustomerModel(request.session)
+    model = request.model_factory.create_customer_model()
     customer = get_and_check_customer(request, company)
     if customer.deleted:
         return HTTPBadRequest('Customer {} was already deleted'

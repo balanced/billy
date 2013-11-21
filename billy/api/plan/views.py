@@ -17,7 +17,7 @@ def get_and_check_plan(request, company):
     """Get and check permission to access a plan
 
     """
-    model = PlanModel(request.session)
+    model = request.model_factory.create_plan_model()
     guid = request.matchdict['plan_guid']
     plan = model.get(guid)
     if plan is None:
@@ -58,7 +58,7 @@ def plan_list_post(request):
 
     # TODO: make sure user cannot create a post to a deleted company
 
-    model = PlanModel(request.session)
+    model = request.model_factory.create_plan_model()
     type_map = dict(
         charge=model.TYPE_CHARGE,
         payout=model.TYPE_PAYOUT,
@@ -104,7 +104,7 @@ def plan_delete(request):
 
     """
     company = auth_api_key(request)
-    model = PlanModel(request.session)
+    model = request.model_factory.create_plan_model()
     plan = get_and_check_plan(request, company)
     if plan.deleted:
         return HTTPBadRequest('Plan {} was already deleted'.format(plan.guid))

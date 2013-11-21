@@ -7,8 +7,6 @@ from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPBadRequest
 
 from billy.models.invoice import InvoiceModel
-from billy.models.customer import CustomerModel
-from billy.models.transaction import TransactionModel
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
 from billy.api.utils import list_by_company_guid
@@ -19,7 +17,7 @@ def get_and_check_invoice(request, company):
     """Get and check permission to access an invoice
 
     """
-    model = InvoiceModel(request.session)
+    model = request.model_factory.create_invoice_model()
     guid = request.matchdict['invoice_guid']
     invoice = model.get(guid)
     if invoice is None:
@@ -49,22 +47,15 @@ def invoice_list_post(request):
     """
     company = auth_api_key(request)
     form = validate_form(InvoiceCreateForm, request)
-    model = InvoiceModel(request.session)
-    customer_model = CustomerModel(request.session)
-    tx_model = TransactionModel(request.session)
+    model = request.model_factory.create_invoice_model()
+    customer_model = request.model_factory.create_customer_model()
+    tx_model = request.model_factory.create_transaction_model()
     
     customer_guid = form.data['customer_guid']
     amount = form.data['amount']
     payment_uri = form.data.get('payment_uri')
     if not payment_uri:
         payment_uri = None
-    # TODO: maybe we should put these configuration when creating a model 
-    # object, also make a model factory of request, which reads configuration
-    # for us, we can then avoid repeating these code here
-    maximum_retry = int(request.registry.settings.get(
-        'billy.transaction.maximum_retry', 
-        TransactionModel.DEFAULT_MAXIMUM_RETRY,
-    ))
 
     customer = customer_model.get(customer_guid)
     if customer.company_guid != company.guid:
@@ -87,7 +78,6 @@ def invoice_list_post(request):
             tx_model.process_transactions(
                 processor=request.processor, 
                 guids=tx_guids,
-                maximum_retry=maximum_retry,
             )
     invoice = model.get(guid)
     return invoice 

@@ -5,20 +5,9 @@ from pyramid.view import view_config
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPForbidden
 
-from billy.models.company import CompanyModel
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
 from .forms import CompanyCreateForm
-
-
-@view_config(route_name='company_list', 
-             request_method='GET', 
-             renderer='json')
-def company_list_get(request):
-    """Get and return the list of company
-
-    """
-    # TODO:
 
 
 @view_config(route_name='company_list', 
@@ -31,7 +20,7 @@ def company_list_post(request):
     form = validate_form(CompanyCreateForm, request)
     processor_key = form.data['processor_key']
 
-    model = CompanyModel(request.session)
+    model = request.model_factory.create_company_model()
     # TODO: do validation here
     with db_transaction.manager:
         guid = model.create(processor_key=processor_key)
@@ -47,7 +36,7 @@ def company_get(request):
 
     """
     api_company = auth_api_key(request)
-    model = CompanyModel(request.session)
+    model = request.model_factory.create_company_model()
     guid = request.matchdict['company_guid']
     company = model.get(guid)
     if company is None:

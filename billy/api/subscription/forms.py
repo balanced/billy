@@ -13,6 +13,7 @@ from billy.models import tables
 from billy.models.customer import CustomerModel
 from billy.models.plan import PlanModel
 from billy.api.utils import RecordExistValidator
+from billy.api.utils import MINIMUM_AMOUNT
 
 
 class ISO8601Field(Field):
@@ -78,8 +79,7 @@ class SubscriptionCreateForm(Form):
     ])
     amount = IntegerField('Amount', [
         validators.Optional(),
-        # TODO: what is the minimum amount limitation we have?
-        validators.NumberRange(min=1)
+        validators.NumberRange(min=MINIMUM_AMOUNT)
     ])
     started_at = ISO8601Field('Started at datetime', [
         validators.Optional(),
@@ -94,6 +94,5 @@ class SubscriptionCancelForm(Form):
     refund_amount = IntegerField('Refund amount', [
         validators.Optional(),
         RefundAmountConflict(),
-        # TODO: what is the minimum amount limitation we have?
-        validators.NumberRange(min=1),
+        validators.NumberRange(min=MINIMUM_AMOUNT),
     ])

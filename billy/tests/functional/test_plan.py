@@ -117,6 +117,11 @@ class TestPlanViews(ViewTestCase):
             amount=5566,
             interval='-123',
         ))
+        assert_bad_parameters(dict(
+            plan_type='charge',
+            frequency='weekly',
+            amount=49,
+        ))
 
     def test_create_plan_with_empty_interval(self):
         # TODO: this case is a little bit strange, empty interval string

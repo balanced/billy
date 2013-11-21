@@ -283,7 +283,12 @@ class TestSubscriptionViews(ViewTestCase):
         assert_bad_parameters(dict(
             customer_guid=self.customer_guid,
             plan_guid=self.plan_guid,
-            amount='0',
+            amount=0,
+        ))
+        assert_bad_parameters(dict(
+            customer_guid=self.customer_guid,
+            plan_guid=self.plan_guid,
+            amount=49,
         ))
         assert_bad_parameters(dict(
             customer_guid=self.customer_guid,

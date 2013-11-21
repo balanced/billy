@@ -155,6 +155,10 @@ class TestInvoiceViews(ViewTestCase):
             customer_guid=self.customer_guid,
             amount=-123,
         ))
+        assert_bad_parameters(dict(
+            customer_guid=self.customer_guid,
+            amount=49,
+        ))
 
     def test_create_invoice_to_other_company_customer(self):
         from billy.models.company import CompanyModel

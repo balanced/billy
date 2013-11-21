@@ -4,6 +4,9 @@ from pyramid.httpexceptions import HTTPBadRequest
 
 from .auth import auth_api_key
 
+# the minimum amount in a transaction
+MINIMUM_AMOUNT = 50
+
 
 def form_errors_to_bad_request(errors):
     """Convert WTForm errors into readable bad request

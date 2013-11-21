@@ -7,6 +7,7 @@ from wtforms import validators
 
 from billy.models.customer import CustomerModel
 from billy.api.utils import RecordExistValidator
+from billy.api.utils import MINIMUM_AMOUNT
 
 
 class InvoiceCreateForm(Form):
@@ -17,9 +18,10 @@ class InvoiceCreateForm(Form):
     amount = IntegerField('Amount', [
         validators.Required(),
         # TODO: what is the minimum amount limitation we have?
-        validators.NumberRange(min=1)
+        validators.NumberRange(min=MINIMUM_AMOUNT)
     ])
     payment_uri = TextField('Payment URI', [
         validators.Optional(),
     ])
+
     # TODO: items

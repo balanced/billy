@@ -166,7 +166,7 @@ class TestInvoiceViews(ViewTestCase):
         assert_bad_parameters(dict(
             customer_guid=self.customer_guid,
             amount=999,
-            title='t'*129,
+            title='t' * 129,
         ))
 
     def test_create_invoice_to_other_company_customer(self):

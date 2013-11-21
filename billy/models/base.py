@@ -57,16 +57,17 @@ class BaseTableModel(object):
         self.session = session
         assert self.TABLE is not None
 
-    def get(self, guid, raise_error=False):
+    def get(self, guid, raise_error=False, with_lockmode=None):
         """Find a record by guid and return it
 
         :param guid: The guild of record to get
         :param raise_error: Raise KeyError when cannot find one
+        :param with_lockmode: The lock model to acquire on the row
         """
-        query = (
-            self.session.query(self.TABLE)
-            .get(guid)
-        )
+        query = self.session.query(self.TABLE)
+        if with_lockmode is not None:
+            query = query.with_lockmode(with_lockmode)
+        query = query.get(guid)
         if raise_error and query is None:
             raise KeyError('No such subscription {}'.format(guid))
         return query

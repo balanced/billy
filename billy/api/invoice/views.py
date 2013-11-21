@@ -63,14 +63,13 @@ def invoice_list_post(request):
     if customer.deleted:
         return HTTPBadRequest('Cannot create an invoice for a deleted customer')
     
-    # TODO: think about race condition here
     with db_transaction.manager:
         guid = model.create(
             customer_guid=customer_guid,
             amount=amount,
             payment_uri=payment_uri,
         )
-    # payment_uri is set, just process transactions right away
+    # payment_uri is set, just process all transactions right away
     if payment_uri is not None:
         with db_transaction.manager:
             invoice = model.get(guid)

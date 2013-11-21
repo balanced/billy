@@ -116,11 +116,11 @@ class InvoiceModel(BaseTableModel):
 
         """
         tx_model = TransactionModel(self.session)
-        invoice = self.get(guid, raise_error=True)
+        invoice = self.get(guid, raise_error=True, with_lockmode='update')
         now = tables.now_func()
         invoice.updated_at = now
 
-        # TODO: think about race condition issue, what if we update the 
+        # think about race condition issue, what if we update the 
         # payment_uri during processing previous transaction? say
         # 
         #     DB Transaction A begin
@@ -136,7 +136,12 @@ class InvoiceModel(BaseTableModel):
         #     DB Transaction rollback
         # 
         # call to balanced API is made, but we had confliction between two
-        # database transactions, hum..... maybe we need a lock here?
+        # database transactions
+        #
+        # to solve the problem mentioned above, we acquire a lock on the 
+        # invoice at begin of transaction, in this way, there will be no
+        # overlap between two transaction
+
         if payment_uri is not self.NOT_SET:
             last_transaction = (
                 self.session

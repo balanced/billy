@@ -219,6 +219,8 @@ class TransactionModel(BaseTableModel):
         """
         from billy.models.invoice import InvoiceModel
 
+        invoice_model = InvoiceModel(self.session)
+
         if transaction.status == self.STATUS_DONE:
             raise ValueError('Cannot process a finished transaction {}'
                              .format(transaction.guid))
@@ -229,6 +231,8 @@ class TransactionModel(BaseTableModel):
             customer = transaction.subscription.customer
         else:
             customer = transaction.invoice.customer
+            # acquire the lock on invoice row
+            invoice_model.get(transaction.invoice_guid, with_lockmode='update')
 
         method = {
             self.TYPE_CHARGE: processor.charge,

@@ -373,6 +373,7 @@ class Invoice(DeclarativeBase):
         'Item', 
         cascade='all, delete-orphan', 
         backref='invoice',
+        order_by='Item.item_id',
     )
 
 

@@ -32,6 +32,7 @@ def invoice_adapter(invoice, request):
         updated_at=invoice.updated_at.isoformat(),
         customer_guid=invoice.customer_guid, 
         amount=invoice.amount, 
+        title=invoice.title, 
         payment_uri=invoice.payment_uri, 
     )
 

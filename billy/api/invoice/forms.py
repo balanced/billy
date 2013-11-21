@@ -17,11 +17,13 @@ class InvoiceCreateForm(Form):
     ])
     amount = IntegerField('Amount', [
         validators.Required(),
-        # TODO: what is the minimum amount limitation we have?
         validators.NumberRange(min=MINIMUM_AMOUNT)
     ])
     payment_uri = TextField('Payment URI', [
         validators.Optional(),
     ])
-
+    title = TextField('Title', [
+        validators.Optional(),
+        validators.Length(max=128),
+    ])
     # TODO: items

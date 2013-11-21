@@ -53,6 +53,7 @@ class TestRenderer(ViewTestCase):
             self.invoice_guid = invoice_model.create(
                 customer_guid=self.customer_guid,
                 amount=100,
+                title='foobar invoice',
             )
         self.dummy_request = DummyRequest()
 
@@ -98,6 +99,7 @@ class TestRenderer(ViewTestCase):
             updated_at=invoice.updated_at.isoformat(),
             customer_guid=invoice.customer_guid, 
             amount=invoice.amount, 
+            title=invoice.title, 
             payment_uri=None, 
         )
         self.assertEqual(json_data, expected)

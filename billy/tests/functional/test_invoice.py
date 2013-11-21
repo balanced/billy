@@ -53,6 +53,7 @@ class TestInvoiceViews(ViewTestCase):
 
         customer_guid = self.customer_guid
         amount = 5566
+        title = 'foobar invoice'
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat()
 
@@ -61,6 +62,7 @@ class TestInvoiceViews(ViewTestCase):
             dict(
                 customer_guid=customer_guid,
                 amount=amount,
+                title=title,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
@@ -69,6 +71,7 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(res.json['created_at'], now_iso)
         self.assertEqual(res.json['updated_at'], now_iso)
         self.assertEqual(res.json['amount'], amount)
+        self.assertEqual(res.json['title'], title)
         self.assertEqual(res.json['customer_guid'], customer_guid)
         self.assertEqual(res.json['payment_uri'], None)
 
@@ -119,6 +122,7 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(res.json['created_at'], now_iso)
         self.assertEqual(res.json['updated_at'], now_iso)
         self.assertEqual(res.json['amount'], amount)
+        self.assertEqual(res.json['title'], None)
         self.assertEqual(res.json['customer_guid'], customer_guid)
         self.assertEqual(res.json['payment_uri'], payment_uri)
 
@@ -158,6 +162,11 @@ class TestInvoiceViews(ViewTestCase):
         assert_bad_parameters(dict(
             customer_guid=self.customer_guid,
             amount=49,
+        ))
+        assert_bad_parameters(dict(
+            customer_guid=self.customer_guid,
+            amount=999,
+            title='t'*129,
         ))
 
     def test_create_invoice_to_other_company_customer(self):

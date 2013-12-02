@@ -6,6 +6,7 @@ balanced==0.11.12
 pyramid==1.4.3
 pyramid_debugtoolbar==1.0.8
 pyramid_tm==0.7
+pyramid_mako==0.2
 iso8601==0.1.4
 pytz==2013b
 WTForms==1.0.4

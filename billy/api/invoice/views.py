@@ -50,6 +50,7 @@ def parse_items(request, prefix, keywords):
     # TODO: humm.. maybe it is not the best method to deals with multiple 
     # value parameters, but here we just make it works and make it better
     # later
+    # TODO: what about format checking? length limitation? is amount integer?
     items = {}
     for key in request.params:
         for keyword in keywords:
@@ -162,10 +163,17 @@ def invoice_put(request):
 
     payment_uri = form.data.get('payment_uri')
     title = form.data.get('title')
+    items = parse_items(
+        request=request, 
+        prefix='item_', 
+        keywords=('name', 'amount', 'unit'),
+    )
 
     kwargs = {}
     if title:
         kwargs['title'] = title
+    if items:
+        kwargs['items'] = items
 
     with db_transaction.manager:
         model.update(guid=guid, **kwargs)

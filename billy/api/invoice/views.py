@@ -29,6 +29,45 @@ def get_and_check_invoice(request, company):
     return invoice 
 
 
+def parse_items(request, prefix, keywords):
+    """This function parsed items from request in following form
+
+        item_name1=a
+        item_amount1=100
+        item_name2=b
+        item_amount2=999
+        item_unit2=hours
+        item_name3=foo
+        item_amount3=123
+
+    and return a list as [
+        dict(title='a', amount='100'),
+        dict(title='b', amount='999', unit='hours'),
+        dict(title='foo', amount='123'),
+    ]
+
+    """
+    # TODO: humm.. maybe it is not the best method to deals with multiple 
+    # value parameters, but here we just make it works and make it better
+    # later
+    items = {}
+    for key in request.params:
+        for keyword in keywords:
+            prefixed_keyword = prefix + keyword
+            suffix = key[len(prefixed_keyword):]
+            if not key.startswith(prefixed_keyword):
+                continue
+            try:
+                item_num = int(suffix)
+            except ValueError:
+                continue
+            item = items.setdefault(item_num, {})
+            item[keyword] = request.params[key]
+    keys = list(items)
+    keys = sorted(keys)
+    return [items[key] for key in keys]
+
+
 @view_config(route_name='invoice_list', 
              request_method='GET', 
              renderer='json')
@@ -60,14 +99,13 @@ def invoice_list_post(request):
     title = form.data.get('title')
     if not title:
         title = None
-    # TODO: get items from form here, hmmm..., what kind of parameter form we
-    # should use here? like... 
-    #     title1=a
-    #     amount1=100
-    #     title2=b
-    #     amount2=999
-    #     ...
-    # ?
+    items = parse_items(
+        request=request, 
+        prefix='item_', 
+        keywords=('name', 'amount', 'unit'),
+    )
+    if not items:
+        items = None
 
     customer = customer_model.get(customer_guid)
     if customer.company_guid != company.guid:
@@ -81,6 +119,7 @@ def invoice_list_post(request):
             amount=amount,
             payment_uri=payment_uri,
             title=title,
+            items=items,
         )
     # payment_uri is set, just process all transactions right away
     if payment_uri is not None:

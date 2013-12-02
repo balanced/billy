@@ -26,6 +26,13 @@ def customer_adapter(customer, request):
 
 
 def invoice_adapter(invoice, request):
+    items = []
+    for item in invoice.items:
+        items.append(dict(
+            name=item.name,
+            amount=item.amount,
+            unit=item.unit,
+        ))
     return dict(
         guid=invoice.guid,
         created_at=invoice.created_at.isoformat(),
@@ -34,6 +41,7 @@ def invoice_adapter(invoice, request):
         amount=invoice.amount, 
         title=invoice.title, 
         payment_uri=invoice.payment_uri, 
+        items=items,
     )
 
 

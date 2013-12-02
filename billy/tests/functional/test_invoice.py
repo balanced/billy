@@ -79,6 +79,45 @@ class TestInvoiceViews(ViewTestCase):
         invoice = invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 0)
 
+    def test_create_invoice_with_items(self):
+        customer_guid = self.customer_guid
+        amount = 5566
+        items = [
+            dict(name='foo', amount=1234),
+            dict(name='bar', amount=5678, unit='unit'),
+            dict(name='special service', amount=9999, unit='hours'),
+        ]
+        item_params = {}
+        for i, item in enumerate(items):
+            item_params['item_name{}'.format(i)] = item['name']
+            item_params['item_amount{}'.format(i)] = item['amount']
+            if 'unit' in item:
+                item_params['item_unit{}'.format(i)] = item['unit']
+
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=customer_guid,
+                amount=amount,
+                item_namexxx='SHOULD NOT BE PARSED',
+                **item_params
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.failUnless('guid' in res.json)
+        self.assertEqual(res.json['payment_uri'], None)
+        result_items = []
+        for item in res.json['items']:
+            item_dict = dict(
+                name=item['name'],
+                amount=item['amount'],
+            )
+            if item['unit']:
+                item_dict['unit'] = item['unit']
+            result_items.append(item_dict)
+        self.assertEqual(items, result_items)
+
     def test_create_invoice_with_payment_uri(self):
         from billy.models.invoice import InvoiceModel 
         from billy.models.transaction import TransactionModel

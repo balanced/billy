@@ -78,7 +78,7 @@ class TestInvoiceModel(ModelTestCase):
         items = [
             dict(name='foo', amount=1234),
             dict(name='bar', amount=5678, unit='unit'),
-            dict(name='special service', amount=9999, unit='hours'),
+            dict(name='special service', amount=9999, number=10, unit='hours'),
         ]
 
         with db_transaction.manager:
@@ -97,6 +97,8 @@ class TestInvoiceModel(ModelTestCase):
             )
             if item.unit:
                 item_dict['unit'] = item.unit
+            if item.number:
+                item_dict['number'] = item.number
             item_result.append(item_dict)
         self.assertEqual(item_result, items)
 
@@ -348,7 +350,7 @@ class TestInvoiceModel(ModelTestCase):
             )
 
         new_items = [
-            dict(name='new foo', amount=55),
+            dict(name='new foo', amount=55, number=123),
             dict(name='new bar', amount=66, unit='new unit'),
         ]
 
@@ -367,5 +369,7 @@ class TestInvoiceModel(ModelTestCase):
             )
             if item.unit is not None:
                 item_dict['unit'] = item.unit
+            if item.number is not None:
+                item_dict['number'] = item.number
             result_items.append(item_dict)
         self.assertEqual(result_items, new_items)

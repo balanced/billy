@@ -58,6 +58,8 @@ class TestInvoiceViews(ViewTestCase):
             item_params['item_amount{}'.format(i)] = item['amount']
             if 'unit' in item:
                 item_params['item_unit{}'.format(i)] = item['unit'] 
+            if 'number' in item:
+                item_params['item_number{}'.format(i)] = item['number'] 
         return item_params
 
     def test_create_invoice(self):
@@ -122,6 +124,8 @@ class TestInvoiceViews(ViewTestCase):
             )
             if item['unit']:
                 item_dict['unit'] = item['unit']
+            if item['number']:
+                item_dict['number'] = item['number']
             result_items.append(item_dict)
         self.assertEqual(items, result_items)
 
@@ -413,7 +417,7 @@ class TestInvoiceViews(ViewTestCase):
 
     def test_update_invoice_items(self):
         old_items = [
-            dict(name='foo', amount=1234),
+            dict(name='foo', amount=1234, number=10),
             dict(name='bar', amount=5678, unit='unit'),
             dict(name='special service', amount=9999, unit='hours'),
         ]
@@ -433,7 +437,7 @@ class TestInvoiceViews(ViewTestCase):
 
         new_items = [
             dict(name='new foo', amount=55),
-            dict(name='new bar', amount=66, unit='unit'),
+            dict(name='new bar', amount=66, number=123, unit='unit'),
         ]
         item_params = self._encode_item_params(new_items)
         res = self.testapp.put(
@@ -445,6 +449,8 @@ class TestInvoiceViews(ViewTestCase):
         for item in new_items:
             if 'unit' not in item:
                 item['unit'] = None
+            if 'number' not in item:
+                item['number'] = None
         self.assertEqual(res.json['items'], new_items)
 
         res = self.testapp.get(

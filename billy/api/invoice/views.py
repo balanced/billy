@@ -103,7 +103,7 @@ def invoice_list_post(request):
     items = parse_items(
         request=request, 
         prefix='item_', 
-        keywords=('name', 'amount', 'unit'),
+        keywords=('name', 'amount', 'unit', 'number'),
     )
     if not items:
         items = None
@@ -166,7 +166,7 @@ def invoice_put(request):
     items = parse_items(
         request=request, 
         prefix='item_', 
-        keywords=('name', 'amount', 'unit'),
+        keywords=('name', 'amount', 'unit', 'number'),
     )
 
     kwargs = {}

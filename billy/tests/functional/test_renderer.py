@@ -99,6 +99,7 @@ class TestRenderer(ViewTestCase):
         json_data = invoice_adapter(invoice, self.dummy_request)
         expected = dict(
             guid=invoice.guid,
+            status='init',
             created_at=invoice.created_at.isoformat(),
             updated_at=invoice.updated_at.isoformat(),
             customer_guid=invoice.customer_guid, 
@@ -111,6 +112,20 @@ class TestRenderer(ViewTestCase):
             ]
         )
         self.assertEqual(json_data, expected)
+
+        def assert_status(invoice_status, expected_status):
+            invoice.status = invoice_status
+            json_data = invoice_adapter(invoice, self.dummy_request)
+            self.assertEqual(json_data['status'], expected_status)
+
+        assert_status(InvoiceModel.STATUS_INIT, 'init')
+        assert_status(InvoiceModel.STATUS_PROCESSING, 'processing')
+        assert_status(InvoiceModel.STATUS_SETTLED, 'settled')
+        assert_status(InvoiceModel.STATUS_CANCELED, 'canceled')
+        assert_status(InvoiceModel.STATUS_PROCESS_FAILED, 'process_failed')
+        assert_status(InvoiceModel.STATUS_REFUNDING, 'refunding')
+        assert_status(InvoiceModel.STATUS_REFUNDED, 'refunded')
+        assert_status(InvoiceModel.STATUS_REFUND_FAILED, 'refund_failed')
 
     def test_plan(self):
         from billy.models.plan import PlanModel

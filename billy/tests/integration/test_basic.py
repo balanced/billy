@@ -135,3 +135,72 @@ class TestBasicScenarios(IntegrationTestCase):
         )
         customer = res.json
         self.assertEqual(customer['deleted'], True)
+
+    def test_invoicing(self):
+        import balanced
+        balanced.configure(self.processor_key)
+        marketplace = balanced.Marketplace.find(self.marketplace_uri)
+
+        # create a card to charge
+        card = marketplace.create_card(
+            name='BILLY_INTERGRATION_TESTER',
+            card_number='5105105105105100',
+            expiration_month='12',
+            expiration_year='2020',
+            security_code='123',
+        )
+
+        # create a company
+        res = self.testapp.post(
+            '/v1/companies', 
+            dict(processor_key=self.processor_key), 
+            status=200
+        )
+        company = res.json
+        api_key = str(company['api_key'])
+
+        # create a customer
+        res = self.testapp.post(
+            '/v1/customers', 
+            headers=[self.make_auth(api_key)],
+            status=200
+        )
+        customer = res.json
+        self.assertEqual(customer['company_guid'], company['guid'])
+
+        # create an invoice
+        res = self.testapp.post(
+            '/v1/invoices', 
+            dict(
+                customer_guid=customer['guid'],
+                amount=5566,
+                title='Awesome invoice',
+                item_name1='Foobar',
+                item_amount1=200,
+                payment_uri=card.uri,
+            ),
+            headers=[self.make_auth(api_key)],
+            status=200
+        )
+        invoice = res.json
+        self.assertEqual(invoice['title'], 'Awesome invoice')
+        self.assertEqual(invoice['amount'], 5566)
+        self.assertEqual(invoice['status'], 'settled')
+
+        # transactions
+        res = self.testapp.get(
+            '/v1/transactions', 
+            headers=[self.make_auth(api_key)],
+            status=200
+        )
+        transactions = res.json
+        self.assertEqual(len(transactions['items']), 1)
+        transaction = res.json['items'][0]
+        self.assertEqual(transaction['invoice_guid'], invoice['guid'])
+        self.assertEqual(transaction['status'], 'done')
+        self.assertEqual(transaction['transaction_type'], 'charge')
+
+        debit = balanced.Debit.find(transaction['external_id'])
+        self.assertEqual(debit.meta['billy.transaction_guid'], transaction['guid'])
+        self.assertEqual(debit.amount, 5566)
+        self.assertEqual(debit.status, 'succeeded')

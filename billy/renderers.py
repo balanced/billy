@@ -26,6 +26,7 @@ def customer_adapter(customer, request):
 
 
 def invoice_adapter(invoice, request):
+    from billy.models.invoice import InvoiceModel
     items = []
     for item in invoice.items:
         items.append(dict(
@@ -34,8 +35,20 @@ def invoice_adapter(invoice, request):
             amount=item.amount,
             unit=item.unit,
         ))
+    status_map = {
+        InvoiceModel.STATUS_INIT: 'init',
+        InvoiceModel.STATUS_PROCESSING: 'processing',
+        InvoiceModel.STATUS_SETTLED: 'settled',
+        InvoiceModel.STATUS_CANCELED: 'canceled',
+        InvoiceModel.STATUS_PROCESS_FAILED: 'process_failed',
+        InvoiceModel.STATUS_REFUNDING: 'refunding',
+        InvoiceModel.STATUS_REFUNDED: 'refunded',
+        InvoiceModel.STATUS_REFUND_FAILED: 'refund_failed',
+    }
+    status = status_map[invoice.status]
     return dict(
         guid=invoice.guid,
+        status=status,
         created_at=invoice.created_at.isoformat(),
         updated_at=invoice.updated_at.isoformat(),
         customer_guid=invoice.customer_guid, 

@@ -167,7 +167,7 @@ class TestInvoiceModel(ModelTestCase):
 
         with freeze_time('2013-08-17'):
             with db_transaction.manager:
-                model.update(guid, payment_uri=payment_uri)
+                model.update_payment_uri(guid, payment_uri)
             update_now = datetime.datetime.utcnow()
 
         invoice = model.get(guid)
@@ -211,7 +211,7 @@ class TestInvoiceModel(ModelTestCase):
                 payment_uri=payment_uri,
             )
             with freeze_time('2013-08-17'):
-                model.update(guid, payment_uri=new_payment_uri)
+                model.update_payment_uri(guid, new_payment_uri)
                 update_now = datetime.datetime.utcnow()
 
         invoice = model.get(guid)
@@ -260,7 +260,7 @@ class TestInvoiceModel(ModelTestCase):
             self.session.add(invoice)
 
             with freeze_time('2013-08-17'):
-                model.update(guid, payment_uri=new_payment_uri)
+                model.update_payment_uri(guid, new_payment_uri)
                 update_now = datetime.datetime.utcnow()
 
         invoice = model.get(guid)
@@ -288,14 +288,13 @@ class TestInvoiceModel(ModelTestCase):
 
         model = self.make_one(self.session)
         amount = 556677
-        title = 'Foobar invoice'
         payment_uri = '/v1/cards/1234'
+        new_payment_uri = '/v1/cards/5678'
 
         def assert_invalid_update(current_status):
             with db_transaction.manager:
                 guid = model.create(
                     customer_guid=self.customer_guid,
-                    title=title,
                     amount=amount,
                     payment_uri=payment_uri,
                 )
@@ -304,7 +303,7 @@ class TestInvoiceModel(ModelTestCase):
                 self.session.add(invoice)
 
                 with self.assertRaises(InvalidOperationError):
-                    model.update(guid, payment_uri=payment_uri)
+                    model.update_payment_uri(guid, new_payment_uri)
 
         assert_invalid_update(model.STATUS_REFUNDED)
         assert_invalid_update(model.STATUS_REFUNDING)

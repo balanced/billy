@@ -125,20 +125,18 @@ def invoice_put(request):
     title = form.data.get('title')
 
     kwargs = {}
-    if payment_uri:
-        kwargs['payment_uri'] = payment_uri
     if title:
         kwargs['title'] = title
 
     with db_transaction.manager:
         model.update(guid=guid, **kwargs)
+        if payment_uri:
+            tx_guids = model.update_payment_uri(guid, payment_uri)
 
     # payment_uri is set, just process all transactions right away
-    if payment_uri is not None:
+    if payment_uri:
         with db_transaction.manager:
             invoice = model.get(guid)
-            # TODO: what about processed transactions 
-            tx_guids = [tx.guid for tx in invoice.transactions]
             tx_model.process_transactions(
                 processor=request.processor, 
                 guids=tx_guids,

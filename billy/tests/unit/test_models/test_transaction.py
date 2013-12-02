@@ -1056,7 +1056,7 @@ class TestTransactionModel(ModelTestCase):
         payment_uri = '/v1/cards/tester'
 
         with db_transaction.manager:
-            invoice_model.update(self.invoice_guid, payment_uri=payment_uri)
+            invoice_model.update_payment_uri(self.invoice_guid, payment_uri)
 
         invoice = invoice_model.get(self.invoice_guid)
         transaction = invoice.transactions[0]
@@ -1115,7 +1115,7 @@ class TestTransactionModel(ModelTestCase):
         payment_uri = '/v1/cards/tester'
 
         with db_transaction.manager:
-            invoice_model.update(self.invoice_guid, payment_uri=payment_uri)
+            invoice_model.update_payment_uri(self.invoice_guid, payment_uri)
             invoice = invoice_model.get(self.invoice_guid)
             invoice.status = invoice_model.STATUS_REFUNDING
             transaction = invoice.transactions[0]
@@ -1187,7 +1187,7 @@ class TestTransactionModel(ModelTestCase):
 
         with db_transaction.manager:
             self.customer_model.update(self.customer_guid, external_id='AC_MOCK')
-            invoice_model.update(self.invoice_guid, payment_uri=payment_uri)
+            invoice_model.update_payment_uri(self.invoice_guid, payment_uri)
 
         invoice = invoice_model.get(self.invoice_guid)
         transaction = invoice.transactions[0]

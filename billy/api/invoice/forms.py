@@ -27,3 +27,14 @@ class InvoiceCreateForm(Form):
         validators.Length(max=128),
     ])
     # TODO: items
+
+
+class InvoiceUpdateForm(Form):
+    payment_uri = TextField('Payment URI', [
+        validators.Optional(),
+    ])
+    title = TextField('Title', [
+        validators.Optional(),
+        validators.Length(max=128),
+    ])
+    # TODO: items

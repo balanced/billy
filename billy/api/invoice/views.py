@@ -11,6 +11,7 @@ from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
 from billy.api.utils import list_by_company_guid
 from .forms import InvoiceCreateForm
+from .forms import InvoiceUpdateForm
 
 
 def get_and_check_invoice(request, company):
@@ -59,6 +60,14 @@ def invoice_list_post(request):
     title = form.data.get('title')
     if not title:
         title = None
+    # TODO: get items from form here, hmmm..., what kind of parameter form we
+    # should use here? like... 
+    #     title1=a
+    #     amount1=100
+    #     title2=b
+    #     amount2=999
+    #     ...
+    # ?
 
     customer = customer_model.get(customer_guid)
     if customer.company_guid != company.guid:
@@ -95,4 +104,45 @@ def invoice_get(request):
     """
     company = auth_api_key(request)
     invoice = get_and_check_invoice(request, company)
+    return invoice 
+
+
+@view_config(route_name='invoice', 
+             request_method='PUT', 
+             renderer='json')
+def invoice_put(request):
+    """Update an invoice
+
+    """
+    company = auth_api_key(request)
+    invoice = get_and_check_invoice(request, company)
+    form = validate_form(InvoiceUpdateForm, request)
+    model = request.model_factory.create_invoice_model()
+    tx_model = request.model_factory.create_transaction_model()
+    guid = invoice.guid
+
+    payment_uri = form.data.get('payment_uri')
+    title = form.data.get('title')
+
+    kwargs = {}
+    if payment_uri:
+        kwargs['payment_uri'] = payment_uri
+    if title:
+        kwargs['title'] = title
+
+    with db_transaction.manager:
+        model.update(guid=guid, **kwargs)
+
+    # payment_uri is set, just process all transactions right away
+    if payment_uri is not None:
+        with db_transaction.manager:
+            invoice = model.get(guid)
+            # TODO: what about processed transactions 
+            tx_guids = [tx.guid for tx in invoice.transactions]
+            tx_model.process_transactions(
+                processor=request.processor, 
+                guids=tx_guids,
+            )
+
+    invoice = model.get(guid)
     return invoice 

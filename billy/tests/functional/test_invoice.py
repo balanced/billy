@@ -333,3 +333,92 @@ class TestInvoiceViews(ViewTestCase):
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
             status=403,
         )
+
+    def test_update_invoice_title(self):
+        res = self.testapp.post(
+            '/v1/invoices', 
+            dict(
+                customer_guid=self.customer_guid,
+                amount=1234,
+                title='old title',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        created_invoice = res.json
+        guid = created_invoice['guid']
+
+        res = self.testapp.put(
+            '/v1/invoices/{}'.format(guid),
+            dict(
+                title='new title',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.assertEqual(res.json['title'], 'new title')
+
+        res = self.testapp.get(
+            '/v1/invoices/{}'.format(guid),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.assertEqual(res.json['title'], 'new title')
+
+    def test_update_invoice_payment_uri(self):
+        from billy.models.invoice import InvoiceModel 
+        from billy.models.transaction import TransactionModel
+
+        customer_guid = self.customer_guid
+        amount = 5566
+        payment_uri = 'MOCK_CARD_URI'
+
+        def mock_charge(transaction):
+            self.assertEqual(transaction.invoice.customer_guid, 
+                             customer_guid)
+            return 'MOCK_PROCESSOR_TRANSACTION_ID'
+
+        mock_processor = flexmock(DummyProcessor)
+        (
+            mock_processor
+            .should_receive('create_customer')
+            .once()
+        )
+
+        (
+            mock_processor
+            .should_receive('charge')
+            .replace_with(mock_charge)
+            .once()
+        )
+
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=customer_guid,
+                amount=amount,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.failUnless('guid' in res.json)
+        self.assertEqual(res.json['payment_uri'], None)
+        guid = res.json['guid']
+
+        res = self.testapp.put(
+            '/v1/invoices/{}'.format(guid),
+            dict(
+                payment_uri=payment_uri,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.assertEqual(res.json['payment_uri'], payment_uri)
+
+        invoice_model = InvoiceModel(self.testapp.session)
+        invoice = invoice_model.get(res.json['guid'])
+        self.assertEqual(len(invoice.transactions), 1)
+        transaction = invoice.transactions[0]
+        self.assertEqual(transaction.external_id, 
+                         'MOCK_PROCESSOR_TRANSACTION_ID')
+        self.assertEqual(transaction.status, TransactionModel.STATUS_DONE)

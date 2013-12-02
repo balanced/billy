@@ -311,3 +311,62 @@ class TestInvoiceModel(ModelTestCase):
         assert_invalid_update(model.STATUS_REFUND_FAILED)
         assert_invalid_update(model.STATUS_CANCELED)
         assert_invalid_update(model.STATUS_SETTLED)
+
+    def test_update_title(self):
+        model = self.make_one(self.session)
+        amount = 556677
+        title = 'Foobar invoice'
+
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_guid,
+                title=title,
+                amount=amount,
+            )
+
+        with db_transaction.manager:
+            model.update(
+                guid=guid,
+                title='new title',
+            )
+
+        invoice = model.get(guid)
+        self.assertEqual(invoice.title, 'new title')
+
+    def test_update_items(self):
+        model = self.make_one(self.session)
+        amount = 556677
+        items = [
+            dict(name='foo', amount=1234),
+            dict(name='bar', amount=5678, unit='unit'),
+            dict(name='special service', amount=9999, unit='hours'),
+        ]
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_guid,
+                amount=amount,
+                items=items,
+            )
+
+        new_items = [
+            dict(name='new foo', amount=55),
+            dict(name='new bar', amount=66, unit='new unit'),
+        ]
+
+        with db_transaction.manager:
+            model.update(
+                guid=guid,
+                items=new_items, 
+            )
+
+        invoice = model.get(guid)
+        result_items = []
+        for item in invoice.items:
+            item_dict = dict(
+                name=item.name,
+                amount=item.amount,
+            )
+            if item.unit is not None:
+                item_dict['unit'] = item.unit
+            result_items.append(item_dict)
+        self.assertEqual(result_items, new_items)

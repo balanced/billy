@@ -123,7 +123,7 @@ class InvoiceModel(BaseTableModel):
         self.session.flush()
         return invoice.guid
 
-    def update(self, guid, payment_uri=NOT_SET):
+    def update(self, guid, payment_uri=NOT_SET, title=NOT_SET, items=NOT_SET):
         """Update an invoice
 
         """
@@ -210,7 +210,23 @@ class InvoiceModel(BaseTableModel):
                     'the status is one of INIT, PROCESSING and PROCESS_FAILED'
                 )
             invoice.status = self.STATUS_PROCESSING
-        # TODO: update title
-        # TODO: update items
+        if title is not self.NOT_SET:
+            invoice.title = title
+        if items is not self.NOT_SET:
+            # delete all old items
+            old_items = invoice.items
+            for item in old_items:
+                self.session.delete(item)
+            new_items = []
+            for item in items:
+                item = tables.Item(
+                    invoice_guid=invoice.guid,
+                    name=item['name'],
+                    amount=item['amount'],
+                    unit=item.get('unit')
+                )
+                new_items.append(item)
+                self.session.add(item)
+            invoice.items = new_items
         self.session.add(invoice)
         self.session.flush()

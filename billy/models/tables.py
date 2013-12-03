@@ -393,7 +393,7 @@ class Invoice(DeclarativeBase):
         from sqlalchemy import func
         session = object_session(self)
         return self.amount + (
-            session.query(func.ifnull(func.sum(Adjustment.total), 0))
+            session.query(func.coalesce(func.sum(Adjustment.total), 0))
             .filter(Adjustment.invoice_guid == self.guid)
             .scalar()
         )

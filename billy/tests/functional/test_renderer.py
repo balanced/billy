@@ -58,7 +58,11 @@ class TestRenderer(ViewTestCase):
                     dict(type='debit', name='foo', total=123, amount=5678),
                     dict(name='bar', total=456, quantity=10, unit='hours', 
                          amount=7788),
-                ]
+                ],
+                adjustments=[
+                    dict(total=20, reason='A Lannister always pays his debts!'),
+                    dict(total=3),
+                ],
             )
         self.dummy_request = DummyRequest()
 
@@ -105,6 +109,7 @@ class TestRenderer(ViewTestCase):
             updated_at=invoice.updated_at.isoformat(),
             customer_guid=invoice.customer_guid, 
             amount=invoice.amount, 
+            effective_amount=invoice.effective_amount, 
             title=invoice.title, 
             payment_uri=None, 
             items=[
@@ -112,7 +117,11 @@ class TestRenderer(ViewTestCase):
                      amount=5678, unit=None),
                 dict(type=None, name='bar', total=456, quantity=10, 
                      amount=7788, unit='hours'),
-            ]
+            ],
+            adjustments=[
+                dict(total=20, reason='A Lannister always pays his debts!'),
+                dict(total=3, reason=None),
+            ],
         )
         self.assertEqual(json_data, expected)
 

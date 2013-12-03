@@ -37,6 +37,12 @@ def invoice_adapter(invoice, request):
             amount=item.amount,
             unit=item.unit,
         ))
+    adjustments = []
+    for adjustment in invoice.adjustments:
+        adjustments.append(dict(
+            total=adjustment.total,
+            reason=adjustment.reason,
+        ))
     status_map = {
         InvoiceModel.STATUS_INIT: 'init',
         InvoiceModel.STATUS_PROCESSING: 'processing',
@@ -55,9 +61,11 @@ def invoice_adapter(invoice, request):
         updated_at=invoice.updated_at.isoformat(),
         customer_guid=invoice.customer_guid, 
         amount=invoice.amount, 
+        effective_amount=invoice.effective_amount, 
         title=invoice.title, 
         payment_uri=invoice.payment_uri, 
         items=items,
+        adjustments=adjustments,
     )
 
 

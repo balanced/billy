@@ -107,6 +107,13 @@ def invoice_list_post(request):
     )
     if not items:
         items = None
+    adjustments = parse_items(
+        request=request, 
+        prefix='adjustment_', 
+        keywords=('total', 'reason'),
+    )
+    if not adjustments:
+        adjustments = None
 
     customer = customer_model.get(customer_guid)
     if customer.company_guid != company.guid:
@@ -121,6 +128,7 @@ def invoice_list_post(request):
             payment_uri=payment_uri,
             title=title,
             items=items,
+            adjustments=adjustments,
         )
     # payment_uri is set, just process all transactions right away
     if payment_uri is not None:

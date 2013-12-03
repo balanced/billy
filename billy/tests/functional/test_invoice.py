@@ -66,6 +66,17 @@ class TestInvoiceViews(ViewTestCase):
                 item_params['item_type{}'.format(i)] = item['type'] 
         return item_params
 
+    def _encode_adjustment_params(self, items):
+        """Encode adjustment (a list of dict) into key/value parameters for URL
+
+        """
+        adjustment_params = {}
+        for i, item in enumerate(items):
+            adjustment_params['adjustment_total{}'.format(i)] = item['total']
+            if 'reason' in item:
+                adjustment_params['adjustment_reason{}'.format(i)] = item['reason'] 
+        return adjustment_params 
+
     def test_create_invoice(self):
         from billy.models.invoice import InvoiceModel
 
@@ -126,6 +137,36 @@ class TestInvoiceViews(ViewTestCase):
                 if value is None:
                     del item[key]
         self.assertEqual(item_result, items)
+
+    def test_create_invoice_with_adjustments(self):
+        customer_guid = self.customer_guid
+        adjustments = [
+            dict(total=-100, reason='A Lannister always pays his debts!'),
+            dict(total=20, reason='you own me'),
+            dict(total=3, reason='foobar'),
+        ]
+        adjustment_params = self._encode_adjustment_params(adjustments)
+
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=customer_guid,
+                amount=200,
+                adjustment_amountxxx='SHOULD NOT BE PARSED',
+                **adjustment_params
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.failUnless('guid' in res.json)
+        self.assertEqual(res.json['effective_amount'], 123)
+
+        adjustment_result = res.json['adjustments']
+        for adjustment in adjustment_result:
+            for key, value in list(adjustment.iteritems()):
+                if value is None:
+                    del adjustment[key]
+        self.assertEqual(adjustment_result, adjustments)
 
     def test_create_invoice_with_payment_uri(self):
         from billy.models.invoice import InvoiceModel 

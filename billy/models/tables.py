@@ -396,8 +396,8 @@ class Item(DeclarativeBase):
     )
     #: name of item
     name = Column(Unicode(128), nullable=False)
-    #: number of item
-    number = Column(Integer)
+    #: quantity of item
+    quantity = Column(Integer)
     #: unit of item
     unit = Column(Unicode(64))
     #: cost amount of this item

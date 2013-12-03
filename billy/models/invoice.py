@@ -100,7 +100,7 @@ class InvoiceModel(BaseTableModel):
                     name=item['name'],
                     amount=item['amount'],
                     unit=item.get('unit'),
-                    number=item.get('number'),
+                    quantity=item.get('quantity'),
                 )
                 self.session.add(item)
         self.session.flush()
@@ -146,7 +146,7 @@ class InvoiceModel(BaseTableModel):
                     name=item['name'],
                     amount=item['amount'],
                     unit=item.get('unit'),
-                    number=item.get('number'),
+                    quantity=item.get('quantity'),
                 )
                 new_items.append(item)
                 self.session.add(item)

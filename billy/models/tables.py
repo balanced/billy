@@ -9,6 +9,7 @@ from sqlalchemy import DateTime
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import backref
+from sqlalchemy.orm import object_session
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import func
 
@@ -376,6 +377,27 @@ class Invoice(DeclarativeBase):
         order_by='Item.item_id',
     )
 
+    #: adjustments of this invoice
+    adjustments = relationship(
+        'Adjustment', 
+        cascade='all, delete-orphan', 
+        backref='invoice',
+        order_by='Adjustment.adjustment_id',
+    )
+
+    @property
+    def effective_amount(self):
+        """The effective amount after applied all adjustments
+
+        """
+        from sqlalchemy import func
+        session = object_session(self)
+        return self.amount + (
+            session.query(func.ifnull(func.sum(Adjustment.total), 0))
+            .filter(Adjustment.invoice_guid == self.guid)
+            .scalar()
+        )
+
 
 class Item(DeclarativeBase):
     """An item of an invoice
@@ -406,3 +428,26 @@ class Item(DeclarativeBase):
     total = Column(Integer, nullable=False)
     #: unit of item
     unit = Column(Unicode(64))
+
+
+class Adjustment(DeclarativeBase):
+    """An adjustment to invoice
+
+    """
+    __tablename__ = 'adjustment'
+
+    adjustment_id = Column(Integer, autoincrement=True, primary_key=True)
+    #: the guid of invoice which owns this adjustment
+    invoice_guid = Column(
+        Unicode(64), 
+        ForeignKey(
+            'invoice.guid', 
+            ondelete='CASCADE', onupdate='CASCADE'
+        ), 
+        index=True,
+        nullable=False,
+    )
+    #: reason of making this adjustment to invoice
+    reason = Column(Unicode(128))
+    #: total adjustment applied to the invoice, could be negetive
+    total = Column(Integer, nullable=False)

@@ -72,6 +72,7 @@ class InvoiceModel(BaseTableModel):
         payment_uri=None, 
         title=None,
         items=None,
+        adjustments=None,
     ):
         """Create a invoice and return its id
 
@@ -95,7 +96,7 @@ class InvoiceModel(BaseTableModel):
 
         if items:
             for item in items:
-                item = tables.Item(
+                record = tables.Item(
                     invoice_guid=invoice.guid,
                     name=item['name'],
                     total=item['total'],
@@ -104,9 +105,22 @@ class InvoiceModel(BaseTableModel):
                     unit=item.get('unit'),
                     amount=item.get('amount'),
                 )
-                self.session.add(item)
-        self.session.flush()
- 
+                self.session.add(record)
+            self.session.flush()
+
+        # TODO: what about an invalid adjust? say, it makes the total of invoice
+        # a negetive value? I think we should not allow user to create such 
+        # invalid invoice
+        if adjustments:
+            for adjustment in adjustments:
+                record = tables.Adjustment(
+                    invoice_guid=invoice.guid,
+                    total=adjustment['total'],
+                    reason=adjustment.get('reason'),
+                )
+                self.session.add(record)
+            self.session.flush()
+
         tx_model = TransactionModel(self.session)
         # as if we set the payment_uri at very first, we want to charge it
         # immediately, so we create a transaction right away, also set the 
@@ -116,7 +130,7 @@ class InvoiceModel(BaseTableModel):
             tx_model.create(
                 invoice_guid=invoice.guid, 
                 payment_uri=payment_uri, 
-                amount=amount, 
+                amount=invoice.effective_amount, 
                 transaction_type=tx_model.TYPE_CHARGE, 
                 transaction_cls=tx_model.CLS_INVOICE, 
                 scheduled_at=now, 
@@ -205,7 +219,7 @@ class InvoiceModel(BaseTableModel):
             tx_guid = tx_model.create(
                 invoice_guid=invoice.guid, 
                 payment_uri=payment_uri, 
-                amount=invoice.amount, 
+                amount=invoice.effective_amount, 
                 transaction_type=tx_model.TYPE_CHARGE, 
                 transaction_cls=tx_model.CLS_INVOICE, 
                 scheduled_at=now, 
@@ -227,7 +241,7 @@ class InvoiceModel(BaseTableModel):
             tx_guid = tx_model.create(
                 invoice_guid=invoice.guid, 
                 payment_uri=payment_uri, 
-                amount=invoice.amount, 
+                amount=invoice.effective_amount, 
                 transaction_type=tx_model.TYPE_CHARGE, 
                 transaction_cls=tx_model.CLS_INVOICE, 
                 scheduled_at=now, 
@@ -240,7 +254,7 @@ class InvoiceModel(BaseTableModel):
             tx_guid = tx_model.create(
                 invoice_guid=invoice.guid, 
                 payment_uri=payment_uri, 
-                amount=invoice.amount, 
+                amount=invoice.effective_amount, 
                 transaction_type=tx_model.TYPE_CHARGE, 
                 transaction_cls=tx_model.CLS_INVOICE, 
                 scheduled_at=now, 

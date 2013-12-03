@@ -104,6 +104,34 @@ class TestInvoiceModel(ModelTestCase):
             item_result.append(item_dict)
         self.assertEqual(item_result, items)
 
+    def test_create_with_adjustments(self):
+        model = self.make_one(self.session)
+        adjustments = [
+            dict(total=50, reason='we own you, man!'),
+            dict(total=-100, reason='lannister always pay debts!'),
+            dict(total=-123),
+        ]
+
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_guid,
+                amount=200,
+                adjustments=adjustments,
+            )
+
+        invoice = model.get(guid)
+
+        adjustment_result = []
+        for adjustment in invoice.adjustments:
+            adjustment_dict = dict(
+                total=adjustment.total,
+            )
+            if adjustment.reason is not None:
+                adjustment_dict['reason'] = adjustment.reason
+            adjustment_result.append(adjustment_dict)
+        self.assertEqual(adjustment_result, adjustments)
+        self.assertEqual(invoice.effective_amount, 200 + 50 - 100 - 123)
+
     def test_create_with_payment_uri(self):
         from billy.models.transaction import TransactionModel
         model = self.make_one(self.session)
@@ -142,6 +170,28 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(transaction.invoice_guid, invoice.guid)
         self.assertEqual(transaction.amount, amount)
         self.assertEqual(transaction.payment_uri, payment_uri)
+
+    def test_create_with_payment_uri_with_adjustments(self):
+        model = self.make_one(self.session)
+        amount = 200 
+        payment_uri = '/v1/cards/1234'
+
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_guid,
+                amount=amount,
+                payment_uri=payment_uri,
+                adjustments=[
+                    dict(total=-100),
+                    dict(total=20),
+                    dict(total=3),
+                ]
+            )
+
+        invoice = model.get(guid)
+        self.assertEqual(len(invoice.transactions), 1)
+        transaction = invoice.transactions[0]
+        self.assertEqual(transaction.amount, invoice.effective_amount)
 
     def test_create_with_wrong_amount(self):
         model = self.make_one(self.session)
@@ -185,6 +235,35 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(transaction.amount, amount)
         self.assertEqual(transaction.payment_uri, payment_uri)
         self.assertEqual(transaction.scheduled_at, update_now)
+
+    def test_update_payment_uri_with_adjustments(self):
+        model = self.make_one(self.session)
+        amount = 200
+        title = 'Foobar invoice'
+        payment_uri = '/v1/cards/1234'
+
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_guid,
+                title=title,
+                amount=amount,
+                adjustments=[
+                    dict(total=-100),
+                    dict(total=20),
+                    dict(total=3),
+                ]
+            )
+
+        invoice = model.get(guid)
+        self.assertEqual(len(invoice.transactions), 0)
+
+        with freeze_time('2013-08-17'):
+            with db_transaction.manager:
+                model.update_payment_uri(guid, payment_uri)
+
+        invoice = model.get(guid)
+        transaction = invoice.transactions[0]
+        self.assertEqual(transaction.amount, invoice.effective_amount)
 
     def _get_transactions_in_order(self, guid):
         from billy.models import tables
@@ -238,6 +317,38 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(transaction.payment_uri, new_payment_uri)
         self.assertEqual(transaction.scheduled_at, update_now)
 
+    def test_update_payment_uri_while_processing_with_adjustments(self):
+        from billy.models.transaction import TransactionModel
+
+        model = self.make_one(self.session)
+        amount = 200
+        payment_uri = '/v1/cards/1234'
+        new_payment_uri = '/v1/cards/5678'
+
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_guid,
+                amount=amount,
+                payment_uri=payment_uri,
+                adjustments=[
+                    dict(total=-100),
+                    dict(total=20),
+                    dict(total=3),
+                ]
+            )
+            with freeze_time('2013-08-17'):
+                model.update_payment_uri(guid, new_payment_uri)
+
+        invoice = model.get(guid)
+
+        transactions = self._get_transactions_in_order(guid)
+        transaction = transactions[0]
+        self.assertEqual(transaction.amount, invoice.effective_amount)
+
+        transaction = transactions[1]
+        self.assertEqual(transaction.status, TransactionModel.STATUS_INIT)
+        self.assertEqual(transaction.amount, invoice.effective_amount)
+
     def test_update_payment_uri_while_failed(self):
         from billy.models.transaction import TransactionModel
 
@@ -286,6 +397,45 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(transaction.amount, amount)
         self.assertEqual(transaction.payment_uri, new_payment_uri)
         self.assertEqual(transaction.scheduled_at, update_now)
+
+    def test_update_payment_uri_while_failed_with_adjustments(self):
+        from billy.models.transaction import TransactionModel
+
+        model = self.make_one(self.session)
+        tx_model = TransactionModel(self.session)
+        amount = 200
+        payment_uri = '/v1/cards/1234'
+        new_payment_uri = '/v1/cards/5678'
+
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=self.customer_guid,
+                amount=amount,
+                payment_uri=payment_uri,
+                adjustments=[
+                    dict(total=-100),
+                    dict(total=20),
+                    dict(total=3),
+                ],
+            )
+            invoice = model.get(guid)
+            transaction = invoice.transactions[0]
+            transaction.status = tx_model.STATUS_FAILED
+            invoice.status = model.STATUS_PROCESS_FAILED
+            self.session.add(transaction)
+            self.session.add(invoice)
+
+            with freeze_time('2013-08-17'):
+                model.update_payment_uri(guid, new_payment_uri)
+
+        invoice = model.get(guid)
+
+        transactions = self._get_transactions_in_order(guid)
+        transaction = transactions[0]
+        self.assertEqual(transaction.amount, invoice.effective_amount)
+
+        transaction = transactions[1]
+        self.assertEqual(transaction.amount, invoice.effective_amount)
 
     def test_update_payment_uri_with_wrong_status(self):
         from billy.models.invoice import InvalidOperationError

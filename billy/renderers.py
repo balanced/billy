@@ -31,6 +31,8 @@ def invoice_adapter(invoice, request):
     for item in invoice.items:
         items.append(dict(
             name=item.name,
+            total=item.total,
+            type=item.type,
             quantity=item.quantity,
             amount=item.amount,
             unit=item.unit,

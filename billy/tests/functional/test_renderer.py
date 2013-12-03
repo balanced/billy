@@ -55,8 +55,9 @@ class TestRenderer(ViewTestCase):
                 amount=100,
                 title='foobar invoice',
                 items=[
-                    dict(name='foo', amount=123),
-                    dict(name='bar', amount=456, quantity=10, unit='hours'),
+                    dict(type='debit', name='foo', total=123, amount=5678),
+                    dict(name='bar', total=456, quantity=10, unit='hours', 
+                         amount=7788),
                 ]
             )
         self.dummy_request = DummyRequest()
@@ -107,8 +108,10 @@ class TestRenderer(ViewTestCase):
             title=invoice.title, 
             payment_uri=None, 
             items=[
-                dict(name='foo', amount=123, quantity=None, unit=None),
-                dict(name='bar', amount=456, quantity=10, unit='hours'),
+                dict(type='debit', name='foo', total=123, quantity=None, 
+                     amount=5678, unit=None),
+                dict(type=None, name='bar', total=456, quantity=10, 
+                     amount=7788, unit='hours'),
             ]
         )
         self.assertEqual(json_data, expected)

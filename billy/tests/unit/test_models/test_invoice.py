@@ -74,17 +74,16 @@ class TestInvoiceModel(ModelTestCase):
 
     def test_create_with_items(self):
         model = self.make_one(self.session)
-        amount = 556677
         items = [
-            dict(name='foo', amount=1234),
-            dict(name='bar', amount=5678, unit='unit'),
-            dict(name='special service', amount=9999, quantity=10, unit='hours'),
+            dict(type='debit', name='foo', total=1234),
+            dict(name='bar', total=5678, unit='unit'),
+            dict(name='special service', total=9999, quantity=10, unit='hours'),
         ]
 
         with db_transaction.manager:
             guid = model.create(
                 customer_guid=self.customer_guid,
-                amount=amount,
+                amount=556677,
                 items=items,
             )
 
@@ -92,13 +91,16 @@ class TestInvoiceModel(ModelTestCase):
         item_result = []
         for item in invoice.items:
             item_dict = dict(
+                type=item.type,
                 name=item.name,
+                quantity=item.quantity,
+                total=item.total,
                 amount=item.amount,
+                unit=item.unit,
             )
-            if item.unit:
-                item_dict['unit'] = item.unit
-            if item.quantity:
-                item_dict['quantity'] = item.quantity
+            for key, value in list(item_dict.iteritems()):
+                if value is None:
+                    del item_dict[key]
             item_result.append(item_dict)
         self.assertEqual(item_result, items)
 
@@ -336,22 +338,21 @@ class TestInvoiceModel(ModelTestCase):
 
     def test_update_items(self):
         model = self.make_one(self.session)
-        amount = 556677
         items = [
-            dict(name='foo', amount=1234),
-            dict(name='bar', amount=5678, unit='unit'),
-            dict(name='special service', amount=9999, unit='hours'),
+            dict(type='debit', name='foo', amount=100, total=1234),
+            dict(name='bar', total=5678, unit='unit'),
+            dict(name='special service', total=9999, unit='hours'),
         ]
         with db_transaction.manager:
             guid = model.create(
                 customer_guid=self.customer_guid,
-                amount=amount,
+                amount=556677,
                 items=items,
             )
 
         new_items = [
-            dict(name='new foo', amount=55, quantity=123),
-            dict(name='new bar', amount=66, unit='new unit'),
+            dict(type='hold', name='new foo', total=55, quantity=123),
+            dict(name='new bar', total=66, unit='new unit'),
         ]
 
         with db_transaction.manager:
@@ -361,15 +362,18 @@ class TestInvoiceModel(ModelTestCase):
             )
 
         invoice = model.get(guid)
-        result_items = []
+        item_result = []
         for item in invoice.items:
             item_dict = dict(
+                type=item.type,
                 name=item.name,
+                quantity=item.quantity,
+                total=item.total,
                 amount=item.amount,
+                unit=item.unit,
             )
-            if item.unit is not None:
-                item_dict['unit'] = item.unit
-            if item.quantity is not None:
-                item_dict['quantity'] = item.quantity
-            result_items.append(item_dict)
-        self.assertEqual(result_items, new_items)
+            for key, value in list(item_dict.iteritems()):
+                if value is None:
+                    del item_dict[key]
+            item_result.append(item_dict)
+        self.assertEqual(item_result, new_items)

@@ -55,11 +55,15 @@ class TestInvoiceViews(ViewTestCase):
         item_params = {}
         for i, item in enumerate(items):
             item_params['item_name{}'.format(i)] = item['name']
-            item_params['item_amount{}'.format(i)] = item['amount']
+            item_params['item_total{}'.format(i)] = item['total']
             if 'unit' in item:
                 item_params['item_unit{}'.format(i)] = item['unit'] 
             if 'quantity' in item:
                 item_params['item_quantity{}'.format(i)] = item['quantity'] 
+            if 'amount' in item:
+                item_params['item_amount{}'.format(i)] = item['amount'] 
+            if 'type' in item:
+                item_params['item_type{}'.format(i)] = item['type'] 
         return item_params
 
     def test_create_invoice(self):
@@ -95,11 +99,10 @@ class TestInvoiceViews(ViewTestCase):
 
     def test_create_invoice_with_items(self):
         customer_guid = self.customer_guid
-        amount = 5566
         items = [
-            dict(name='foo', amount=1234),
-            dict(name='bar', amount=5678, unit='unit'),
-            dict(name='special service', amount=9999, unit='hours'),
+            dict(name='foo', total=1234),
+            dict(name='bar', total=5678, unit='unit'),
+            dict(name='special service', total=9999, unit='hours'),
         ]
         item_params = self._encode_item_params(items)
 
@@ -107,7 +110,7 @@ class TestInvoiceViews(ViewTestCase):
             '/v1/invoices',
             dict(
                 customer_guid=customer_guid,
-                amount=amount,
+                amount=5566,
                 item_namexxx='SHOULD NOT BE PARSED',
                 **item_params
             ),
@@ -116,18 +119,13 @@ class TestInvoiceViews(ViewTestCase):
         )
         self.failUnless('guid' in res.json)
         self.assertEqual(res.json['payment_uri'], None)
-        result_items = []
-        for item in res.json['items']:
-            item_dict = dict(
-                name=item['name'],
-                amount=item['amount'],
-            )
-            if item['unit']:
-                item_dict['unit'] = item['unit']
-            if item['quantity']:
-                item_dict['quantity'] = item['quantity']
-            result_items.append(item_dict)
-        self.assertEqual(items, result_items)
+
+        item_result = res.json['items']
+        for item in item_result:
+            for key, value in list(item.iteritems()):
+                if value is None:
+                    del item[key]
+        self.assertEqual(item_result, items)
 
     def test_create_invoice_with_payment_uri(self):
         from billy.models.invoice import InvoiceModel 
@@ -417,9 +415,9 @@ class TestInvoiceViews(ViewTestCase):
 
     def test_update_invoice_items(self):
         old_items = [
-            dict(name='foo', amount=1234, quantity=10),
-            dict(name='bar', amount=5678, unit='unit'),
-            dict(name='special service', amount=9999, unit='hours'),
+            dict(name='foo', total=1234, quantity=10),
+            dict(name='bar', total=5678, unit='unit'),
+            dict(name='special service', total=9999, unit='hours'),
         ]
         item_params = self._encode_item_params(old_items)
         res = self.testapp.post(
@@ -436,8 +434,8 @@ class TestInvoiceViews(ViewTestCase):
         guid = created_invoice['guid']
 
         new_items = [
-            dict(name='new foo', amount=55),
-            dict(name='new bar', amount=66, quantity=123, unit='unit'),
+            dict(name='new foo', total=55),
+            dict(name='new bar', total=66, quantity=123, unit='unit'),
         ]
         item_params = self._encode_item_params(new_items)
         res = self.testapp.put(
@@ -446,19 +444,24 @@ class TestInvoiceViews(ViewTestCase):
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
-        for item in new_items:
-            if 'unit' not in item:
-                item['unit'] = None
-            if 'quantity' not in item:
-                item['quantity'] = None
-        self.assertEqual(res.json['items'], new_items)
+        item_result = res.json['items']
+        for item in item_result:
+            for key, value in list(item.iteritems()):
+                if value is None:
+                    del item[key]
+        self.assertEqual(item_result, new_items)
 
         res = self.testapp.get(
             '/v1/invoices/{}'.format(guid),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
-        self.assertEqual(res.json['items'], new_items)
+        item_result = res.json['items']
+        for item in item_result:
+            for key, value in list(item.iteritems()):
+                if value is None:
+                    del item[key]
+        self.assertEqual(item_result, new_items)
 
     def test_update_invoice_payment_uri(self):
         from billy.models.invoice import InvoiceModel 

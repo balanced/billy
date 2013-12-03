@@ -394,11 +394,15 @@ class Item(DeclarativeBase):
         index=True,
         nullable=False,
     )
+    #: type of this item
+    type = Column(Unicode(128))
     #: name of item
     name = Column(Unicode(128), nullable=False)
     #: quantity of item
     quantity = Column(Integer)
+    #: total processed transaction amount
+    amount = Column(Integer)
+    #: total fee to charge for this item
+    total = Column(Integer, nullable=False)
     #: unit of item
     unit = Column(Unicode(64))
-    #: cost amount of this item
-    amount = Column(Integer, nullable=False)

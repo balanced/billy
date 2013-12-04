@@ -88,7 +88,16 @@ class BalancedProcessor(PaymentProcessor):
         api_key = customer.company.processor_key
 
         balanced.configure(api_key)
-        # make sure we won't duplicate the transaction
+        # make sure we won't duplicate the charging
+        # TODO: there is still chance we duplicate transaction, for example
+        # 
+        #     (Thread 1)                    (Thread 2)
+        #     Check existing transaction
+        #                                   Check existing transaction
+        #                                   Called to balanced
+        #     Call to balanced
+        #                           
+        # hum...., maybe we just need a lock on the row anyway
         try:
             record = (
                 resource_cls.query

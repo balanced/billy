@@ -221,6 +221,18 @@ class TransactionModel(BaseTableModel):
 
         invoice_model = InvoiceModel(self.session)
 
+        # there is still chance we duplicate transaction, for example
+        # 
+        #     (Thread 1)                    (Thread 2)
+        #     Check existing transaction
+        #                                   Check existing transaction
+        #                                   Called to balanced
+        #     Call to balanced
+        #                           
+        # we need to lock transaction before we process it to avoid 
+        # situations like that
+        self.get(transaction.guid, with_lockmode='update')
+
         if transaction.status == self.STATUS_DONE:
             raise ValueError('Cannot process a finished transaction {}'
                              .format(transaction.guid))

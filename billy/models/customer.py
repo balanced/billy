@@ -2,13 +2,32 @@ from __future__ import unicode_literals
 
 from billy.models import tables
 from billy.models.base import BaseTableModel
-from billy.models.base import ListByCompanyMixin
+from billy.models.base import decorate_offset_limit
 from billy.utils.generic import make_guid
 
 
-class CustomerModel(BaseTableModel, ListByCompanyMixin):
+class CustomerModel(BaseTableModel):
 
     TABLE = tables.Customer
+
+    # not set object
+    NOT_SET = object()
+
+    @decorate_offset_limit
+    def list_by_company_guid(self, company_guid, external_id=NOT_SET):
+        """Get invoices of a company by given guid
+
+        """
+        Customer = tables.Customer
+        query = (
+            self.session
+            .query(Customer)
+            .filter(Customer.company_guid == company_guid)
+            .order_by(tables.Customer.created_at.desc())
+        )
+        if external_id is not self.NOT_SET:
+            query = query.filter(Customer.external_id == external_id)
+        return query
 
     def create(
         self, 

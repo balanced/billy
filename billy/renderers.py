@@ -63,6 +63,7 @@ def invoice_adapter(invoice, request):
         amount=invoice.amount, 
         effective_amount=invoice.effective_amount, 
         title=invoice.title, 
+        external_id=invoice.external_id, 
         payment_uri=invoice.payment_uri, 
         items=items,
         adjustments=adjustments,

@@ -49,12 +49,14 @@ class TestInvoiceModel(ModelTestCase):
         model = self.make_one(self.session)
         amount = 556677
         title = 'Foobar invoice'
+        external_id = 'external_id'
 
         with db_transaction.manager:
             guid = model.create(
                 customer_guid=self.customer_guid,
                 title=title,
                 amount=amount,
+                external_id=external_id,
             )
 
         now = datetime.datetime.utcnow()
@@ -69,8 +71,30 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(invoice.payment_uri, None)
         self.assertEqual(invoice.created_at, now)
         self.assertEqual(invoice.updated_at, now)
+        self.assertEqual(invoice.external_id, external_id)
         self.assertEqual(len(invoice.transactions), 0)
         self.assertEqual(len(invoice.items), 0)
+
+    def test_create_with_duplicated_external_id(self):
+        from billy.models.invoice import DuplicateExternalIDError
+
+        model = self.make_one(self.session)
+        amount = 556677
+        external_id = 'external_id'
+
+        with db_transaction.manager:
+            model.create(
+                customer_guid=self.customer_guid,
+                amount=amount,
+                external_id=external_id,
+            )
+
+        with self.assertRaises(DuplicateExternalIDError):
+            model.create(
+                customer_guid=self.customer_guid,
+                amount=amount,
+                external_id=external_id,
+            )
 
     def test_create_with_items(self):
         model = self.make_one(self.session)

@@ -7,6 +7,7 @@ from sqlalchemy import UnicodeText
 from sqlalchemy import Boolean
 from sqlalchemy import DateTime
 from sqlalchemy.schema import ForeignKey
+from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import backref
 from sqlalchemy.orm import object_session
@@ -328,6 +329,7 @@ class Invoice(DeclarativeBase):
 
     """
     __tablename__ = 'invoice'
+    __table_args__ = (UniqueConstraint('customer_guid', 'external_id'), )
 
     guid = Column(Unicode(64), primary_key=True)
     #: the guid of customer who owns this invoice
@@ -356,11 +358,13 @@ class Invoice(DeclarativeBase):
     status = Column(Integer, index=True, nullable=False)
     #: a short optional title of this invoice
     title = Column(Unicode(128))
-
     #: the created datetime of this invoice 
     created_at = Column(DateTime, default=now_func)
     #: the updated datetime of this invoice 
     updated_at = Column(DateTime, default=now_func)
+    #: the external_id for storing external resource ID in order to avoid 
+    #: duplication
+    external_id = Column(Unicode(128), index=True)
 
     #: transactions of this invoice
     transactions = relationship(

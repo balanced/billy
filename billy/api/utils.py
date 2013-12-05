@@ -71,10 +71,14 @@ def list_by_company_guid(request, model_cls):
     model = model_cls(request.session)
     offset = int(request.params.get('offset', 0))
     limit = int(request.params.get('limit', 20))
+    kwargs = {}
+    if 'external_id' in request.params:
+        kwargs['external_id'] = request.params['external_id']
     items = model.list_by_company_guid(
         company_guid=company.guid,
         offset=offset,
         limit=limit,
+        **kwargs
     )
     result = dict(
         items=list(items),

@@ -120,6 +120,43 @@ class TestCustomerViews(ViewTestCase):
         result_guids = [item['guid'] for item in items]
         self.assertEqual(result_guids, guids)
 
+    def test_customer_list_with_external_id(self):
+        from billy.models.customer import CustomerModel 
+        customer_model = CustomerModel(self.testapp.session)
+        with db_transaction.manager:
+            guids = []
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    external_id = i
+                    if i >= 2:
+                        external_id = None
+                    guid = customer_model.create(
+                        self.company_guid,
+                        external_id=external_id,
+                    )
+                    guids.append(guid)
+        guids = list(reversed(guids))
+
+        res = self.testapp.get(
+            '/v1/customers',
+            dict(external_id=0),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, [guids[-1]])
+
+        res = self.testapp.get(
+            '/v1/customers',
+            dict(external_id=1),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, [guids[-2]])
+
     def test_customer_list_with_bad_api_key(self):
         self.testapp.get(
             '/v1/customers',

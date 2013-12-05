@@ -54,6 +54,7 @@ class TestRenderer(ViewTestCase):
                 customer_guid=self.customer_guid,
                 amount=100,
                 title='foobar invoice',
+                external_id='external ID',
                 items=[
                     dict(type='debit', name='foo', total=123, amount=5678),
                     dict(name='bar', total=456, quantity=10, unit='hours', 
@@ -111,6 +112,7 @@ class TestRenderer(ViewTestCase):
             amount=invoice.amount, 
             effective_amount=invoice.effective_amount, 
             title=invoice.title, 
+            external_id=invoice.external_id, 
             payment_uri=None, 
             items=[
                 dict(type='debit', name='foo', total=123, quantity=None, 

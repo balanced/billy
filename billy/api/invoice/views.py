@@ -5,8 +5,10 @@ from pyramid.view import view_config
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPBadRequest
+from pyramid.httpexceptions import HTTPConflict
 
 from billy.models.invoice import InvoiceModel
+from billy.models.invoice import DuplicateExternalIDError
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
 from billy.api.utils import list_by_company_guid
@@ -100,6 +102,9 @@ def invoice_list_post(request):
     title = form.data.get('title')
     if not title:
         title = None
+    external_id = form.data.get('external_id')
+    if not external_id:
+        external_id = None
     items = parse_items(
         request=request, 
         prefix='item_', 
@@ -122,15 +127,19 @@ def invoice_list_post(request):
     if customer.deleted:
         return HTTPBadRequest('Cannot create an invoice for a deleted customer')
     
-    with db_transaction.manager:
-        guid = model.create(
-            customer_guid=customer_guid,
-            amount=amount,
-            payment_uri=payment_uri,
-            title=title,
-            items=items,
-            adjustments=adjustments,
-        )
+    try:
+        with db_transaction.manager:
+            guid = model.create(
+                customer_guid=customer_guid,
+                amount=amount,
+                payment_uri=payment_uri,
+                title=title,
+                items=items,
+                adjustments=adjustments,
+                external_id=external_id,
+            )
+    except DuplicateExternalIDError, e:
+        return HTTPConflict(e.args[0])
     # payment_uri is set, just process all transactions right away
     if payment_uri is not None:
         with db_transaction.manager:

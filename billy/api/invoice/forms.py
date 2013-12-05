@@ -26,6 +26,9 @@ class InvoiceCreateForm(Form):
         validators.Optional(),
         validators.Length(max=128),
     ])
+    external_id = TextField('External ID', [
+        validators.Optional(),
+    ])
     # TODO: items
 
 

@@ -83,6 +83,7 @@ class TestInvoiceViews(ViewTestCase):
         customer_guid = self.customer_guid
         amount = 5566
         title = 'foobar invoice'
+        external_id = 'external ID'
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat()
 
@@ -92,6 +93,7 @@ class TestInvoiceViews(ViewTestCase):
                 customer_guid=customer_guid,
                 amount=amount,
                 title=title,
+                external_id=external_id,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
@@ -101,12 +103,40 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(res.json['updated_at'], now_iso)
         self.assertEqual(res.json['amount'], amount)
         self.assertEqual(res.json['title'], title)
+        self.assertEqual(res.json['external_id'], external_id)
         self.assertEqual(res.json['customer_guid'], customer_guid)
         self.assertEqual(res.json['payment_uri'], None)
 
         invoice_model = InvoiceModel(self.testapp.session)
         invoice = invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 0)
+
+    def test_create_invoice_with_external_id(self):
+        customer_guid = self.customer_guid
+        amount = 5566
+        external_id = 'external ID'
+
+        self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=customer_guid,
+                amount=amount,
+                external_id=external_id,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+
+        self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=customer_guid,
+                amount=amount,
+                external_id=external_id,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=409,
+        )
 
     def test_create_invoice_with_items(self):
         customer_guid = self.customer_guid
@@ -415,6 +445,45 @@ class TestInvoiceViews(ViewTestCase):
         items = res.json['items']
         result_guids = [item['guid'] for item in items]
         self.assertEqual(result_guids, guids)
+
+    def test_invoice_list_with_external_id(self):
+        from billy.models.invoice import InvoiceModel
+        invoice_model = InvoiceModel(self.testapp.session)
+        with db_transaction.manager:
+            guids = []
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    external_id = i
+                    if i >= 2:
+                        external_id = None
+                    # external_id will be 0, 1, None, None
+                    guid = invoice_model.create(
+                        customer_guid=self.customer_guid,
+                        amount=(i + 1) * 1000,
+                        external_id=external_id,
+                    )
+                    guids.append(guid)
+        guids = list(reversed(guids))
+
+        res = self.testapp.get(
+            '/v1/invoices',
+            dict(external_id=0),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, [guids[-1]])
+
+        res = self.testapp.get(
+            '/v1/invoices',
+            dict(external_id=1),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, [guids[-2]])
 
     def test_invoice_list_with_bad_api_key(self):
         self.testapp.get(

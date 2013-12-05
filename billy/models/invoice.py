@@ -14,6 +14,14 @@ class InvalidOperationError(RuntimeError):
     """
 
 
+class DuplicateExternalIDError(RuntimeError):
+    """This error indicates you have duplicate (Customer GUID, External ID)
+    pair in database. The field `external_id` was designed to avoid duplicate
+    invoicing. 
+
+    """
+
+
 class InvoiceModel(BaseTableModel):
 
     TABLE = tables.Invoice
@@ -50,7 +58,7 @@ class InvoiceModel(BaseTableModel):
     NOT_SET = object()
 
     @decorate_offset_limit
-    def list_by_company_guid(self, company_guid):
+    def list_by_company_guid(self, company_guid, external_id=NOT_SET):
         """Get invoices of a company by given guid
 
         """
@@ -63,6 +71,8 @@ class InvoiceModel(BaseTableModel):
             .filter(Customer.company_guid == company_guid)
             .order_by(tables.Invoice.created_at.desc())
         )
+        if external_id is not self.NOT_SET:
+            query = query.filter(Invoice.external_id == external_id)
         return query
 
     def create(
@@ -73,10 +83,13 @@ class InvoiceModel(BaseTableModel):
         title=None,
         items=None,
         adjustments=None,
+        external_id=None,
     ):
         """Create a invoice and return its id
 
         """
+        from sqlalchemy.exc import IntegrityError
+
         if amount <= 0:
             raise ValueError('Amount should be a non-zero postive integer')
         now = tables.now_func()
@@ -89,10 +102,18 @@ class InvoiceModel(BaseTableModel):
             title=title,
             created_at=now,
             updated_at=now,
+            external_id=external_id,
         )
 
         self.session.add(invoice)
-        self.session.flush()
+
+        try:
+            self.session.flush()
+        except IntegrityError:
+            raise DuplicateExternalIDError(
+                'Customer {} with external_id {} already exist'
+                .format(customer_guid, external_id)
+            )
 
         if items:
             for item in items:

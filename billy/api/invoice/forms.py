@@ -7,7 +7,7 @@ from wtforms import validators
 
 from billy.models.customer import CustomerModel
 from billy.api.utils import RecordExistValidator
-from billy.api.utils import MINIMUM_AMOUNT
+#from billy.api.utils import MINIMUM_AMOUNT
 
 
 class InvoiceCreateForm(Form):

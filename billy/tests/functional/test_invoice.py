@@ -274,14 +274,16 @@ class TestInvoiceViews(ViewTestCase):
             amount=123,
             payment_uri='MOCK_CARD_URI',
         ))
-        assert_bad_parameters(dict(
-            customer_guid=self.customer_guid,
-            amount=-123,
-        ))
-        assert_bad_parameters(dict(
-            customer_guid=self.customer_guid,
-            amount=49,
-        ))
+        # TODO: we allow negetive amount now for feeding invoice from balanced,
+        # maybe should consider this again later
+        #assert_bad_parameters(dict(
+        #    customer_guid=self.customer_guid,
+        #    amount=-123,
+        #))
+        #assert_bad_parameters(dict(
+        #    customer_guid=self.customer_guid,
+        #    amount=49,
+        #))
         assert_bad_parameters(dict(
             customer_guid=self.customer_guid,
             amount=999,

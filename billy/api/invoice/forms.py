@@ -17,7 +17,7 @@ class InvoiceCreateForm(Form):
     ])
     amount = IntegerField('Amount', [
         validators.Required(),
-        validators.NumberRange(min=MINIMUM_AMOUNT)
+        #validators.NumberRange(min=MINIMUM_AMOUNT)
     ])
     payment_uri = TextField('Payment URI', [
         validators.Optional(),

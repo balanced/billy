@@ -42,5 +42,6 @@ class ModelTestCase(unittest.TestCase):
     def tearDown(self):
         from billy.models import tables
         self.session.remove()
+        self.session.bind.dispose()
         tables.DeclarativeBase.metadata.drop_all()
         tables.set_now_func(self._old_now_func)

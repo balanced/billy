@@ -56,6 +56,9 @@ def subscription_list_post(request):
     payment_uri = form.data.get('payment_uri')
     if not payment_uri:
         payment_uri = None
+    appears_on_statement_as = form.data.get('appears_on_statement_as')
+    if not appears_on_statement_as:
+        appears_on_statement_as = None
     started_at = form.data.get('started_at')
 
     sub_model = request.model_factory.create_subscription_model()
@@ -81,6 +84,7 @@ def subscription_list_post(request):
             plan_guid=plan_guid, 
             amount=amount, 
             payment_uri=payment_uri,
+            appears_on_statement_as=appears_on_statement_as,
             started_at=started_at, 
         )
         tx_guids = sub_model.yield_transactions([guid])

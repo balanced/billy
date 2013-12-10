@@ -84,6 +84,7 @@ class TestInvoiceViews(ViewTestCase):
         amount = 5566
         title = 'foobar invoice'
         external_id = 'external ID'
+        appears_on_statement_as = 'hello baby'
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat()
 
@@ -94,6 +95,7 @@ class TestInvoiceViews(ViewTestCase):
                 amount=amount,
                 title=title,
                 external_id=external_id,
+                appears_on_statement_as=appears_on_statement_as,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
@@ -104,6 +106,8 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(res.json['amount'], amount)
         self.assertEqual(res.json['title'], title)
         self.assertEqual(res.json['external_id'], external_id)
+        self.assertEqual(res.json['appears_on_statement_as'], 
+                         appears_on_statement_as)
         self.assertEqual(res.json['customer_guid'], customer_guid)
         self.assertEqual(res.json['payment_uri'], None)
 
@@ -288,6 +292,16 @@ class TestInvoiceViews(ViewTestCase):
             customer_guid=self.customer_guid,
             amount=999,
             title='t' * 129,
+        ))
+        assert_bad_parameters(dict(
+            customer_guid=self.customer_guid,
+            amount=999,
+            appears_on_statement_as='illegal\tstatement', 
+        ))
+        assert_bad_parameters(dict(
+            customer_guid=self.customer_guid,
+            amount=999,
+            appears_on_statement_as='illegal\0statement', 
         ))
 
     def test_create_invoice_to_other_company_customer(self):

@@ -84,6 +84,7 @@ class InvoiceModel(BaseTableModel):
         items=None,
         adjustments=None,
         external_id=None,
+        appears_on_statement_as=None,
     ):
         """Create a invoice and return its id
 
@@ -103,6 +104,7 @@ class InvoiceModel(BaseTableModel):
             created_at=now,
             updated_at=now,
             external_id=external_id,
+            appears_on_statement_as=appears_on_statement_as,
         )
 
         self.session.add(invoice)
@@ -154,6 +156,7 @@ class InvoiceModel(BaseTableModel):
                 amount=invoice.effective_amount, 
                 transaction_type=tx_model.TYPE_CHARGE, 
                 transaction_cls=tx_model.CLS_INVOICE, 
+                appears_on_statement_as=invoice.appears_on_statement_as,
                 scheduled_at=now, 
             )
 
@@ -243,6 +246,7 @@ class InvoiceModel(BaseTableModel):
                 amount=invoice.effective_amount, 
                 transaction_type=tx_model.TYPE_CHARGE, 
                 transaction_cls=tx_model.CLS_INVOICE, 
+                appears_on_statement_as=invoice.appears_on_statement_as, 
                 scheduled_at=now, 
             )
             tx_guids.append(tx_guid)
@@ -265,6 +269,7 @@ class InvoiceModel(BaseTableModel):
                 amount=invoice.effective_amount, 
                 transaction_type=tx_model.TYPE_CHARGE, 
                 transaction_cls=tx_model.CLS_INVOICE, 
+                appears_on_statement_as=invoice.appears_on_statement_as, 
                 scheduled_at=now, 
             )
             tx_guids.append(tx_guid)
@@ -278,6 +283,7 @@ class InvoiceModel(BaseTableModel):
                 amount=invoice.effective_amount, 
                 transaction_type=tx_model.TYPE_CHARGE, 
                 transaction_cls=tx_model.CLS_INVOICE, 
+                appears_on_statement_as=invoice.appears_on_statement_as, 
                 scheduled_at=now, 
             )
             tx_guids.append(tx_guid)
@@ -292,3 +298,5 @@ class InvoiceModel(BaseTableModel):
         self.session.add(invoice)
         self.session.flush()
         return tx_guids
+
+    # TODO: implement invoice refund here

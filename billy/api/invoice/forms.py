@@ -7,6 +7,7 @@ from wtforms import validators
 
 from billy.models.customer import CustomerModel
 from billy.api.utils import RecordExistValidator
+from billy.api.utils import STATEMENT_REXP 
 #from billy.api.utils import MINIMUM_AMOUNT
 
 
@@ -28,6 +29,11 @@ class InvoiceCreateForm(Form):
     ])
     external_id = TextField('External ID', [
         validators.Optional(),
+    ])
+    appears_on_statement_as = TextField('Appears on statement as', [
+        validators.Optional(),
+        validators.Regexp(STATEMENT_REXP),
+        validators.Length(max=18),
     ])
     # TODO: items
 

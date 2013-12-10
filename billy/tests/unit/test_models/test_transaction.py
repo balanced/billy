@@ -304,6 +304,7 @@ class TestTransactionModel(ModelTestCase):
         transaction_cls = model.CLS_SUBSCRIPTION
         amount = 100
         payment_uri = '/v1/cards/tester'
+        appears_on_statement_as = 'hello baby'
         now = datetime.datetime.utcnow()
         scheduled_at = now + datetime.timedelta(days=1)
 
@@ -314,6 +315,7 @@ class TestTransactionModel(ModelTestCase):
                 transaction_type=transaction_type,
                 amount=amount,
                 payment_uri=payment_uri,
+                appears_on_statement_as=appears_on_statement_as,
                 scheduled_at=scheduled_at,
             )
 
@@ -325,6 +327,8 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.transaction_cls, transaction_cls)
         self.assertEqual(transaction.amount, amount)
         self.assertEqual(transaction.payment_uri, payment_uri)
+        self.assertEqual(transaction.appears_on_statement_as, 
+                         appears_on_statement_as)
         self.assertEqual(transaction.status, model.STATUS_INIT)
         self.assertEqual(transaction.failure_count, 0)
         self.assertEqual(transaction.error_message, None)

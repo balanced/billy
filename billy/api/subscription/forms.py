@@ -13,6 +13,7 @@ from billy.models import tables
 from billy.models.customer import CustomerModel
 from billy.models.plan import PlanModel
 from billy.api.utils import RecordExistValidator
+from billy.api.utils import STATEMENT_REXP 
 from billy.api.utils import MINIMUM_AMOUNT
 
 
@@ -80,6 +81,11 @@ class SubscriptionCreateForm(Form):
     amount = IntegerField('Amount', [
         validators.Optional(),
         validators.NumberRange(min=MINIMUM_AMOUNT)
+    ])
+    appears_on_statement_as = TextField('Appears on statement as', [
+        validators.Optional(),
+        validators.Regexp(STATEMENT_REXP),
+        validators.Length(max=18),
     ])
     started_at = ISO8601Field('Started at datetime', [
         validators.Optional(),

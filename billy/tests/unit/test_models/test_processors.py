@@ -260,6 +260,7 @@ class TestBalancedProcessorModel(ModelTestCase):
                     transaction_type=tx_model.TYPE_CHARGE,
                     amount=10,
                     payment_uri='/v1/credit_card/tester',
+                    appears_on_statement_as='hello baby',
                     scheduled_at=datetime.datetime.utcnow(),
                 )
                 transaction = tx_model.get(guid)
@@ -277,6 +278,7 @@ class TestBalancedProcessorModel(ModelTestCase):
                     transaction_type=tx_model.TYPE_CHARGE,
                     amount=10,
                     payment_uri='/v1/credit_card/tester',
+                    appears_on_statement_as='hello baby',
                     scheduled_at=datetime.datetime.utcnow(),
                 )
                 transaction = tx_model.get(guid)
@@ -336,6 +338,7 @@ class TestBalancedProcessorModel(ModelTestCase):
             amount=transaction.amount,
             meta={'billy.transaction_guid': transaction.guid},
             description=description,
+            appears_on_statement_as='hello baby',
         )
         kwargs.update(extra_api_kwargs)
         mock_balanced_customer = (

@@ -50,6 +50,7 @@ class TestInvoiceModel(ModelTestCase):
         amount = 556677
         title = 'Foobar invoice'
         external_id = 'external_id'
+        appears_on_statement_as = 'hello baby'
 
         with db_transaction.manager:
             guid = model.create(
@@ -57,6 +58,7 @@ class TestInvoiceModel(ModelTestCase):
                 title=title,
                 amount=amount,
                 external_id=external_id,
+                appears_on_statement_as=appears_on_statement_as,
             )
 
         now = datetime.datetime.utcnow()
@@ -72,6 +74,8 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(invoice.created_at, now)
         self.assertEqual(invoice.updated_at, now)
         self.assertEqual(invoice.external_id, external_id)
+        self.assertEqual(invoice.appears_on_statement_as, 
+                         appears_on_statement_as)
         self.assertEqual(len(invoice.transactions), 0)
         self.assertEqual(len(invoice.items), 0)
 
@@ -162,6 +166,7 @@ class TestInvoiceModel(ModelTestCase):
         amount = 556677
         title = 'Foobar invoice'
         payment_uri = '/v1/cards/1234'
+        appears_on_statement_as = 'hello baby'
 
         with db_transaction.manager:
             guid = model.create(
@@ -169,6 +174,7 @@ class TestInvoiceModel(ModelTestCase):
                 title=title,
                 amount=amount,
                 payment_uri=payment_uri,
+                appears_on_statement_as=appears_on_statement_as,
             )
 
         now = datetime.datetime.utcnow()
@@ -181,6 +187,7 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(invoice.title, title)
         self.assertEqual(invoice.amount, amount)
         self.assertEqual(invoice.payment_uri, payment_uri)
+        self.assertEqual(invoice.appears_on_statement_as, appears_on_statement_as)
         self.assertEqual(invoice.created_at, now)
         self.assertEqual(invoice.updated_at, now)
 
@@ -194,6 +201,7 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(transaction.invoice_guid, invoice.guid)
         self.assertEqual(transaction.amount, amount)
         self.assertEqual(transaction.payment_uri, payment_uri)
+        self.assertEqual(transaction.appears_on_statement_as, appears_on_statement_as)
 
     def test_create_with_payment_uri_with_adjustments(self):
         model = self.make_one(self.session)
@@ -232,12 +240,14 @@ class TestInvoiceModel(ModelTestCase):
         amount = 556677
         title = 'Foobar invoice'
         payment_uri = '/v1/cards/1234'
+        appears_on_statement_as = 'hello baby'
 
         with db_transaction.manager:
             guid = model.create(
                 customer_guid=self.customer_guid,
                 title=title,
                 amount=amount,
+                appears_on_statement_as=appears_on_statement_as,
             )
 
         invoice = model.get(guid)
@@ -258,6 +268,7 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(transaction.invoice_guid, guid)
         self.assertEqual(transaction.amount, amount)
         self.assertEqual(transaction.payment_uri, payment_uri)
+        self.assertEqual(transaction.appears_on_statement_as, appears_on_statement_as)
         self.assertEqual(transaction.scheduled_at, update_now)
 
     def test_update_payment_uri_with_adjustments(self):
@@ -308,6 +319,7 @@ class TestInvoiceModel(ModelTestCase):
         title = 'Foobar invoice'
         payment_uri = '/v1/cards/1234'
         new_payment_uri = '/v1/cards/5678'
+        appears_on_statement_as = 'hello baby'
         create_now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
@@ -316,6 +328,7 @@ class TestInvoiceModel(ModelTestCase):
                 title=title,
                 amount=amount,
                 payment_uri=payment_uri,
+                appears_on_statement_as=appears_on_statement_as,
             )
             with freeze_time('2013-08-17'):
                 model.update_payment_uri(guid, new_payment_uri)
@@ -332,6 +345,8 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(transaction.invoice_guid, guid)
         self.assertEqual(transaction.amount, amount)
         self.assertEqual(transaction.payment_uri, payment_uri)
+        self.assertEqual(transaction.appears_on_statement_as, 
+                         appears_on_statement_as)
         self.assertEqual(transaction.scheduled_at, create_now)
 
         transaction = transactions[1]
@@ -339,6 +354,7 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(transaction.invoice_guid, guid)
         self.assertEqual(transaction.amount, amount)
         self.assertEqual(transaction.payment_uri, new_payment_uri)
+        self.assertEqual(transaction.appears_on_statement_as, appears_on_statement_as)
         self.assertEqual(transaction.scheduled_at, update_now)
 
     def test_update_payment_uri_while_processing_with_adjustments(self):
@@ -348,12 +364,14 @@ class TestInvoiceModel(ModelTestCase):
         amount = 200
         payment_uri = '/v1/cards/1234'
         new_payment_uri = '/v1/cards/5678'
+        appears_on_statement_as = 'hello baby'
 
         with db_transaction.manager:
             guid = model.create(
                 customer_guid=self.customer_guid,
                 amount=amount,
                 payment_uri=payment_uri,
+                appears_on_statement_as=appears_on_statement_as,
                 adjustments=[
                     dict(total=-100),
                     dict(total=20),
@@ -372,6 +390,8 @@ class TestInvoiceModel(ModelTestCase):
         transaction = transactions[1]
         self.assertEqual(transaction.status, TransactionModel.STATUS_INIT)
         self.assertEqual(transaction.amount, invoice.effective_amount)
+        self.assertEqual(transaction.appears_on_statement_as, 
+                         invoice.appears_on_statement_as)
 
     def test_update_payment_uri_while_failed(self):
         from billy.models.transaction import TransactionModel
@@ -382,6 +402,7 @@ class TestInvoiceModel(ModelTestCase):
         title = 'Foobar invoice'
         payment_uri = '/v1/cards/1234'
         new_payment_uri = '/v1/cards/5678'
+        appears_on_statement_as = 'hello baby'
         create_now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
@@ -390,6 +411,7 @@ class TestInvoiceModel(ModelTestCase):
                 title=title,
                 amount=amount,
                 payment_uri=payment_uri,
+                appears_on_statement_as=appears_on_statement_as,
             )
             invoice = model.get(guid)
             transaction = invoice.transactions[0]
@@ -413,6 +435,8 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(transaction.invoice_guid, guid)
         self.assertEqual(transaction.amount, amount)
         self.assertEqual(transaction.payment_uri, payment_uri)
+        self.assertEqual(transaction.appears_on_statement_as, 
+                         appears_on_statement_as)
         self.assertEqual(transaction.scheduled_at, create_now)
 
         transaction = transactions[1]
@@ -420,6 +444,8 @@ class TestInvoiceModel(ModelTestCase):
         self.assertEqual(transaction.invoice_guid, guid)
         self.assertEqual(transaction.amount, amount)
         self.assertEqual(transaction.payment_uri, new_payment_uri)
+        self.assertEqual(transaction.appears_on_statement_as, 
+                         appears_on_statement_as)
         self.assertEqual(transaction.scheduled_at, update_now)
 
     def test_update_payment_uri_while_failed_with_adjustments(self):
@@ -430,12 +456,14 @@ class TestInvoiceModel(ModelTestCase):
         amount = 200
         payment_uri = '/v1/cards/1234'
         new_payment_uri = '/v1/cards/5678'
+        appears_on_statement_as = 'hello baby'
 
         with db_transaction.manager:
             guid = model.create(
                 customer_guid=self.customer_guid,
                 amount=amount,
                 payment_uri=payment_uri,
+                appears_on_statement_as=appears_on_statement_as,
                 adjustments=[
                     dict(total=-100),
                     dict(total=20),
@@ -457,9 +485,13 @@ class TestInvoiceModel(ModelTestCase):
         transactions = self._get_transactions_in_order(guid)
         transaction = transactions[0]
         self.assertEqual(transaction.amount, invoice.effective_amount)
+        self.assertEqual(transaction.appears_on_statement_as, 
+                         invoice.appears_on_statement_as)
 
         transaction = transactions[1]
         self.assertEqual(transaction.amount, invoice.effective_amount)
+        self.assertEqual(transaction.appears_on_statement_as, 
+                         invoice.appears_on_statement_as)
 
     def test_update_payment_uri_with_wrong_status(self):
         from billy.models.invoice import InvalidOperationError

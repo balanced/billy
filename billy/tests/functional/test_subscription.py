@@ -64,6 +64,7 @@ class TestSubscriptionViews(ViewTestCase):
         plan_guid = self.plan_guid
         amount = 5566
         payment_uri = 'MOCK_CARD_URI'
+        appears_on_statement_as = 'hello baby'
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat()
         # next week
@@ -98,6 +99,7 @@ class TestSubscriptionViews(ViewTestCase):
                 plan_guid=plan_guid,
                 amount=amount,
                 payment_uri=payment_uri,
+                appears_on_statement_as=appears_on_statement_as,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
@@ -112,6 +114,8 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(res.json['customer_guid'], customer_guid)
         self.assertEqual(res.json['plan_guid'], plan_guid)
         self.assertEqual(res.json['payment_uri'], payment_uri)
+        self.assertEqual(res.json['appears_on_statement_as'], 
+                         appears_on_statement_as)
         self.assertEqual(res.json['canceled'], False)
 
         subscription_model = SubscriptionModel(self.testapp.session)
@@ -302,6 +306,18 @@ class TestSubscriptionViews(ViewTestCase):
         assert_bad_parameters(dict(
             customer_guid=self.customer_guid,
             plan_guid=self.customer_guid,
+        ))
+        assert_bad_parameters(dict(
+            customer_guid=self.customer_guid,
+            plan_guid=self.customer_guid,
+            amount=999,
+            appears_on_statement_as='bad\tstatement',
+        ))
+        assert_bad_parameters(dict(
+            customer_guid=self.customer_guid,
+            plan_guid=self.customer_guid,
+            amount=999,
+            appears_on_statement_as='bad\0statement',
         ))
 
     def test_create_subscription_with_started_at(self):

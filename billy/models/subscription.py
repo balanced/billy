@@ -45,6 +45,7 @@ class SubscriptionModel(BaseTableModel):
         payment_uri=None, 
         started_at=None,
         external_id=None,
+        appears_on_statement_as=None,
         amount=None,
     ):
         """Create a subscription and return its id
@@ -64,6 +65,7 @@ class SubscriptionModel(BaseTableModel):
             amount=amount, 
             payment_uri=payment_uri, 
             external_id=external_id, 
+            appears_on_statement_as=appears_on_statement_as, 
             started_at=started_at, 
             next_transaction_at=started_at, 
             created_at=now,

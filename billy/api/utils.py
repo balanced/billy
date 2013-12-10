@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import re
 
 from pyramid.httpexceptions import HTTPBadRequest
 
@@ -6,6 +7,15 @@ from .auth import auth_api_key
 
 # the minimum amount in a transaction
 MINIMUM_AMOUNT = 50
+
+# regular expression for appears_on_statement_as field
+# this basically accepts 
+#    ASCII letters (a-z and A-Z)
+#    Digits (0-9)
+#    Special characters (.<>(){}[]+&!$;-%_?:#@~='" ^\`|)
+STATEMENT_REXP = (
+    '^[0-9a-zA-Z{}]*$'.format(re.escape('''.<>(){}[]+&!$;-%_?:#@~='" ^\`|'''))
+)
 
 
 def form_errors_to_bad_request(errors):

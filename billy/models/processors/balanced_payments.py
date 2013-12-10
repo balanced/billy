@@ -116,6 +116,8 @@ class BalancedProcessor(PaymentProcessor):
             description=description,
             meta={'billy.transaction_guid': transaction.guid},
         )
+        if transaction.appears_on_statement_as is not None:
+            kwargs['appears_on_statement_as'] = transaction.appears_on_statement_as
         kwargs.update(extra_kwargs)
 
         method = getattr(balanced_customer, method_name)

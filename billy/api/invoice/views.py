@@ -105,6 +105,9 @@ def invoice_list_post(request):
     external_id = form.data.get('external_id')
     if not external_id:
         external_id = None
+    appears_on_statement_as = form.data.get('appears_on_statement_as')
+    if not appears_on_statement_as:
+        appears_on_statement_as = None
     items = parse_items(
         request=request, 
         prefix='item_', 
@@ -137,6 +140,7 @@ def invoice_list_post(request):
                 items=items,
                 adjustments=adjustments,
                 external_id=external_id,
+                appears_on_statement_as=appears_on_statement_as,
             )
     except DuplicateExternalIDError, e:
         return HTTPConflict(e.args[0])

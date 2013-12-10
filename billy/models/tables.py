@@ -185,6 +185,9 @@ class Subscription(DeclarativeBase):
     amount = Column(Integer)
     #: the external ID given by user
     external_id = Column(Unicode(128), index=True)
+    #: the statement to appear on customer's transaction record (either 
+    #  bank account or credit card)
+    appears_on_statement_as = Column(Unicode(32))
     #: is this subscription canceled?
     canceled = Column(Boolean, default=False, nullable=False)
     #: the next datetime to charge or pay out
@@ -233,6 +236,9 @@ class Transaction(DeclarativeBase):
     transaction_type = Column(Integer, index=True, nullable=False)
     #: the ID of transaction record in payment processing system
     external_id = Column(Unicode(128), index=True)
+    #: the statement to appear on customer's transaction record (either 
+    #  bank account or credit card)
+    appears_on_statement_as = Column(Unicode(32))    
     #: current status of this transaction, could be
     #  0=init, 1=retrying, 2=done, 3=failed, 4=canceled
     status = Column(Integer, index=True, nullable=False)
@@ -363,8 +369,11 @@ class Invoice(DeclarativeBase):
     #: the updated datetime of this invoice 
     updated_at = Column(DateTime, default=now_func)
     #: the external_id for storing external resource ID in order to avoid 
-    #: duplication
+    #  duplication
     external_id = Column(Unicode(128), index=True)
+    #: the statement to appear on customer's transaction record (either 
+    #  bank account or credit card)
+    appears_on_statement_as = Column(Unicode(32))
 
     #: transactions of this invoice
     transactions = relationship(

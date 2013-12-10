@@ -144,6 +144,7 @@ class TransactionModel(BaseTableModel):
         invoice_guid=None, 
         payment_uri=None,
         refund_to_guid=None,
+        appears_on_statement_as=None,
     ):
         """Create a transaction and return its ID
 
@@ -181,6 +182,7 @@ class TransactionModel(BaseTableModel):
             transaction_type=transaction_type,
             amount=amount, 
             payment_uri=payment_uri, 
+            appears_on_statement_as=appears_on_statement_as, 
             status=self.STATUS_INIT, 
             scheduled_at=scheduled_at, 
             refund_to_guid=refund_to_guid, 

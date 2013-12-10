@@ -41,6 +41,7 @@ class TestRenderer(ViewTestCase):
             self.subscription_guid = subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
+                appears_on_statement_as='hello baby',
             )
             self.transaction_guid = transaction_model.create(
                 subscription_guid=self.subscription_guid,
@@ -48,6 +49,7 @@ class TestRenderer(ViewTestCase):
                 transaction_type=transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
+                appears_on_statement_as='hello baby',
                 scheduled_at=datetime.datetime.utcnow(),
             )
             self.invoice_guid = invoice_model.create(
@@ -55,6 +57,7 @@ class TestRenderer(ViewTestCase):
                 amount=100,
                 title='foobar invoice',
                 external_id='external ID',
+                appears_on_statement_as='hello baby',
                 items=[
                     dict(type='debit', name='foo', total=123, amount=5678),
                     dict(name='bar', total=456, quantity=10, unit='hours', 
@@ -114,6 +117,7 @@ class TestRenderer(ViewTestCase):
             title=invoice.title, 
             external_id=invoice.external_id, 
             payment_uri=None, 
+            appears_on_statement_as='hello baby', 
             items=[
                 dict(type='debit', name='foo', total=123, quantity=None, 
                      amount=5678, unit=None),
@@ -188,6 +192,7 @@ class TestRenderer(ViewTestCase):
             guid=subscription.guid, 
             amount=None,
             payment_uri=subscription.payment_uri,
+            appears_on_statement_as=subscription.appears_on_statement_as,
             period=subscription.period,
             canceled=subscription.canceled,
             next_transaction_at=subscription.next_transaction_at.isoformat(),
@@ -231,6 +236,7 @@ class TestRenderer(ViewTestCase):
             amount=transaction.amount,
             payment_uri=transaction.payment_uri,
             external_id=transaction.external_id,
+            appears_on_statement_as=transaction.appears_on_statement_as,
             failure_count=transaction.failure_count,
             error_message=transaction.error_message,
             created_at=transaction.created_at.isoformat(),
@@ -267,6 +273,7 @@ class TestRenderer(ViewTestCase):
             transaction_type=transaction_model.TYPE_CHARGE,
             amount=10,
             payment_uri='/v1/cards/tester',
+            appears_on_statement_as='hello baby',
             scheduled_at=datetime.datetime.utcnow(),
         )
         transaction = transaction_model.get(transaction_guid)
@@ -279,6 +286,7 @@ class TestRenderer(ViewTestCase):
             amount=transaction.amount,
             payment_uri=transaction.payment_uri,
             external_id=transaction.external_id,
+            appears_on_statement_as=transaction.appears_on_statement_as,
             failure_count=transaction.failure_count,
             error_message=transaction.error_message,
             created_at=transaction.created_at.isoformat(),

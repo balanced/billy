@@ -125,6 +125,8 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(transaction.external_id, 
                          'MOCK_PROCESSOR_TRANSACTION_ID')
         self.assertEqual(transaction.status, TransactionModel.STATUS_DONE)
+        self.assertEqual(transaction.appears_on_statement_as, 
+                         subscription.appears_on_statement_as)
 
     def test_create_subscription_with_default_payment_uri(self):
         from billy.models.subscription import SubscriptionModel

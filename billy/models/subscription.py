@@ -279,6 +279,7 @@ class SubscriptionModel(BaseTableModel):
                     transaction_type=transaction_type, 
                     transaction_cls=tx_model.CLS_SUBSCRIPTION, 
                     scheduled_at=subscription.next_transaction_at, 
+                    appears_on_statement_as=subscription.appears_on_statement_as,
                 )
                 self.logger.info(
                     'Created transaction for %s, guid=%s, transaction_type=%s, '

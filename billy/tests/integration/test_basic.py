@@ -61,6 +61,7 @@ class TestBasicScenarios(IntegrationTestCase):
                 customer_guid=customer['guid'],
                 plan_guid=plan['guid'],
                 payment_uri=card.uri,
+                appears_on_statement_as='hello baby',
             ),
             headers=[self.make_auth(api_key)],
             status=200
@@ -68,6 +69,7 @@ class TestBasicScenarios(IntegrationTestCase):
         subscription = res.json
         self.assertEqual(subscription['customer_guid'], customer['guid'])
         self.assertEqual(subscription['plan_guid'], plan['guid'])
+        self.assertEqual(subscription['appears_on_statement_as'], 'hello baby')
 
         # transactions
         res = self.testapp.get(
@@ -81,11 +83,13 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(transaction['subscription_guid'], subscription['guid'])
         self.assertEqual(transaction['status'], 'done')
         self.assertEqual(transaction['transaction_type'], 'charge')
+        self.assertEqual(transaction['appears_on_statement_as'], 'hello baby')
 
         debit = balanced.Debit.find(transaction['external_id'])
         self.assertEqual(debit.meta['billy.transaction_guid'], transaction['guid'])
         self.assertEqual(debit.amount, 1234)
         self.assertEqual(debit.status, 'succeeded')
+        self.assertEqual(debit.appears_on_statement_as, 'hello baby')
 
         # cancel the subscription and refund
         res = self.testapp.post(
@@ -176,8 +180,9 @@ class TestBasicScenarios(IntegrationTestCase):
                 amount=5566,
                 title='Awesome invoice',
                 item_name1='Foobar',
-                item_amount1=200,
+                item_total1=200,
                 payment_uri=card.uri,
+                appears_on_statement_as='hello baby',
             ),
             headers=[self.make_auth(api_key)],
             status=200
@@ -186,6 +191,7 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(invoice['title'], 'Awesome invoice')
         self.assertEqual(invoice['amount'], 5566)
         self.assertEqual(invoice['status'], 'settled')
+        self.assertEqual(invoice['appears_on_statement_as'], 'hello baby')
 
         # transactions
         res = self.testapp.get(
@@ -199,8 +205,10 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(transaction['invoice_guid'], invoice['guid'])
         self.assertEqual(transaction['status'], 'done')
         self.assertEqual(transaction['transaction_type'], 'charge')
+        self.assertEqual(transaction['appears_on_statement_as'], 'hello baby')
 
         debit = balanced.Debit.find(transaction['external_id'])
         self.assertEqual(debit.meta['billy.transaction_guid'], transaction['guid'])
         self.assertEqual(debit.amount, 5566)
         self.assertEqual(debit.status, 'succeeded')
+        self.assertEqual(debit.appears_on_statement_as, 'hello baby')

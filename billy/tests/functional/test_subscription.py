@@ -733,7 +733,10 @@ class TestSubscriptionViews(ViewTestCase):
 
         res = self.testapp.post(
             '/v1/subscriptions/{}/cancel'.format(subscription_guid), 
-            dict(refund_amount=234),
+            dict(
+                refund_amount=234,
+                appears_on_statement_as='good bye',
+            ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
@@ -745,6 +748,7 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(transaction.subscription_guid, subscription_guid)
         self.assertEqual(transaction.amount, 234)
         self.assertEqual(transaction.status, tx_model.STATUS_DONE)
+        self.assertEqual(transaction.appears_on_statement_as, 'good bye')
 
         res = self.testapp.get(
             '/v1/transactions', 

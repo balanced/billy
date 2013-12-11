@@ -373,13 +373,18 @@ class TestSubscriptionModel(ModelTestCase):
 
         # let's cancel and refund the latest transaction with amount 566 cent
         with db_transaction.manager:
-            refund_guid = model.cancel(guid, refund_amount=566)
+            refund_guid = model.cancel(
+                guid=guid, 
+                refund_amount=566,
+                appears_on_statement_as='good bye',
+            )
 
         transaction = tx_model.get(refund_guid)
         self.assertEqual(transaction.refund_to_guid, tx_guids[0])
         self.assertEqual(transaction.subscription_guid, guid)
         self.assertEqual(transaction.transaction_type, tx_model.TYPE_REFUND)
         self.assertEqual(transaction.amount, 566)
+        self.assertEqual(transaction.appears_on_statement_as, 'good bye')
 
     def test_subscription_cancel_with_prorated_refund_and_amount_overwrite(self):
         from billy.models.transaction import TransactionModel
@@ -405,10 +410,15 @@ class TestSubscriptionModel(ModelTestCase):
         # customer
         with freeze_time('2013-06-07'):
             with db_transaction.manager:
-                refund_guid = model.cancel(guid, prorated_refund=True)
+                refund_guid = model.cancel(
+                    guid=guid, 
+                    prorated_refund=True,
+                    appears_on_statement_as='good bye',
+                )
 
         transaction = tx_model.get(refund_guid)
         self.assertEqual(transaction.amount, 8000)
+        self.assertEqual(transaction.appears_on_statement_as, 'good bye')
 
     def test_subscription_cancel_with_prorated_refund_rounding(self):
         from billy.models.transaction import TransactionModel

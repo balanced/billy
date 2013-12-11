@@ -94,7 +94,13 @@ class SubscriptionModel(BaseTableModel):
         self.session.add(subscription)
         self.session.flush()
 
-    def cancel(self, guid, prorated_refund=False, refund_amount=None):
+    def cancel(
+        self, 
+        guid, 
+        prorated_refund=False, 
+        refund_amount=None, 
+        appears_on_statement_as=None,
+    ):
         """Cancel a subscription
 
         :param guid: the guid of subscription to cancel
@@ -103,6 +109,8 @@ class SubscriptionModel(BaseTableModel):
         :param refund_amount: if refund_amount is given, it will be used 
             to refund customer, you cannot set prorated_refund with 
             refund_amount
+        :param appears_on_statement_as: the statement to show on customer's 
+            transaction record if a refund is issued
         :return: if prorated_refund is True, and the subscription is 
             refundable, the refund transaction guid will be returned
         """
@@ -176,6 +184,7 @@ class SubscriptionModel(BaseTableModel):
                     transaction_cls=tx_model.CLS_SUBSCRIPTION, 
                     scheduled_at=subscription.next_transaction_at, 
                     refund_to_guid=previous_transaction.guid, 
+                    appears_on_statement_as=appears_on_statement_as,
                 )
 
         # cancel not done transactions (exclude refund transaction)

@@ -159,6 +159,9 @@ def subscription_cancel(request):
     guid = request.matchdict['subscription_guid']
     prorated_refund = asbool(form.data.get('prorated_refund', False))
     refund_amount = form.data.get('refund_amount')
+    appears_on_statement_as = form.data.get('appears_on_statement_as')
+    if not appears_on_statement_as:
+        appears_on_statement_as = None
 
     sub_model = request.model_factory.create_subscription_model()
     tx_model = request.model_factory.create_transaction_model()
@@ -186,6 +189,7 @@ def subscription_cancel(request):
             guid, 
             prorated_refund=prorated_refund,
             refund_amount=refund_amount, 
+            appears_on_statement_as=appears_on_statement_as,
         )
     if tx_guid is not None:
         with db_transaction.manager:

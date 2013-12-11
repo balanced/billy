@@ -102,3 +102,8 @@ class SubscriptionCancelForm(Form):
         RefundAmountConflict(),
         validators.NumberRange(min=MINIMUM_AMOUNT),
     ])
+    appears_on_statement_as = TextField('Appears on statement as', [
+        validators.Optional(),
+        validators.Regexp(STATEMENT_REXP),
+        validators.Length(max=18),
+    ])

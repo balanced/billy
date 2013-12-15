@@ -115,6 +115,21 @@ class TestInvoiceViews(ViewTestCase):
         invoice = invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 0)
 
+    def test_create_invoice_with_zero_amount(self):
+        amount = 0
+
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=self.customer_guid,
+                amount=amount,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.failUnless('guid' in res.json)
+        self.assertEqual(res.json['amount'], amount)
+
     def test_create_invoice_with_external_id(self):
         customer_guid = self.customer_guid
         amount = 5566
@@ -257,6 +272,83 @@ class TestInvoiceViews(ViewTestCase):
                          'MOCK_PROCESSOR_TRANSACTION_ID')
         self.assertEqual(transaction.status, TransactionModel.STATUS_DONE)
 
+    def test_create_invoice_with_payment_uri_with_zero_amount(self):
+        from billy.models.invoice import InvoiceModel 
+
+        customer_guid = self.customer_guid
+        amount = 0
+        payment_uri = 'MOCK_CARD_URI'
+
+        mock_processor = flexmock(DummyProcessor)
+        (
+            mock_processor
+            .should_receive('create_customer')
+            .never()
+        )
+
+        (
+            mock_processor
+            .should_receive('charge')
+            .never()
+        )
+
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=customer_guid,
+                amount=amount,
+                payment_uri=payment_uri,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.failUnless('guid' in res.json)
+
+        invoice_model = InvoiceModel(self.testapp.session)
+        invoice = invoice_model.get(res.json['guid'])
+        self.assertEqual(len(invoice.transactions), 0)
+
+    def test_create_invoice_with_payment_uri_with_negtive_amount(self):
+        from billy.models.invoice import InvoiceModel 
+
+        customer_guid = self.customer_guid
+        amount = 100
+        adjustments = [
+            dict(total=-1000, reason='A Lannister always pays his debts!'),
+        ]
+        adjustment_params = self._encode_adjustment_params(adjustments)
+        payment_uri = 'MOCK_CARD_URI'
+
+        mock_processor = flexmock(DummyProcessor)
+        (
+            mock_processor
+            .should_receive('create_customer')
+            .never()
+        )
+
+        (
+            mock_processor
+            .should_receive('charge')
+            .never()
+        )
+
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=customer_guid,
+                amount=amount,
+                payment_uri=payment_uri,
+                **adjustment_params
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.failUnless('guid' in res.json)
+
+        invoice_model = InvoiceModel(self.testapp.session)
+        invoice = invoice_model.get(res.json['guid'])
+        self.assertEqual(len(invoice.transactions), 0)
+
     def test_create_invoice_with_bad_parameters(self):
         def assert_bad_parameters(params):
             self.testapp.post(
@@ -272,22 +364,11 @@ class TestInvoiceViews(ViewTestCase):
         ))
         assert_bad_parameters(dict(
             customer_guid=self.customer_guid,
-            amount=0,
         ))
         assert_bad_parameters(dict(
             amount=123,
             payment_uri='MOCK_CARD_URI',
         ))
-        # TODO: we allow negetive amount now for feeding invoice from balanced,
-        # maybe should consider this again later
-        #assert_bad_parameters(dict(
-        #    customer_guid=self.customer_guid,
-        #    amount=-123,
-        #))
-        #assert_bad_parameters(dict(
-        #    customer_guid=self.customer_guid,
-        #    amount=49,
-        #))
         assert_bad_parameters(dict(
             customer_guid=self.customer_guid,
             amount=999,
@@ -646,3 +727,108 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(transaction.external_id, 
                          'MOCK_PROCESSOR_TRANSACTION_ID')
         self.assertEqual(transaction.status, TransactionModel.STATUS_DONE)
+
+    def test_update_invoice_payment_uri_with_zero_amount(self):
+        from billy.models.invoice import InvoiceModel 
+
+        customer_guid = self.customer_guid
+        amount = 0
+        payment_uri = 'MOCK_CARD_URI'
+
+        def mock_charge(transaction):
+            self.assertEqual(transaction.invoice.customer_guid, 
+                             customer_guid)
+            return 'MOCK_PROCESSOR_TRANSACTION_ID'
+
+        mock_processor = flexmock(DummyProcessor)
+        (
+            mock_processor
+            .should_receive('create_customer')
+            .never()
+        )
+
+        (
+            mock_processor
+            .should_receive('charge')
+            .replace_with(mock_charge)
+            .never()
+        )
+
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=customer_guid,
+                amount=amount,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.failUnless('guid' in res.json)
+        self.assertEqual(res.json['payment_uri'], None)
+        guid = res.json['guid']
+
+        res = self.testapp.put(
+            '/v1/invoices/{}'.format(guid),
+            dict(
+                payment_uri=payment_uri,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.assertEqual(res.json['payment_uri'], payment_uri)
+
+        invoice_model = InvoiceModel(self.testapp.session)
+        invoice = invoice_model.get(res.json['guid'])
+        self.assertEqual(len(invoice.transactions), 0)
+
+    def test_update_invoice_payment_uri_with_negtive_amount(self):
+        from billy.models.invoice import InvoiceModel 
+
+        customer_guid = self.customer_guid
+        amount = 0
+        payment_uri = 'MOCK_CARD_URI'
+        adjustments = [
+            dict(total=-1000, reason='A Lannister always pays his debts!'),
+        ]
+        adjustment_params = self._encode_adjustment_params(adjustments)
+
+        mock_processor = flexmock(DummyProcessor)
+        (
+            mock_processor
+            .should_receive('create_customer')
+            .never()
+        )
+
+        (
+            mock_processor
+            .should_receive('charge')
+            .never()
+        )
+
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=customer_guid,
+                amount=amount,
+                **adjustment_params
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.failUnless('guid' in res.json)
+        self.assertEqual(res.json['payment_uri'], None)
+        guid = res.json['guid']
+
+        res = self.testapp.put(
+            '/v1/invoices/{}'.format(guid),
+            dict(
+                payment_uri=payment_uri,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.assertEqual(res.json['payment_uri'], payment_uri)
+
+        invoice_model = InvoiceModel(self.testapp.session)
+        invoice = invoice_model.get(res.json['guid'])
+        self.assertEqual(len(invoice.transactions), 0)

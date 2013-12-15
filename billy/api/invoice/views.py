@@ -149,10 +149,11 @@ def invoice_list_post(request):
         with db_transaction.manager:
             invoice = model.get(guid)
             tx_guids = [tx.guid for tx in invoice.transactions]
-            tx_model.process_transactions(
-                processor=request.processor, 
-                guids=tx_guids,
-            )
+            if tx_guids:
+                tx_model.process_transactions(
+                    processor=request.processor, 
+                    guids=tx_guids,
+                )
     invoice = model.get(guid)
     return invoice 
 
@@ -203,7 +204,7 @@ def invoice_put(request):
             tx_guids = model.update_payment_uri(guid, payment_uri)
 
     # payment_uri is set, just process all transactions right away
-    if payment_uri:
+    if payment_uri and tx_guids:
         with db_transaction.manager:
             invoice = model.get(guid)
             tx_model.process_transactions(

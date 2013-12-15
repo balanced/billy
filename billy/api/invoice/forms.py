@@ -17,7 +17,7 @@ class InvoiceCreateForm(Form):
         RecordExistValidator(CustomerModel),
     ])
     amount = IntegerField('Amount', [
-        validators.Required(),
+        validators.InputRequired(),
         #validators.NumberRange(min=MINIMUM_AMOUNT)
     ])
     payment_uri = TextField('Payment URI', [

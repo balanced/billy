@@ -91,8 +91,6 @@ class InvoiceModel(BaseTableModel):
         """
         from sqlalchemy.exc import IntegrityError
 
-        if amount <= 0:
-            raise ValueError('Amount should be a non-zero postive integer')
         now = tables.now_func()
         invoice = tables.Invoice(
             guid='IV' + make_guid(),
@@ -148,7 +146,7 @@ class InvoiceModel(BaseTableModel):
         # as if we set the payment_uri at very first, we want to charge it
         # immediately, so we create a transaction right away, also set the 
         # status to PROCESSING
-        if payment_uri is not None:
+        if payment_uri is not None and invoice.effective_amount > 0:
             invoice.status = self.STATUS_PROCESSING
             tx_model.create(
                 invoice_guid=invoice.guid, 
@@ -159,6 +157,10 @@ class InvoiceModel(BaseTableModel):
                 appears_on_statement_as=invoice.appears_on_statement_as,
                 scheduled_at=now, 
             )
+        # it is zero or negtive amount, nothing to charge, just switch to
+        # SETTLED status
+        elif invoice.effective_amount <= 0:
+            invoice.status = self.STATUS_SETTLED
 
         self.session.add(invoice)
         self.session.flush()
@@ -206,7 +208,12 @@ class InvoiceModel(BaseTableModel):
         invoice = self.get(guid, raise_error=True, with_lockmode='update')
         now = tables.now_func()
         invoice.updated_at = now
+        invoice.payment_uri = payment_uri
         tx_guids = []
+
+        # We have nothing to do if the amount is zero or negtive, just return
+        if invoice.effective_amount <= 0:
+            return tx_guids
 
         # think about race condition issue, what if we update the 
         # payment_uri during processing previous transaction? say
@@ -293,7 +300,6 @@ class InvoiceModel(BaseTableModel):
                 'the status is one of INIT, PROCESSING and PROCESS_FAILED'
             )
         invoice.status = self.STATUS_PROCESSING
-        invoice.payment_uri = payment_uri
 
         self.session.add(invoice)
         self.session.flush()

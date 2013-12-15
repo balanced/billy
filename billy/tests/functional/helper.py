@@ -30,5 +30,5 @@ class ViewTestCase(unittest.TestCase):
     def tearDown(self):
         from billy.models.tables import DeclarativeBase
         self.testapp.session.remove()
-        self.testapp.session.bind.dispose()
         DeclarativeBase.metadata.drop_all()
+        self.testapp.session.bind.dispose()

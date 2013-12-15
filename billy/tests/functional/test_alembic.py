@@ -77,17 +77,17 @@ class TestAlembic(unittest.TestCase):
 
         class Plan(self.declarative_base):
             __tablename__ = 'plan'
-            guid = Column(Integer, primary_key=True)
+            guid = Column(Integer, primary_key=True, autoincrement=True)
             amount = Column(Numeric(10, 2))
 
         class Subscription(self.declarative_base):
             __tablename__ = 'subscription'
-            guid = Column(Integer, primary_key=True)
+            guid = Column(Integer, primary_key=True, autoincrement=True)
             amount = Column(Numeric(10, 2))
 
         class Transaction(self.declarative_base):
             __tablename__ = 'transaction'
-            guid = Column(Integer, primary_key=True)
+            guid = Column(Integer, primary_key=True, autoincrement=True)
             amount = Column(Numeric(10, 2))
 
         self.declarative_base.metadata.create_all()

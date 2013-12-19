@@ -32,7 +32,7 @@ generated API key which is required for any further calls to other methods.
 
     You **MUST** keep these API keys as **secret**, do not share them with 
     anyone, do not post them on IRC. Also, currently, Billy API key cannot be 
-    retrived or reset easily, if you lost it, you can only contact 
+    retrieved or reset easily, if you lost it, you can only contact 
     administrator to ask them reset it for you.
 
 Create
@@ -67,10 +67,10 @@ Response:
         "updated_at": "2013-10-02T05:29:43.953987"
     }
 
-Retrive
+Retrieve
 ~~~~~~~
 
-Retrive a company record
+Retrieve a company record
 
 Method
     GET
@@ -158,10 +158,10 @@ Response:
         "updated_at": "2013-10-02T05:48:26.210843"
     }
 
-Retrive
+Retrieve
 ~~~~~~~
 
-Retrive a plan record
+Retrieve a plan record
 
 Method
     GET
@@ -312,10 +312,10 @@ Response:
         "updated_at": "2013-10-02T06:06:21.239505"
     }
 
-Retrive
+Retrieve
 ~~~~~~~
 
-Retrive a customer record
+Retrieve a customer record
 
 Method
     GET
@@ -470,10 +470,10 @@ Response:
         "updated_at": "2013-10-02T06:35:00.380234", 
     }
 
-Retrive
+Retrieve
 ~~~~~~~
 
-Retrive a subscription record
+Retrieve a subscription record
 
 Method
     GET
@@ -614,10 +614,10 @@ For all status:
  - **FAILED** - the transaction failure count exceeded limitation
  - **DONE** - the transaction is processed successfully
 
-Retrive
+Retrieve
 ~~~~~~~
 
-Retrive a transaction record
+Retrieve a transaction record
 
 Method
     GET

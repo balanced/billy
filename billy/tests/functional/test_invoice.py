@@ -330,6 +330,10 @@ class TestInvoiceViews(ViewTestCase):
         ))
         assert_bad_parameters(dict(
             customer_guid=self.customer_guid,
+            amount=-1,
+        ))
+        assert_bad_parameters(dict(
+            customer_guid=self.customer_guid,
             amount=999,
             title='t' * 129,
         ))

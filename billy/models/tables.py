@@ -399,13 +399,13 @@ class Invoice(DeclarativeBase):
     )
 
     @property
-    def effective_amount(self):
-        """The effective amount after applied all adjustments
+    def total_adjustment_amount(self):
+        """Sum of total adjustment amount
 
         """
         from sqlalchemy import func
         session = object_session(self)
-        return self.amount + (
+        return (
             session.query(func.coalesce(func.sum(Adjustment.total), 0))
             .filter(Adjustment.invoice_guid == self.guid)
             .scalar()

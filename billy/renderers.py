@@ -61,7 +61,7 @@ def invoice_adapter(invoice, request):
         updated_at=invoice.updated_at.isoformat(),
         customer_guid=invoice.customer_guid, 
         amount=invoice.amount, 
-        effective_amount=invoice.effective_amount, 
+        total_adjustment_amount=invoice.total_adjustment_amount, 
         title=invoice.title, 
         external_id=invoice.external_id, 
         appears_on_statement_as=invoice.appears_on_statement_as, 

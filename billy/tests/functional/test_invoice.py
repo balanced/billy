@@ -191,7 +191,7 @@ class TestInvoiceViews(ViewTestCase):
         customer_guid = self.customer_guid
         adjustments = [
             dict(total=-100, reason='A Lannister always pays his debts!'),
-            dict(total=20, reason='you own me'),
+            dict(total=20, reason='you owe me'),
             dict(total=3, reason='foobar'),
         ]
         adjustment_params = self._encode_adjustment_params(adjustments)
@@ -208,7 +208,7 @@ class TestInvoiceViews(ViewTestCase):
             status=200,
         )
         self.failUnless('guid' in res.json)
-        self.assertEqual(res.json['effective_amount'], 123)
+        self.assertEqual(res.json['total_adjustment_amount'], -100 + 20 + 3)
 
         adjustment_result = res.json['adjustments']
         for adjustment in adjustment_result:
@@ -298,47 +298,6 @@ class TestInvoiceViews(ViewTestCase):
                 customer_guid=customer_guid,
                 amount=amount,
                 payment_uri=payment_uri,
-            ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
-            status=200,
-        )
-        self.failUnless('guid' in res.json)
-
-        invoice_model = InvoiceModel(self.testapp.session)
-        invoice = invoice_model.get(res.json['guid'])
-        self.assertEqual(len(invoice.transactions), 0)
-
-    def test_create_invoice_with_payment_uri_with_negtive_amount(self):
-        from billy.models.invoice import InvoiceModel 
-
-        customer_guid = self.customer_guid
-        amount = 100
-        adjustments = [
-            dict(total=-1000, reason='A Lannister always pays his debts!'),
-        ]
-        adjustment_params = self._encode_adjustment_params(adjustments)
-        payment_uri = 'MOCK_CARD_URI'
-
-        mock_processor = flexmock(DummyProcessor)
-        (
-            mock_processor
-            .should_receive('create_customer')
-            .never()
-        )
-
-        (
-            mock_processor
-            .should_receive('charge')
-            .never()
-        )
-
-        res = self.testapp.post(
-            '/v1/invoices',
-            dict(
-                customer_guid=customer_guid,
-                amount=amount,
-                payment_uri=payment_uri,
-                **adjustment_params
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
@@ -759,58 +718,6 @@ class TestInvoiceViews(ViewTestCase):
             dict(
                 customer_guid=customer_guid,
                 amount=amount,
-            ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
-            status=200,
-        )
-        self.failUnless('guid' in res.json)
-        self.assertEqual(res.json['payment_uri'], None)
-        guid = res.json['guid']
-
-        res = self.testapp.put(
-            '/v1/invoices/{}'.format(guid),
-            dict(
-                payment_uri=payment_uri,
-            ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
-            status=200,
-        )
-        self.assertEqual(res.json['payment_uri'], payment_uri)
-
-        invoice_model = InvoiceModel(self.testapp.session)
-        invoice = invoice_model.get(res.json['guid'])
-        self.assertEqual(len(invoice.transactions), 0)
-
-    def test_update_invoice_payment_uri_with_negtive_amount(self):
-        from billy.models.invoice import InvoiceModel 
-
-        customer_guid = self.customer_guid
-        amount = 0
-        payment_uri = 'MOCK_CARD_URI'
-        adjustments = [
-            dict(total=-1000, reason='A Lannister always pays his debts!'),
-        ]
-        adjustment_params = self._encode_adjustment_params(adjustments)
-
-        mock_processor = flexmock(DummyProcessor)
-        (
-            mock_processor
-            .should_receive('create_customer')
-            .never()
-        )
-
-        (
-            mock_processor
-            .should_receive('charge')
-            .never()
-        )
-
-        res = self.testapp.post(
-            '/v1/invoices',
-            dict(
-                customer_guid=customer_guid,
-                amount=amount,
-                **adjustment_params
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,

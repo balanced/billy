@@ -2,7 +2,7 @@ SQLAlchemy==0.8.2
 Zope.SQLAlchemy==0.7.3
 nose==1.3.0
 python-dateutil==1.5
-balanced==0.11.12
+balanced==0.11.15
 pyramid==1.4.3
 pyramid_debugtoolbar==1.0.8
 pyramid_tm==0.7

@@ -2,17 +2,18 @@ from __future__ import unicode_literals
 import unittest
 import datetime
 
+import balanced
 import transaction as db_transaction
 from flexmock import flexmock
 from freezegun import freeze_time
 
+from billy.models.processors.base import PaymentProcessor
 from billy.tests.unit.helper import ModelTestCase
 
 
 class TestPaymentProcessorModel(unittest.TestCase):
 
     def test_base_processor(self):
-        from billy.models.processors.base import PaymentProcessor
         processor = PaymentProcessor()
         with self.assertRaises(NotImplementedError):
             processor.create_customer(None)
@@ -30,20 +31,8 @@ class TestPaymentProcessorModel(unittest.TestCase):
 class TestBalancedProcessorModel(ModelTestCase):
 
     def setUp(self):
-        from billy.models.company import CompanyModel
-        from billy.models.customer import CustomerModel
-        from billy.models.plan import PlanModel
-        from billy.models.subscription import SubscriptionModel
-        from billy.models.invoice import InvoiceModel
-        from billy.models.transaction import TransactionModel
         super(TestBalancedProcessorModel, self).setUp()
         # build the basic scenario for transaction model
-        self.company_model = CompanyModel(self.session)
-        self.customer_model = CustomerModel(self.session)
-        self.plan_model = PlanModel(self.session)
-        self.subscription_model = SubscriptionModel(self.session)
-        self.transaction_model = TransactionModel(self.session)
-        self.invoice_model = InvoiceModel(self.session)
         with db_transaction.manager:
             self.company_guid = self.company_model.create('my_secret_key')
             self.plan_guid = self.plan_model.create(
@@ -70,8 +59,6 @@ class TestBalancedProcessorModel(ModelTestCase):
         return BalancedProcessor(*args, **kwargs)
 
     def test_create_customer(self):
-        import balanced
-
         customer = self.customer_model.get(self.customer_guid)
 
         # make sure API key is set correctly
@@ -100,8 +87,6 @@ class TestBalancedProcessorModel(ModelTestCase):
         self.assertEqual(customer_id, 'MOCK_BALANCED_CUSTOMER_URI')
 
     def test_prepare_customer_with_card(self):
-        import balanced
-
         with db_transaction.manager:
             self.customer_model.update(
                 guid=self.customer_guid,
@@ -142,8 +127,6 @@ class TestBalancedProcessorModel(ModelTestCase):
         processor.prepare_customer(customer, '/v1/cards/my_card')
 
     def test_prepare_customer_with_bank_account(self):
-        import balanced
-
         with db_transaction.manager:
             self.customer_model.update(
                 guid=self.customer_guid,
@@ -249,8 +232,6 @@ class TestBalancedProcessorModel(ModelTestCase):
         api_method_name,
         extra_api_kwargs,
     ):
-        import balanced
-
         tx_model = self.transaction_model
         with db_transaction.manager:
             if transaction_cls == tx_model.CLS_SUBSCRIPTION:
@@ -420,20 +401,18 @@ class TestBalancedProcessorModel(ModelTestCase):
         self.assertEqual(balanced_res_uri, 'MOCK_BALANCED_RESOURCE_URI')
 
     def test_charge_subscription(self):
-        from billy.models.transaction import TransactionModel
         self._test_operation(
             cls_name='debit_cls', 
-            transaction_cls=TransactionModel.CLS_SUBSCRIPTION,
+            transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
             processor_method_name='charge',
             api_method_name='debit',
             extra_api_kwargs=dict(source_uri='/v1/credit_card/tester'),
         )
 
     def test_charge_invoice(self):
-        from billy.models.transaction import TransactionModel
         self._test_operation(
             cls_name='debit_cls', 
-            transaction_cls=TransactionModel.CLS_INVOICE,
+            transaction_cls=self.transaction_model.CLS_INVOICE,
             processor_method_name='charge',
             api_method_name='debit',
             extra_api_kwargs=dict(source_uri='/v1/credit_card/tester'),
@@ -446,20 +425,18 @@ class TestBalancedProcessorModel(ModelTestCase):
         )
 
     def test_payout_subscription(self):
-        from billy.models.transaction import TransactionModel
         self._test_operation(
             cls_name='credit_cls', 
-            transaction_cls=TransactionModel.CLS_SUBSCRIPTION,
+            transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
             processor_method_name='payout',
             api_method_name='credit',
             extra_api_kwargs=dict(destination_uri='/v1/credit_card/tester'),
         )
 
     def test_payout_invoice(self):
-        from billy.models.transaction import TransactionModel
         self._test_operation(
             cls_name='credit_cls', 
-            transaction_cls=TransactionModel.CLS_INVOICE,
+            transaction_cls=self.transaction_model.CLS_INVOICE,
             processor_method_name='payout',
             api_method_name='credit',
             extra_api_kwargs=dict(destination_uri='/v1/credit_card/tester'),
@@ -472,8 +449,6 @@ class TestBalancedProcessorModel(ModelTestCase):
         )
 
     def test_refund(self):
-        import balanced
-
         tx_model = self.transaction_model
         with db_transaction.manager:
             charge_guid = tx_model.create(

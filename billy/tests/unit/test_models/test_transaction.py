@@ -6,6 +6,8 @@ import transaction as db_transaction
 from flexmock import flexmock
 from freezegun import freeze_time
 
+from billy.models import tables
+from billy.models.processors.base import PaymentProcessor
 from billy.tests.unit.helper import ModelTestCase
 
 
@@ -13,18 +15,8 @@ from billy.tests.unit.helper import ModelTestCase
 class TestTransactionModel(ModelTestCase):
 
     def setUp(self):
-        from billy.models.company import CompanyModel
-        from billy.models.customer import CustomerModel
-        from billy.models.plan import PlanModel
-        from billy.models.subscription import SubscriptionModel
-        from billy.models.invoice import InvoiceModel
         super(TestTransactionModel, self).setUp()
         # build the basic scenario for transaction model
-        self.company_model = CompanyModel(self.session)
-        self.customer_model = CustomerModel(self.session)
-        self.plan_model = PlanModel(self.session)
-        self.subscription_model = SubscriptionModel(self.session)
-        self.invoice_model = InvoiceModel(self.session)
         with db_transaction.manager:
             self.company_guid = self.company_model.create('my_secret_key')
             self.plan_guid = self.plan_model.create(
@@ -46,34 +38,27 @@ class TestTransactionModel(ModelTestCase):
                 amount=100,
             )
 
-    def make_one(self, *args, **kwargs):
-        from billy.models.transaction import TransactionModel
-        return TransactionModel(*args, **kwargs)
-
     def test_get_transaction(self):
-        model = self.make_one(self.session)
-
-        transaction = model.get('TX_NON_EXIST')
+        transaction = self.transaction_model.get('TX_NON_EXIST')
         self.assertEqual(transaction, None)
 
         with self.assertRaises(KeyError):
-            model.get('TX_NON_EXIST', raise_error=True)
+            self.transaction_model.get('TX_NON_EXIST', raise_error=True)
 
         with db_transaction.manager:
-            guid = model.create(
+            guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
-        transaction = model.get(guid, raise_error=True)
+        transaction = self.transaction_model.get(guid, raise_error=True)
         self.assertEqual(transaction.guid, guid)
 
     def test_list_by_company_guid(self):
-        model = self.make_one(self.session)
         # Following code basically crerates another company with records 
         # like this:
         #
@@ -120,26 +105,26 @@ class TestTransactionModel(ModelTestCase):
                 amount=100,
             )
         with db_transaction.manager:
-            other_guid1 = model.create(
+            other_guid1 = self.transaction_model.create(
                 subscription_guid=other_subscription_guid1,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
-            other_guid2 = model.create(
+            other_guid2 = self.transaction_model.create(
                 subscription_guid=other_subscription_guid2,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
-            other_guid3 = model.create(
+            other_guid3 = self.transaction_model.create(
                 invoice_guid=other_invoice_guid,
-                transaction_cls=model.CLS_INVOICE,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_INVOICE,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
@@ -156,42 +141,41 @@ class TestTransactionModel(ModelTestCase):
         #                 + Transaction3
         #
         with db_transaction.manager:
-            guid1 = model.create(
+            guid1 = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
-            guid2 = model.create(
+            guid2 = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
-            guid3 = model.create(
+            guid3 = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
         result_guids = [tx.guid for tx in 
-                        model.list_by_company_guid(self.company_guid)]
+                        self.transaction_model.list_by_company_guid(self.company_guid)]
         self.assertEqual(set(result_guids), set([guid1, guid2, guid3]))
         result_guids = [tx.guid for tx in 
-                        model.list_by_company_guid(other_company_guid)]
+                        self.transaction_model.list_by_company_guid(other_company_guid)]
         self.assertEqual(
             set(result_guids), 
             set([other_guid1, other_guid2, other_guid3]),
         )
 
     def test_list_by_subscription_guid(self):
-        model = self.make_one(self.session)
         # Following code basically crerates records like this:
         #
         #     + Subscription1
@@ -210,29 +194,29 @@ class TestTransactionModel(ModelTestCase):
             )
             # add some invoice transactions here to make sure
             # it will only return subscription transactions
-            model.create(
+            self.transaction_model.create(
                 invoice_guid=self.invoice_guid,
-                transaction_cls=model.CLS_INVOICE,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_INVOICE,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
             guid_ids1 = []
             for _ in range(3):
-                guid = model.create(
+                guid = self.transaction_model.create(
                     subscription_guid=subscription_guid1,
-                    transaction_cls=model.CLS_SUBSCRIPTION,
-                    transaction_type=model.TYPE_CHARGE,
+                    transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                    transaction_type=self.transaction_model.TYPE_CHARGE,
                     amount=10,
                     payment_uri='/v1/cards/tester',
                     scheduled_at=datetime.datetime.utcnow(),
                 )
                 guid_ids1.append(guid)
-            model.create(
+            self.transaction_model.create(
                 invoice_guid=self.invoice_guid,
-                transaction_cls=model.CLS_INVOICE,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_INVOICE,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
@@ -245,10 +229,10 @@ class TestTransactionModel(ModelTestCase):
             )
             guid_ids2 = []
             for _ in range(2):
-                guid = model.create(
+                guid = self.transaction_model.create(
                     subscription_guid=subscription_guid2,
-                    transaction_cls=model.CLS_SUBSCRIPTION,
-                    transaction_type=model.TYPE_CHARGE,
+                    transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                    transaction_type=self.transaction_model.TYPE_CHARGE,
                     amount=10,
                     payment_uri='/v1/cards/tester',
                     scheduled_at=datetime.datetime.utcnow(),
@@ -256,23 +240,22 @@ class TestTransactionModel(ModelTestCase):
                 guid_ids2.append(guid)
 
         result_guids = [tx.guid for tx in 
-                        model.list_by_subscription_guid(subscription_guid1)]
+                        self.transaction_model.list_by_subscription_guid(subscription_guid1)]
         self.assertEqual(set(result_guids), set(guid_ids1))
 
         result_guids = [tx.guid for tx in 
-                        model.list_by_subscription_guid(subscription_guid2)]
+                        self.transaction_model.list_by_subscription_guid(subscription_guid2)]
         self.assertEqual(set(result_guids), set(guid_ids2))
 
     def test_list_by_company_guid_with_offset_limit(self):
-        model = self.make_one(self.session)
         guids = []
         with db_transaction.manager:
             for i in range(10):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i)):
-                    guid = model.create(
+                    guid = self.transaction_model.create(
                         subscription_guid=self.subscription_guid,
-                        transaction_cls=model.CLS_SUBSCRIPTION,
-                        transaction_type=model.TYPE_CHARGE,
+                        transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                        transaction_type=self.transaction_model.TYPE_CHARGE,
                         amount=10 * i,
                         payment_uri='/v1/cards/tester',
                         scheduled_at=datetime.datetime.utcnow(),
@@ -281,7 +264,7 @@ class TestTransactionModel(ModelTestCase):
         guids = list(reversed(guids))
 
         def assert_list(offset, limit, expected):
-            result = model.list_by_company_guid(
+            result = self.transaction_model.list_by_company_guid(
                 self.company_guid, 
                 offset=offset, 
                 limit=limit,
@@ -297,11 +280,9 @@ class TestTransactionModel(ModelTestCase):
         assert_list(5, 10, guids[5:])
 
     def test_create(self):
-        model = self.make_one(self.session)
-
         subscription_guid = self.subscription_guid
-        transaction_type = model.TYPE_CHARGE
-        transaction_cls = model.CLS_SUBSCRIPTION
+        transaction_type = self.transaction_model.TYPE_CHARGE
+        transaction_cls = self.transaction_model.CLS_SUBSCRIPTION
         amount = 100
         payment_uri = '/v1/cards/tester'
         appears_on_statement_as = 'hello baby'
@@ -309,7 +290,7 @@ class TestTransactionModel(ModelTestCase):
         scheduled_at = now + datetime.timedelta(days=1)
 
         with db_transaction.manager:
-            guid = model.create(
+            guid = self.transaction_model.create(
                 subscription_guid=subscription_guid,
                 transaction_cls=transaction_cls,
                 transaction_type=transaction_type,
@@ -319,7 +300,7 @@ class TestTransactionModel(ModelTestCase):
                 scheduled_at=scheduled_at,
             )
 
-        transaction = model.get(guid)
+        transaction = self.transaction_model.get(guid)
         self.assertEqual(transaction.guid, guid)
         self.assert_(transaction.guid.startswith('TX'))
         self.assertEqual(transaction.subscription_guid, subscription_guid)
@@ -329,7 +310,7 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.payment_uri, payment_uri)
         self.assertEqual(transaction.appears_on_statement_as, 
                          appears_on_statement_as)
-        self.assertEqual(transaction.status, model.STATUS_INIT)
+        self.assertEqual(transaction.status, self.transaction_model.STATUS_INIT)
         self.assertEqual(transaction.failure_count, 0)
         self.assertEqual(transaction.error_message, None)
         self.assertEqual(transaction.scheduled_at, scheduled_at)
@@ -337,9 +318,6 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.updated_at, now)
 
     def test_create_different_created_updated_time(self):
-        from billy.models import tables
-        model = self.make_one(self.session)
-
         results = [
             datetime.datetime(2013, 8, 16, 1),
             datetime.datetime(2013, 8, 16, 2),
@@ -351,104 +329,99 @@ class TestTransactionModel(ModelTestCase):
         tables.set_now_func(mock_utcnow)
 
         with db_transaction.manager:
-            guid = model.create(
+            guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
-        transaction = model.get(guid)
+        transaction = self.transaction_model.get(guid)
         self.assertEqual(transaction.created_at, transaction.updated_at)
 
     def test_create_refund(self):
-        model = self.make_one(self.session)
-
         now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
-            tx_guid = model.create(
+            tx_guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=now,
             )
 
         with db_transaction.manager:
-            refund_guid = model.create(
+            refund_guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_REFUND,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_REFUND,
                 refund_to_guid=tx_guid, 
                 amount=50,
                 scheduled_at=now,
             )
 
-        refund_transaction = model.get(refund_guid)
+        refund_transaction = self.transaction_model.get(refund_guid)
         self.assertEqual(refund_transaction.refund_to_guid, tx_guid)
         self.assertEqual(refund_transaction.refund_to.guid, tx_guid)
         self.assertEqual(refund_transaction.refund_to.refund_from.guid, 
                          refund_guid)
-        self.assertEqual(refund_transaction.transaction_type, model.TYPE_REFUND)
+        self.assertEqual(refund_transaction.transaction_type, self.transaction_model.TYPE_REFUND)
         self.assertEqual(refund_transaction.amount, decimal.Decimal(50))
 
     def test_create_refund_with_non_exist_target(self):
-        model = self.make_one(self.session)
         now = datetime.datetime.utcnow()
 
         with self.assertRaises(KeyError):
-            model.create(
+            self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_REFUND,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_REFUND,
                 refund_to_guid='TX_NON_EXIST', 
                 amount=50,
                 scheduled_at=now,
             )
 
     def test_create_refund_with_wrong_transaction_type(self):
-        model = self.make_one(self.session)
         now = datetime.datetime.utcnow()
 
         with self.assertRaises(ValueError):
-            tx_guid = model.create(
+            tx_guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=now,
             )
-            model.create(
+            self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_PAYOUT,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_PAYOUT,
                 refund_to_guid=tx_guid, 
                 amount=50,
                 scheduled_at=now,
             )
 
     def test_create_refund_with_payment_uri(self):
-        model = self.make_one(self.session)
         now = datetime.datetime.utcnow()
 
         with self.assertRaises(ValueError):
-            tx_guid = model.create(
+            tx_guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=now,
             )
-            model.create(
+            self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_REFUND,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_REFUND,
                 refund_to_guid=tx_guid, 
                 amount=50,
                 scheduled_at=now,
@@ -456,64 +429,61 @@ class TestTransactionModel(ModelTestCase):
             )
 
     def test_create_refund_with_wrong_target(self):
-        model = self.make_one(self.session)
         now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
-            tx_guid = model.create(
+            tx_guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=now,
             )
-            refund_guid = model.create(
+            refund_guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_REFUND,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_REFUND,
                 refund_to_guid=tx_guid, 
                 amount=50,
                 scheduled_at=now,
             )
 
         with self.assertRaises(ValueError):
-            model.create(
+            self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_REFUND,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_REFUND,
                 refund_to_guid=refund_guid, 
                 amount=50,
                 scheduled_at=now,
             )
 
         with db_transaction.manager:
-            tx_guid = model.create(
+            tx_guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_PAYOUT,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_PAYOUT,
                 amount=100,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=now,
             )
 
         with self.assertRaises(ValueError):
-            model.create(
+            self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_REFUND,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_REFUND,
                 refund_to_guid=refund_guid, 
                 amount=50,
                 scheduled_at=now,
             )
 
     def test_create_with_wrong_type(self):
-        model = self.make_one(self.session)
-
         with self.assertRaises(ValueError):
-            model.create(
+            self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=999,
                 amount=123,
                 payment_uri='/v1/cards/tester',
@@ -521,84 +491,78 @@ class TestTransactionModel(ModelTestCase):
             )
 
     def test_create_with_wrong_cls(self):
-        model = self.make_one(self.session)
         with self.assertRaises(ValueError):
-            model.create(
+            self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
                 transaction_cls=999,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=123,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
     def test_create_with_none_guid(self):
-        model = self.make_one(self.session)
         with self.assertRaises(ValueError):
-            model.create(
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+            self.transaction_model.create(
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=123,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
         with self.assertRaises(ValueError):
-            model.create(
-                transaction_cls=model.CLS_INVOICE,
-                transaction_type=model.TYPE_CHARGE,
+            self.transaction_model.create(
+                transaction_cls=self.transaction_model.CLS_INVOICE,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=123,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
     def test_update(self):
-        model = self.make_one(self.session)
-
         with db_transaction.manager:
-            guid = model.create(
+            guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
-        transaction = model.get(guid)
-        status = model.STATUS_DONE
+        transaction = self.transaction_model.get(guid)
+        status = self.transaction_model.STATUS_DONE
 
         with db_transaction.manager:
-            model.update(
+            self.transaction_model.update(
                 guid=guid,
                 status=status,
             )
 
-        transaction = model.get(guid)
+        transaction = self.transaction_model.get(guid)
         self.assertEqual(transaction.status, status)
 
     def test_update_updated_at(self):
-        model = self.make_one(self.session)
-
         with db_transaction.manager:
-            guid = model.create(
+            guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
-        transaction = model.get(guid)
+        transaction = self.transaction_model.get(guid)
         created_at = transaction.created_at
 
         # advanced the current date time
         with freeze_time('2013-08-16 07:00:01'):
             with db_transaction.manager:
-                model.update(guid=guid)
+                self.transaction_model.update(guid=guid)
             updated_at = datetime.datetime.utcnow()
 
-        transaction = model.get(guid)
+        transaction = self.transaction_model.get(guid)
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.created_at, created_at)
 
@@ -606,21 +570,19 @@ class TestTransactionModel(ModelTestCase):
         with freeze_time('2013-08-16 08:35:40'):
             # this should update the updated_at field only
             with db_transaction.manager:
-                model.update(guid)
+                self.transaction_model.update(guid)
             updated_at = datetime.datetime.utcnow()
 
-        transaction = model.get(guid)
+        transaction = self.transaction_model.get(guid)
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.created_at, created_at)
 
     def test_update_with_wrong_args(self):
-        model = self.make_one(self.session)
-
         with db_transaction.manager:
-            guid = model.create(
+            guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
@@ -628,33 +590,30 @@ class TestTransactionModel(ModelTestCase):
 
         # make sure passing wrong argument will raise error
         with self.assertRaises(TypeError):
-            model.update(
+            self.transaction_model.update(
                 guid=guid, 
                 wrong_arg=True, 
-                status=model.STATUS_INIT
+                status=self.transaction_model.STATUS_INIT
             )
 
     def test_update_with_wrong_status(self):
-        model = self.make_one(self.session)
-
         with db_transaction.manager:
-            guid = model.create(
+            guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
         with self.assertRaises(ValueError):
-            model.update(
+            self.transaction_model.update(
                 guid=guid,
                 status=999,
             )
 
     def test_base_processor(self):
-        from billy.models.processors.base import PaymentProcessor
         processor = PaymentProcessor()
         with self.assertRaises(NotImplementedError):
             processor.create_customer(None)
@@ -666,22 +625,20 @@ class TestTransactionModel(ModelTestCase):
             processor.payout(None)
 
     def test_process_one_charge(self):
-        model = self.make_one(self.session)
         now = datetime.datetime.utcnow()
-
         payment_uri = '/v1/cards/tester'
 
         with db_transaction.manager:
-            guid = model.create(
+            guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
                 scheduled_at=now,
             )
 
-        transaction = model.get(guid)
+        transaction = self.transaction_model.get(guid)
         customer = transaction.subscription.customer
 
         mock_processor = flexmock(
@@ -712,11 +669,11 @@ class TestTransactionModel(ModelTestCase):
 
         with freeze_time('2013-08-20'):
             with db_transaction.manager:
-                model.process_one(mock_processor, transaction)
+                self.transaction_model.process_one(mock_processor, transaction)
                 updated_at = datetime.datetime.utcnow()
 
-        transaction = model.get(guid)
-        self.assertEqual(transaction.status, model.STATUS_DONE)
+        transaction = self.transaction_model.get(guid)
+        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
         self.assertEqual(transaction.external_id, 'TX_MOCK')
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.scheduled_at, now)
@@ -725,22 +682,20 @@ class TestTransactionModel(ModelTestCase):
                          'AC_MOCK')
 
     def test_process_one_payout(self):
-        model = self.make_one(self.session)
         now = datetime.datetime.utcnow()
-
         payment_uri = '/v1/cards/tester'
 
         with db_transaction.manager:
-            guid = model.create(
+            guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_PAYOUT,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_PAYOUT,
                 amount=100,
                 payment_uri=payment_uri,
                 scheduled_at=now,
             )
 
-        transaction = model.get(guid)
+        transaction = self.transaction_model.get(guid)
         customer = transaction.subscription.customer
 
         mock_processor = flexmock(
@@ -771,11 +726,11 @@ class TestTransactionModel(ModelTestCase):
 
         with freeze_time('2013-08-20'):
             with db_transaction.manager:
-                model.process_one(mock_processor, transaction)
+                self.transaction_model.process_one(mock_processor, transaction)
                 updated_at = datetime.datetime.utcnow()
 
-        transaction = model.get(guid)
-        self.assertEqual(transaction.status, model.STATUS_DONE)
+        transaction = self.transaction_model.get(guid)
+        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
         self.assertEqual(transaction.external_id, 'TX_MOCK')
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.scheduled_at, now)
@@ -784,22 +739,20 @@ class TestTransactionModel(ModelTestCase):
                          'AC_MOCK')
 
     def test_process_one_with_failure(self):
-        model = self.make_one(self.session)
         now = datetime.datetime.utcnow()
-
         payment_uri = '/v1/cards/tester'
 
         with db_transaction.manager:
-            guid = model.create(
+            guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
                 scheduled_at=now,
             )
 
-        transaction = model.get(guid)
+        transaction = self.transaction_model.get(guid)
         customer = transaction.subscription.customer
 
         def mock_charge(transaction):
@@ -832,11 +785,11 @@ class TestTransactionModel(ModelTestCase):
         )
 
         with db_transaction.manager:
-            model.process_one(mock_processor, transaction)
+            self.transaction_model.process_one(mock_processor, transaction)
             updated_at = datetime.datetime.utcnow()
 
-        transaction = model.get(guid)
-        self.assertEqual(transaction.status, model.STATUS_RETRYING)
+        transaction = self.transaction_model.get(guid)
+        self.assertEqual(transaction.status, self.transaction_model.STATUS_RETRYING)
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.failure_count, 1)
         self.assertEqual(transaction.error_message, 'Failed to charge')
@@ -845,23 +798,21 @@ class TestTransactionModel(ModelTestCase):
 
     def test_process_one_with_failure_exceed_limitation(self):
         payment_uri = '/v1/cards/tester'
-        maximum_retry = 3
-
-        model = self.make_one(self.session, maximum_retry=maximum_retry)
+        self.transaction_model.maximum_retry = 3
         now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
             self.customer_model.update(self.customer_guid, external_id='AC_MOCK')
-            guid = model.create(
+            guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
                 scheduled_at=now,
             )
 
-        transaction = model.get(guid)
+        transaction = self.transaction_model.get(guid)
 
         def mock_charge(transaction):
             raise RuntimeError('Failed to charge')
@@ -885,39 +836,37 @@ class TestTransactionModel(ModelTestCase):
 
         for _ in range(3):
             with db_transaction.manager:
-                transaction = model.get(guid)
-                model.process_one(
+                transaction = self.transaction_model.get(guid)
+                self.transaction_model.process_one(
                     processor=mock_processor, 
                     transaction=transaction, 
                 )
-            transaction = model.get(guid)
-            self.assertEqual(transaction.status, model.STATUS_RETRYING)
+            transaction = self.transaction_model.get(guid)
+            self.assertEqual(transaction.status, self.transaction_model.STATUS_RETRYING)
         with db_transaction.manager:
-            transaction = model.get(guid)
-            model.process_one(
+            transaction = self.transaction_model.get(guid)
+            self.transaction_model.process_one(
                 processor=mock_processor, 
                 transaction=transaction, 
             )
-        transaction = model.get(guid)
-        self.assertEqual(transaction.status, model.STATUS_FAILED)
+        transaction = self.transaction_model.get(guid)
+        self.assertEqual(transaction.status, self.transaction_model.STATUS_FAILED)
 
     def test_process_one_with_system_exit_and_keyboard_interrupt(self):
-        model = self.make_one(self.session)
         now = datetime.datetime.utcnow()
-
         payment_uri = '/v1/cards/tester'
 
         with db_transaction.manager:
-            guid = model.create(
+            guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
                 scheduled_at=now,
             )
 
-        transaction = model.get(guid)
+        transaction = self.transaction_model.get(guid)
 
         def mock_create_customer_system_exit(transaction):
             raise SystemExit
@@ -934,7 +883,7 @@ class TestTransactionModel(ModelTestCase):
         )
 
         with self.assertRaises(SystemExit):
-            model.process_one(mock_processor, transaction)
+            self.transaction_model.process_one(mock_processor, transaction)
 
         def mock_create_customer_keyboard_interrupt(transaction):
             raise KeyboardInterrupt
@@ -951,76 +900,72 @@ class TestTransactionModel(ModelTestCase):
         )
 
         with self.assertRaises(KeyboardInterrupt):
-            model.process_one(mock_processor, transaction)
+            self.transaction_model.process_one(mock_processor, transaction)
 
     def test_process_one_with_already_done(self):
-        model = self.make_one(self.session)
         now = datetime.datetime.utcnow()
-
         payment_uri = '/v1/cards/tester'
 
         with db_transaction.manager:
-            guid = model.create(
+            guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
                 scheduled_at=now,
             )
-            transaction = model.get(guid)
-            transaction.status = model.STATUS_DONE
+            transaction = self.transaction_model.get(guid)
+            transaction.status = self.transaction_model.STATUS_DONE
             self.session.add(transaction)
 
         processor = flexmock()
-        transaction = model.get(guid)
+        transaction = self.transaction_model.get(guid)
         with self.assertRaises(ValueError):
-            model.process_one(processor, transaction)
+            self.transaction_model.process_one(processor, transaction)
 
     def test_process_transactions(self):
-        model = self.make_one(self.session)
         now = datetime.datetime.utcnow()
-
         payment_uri = '/v1/cards/tester'
 
         with db_transaction.manager:
-            guid1 = model.create(
+            guid1 = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
                 scheduled_at=now,
             )
 
-            guid2 = model.create(
+            guid2 = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
                 scheduled_at=now,
             )
-            model.update(guid2, status=model.STATUS_RETRYING)
+            self.transaction_model.update(guid2, status=self.transaction_model.STATUS_RETRYING)
 
-            guid3 = model.create(
+            guid3 = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
                 scheduled_at=now,
             )
             
-            guid4 = model.create(
+            guid4 = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=model.CLS_SUBSCRIPTION,
-                transaction_type=model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 payment_uri=payment_uri,
                 scheduled_at=now,
             )
-            model.update(guid4, status=model.STATUS_DONE)
+            self.transaction_model.update(guid4, status=self.transaction_model.STATUS_DONE)
 
         processor = flexmock(
             charge=None,
@@ -1028,41 +973,35 @@ class TestTransactionModel(ModelTestCase):
             refund=None,
         )
         with db_transaction.manager:
-            tx_guids = model.process_transactions(processor)
+            tx_guids = self.transaction_model.process_transactions(processor)
 
         self.assertEqual(set(tx_guids), set([guid1, guid2, guid3]))
 
     def test_get_last_transaction(self):
-        model = self.make_one(self.session)
-
         guids = []
         for dt in ['2013-08-17', '2013-08-15', '2013-08-15']:
             with freeze_time(dt):
                 with db_transaction.manager:
-                    guid = model.create(
+                    guid = self.transaction_model.create(
                         subscription_guid=self.subscription_guid,
-                        transaction_cls=model.CLS_SUBSCRIPTION,
-                        transaction_type=model.TYPE_CHARGE,
+                        transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                        transaction_type=self.transaction_model.TYPE_CHARGE,
                         amount=10,
                         payment_uri='/v1/cards/tester',
                         scheduled_at=datetime.datetime.utcnow(),
                     )
                     guids.append(guid)
-        self.assertEqual(model.get_last_transaction().guid, guids[0])
+        self.assertEqual(self.transaction_model.get_last_transaction().guid, 
+                         guids[0])
 
     def test_process_one_invoice_transaction_charge(self):
-        from billy.models.invoice import InvoiceModel
-
-        model = self.make_one(self.session)
-        invoice_model = InvoiceModel(self.session)
         now = datetime.datetime.utcnow()
-
         payment_uri = '/v1/cards/tester'
 
         with db_transaction.manager:
-            invoice_model.update_payment_uri(self.invoice_guid, payment_uri)
+            self.invoice_model.update_payment_uri(self.invoice_guid, payment_uri)
 
-        invoice = invoice_model.get(self.invoice_guid)
+        invoice = self.invoice_model.get(self.invoice_guid)
         transaction = invoice.transactions[0]
         customer = transaction.invoice.customer
         guid = transaction.guid
@@ -1095,47 +1034,43 @@ class TestTransactionModel(ModelTestCase):
 
         with freeze_time('2013-08-20'):
             with db_transaction.manager:
-                model.process_one(mock_processor, transaction)
+                self.transaction_model.process_one(mock_processor, transaction)
                 updated_at = datetime.datetime.utcnow()
 
-        transaction = model.get(guid)
-        self.assertEqual(transaction.status, model.STATUS_DONE)
+        transaction = self.transaction_model.get(guid)
+        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
         self.assertEqual(transaction.external_id, 'TX_MOCK')
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.scheduled_at, now)
         self.assertEqual(transaction.created_at, now)
         self.assertEqual(transaction.invoice.customer.external_id, 'AC_MOCK')
 
-        invoice = invoice_model.get(self.invoice_guid)
-        self.assertEqual(invoice.status, invoice_model.STATUS_SETTLED)
+        invoice = self.invoice_model.get(self.invoice_guid)
+        self.assertEqual(invoice.status, self.invoice_model.STATUS_SETTLED)
 
     def test_process_one_invoice_transaction_refund(self):
-        from billy.models.invoice import InvoiceModel
-
-        model = self.make_one(self.session)
-        invoice_model = InvoiceModel(self.session)
         now = datetime.datetime.utcnow()
 
         payment_uri = '/v1/cards/tester'
 
         with db_transaction.manager:
-            invoice_model.update_payment_uri(self.invoice_guid, payment_uri)
-            invoice = invoice_model.get(self.invoice_guid)
-            invoice.status = invoice_model.STATUS_REFUNDING
+            self.invoice_model.update_payment_uri(self.invoice_guid, payment_uri)
+            invoice = self.invoice_model.get(self.invoice_guid)
+            invoice.status = self.invoice_model.STATUS_REFUNDING
             transaction = invoice.transactions[0]
-            transaction.status = model.STATUS_DONE
+            transaction.status = self.transaction_model.STATUS_DONE
             self.session.add(invoice)
             self.session.add(transaction)
-            guid = model.create(
+            guid = self.transaction_model.create(
                 invoice_guid=self.invoice_guid,
-                transaction_cls=model.CLS_INVOICE,
-                transaction_type=model.TYPE_REFUND,
+                transaction_cls=self.transaction_model.CLS_INVOICE,
+                transaction_type=self.transaction_model.TYPE_REFUND,
                 amount=invoice.amount,
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
-        invoice = invoice_model.get(self.invoice_guid)
-        transaction = model.get(guid)
+        invoice = self.invoice_model.get(self.invoice_guid)
+        transaction = self.transaction_model.get(guid)
         customer = transaction.invoice.customer
 
         mock_processor = flexmock(
@@ -1166,34 +1101,29 @@ class TestTransactionModel(ModelTestCase):
 
         with freeze_time('2013-08-20'):
             with db_transaction.manager:
-                model.process_one(mock_processor, transaction)
+                self.transaction_model.process_one(mock_processor, transaction)
                 updated_at = datetime.datetime.utcnow()
 
-        transaction = model.get(guid)
-        self.assertEqual(transaction.status, model.STATUS_DONE)
+        transaction = self.transaction_model.get(guid)
+        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
         self.assertEqual(transaction.external_id, 'TX_MOCK')
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.scheduled_at, now)
         self.assertEqual(transaction.created_at, now)
         self.assertEqual(transaction.invoice.customer.external_id, 'AC_MOCK')
 
-        invoice = invoice_model.get(self.invoice_guid)
-        self.assertEqual(invoice.status, invoice_model.STATUS_REFUNDED)
+        invoice = self.invoice_model.get(self.invoice_guid)
+        self.assertEqual(invoice.status, self.invoice_model.STATUS_REFUNDED)
 
     def test_process_one_invoice_with_failure_exceed_limitation(self):
-        from billy.models.invoice import InvoiceModel
-
         payment_uri = '/v1/cards/tester'
-        maximum_retry = 3
-
-        model = self.make_one(self.session, maximum_retry=maximum_retry)
-        invoice_model = InvoiceModel(self.session)
+        self.transaction_model.maximum_retry = 3
 
         with db_transaction.manager:
             self.customer_model.update(self.customer_guid, external_id='AC_MOCK')
-            invoice_model.update_payment_uri(self.invoice_guid, payment_uri)
+            self.invoice_model.update_payment_uri(self.invoice_guid, payment_uri)
 
-        invoice = invoice_model.get(self.invoice_guid)
+        invoice = self.invoice_model.get(self.invoice_guid)
         transaction = invoice.transactions[0]
         guid = transaction.guid
 
@@ -1219,22 +1149,26 @@ class TestTransactionModel(ModelTestCase):
 
         for _ in range(3):
             with db_transaction.manager:
-                transaction = model.get(guid)
-                model.process_one(
+                transaction = self.transaction_model.get(guid)
+                self.transaction_model.process_one(
                     processor=mock_processor, 
                     transaction=transaction, 
                 )
-            transaction = model.get(guid)
-            self.assertEqual(transaction.status, model.STATUS_RETRYING)
-            invoice = invoice_model.get(self.invoice_guid)
-            self.assertEqual(invoice.status, invoice_model.STATUS_PROCESSING)
+            transaction = self.transaction_model.get(guid)
+            self.assertEqual(transaction.status, 
+                             self.transaction_model.STATUS_RETRYING)
+            invoice = self.invoice_model.get(self.invoice_guid)
+            self.assertEqual(invoice.status, 
+                             self.invoice_model.STATUS_PROCESSING)
         with db_transaction.manager:
-            transaction = model.get(guid)
-            model.process_one(
+            transaction = self.transaction_model.get(guid)
+            self.transaction_model.process_one(
                 processor=mock_processor, 
                 transaction=transaction, 
             )
-        transaction = model.get(guid)
-        self.assertEqual(transaction.status, model.STATUS_FAILED)
-        invoice = invoice_model.get(self.invoice_guid)
-        self.assertEqual(invoice.status, invoice_model.STATUS_PROCESS_FAILED)
+        transaction = self.transaction_model.get(guid)
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_FAILED)
+        invoice = self.invoice_model.get(self.invoice_guid)
+        self.assertEqual(invoice.status, 
+                         self.invoice_model.STATUS_PROCESS_FAILED)

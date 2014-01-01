@@ -48,9 +48,7 @@ class BalancedProcessor(PaymentProcessor):
         if payment_uri is None:
             return
         # get balanced customer record
-        external_id = customer.external_id
-        balanced_customer = self.customer_cls.find(external_id)
-        # TODO: use a better way to determine type of URI?
+        balanced_customer = self.customer_cls.find(customer.processor_uri)
         if '/bank_accounts/' in payment_uri:
             self.logger.debug('Adding bank account %s to %s', 
                               payment_uri, customer.guid)
@@ -107,8 +105,7 @@ class BalancedProcessor(PaymentProcessor):
 
         # TODO: handle error here
         # get balanced customer record
-        external_id = customer.external_id
-        balanced_customer = self.customer_cls.find(external_id)
+        balanced_customer = self.customer_cls.find(customer.processor_uri)
 
         # prepare arguments
         kwargs = dict(

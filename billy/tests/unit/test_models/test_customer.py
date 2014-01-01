@@ -31,12 +31,12 @@ class TestCustomerModel(ModelTestCase):
         self.assertEqual(customer.guid, guid)
 
     def test_create(self):
-        external_id = '5566_GOOD_BROTHERS'
+        processor_uri = '5566_GOOD_BROTHERS'
 
         with transaction.manager:
             guid = self.customer_model.create(
                 company_guid=self.company_guid,
-                external_id=external_id,
+                processor_uri=processor_uri,
             )
 
         now = datetime.datetime.utcnow()
@@ -45,12 +45,12 @@ class TestCustomerModel(ModelTestCase):
         self.assertEqual(customer.guid, guid)
         self.assert_(customer.guid.startswith('CU'))
         self.assertEqual(customer.company_guid, self.company_guid)
-        self.assertEqual(customer.external_id, external_id)
+        self.assertEqual(customer.processor_uri, processor_uri)
         self.assertEqual(customer.deleted, False)
         self.assertEqual(customer.created_at, now)
         self.assertEqual(customer.updated_at, now)
 
-    def test_create_different_created_updated_time(self):
+    def test_create_with_same_created_updated_time(self):
         results = [
             datetime.datetime(2013, 8, 16, 1),
             datetime.datetime(2013, 8, 16, 2),
@@ -71,20 +71,20 @@ class TestCustomerModel(ModelTestCase):
         with transaction.manager:
             guid = self.customer_model.create(
                 company_guid=self.company_guid,
-                external_id='old id',
+                processor_uri='old uri',
             )
 
         customer = self.customer_model.get(guid)
-        external_id = 'new external id'
+        processor_uri = 'new processor_uri'
 
         with transaction.manager:
             self.customer_model.update(
                 guid=guid,
-                external_id=external_id,
+                processor_uri=processor_uri,
             )
 
         customer = self.customer_model.get(guid)
-        self.assertEqual(customer.external_id, external_id)
+        self.assertEqual(customer.processor_uri, processor_uri)
 
     def test_update_updated_at(self):
         with transaction.manager:

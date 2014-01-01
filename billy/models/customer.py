@@ -14,7 +14,7 @@ class CustomerModel(BaseTableModel):
     NOT_SET = object()
 
     @decorate_offset_limit
-    def list_by_company_guid(self, company_guid, external_id=NOT_SET):
+    def list_by_company_guid(self, company_guid, processor_uri=NOT_SET):
         """Get invoices of a company by given guid
 
         """
@@ -25,14 +25,14 @@ class CustomerModel(BaseTableModel):
             .filter(Customer.company_guid == company_guid)
             .order_by(tables.Customer.created_at.desc())
         )
-        if external_id is not self.NOT_SET:
-            query = query.filter(Customer.external_id == external_id)
+        if processor_uri is not self.NOT_SET:
+            query = query.filter(Customer.processor_uri == processor_uri)
         return query
 
     def create(
         self, 
         company_guid, 
-        external_id=None
+        processor_uri=None,
     ):
         """Create a customer and return its id
 
@@ -41,12 +41,15 @@ class CustomerModel(BaseTableModel):
         customer = tables.Customer(
             guid='CU' + make_guid(),
             company_guid=company_guid,
-            external_id=external_id, 
+            processor_uri=processor_uri, 
             created_at=now,
             updated_at=now,
         )
         self.session.add(customer)
         self.session.flush()
+
+        # TODO: create corresponding customer in processor, or validate it
+
         return customer.guid
 
     def update(self, guid, **kwargs):
@@ -56,7 +59,7 @@ class CustomerModel(BaseTableModel):
         customer = self.get(guid, raise_error=True)
         now = tables.now_func()
         customer.updated_at = now
-        for key in ['external_id']:
+        for key in ['processor_uri']:
             if key not in kwargs:
                 continue
             value = kwargs.pop(key)

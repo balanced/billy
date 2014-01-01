@@ -48,16 +48,15 @@ def customer_list_post(request):
     company = auth_api_key(request)
     form = validate_form(CustomerCreateForm, request)
     
-    external_id = form.data.get('external_id')
+    processor_uri = form.data.get('processor_uri')
     company_guid = company.guid
 
     # TODO: make sure user cannot create a customer to a deleted company
 
     model = request.model_factory.create_customer_model()
-    # TODO: do validation here
     with db_transaction.manager:
         guid = model.create(
-            external_id=external_id,
+            processor_uri=processor_uri,
             company_guid=company_guid, 
         )
     customer = model.get(guid)

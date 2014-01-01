@@ -17,7 +17,7 @@ def company_adapter(company, request):
 def customer_adapter(customer, request):
     return dict(
         guid=customer.guid,
-        external_id=customer.external_id, 
+        processor_uri=customer.processor_uri, 
         created_at=customer.created_at.isoformat(),
         updated_at=customer.updated_at.isoformat(),
         company_guid=customer.company_guid, 

@@ -43,6 +43,7 @@ class TestBalancedProcessorModel(ModelTestCase):
             )
             self.customer_guid = self.customer_model.create(
                 company_guid=self.company_guid,
+                processor_uri='MOCK_BALANCED_CUSTOMER_URI',
             )
             self.subscription_guid = self.subscription_model.create(
                 customer_guid=self.customer_guid,
@@ -53,14 +54,14 @@ class TestBalancedProcessorModel(ModelTestCase):
                 customer_guid=self.customer_guid,
                 amount=100,
             )
+        self.customer = self.customer_model.get(self.customer_guid)
 
     def make_one(self, *args, **kwargs):
         from billy.models.processors.balanced_payments import BalancedProcessor
         return BalancedProcessor(*args, **kwargs)
 
     def test_create_customer(self):
-        customer = self.customer_model.get(self.customer_guid)
-
+        self.customer.processor_uri = None
         # make sure API key is set correctly
         (
             flexmock(balanced)
@@ -83,17 +84,10 @@ class TestBalancedProcessorModel(ModelTestCase):
         flexmock(BalancedCustomer).new_instances(mock_balanced_customer) 
 
         processor = self.make_one(customer_cls=BalancedCustomer)
-        customer_id = processor.create_customer(customer)
+        customer_id = processor.create_customer(self.customer)
         self.assertEqual(customer_id, 'MOCK_BALANCED_CUSTOMER_URI')
 
     def test_prepare_customer_with_card(self):
-        with db_transaction.manager:
-            self.customer_model.update(
-                guid=self.customer_guid,
-                external_id='MOCK_BALANCED_CUSTOMER_URI',
-            )
-        customer = self.customer_model.get(self.customer_guid)
-
         # make sure API key is set correctly
         (
             flexmock(balanced)
@@ -124,16 +118,9 @@ class TestBalancedProcessorModel(ModelTestCase):
         )
 
         processor = self.make_one(customer_cls=BalancedCustomer)
-        processor.prepare_customer(customer, '/v1/cards/my_card')
+        processor.prepare_customer(self.customer, '/v1/cards/my_card')
 
     def test_prepare_customer_with_bank_account(self):
-        with db_transaction.manager:
-            self.customer_model.update(
-                guid=self.customer_guid,
-                external_id='MOCK_BALANCED_CUSTOMER_URI',
-            )
-        customer = self.customer_model.get(self.customer_guid)
-
         # make sure API key is set correctly
         (
             flexmock(balanced)
@@ -164,16 +151,9 @@ class TestBalancedProcessorModel(ModelTestCase):
         )
 
         processor = self.make_one(customer_cls=BalancedCustomer)
-        processor.prepare_customer(customer, '/v1/bank_accounts/my_account')
+        processor.prepare_customer(self.customer, '/v1/bank_accounts/my_account')
 
     def test_prepare_customer_with_none_payment_uri(self):
-        with db_transaction.manager:
-            self.customer_model.update(
-                guid=self.customer_guid,
-                external_id='MOCK_BALANCED_CUSTOMER_URI',
-            )
-        customer = self.customer_model.get(self.customer_guid)
-
         # mock balanced.Customer instance
         mock_balanced_customer = (
             flexmock()
@@ -195,16 +175,9 @@ class TestBalancedProcessorModel(ModelTestCase):
         )
 
         processor = self.make_one(customer_cls=BalancedCustomer)
-        processor.prepare_customer(customer, None)
+        processor.prepare_customer(self.customer, None)
 
     def test_prepare_customer_with_bad_payment_uri(self):
-        with db_transaction.manager:
-            self.customer_model.update(
-                guid=self.customer_guid,
-                external_id='MOCK_BALANCED_CUSTOMER_URI',
-            )
-        customer = self.customer_model.get(self.customer_guid)
-
         # mock balanced.Customer instance
         mock_balanced_customer = flexmock()
 
@@ -222,7 +195,7 @@ class TestBalancedProcessorModel(ModelTestCase):
 
         processor = self.make_one(customer_cls=BalancedCustomer)
         with self.assertRaises(ValueError):
-            processor.prepare_customer(customer, '/v1/bitcoin/12345')
+            processor.prepare_customer(self.customer, '/v1/bitcoin/12345')
 
     def _test_operation(
         self, 
@@ -272,7 +245,7 @@ class TestBalancedProcessorModel(ModelTestCase):
                 )
             self.customer_model.update(
                 guid=self.customer_guid,
-                external_id='MOCK_BALANCED_CUSTOMER_URI',
+                processor_uri='MOCK_BALANCED_CUSTOMER_URI',
             )
         transaction = tx_model.get(guid)
 

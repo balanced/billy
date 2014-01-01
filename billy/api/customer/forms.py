@@ -6,6 +6,6 @@ from wtforms import validators
 
 
 class CustomerCreateForm(Form):
-    external_id = TextField('External ID', [
+    processor_uri = TextField('URI of customer in processor', [
         validators.Optional(),
     ])

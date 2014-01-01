@@ -40,7 +40,11 @@ class TestCompanyModel(ModelTestCase):
         with self.assertRaises(KeyError):
             self.company_model.get_by_api_key(api_key, raise_error=True)
 
-        company = self.company_model.get_by_api_key(api_key, ignore_deleted=False, raise_error=True)
+        company = self.company_model.get_by_api_key(
+            api_key=api_key, 
+            ignore_deleted=False, 
+            raise_error=True,
+        )
         self.assertEqual(company.guid, guid)
 
     def test_create(self):

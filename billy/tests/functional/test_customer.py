@@ -25,14 +25,14 @@ class TestCustomerViews(ViewTestCase):
 
         res = self.testapp.post(
             '/v1/customers',
-            dict(external_id='MOCK_EXTERNAL_ID'),
+            dict(processor_uri='MOCK_URI'),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
         self.failUnless('guid' in res.json)
         self.assertEqual(res.json['created_at'], now_iso)
         self.assertEqual(res.json['updated_at'], now_iso)
-        self.assertEqual(res.json['external_id'], 'MOCK_EXTERNAL_ID')
+        self.assertEqual(res.json['processor_uri'], 'MOCK_URI')
         self.assertEqual(res.json['company_guid'], self.company_guid)
         self.assertEqual(res.json['deleted'], False)
 
@@ -118,24 +118,24 @@ class TestCustomerViews(ViewTestCase):
         result_guids = [item['guid'] for item in items]
         self.assertEqual(result_guids, guids)
 
-    def test_customer_list_with_external_id(self):
+    def test_customer_list_with_processor_uri(self):
         with db_transaction.manager:
             guids = []
             for i in range(4):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
-                    external_id = i
+                    processor_uri = i
                     if i >= 2:
-                        external_id = None
+                        processor_uri = None
                     guid = self.customer_model.create(
                         self.company_guid,
-                        external_id=external_id,
+                        processor_uri=processor_uri,
                     )
                     guids.append(guid)
         guids = list(reversed(guids))
 
         res = self.testapp.get(
             '/v1/customers',
-            dict(external_id=0),
+            dict(processor_uri=0),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
@@ -145,7 +145,7 @@ class TestCustomerViews(ViewTestCase):
 
         res = self.testapp.get(
             '/v1/customers',
-            dict(external_id=1),
+            dict(processor_uri=1),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
@@ -163,7 +163,6 @@ class TestCustomerViews(ViewTestCase):
     def test_delete_customer(self):
         res = self.testapp.post(
             '/v1/customers',
-            dict(external_id='MOCK_EXTERNAL_ID'),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
@@ -179,7 +178,6 @@ class TestCustomerViews(ViewTestCase):
     def test_delete_a_deleted_customer(self):
         res = self.testapp.post(
             '/v1/customers',
-            dict(external_id='MOCK_EXTERNAL_ID'),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
@@ -198,7 +196,6 @@ class TestCustomerViews(ViewTestCase):
     def test_delete_customer_with_bad_api_key(self):
         res = self.testapp.post(
             '/v1/customers',
-            dict(external_id='MOCK_EXTERNAL_ID'),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )

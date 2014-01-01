@@ -11,12 +11,12 @@ from billy.models.processors.base import PaymentProcessor
 from billy.tests.unit.helper import ModelTestCase
 
 
-@freeze_time('2013-08-16')
-class TestTransactionModel(ModelTestCase):
+class TestTransactionModelBase(ModelTestCase):
 
     def setUp(self):
-        super(TestTransactionModel, self).setUp()
-        # build the basic scenario for transaction model
+        super(TestTransactionModelBase, self).setUp()
+
+    def _create_records(self, processor_uri=None):
         with db_transaction.manager:
             self.company_guid = self.company_model.create('my_secret_key')
             self.plan_guid = self.plan_model.create(
@@ -27,6 +27,7 @@ class TestTransactionModel(ModelTestCase):
             )
             self.customer_guid = self.customer_model.create(
                 company_guid=self.company_guid,
+                processor_uri=processor_uri,
             )
             self.subscription_guid = self.subscription_model.create(
                 customer_guid=self.customer_guid,
@@ -38,7 +39,12 @@ class TestTransactionModel(ModelTestCase):
                 amount=100,
             )
 
+
+@freeze_time('2013-08-16')
+class TestTransactionModel(TestTransactionModelBase):
+
     def test_get_transaction(self):
+        self._create_records()
         transaction = self.transaction_model.get('TX_NON_EXIST')
         self.assertEqual(transaction, None)
 
@@ -73,6 +79,7 @@ class TestTransactionModel(ModelTestCase):
         #         + Invoice1
         #             + Transaction3
         #
+        self._create_records()
         with db_transaction.manager:
             other_company_guid = self.company_model.create('my_secret_key')
             other_plan_guid1 = self.plan_model.create(
@@ -186,6 +193,7 @@ class TestTransactionModel(ModelTestCase):
         #         + Transaction4
         #         + Transaction5
         #
+        self._create_records()
         with db_transaction.manager:
             subscription_guid1 = self.subscription_model.create(
                 customer_guid=self.customer_guid,
@@ -248,6 +256,7 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(set(result_guids), set(guid_ids2))
 
     def test_list_by_company_guid_with_offset_limit(self):
+        self._create_records()
         guids = []
         with db_transaction.manager:
             for i in range(10):
@@ -280,6 +289,7 @@ class TestTransactionModel(ModelTestCase):
         assert_list(5, 10, guids[5:])
 
     def test_create(self):
+        self._create_records()
         subscription_guid = self.subscription_guid
         transaction_type = self.transaction_model.TYPE_CHARGE
         transaction_cls = self.transaction_model.CLS_SUBSCRIPTION
@@ -318,6 +328,7 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.updated_at, now)
 
     def test_create_different_created_updated_time(self):
+        self._create_records()
         results = [
             datetime.datetime(2013, 8, 16, 1),
             datetime.datetime(2013, 8, 16, 2),
@@ -342,6 +353,7 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.created_at, transaction.updated_at)
 
     def test_create_refund(self):
+        self._create_records()
         now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
@@ -373,6 +385,7 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(refund_transaction.amount, decimal.Decimal(50))
 
     def test_create_refund_with_non_exist_target(self):
+        self._create_records()
         now = datetime.datetime.utcnow()
 
         with self.assertRaises(KeyError):
@@ -386,6 +399,7 @@ class TestTransactionModel(ModelTestCase):
             )
 
     def test_create_refund_with_wrong_transaction_type(self):
+        self._create_records()
         now = datetime.datetime.utcnow()
 
         with self.assertRaises(ValueError):
@@ -407,6 +421,7 @@ class TestTransactionModel(ModelTestCase):
             )
 
     def test_create_refund_with_payment_uri(self):
+        self._create_records()
         now = datetime.datetime.utcnow()
 
         with self.assertRaises(ValueError):
@@ -429,6 +444,7 @@ class TestTransactionModel(ModelTestCase):
             )
 
     def test_create_refund_with_wrong_target(self):
+        self._create_records()
         now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
@@ -480,6 +496,7 @@ class TestTransactionModel(ModelTestCase):
             )
 
     def test_create_with_wrong_type(self):
+        self._create_records()
         with self.assertRaises(ValueError):
             self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
@@ -491,6 +508,7 @@ class TestTransactionModel(ModelTestCase):
             )
 
     def test_create_with_wrong_cls(self):
+        self._create_records()
         with self.assertRaises(ValueError):
             self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
@@ -502,6 +520,7 @@ class TestTransactionModel(ModelTestCase):
             )
 
     def test_create_with_none_guid(self):
+        self._create_records()
         with self.assertRaises(ValueError):
             self.transaction_model.create(
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
@@ -520,6 +539,7 @@ class TestTransactionModel(ModelTestCase):
             )
 
     def test_update(self):
+        self._create_records()
         with db_transaction.manager:
             guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
@@ -543,6 +563,7 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.status, status)
 
     def test_update_updated_at(self):
+        self._create_records()
         with db_transaction.manager:
             guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
@@ -578,6 +599,7 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.created_at, created_at)
 
     def test_update_with_wrong_args(self):
+        self._create_records()
         with db_transaction.manager:
             guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
@@ -597,6 +619,7 @@ class TestTransactionModel(ModelTestCase):
             )
 
     def test_update_with_wrong_status(self):
+        self._create_records()
         with db_transaction.manager:
             guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
@@ -625,6 +648,7 @@ class TestTransactionModel(ModelTestCase):
             processor.payout(None)
 
     def test_process_one_charge(self):
+        self._create_records()
         now = datetime.datetime.utcnow()
         payment_uri = '/v1/cards/tester'
 
@@ -678,10 +702,11 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.scheduled_at, now)
         self.assertEqual(transaction.created_at, now)
-        self.assertEqual(transaction.subscription.customer.external_id, 
+        self.assertEqual(transaction.subscription.customer.processor_uri, 
                          'AC_MOCK')
 
     def test_process_one_payout(self):
+        self._create_records()
         now = datetime.datetime.utcnow()
         payment_uri = '/v1/cards/tester'
 
@@ -735,10 +760,11 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.scheduled_at, now)
         self.assertEqual(transaction.created_at, now)
-        self.assertEqual(transaction.subscription.customer.external_id, 
+        self.assertEqual(transaction.subscription.customer.processor_uri, 
                          'AC_MOCK')
 
     def test_process_one_with_failure(self):
+        self._create_records()
         now = datetime.datetime.utcnow()
         payment_uri = '/v1/cards/tester'
 
@@ -793,16 +819,16 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.failure_count, 1)
         self.assertEqual(transaction.error_message, 'Failed to charge')
-        self.assertEqual(transaction.subscription.customer.external_id, 
+        self.assertEqual(transaction.subscription.customer.processor_uri, 
                          'AC_MOCK')
 
     def test_process_one_with_failure_exceed_limitation(self):
+        self._create_records('AC_MOCK')
         payment_uri = '/v1/cards/tester'
         self.transaction_model.maximum_retry = 3
         now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
-            self.customer_model.update(self.customer_guid, external_id='AC_MOCK')
             guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
@@ -853,6 +879,7 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.status, self.transaction_model.STATUS_FAILED)
 
     def test_process_one_with_system_exit_and_keyboard_interrupt(self):
+        self._create_records()
         now = datetime.datetime.utcnow()
         payment_uri = '/v1/cards/tester'
 
@@ -903,6 +930,7 @@ class TestTransactionModel(ModelTestCase):
             self.transaction_model.process_one(mock_processor, transaction)
 
     def test_process_one_with_already_done(self):
+        self._create_records('AC_MOCK')
         now = datetime.datetime.utcnow()
         payment_uri = '/v1/cards/tester'
 
@@ -925,6 +953,7 @@ class TestTransactionModel(ModelTestCase):
             self.transaction_model.process_one(processor, transaction)
 
     def test_process_transactions(self):
+        self._create_records()
         now = datetime.datetime.utcnow()
         payment_uri = '/v1/cards/tester'
 
@@ -978,6 +1007,7 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(set(tx_guids), set([guid1, guid2, guid3]))
 
     def test_get_last_transaction(self):
+        self._create_records()
         guids = []
         for dt in ['2013-08-17', '2013-08-15', '2013-08-15']:
             with freeze_time(dt):
@@ -994,7 +1024,12 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(self.transaction_model.get_last_transaction().guid, 
                          guids[0])
 
-    def test_process_one_invoice_transaction_charge(self):
+
+@freeze_time('2013-08-16')
+class TestInvoiceTransactionModel(TestTransactionModelBase):
+
+    def test_process_one_charge(self):
+        self._create_records()
         now = datetime.datetime.utcnow()
         payment_uri = '/v1/cards/tester'
 
@@ -1043,12 +1078,13 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.scheduled_at, now)
         self.assertEqual(transaction.created_at, now)
-        self.assertEqual(transaction.invoice.customer.external_id, 'AC_MOCK')
+        self.assertEqual(transaction.invoice.customer.processor_uri, 'AC_MOCK')
 
         invoice = self.invoice_model.get(self.invoice_guid)
         self.assertEqual(invoice.status, self.invoice_model.STATUS_SETTLED)
 
-    def test_process_one_invoice_transaction_refund(self):
+    def test_process_one_refund(self):
+        self._create_records()
         now = datetime.datetime.utcnow()
 
         payment_uri = '/v1/cards/tester'
@@ -1110,17 +1146,17 @@ class TestTransactionModel(ModelTestCase):
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.scheduled_at, now)
         self.assertEqual(transaction.created_at, now)
-        self.assertEqual(transaction.invoice.customer.external_id, 'AC_MOCK')
+        self.assertEqual(transaction.invoice.customer.processor_uri, 'AC_MOCK')
 
         invoice = self.invoice_model.get(self.invoice_guid)
         self.assertEqual(invoice.status, self.invoice_model.STATUS_REFUNDED)
 
-    def test_process_one_invoice_with_failure_exceed_limitation(self):
+    def test_process_one_with_failure_exceed_limitation(self):
+        self._create_records('AC_MOCK')
         payment_uri = '/v1/cards/tester'
         self.transaction_model.maximum_retry = 3
 
         with db_transaction.manager:
-            self.customer_model.update(self.customer_guid, external_id='AC_MOCK')
             self.invoice_model.update_payment_uri(self.invoice_guid, payment_uri)
 
         invoice = self.invoice_model.get(self.invoice_guid)

@@ -256,13 +256,16 @@ class TransactionModel(BaseTableModel):
 
         try:
             # create customer record in Balanced
-            if customer.external_id is None:
-                customer_id = processor.create_customer(customer)
-                customer.external_id = customer_id
+            if customer.processor_uri is None:
+                customer.processor_uri = processor.create_customer(customer)
                 self.session.add(customer)
                 self.session.flush()
 
-            self.logger.info('External customer %s', customer.external_id)
+            self.logger.info(
+                'Preparing customer %s (processor_uri=%s)', 
+                customer.guid,
+                customer.processor_uri,
+            )
             # prepare customer (add bank account or credit card)
             processor.prepare_customer(customer, transaction.payment_uri)
             # do charge/payout/refund 

@@ -84,6 +84,8 @@ def list_by_company_guid(request, model_cls):
     kwargs = {}
     if 'external_id' in request.params:
         kwargs['external_id'] = request.params['external_id']
+    if 'processor_uri' in request.params:
+        kwargs['processor_uri'] = request.params['processor_uri']
     items = model.list_by_company_guid(
         company_guid=company.guid,
         offset=offset,

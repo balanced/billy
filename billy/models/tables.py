@@ -89,8 +89,8 @@ class Customer(DeclarativeBase):
         index=True,
         nullable=False,
     )
-    #: the ID of customer record in payment processing system
-    external_id = Column(Unicode(128), index=True)
+    #: the URI of customer entity in payment processing system
+    processor_uri = Column(Unicode(128), index=True)
     #: is this company deleted?
     deleted = Column(Boolean, default=False, nullable=False)
     #: the created datetime of this company

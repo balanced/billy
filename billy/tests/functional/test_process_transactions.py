@@ -9,6 +9,18 @@ import StringIO
 
 import transaction as db_transaction
 from flexmock import flexmock
+from pyramid.paster import get_appsettings
+
+from billy.models.transaction import TransactionModel
+from billy.models.processors.balanced_payments import BalancedProcessor
+from billy.models import setup_database
+from billy.models.company import CompanyModel
+from billy.models.customer import CustomerModel
+from billy.models.plan import PlanModel
+from billy.models.subscription import SubscriptionModel
+from billy.scripts import initializedb
+from billy.scripts import process_transactions
+from billy.scripts.process_transactions import main
 
 
 class TestProcessTransactions(unittest.TestCase):
@@ -20,8 +32,6 @@ class TestProcessTransactions(unittest.TestCase):
         shutil.rmtree(self.temp_dir)
 
     def test_usage(self):
-        from billy.scripts.process_transactions import main
-
         filename = '/path/to/process_transactions'
 
         old_stdout = sys.stdout
@@ -39,10 +49,6 @@ class TestProcessTransactions(unittest.TestCase):
         self.assertMultiLineEqual(usage_out.getvalue(), expected)
 
     def test_main(self):
-        from billy.models.transaction import TransactionModel
-        from billy.models.processors.balanced_payments import BalancedProcessor
-        from billy.scripts import initializedb
-        from billy.scripts import process_transactions
 
         def mock_process_transactions(processor):
             self.assertIsInstance(processor, BalancedProcessor)
@@ -69,14 +75,6 @@ class TestProcessTransactions(unittest.TestCase):
         # TODO: do more check here?
 
     def test_main_with_crash(self):
-        from pyramid.paster import get_appsettings
-        from billy.models import setup_database
-        from billy.models.company import CompanyModel
-        from billy.models.customer import CustomerModel
-        from billy.models.plan import PlanModel
-        from billy.models.subscription import SubscriptionModel
-        from billy.scripts import initializedb
-        from billy.scripts import process_transactions
 
         class MockProcessor(object):
 

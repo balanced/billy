@@ -6,60 +6,31 @@ from flexmock import flexmock
 from freezegun import freeze_time
 
 from billy.tests.functional.helper import ViewTestCase
-
-
-class DummyProcessor(object):
-
-    def create_customer(self, customer):
-        pass
-
-    def prepare_customer(self, customer, payment_uri=None):
-        pass
-
-    def charge(self, transaction):
-        pass
-
-    def payout(self, transaction):
-        pass
-
-    def refund(self, transaction):
-        pass
+from billy.tests.fixtures.processor import DummyProcessor
 
 
 @freeze_time('2013-08-16')
 class TestSubscriptionViews(ViewTestCase):
 
     def setUp(self):
-        from billy.models.company import CompanyModel
-        from billy.models.customer import CustomerModel
-        from billy.models.plan import PlanModel
-        self.settings = {
-            'billy.processor_factory': DummyProcessor
-        }
         super(TestSubscriptionViews, self).setUp()
-        company_model = CompanyModel(self.testapp.session)
-        customer_model = CustomerModel(self.testapp.session)
-        plan_model = PlanModel(self.testapp.session)
         with db_transaction.manager:
-            self.company_guid = company_model.create(
+            self.company_guid = self.company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
             )
-            self.customer_guid = customer_model.create(
+            self.customer_guid = self.customer_model.create(
                 company_guid=self.company_guid
             )
-            self.plan_guid = plan_model.create(
+            self.plan_guid = self.plan_model.create(
                 company_guid=self.company_guid,
-                frequency=plan_model.FREQ_WEEKLY,
-                plan_type=plan_model.TYPE_CHARGE,
+                frequency=self.plan_model.FREQ_WEEKLY,
+                plan_type=self.plan_model.TYPE_CHARGE,
                 amount=1000,
             )
-        company = company_model.get(self.company_guid)
+        company = self.company_model.get(self.company_guid)
         self.api_key = str(company.api_key)
 
     def test_create_subscription(self):
-        from billy.models.subscription import SubscriptionModel
-        from billy.models.transaction import TransactionModel
-
         customer_guid = self.customer_guid
         plan_guid = self.plan_guid
         amount = 5566
@@ -118,20 +89,16 @@ class TestSubscriptionViews(ViewTestCase):
                          appears_on_statement_as)
         self.assertEqual(res.json['canceled'], False)
 
-        subscription_model = SubscriptionModel(self.testapp.session)
-        subscription = subscription_model.get(res.json['guid'])
+        subscription = self.subscription_model.get(res.json['guid'])
         self.assertEqual(len(subscription.transactions), 1)
         transaction = subscription.transactions[0]
         self.assertEqual(transaction.external_id, 
                          'MOCK_PROCESSOR_TRANSACTION_ID')
-        self.assertEqual(transaction.status, TransactionModel.STATUS_DONE)
+        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
         self.assertEqual(transaction.appears_on_statement_as, 
                          subscription.appears_on_statement_as)
 
     def test_create_subscription_with_default_payment_uri(self):
-        from billy.models.subscription import SubscriptionModel
-        from billy.models.transaction import TransactionModel
-
         customer_guid = self.customer_guid
         plan_guid = self.plan_guid
         amount = 5566
@@ -184,27 +151,22 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(res.json['payment_uri'], None)
         self.assertEqual(res.json['canceled'], False)
 
-        subscription_model = SubscriptionModel(self.testapp.session)
-        subscription = subscription_model.get(res.json['guid'])
+        subscription = self.subscription_model.get(res.json['guid'])
         self.assertEqual(len(subscription.transactions), 1)
         transaction = subscription.transactions[0]
         self.assertEqual(transaction.external_id, 
                          'MOCK_PROCESSOR_TRANSACTION_ID')
-        self.assertEqual(transaction.status, TransactionModel.STATUS_DONE)
+        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
 
     def test_create_subscription_to_a_deleted_plan(self):
-        from billy.models.plan import PlanModel
-
-        plan_model = PlanModel(self.testapp.session)
-
         with db_transaction.manager:
-            plan_guid = plan_model.create(
+            plan_guid = self.plan_model.create(
                 company_guid=self.company_guid,
-                frequency=plan_model.FREQ_WEEKLY,
-                plan_type=plan_model.TYPE_CHARGE,
+                frequency=self.plan_model.FREQ_WEEKLY,
+                plan_type=self.plan_model.TYPE_CHARGE,
                 amount=10,
             )
-            plan_model.delete(plan_guid)
+            self.plan_model.delete(plan_guid)
 
         self.testapp.post(
             '/v1/subscriptions',
@@ -219,15 +181,11 @@ class TestSubscriptionViews(ViewTestCase):
         )
 
     def test_create_subscription_to_a_deleted_customer(self):
-        from billy.models.customer import CustomerModel
-
-        customer_model = CustomerModel(self.testapp.session)
-
         with db_transaction.manager:
-            customer_guid = customer_model.create(
+            customer_guid = self.customer_model.create(
                 company_guid=self.company_guid
             )
-            customer_model.delete(customer_guid)
+            self.customer_model.delete(customer_guid)
 
         self.testapp.post(
             '/v1/subscriptions',
@@ -432,27 +390,20 @@ class TestSubscriptionViews(ViewTestCase):
         )
 
     def test_get_subscription_of_other_company(self):
-        from billy.models.company import CompanyModel
-        from billy.models.customer import CustomerModel
-        from billy.models.plan import PlanModel
-
-        company_model = CompanyModel(self.testapp.session)
-        customer_model = CustomerModel(self.testapp.session)
-        plan_model = PlanModel(self.testapp.session)
         with db_transaction.manager:
-            other_company_guid = company_model.create(
+            other_company_guid = self.company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
             )
-            other_customer_guid = customer_model.create(
+            other_customer_guid = self.customer_model.create(
                 company_guid=other_company_guid
             )
-            other_plan_guid = plan_model.create(
+            other_plan_guid = self.plan_model.create(
                 company_guid=other_company_guid,
-                frequency=plan_model.FREQ_WEEKLY,
-                plan_type=plan_model.TYPE_CHARGE,
+                frequency=self.plan_model.FREQ_WEEKLY,
+                plan_type=self.plan_model.TYPE_CHARGE,
                 amount=10,
             )
-        other_company = company_model.get(other_company_guid)
+        other_company = self.company_model.get(other_company_guid)
         other_api_key = str(other_company.api_key)
 
         res = self.testapp.post(
@@ -473,16 +424,11 @@ class TestSubscriptionViews(ViewTestCase):
         )
 
     def test_create_subscription_to_other_company_customer(self):
-        from billy.models.company import CompanyModel
-        from billy.models.customer import CustomerModel
-
-        company_model = CompanyModel(self.testapp.session)
-        customer_model = CustomerModel(self.testapp.session)
         with db_transaction.manager:
-            other_company_guid = company_model.create(
+            other_company_guid = self.company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
             )
-            other_customer_guid = customer_model.create(
+            other_customer_guid = self.customer_model.create(
                 company_guid=other_company_guid
             )
 
@@ -497,19 +443,14 @@ class TestSubscriptionViews(ViewTestCase):
         )
 
     def test_create_subscription_to_other_company_plan(self):
-        from billy.models.company import CompanyModel
-        from billy.models.plan import PlanModel
-
-        company_model = CompanyModel(self.testapp.session)
-        plan_model = PlanModel(self.testapp.session)
         with db_transaction.manager:
-            other_company_guid = company_model.create(
+            other_company_guid = self.company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
             )
-            other_plan_guid = plan_model.create(
+            other_plan_guid = self.plan_model.create(
                 company_guid=other_company_guid,
-                frequency=plan_model.FREQ_WEEKLY,
-                plan_type=plan_model.TYPE_CHARGE,
+                frequency=self.plan_model.FREQ_WEEKLY,
+                plan_type=self.plan_model.TYPE_CHARGE,
                 amount=10,
             )
 
@@ -524,22 +465,17 @@ class TestSubscriptionViews(ViewTestCase):
         )
 
     def test_cancel_subscription(self):
-        from billy.models.subscription import SubscriptionModel
-        from billy.models.transaction import TransactionModel
-
-        subscription_model = SubscriptionModel(self.testapp.session)
-        tx_model = TransactionModel(self.testapp.session)
         now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
-            subscription_guid = subscription_model.create(
+            subscription_guid = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
             )
-            tx_model.create(
+            self.transaction_model.create(
                 subscription_guid=subscription_guid,
-                transaction_cls=tx_model.CLS_SUBSCRIPTION,
-                transaction_type=tx_model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100, 
                 scheduled_at=now,
             )
@@ -557,22 +493,17 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(subscription['canceled_at'], canceled_at.isoformat())
 
     def test_cancel_a_canceled_subscription(self):
-        from billy.models.subscription import SubscriptionModel
-        from billy.models.transaction import TransactionModel
-
-        subscription_model = SubscriptionModel(self.testapp.session)
-        tx_model = TransactionModel(self.testapp.session)
         now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
-            subscription_guid = subscription_model.create(
+            subscription_guid = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
             )
-            tx_model.create(
+            self.transaction_model.create(
                 subscription_guid=subscription_guid,
-                transaction_cls=tx_model.CLS_SUBSCRIPTION,
-                transaction_type=tx_model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100, 
                 scheduled_at=now,
             )
@@ -589,21 +520,15 @@ class TestSubscriptionViews(ViewTestCase):
         )
 
     def test_cancel_subscription_to_other_company(self):
-        from billy.models.subscription import SubscriptionModel
-        from billy.models.company import CompanyModel 
-
-        subscription_model = SubscriptionModel(self.testapp.session)
-        company_model = CompanyModel(self.testapp.session)
-
         with db_transaction.manager:
-            subscription_guid = subscription_model.create(
+            subscription_guid = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
             )
-            other_company_guid = company_model.create(
+            other_company_guid = self.company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
             )
-            other_company = company_model.get(other_company_guid)
+            other_company = self.company_model.get(other_company_guid)
             other_api_key = str(other_company.api_key)
 
         self.testapp.post(
@@ -613,33 +538,28 @@ class TestSubscriptionViews(ViewTestCase):
         )
 
     def test_cancel_subscription_with_prorated_refund(self):
-        from billy.models.subscription import SubscriptionModel
-        from billy.models.transaction import TransactionModel
-
-        subscription_model = SubscriptionModel(self.testapp.session)
-        tx_model = TransactionModel(self.testapp.session)
         now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
-            subscription_guid = subscription_model.create(
+            subscription_guid = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
                 amount=10000,
             )
-            tx_guid = tx_model.create(
+            tx_guid = self.transaction_model.create(
                 subscription_guid=subscription_guid,
-                transaction_cls=tx_model.CLS_SUBSCRIPTION,
-                transaction_type=tx_model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10000, 
                 scheduled_at=now,
             )
-            subscription = subscription_model.get(subscription_guid)
+            subscription = self.subscription_model.get(subscription_guid)
             subscription.period = 1
             subscription.next_transaction_at = datetime.datetime(2013, 8, 23)
             self.testapp.session.add(subscription)
 
-            transaction = tx_model.get(tx_guid)
-            transaction.status = tx_model.STATUS_DONE
+            transaction = self.transaction_model.get(tx_guid)
+            transaction.status = self.transaction_model.STATUS_DONE
             transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
             self.testapp.session.add(transaction)
 
@@ -677,7 +597,7 @@ class TestSubscriptionViews(ViewTestCase):
         # only one day is elapsed, and it is a weekly plan, so
         # it should be 10000 - (10000 / 7) and round to cent, 8571
         self.assertEqual(transaction.amount, 8571)
-        self.assertEqual(transaction.status, tx_model.STATUS_DONE)
+        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
 
         res = self.testapp.get(
             '/v1/transactions', 
@@ -688,32 +608,27 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(set(guids), set([tx_guid, transaction.guid]))
 
     def test_cancel_subscription_with_refund_amount(self):
-        from billy.models.subscription import SubscriptionModel
-        from billy.models.transaction import TransactionModel
-
-        subscription_model = SubscriptionModel(self.testapp.session)
-        tx_model = TransactionModel(self.testapp.session)
         now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
-            subscription_guid = subscription_model.create(
+            subscription_guid = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
             )
-            tx_guid = tx_model.create(
+            tx_guid = self.transaction_model.create(
                 subscription_guid=subscription_guid,
-                transaction_cls=tx_model.CLS_SUBSCRIPTION,
-                transaction_type=tx_model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=1000, 
                 scheduled_at=now,
             )
-            subscription = subscription_model.get(subscription_guid)
+            subscription = self.subscription_model.get(subscription_guid)
             subscription.period = 1
             subscription.next_transaction_at = datetime.datetime(2013, 8, 23)
             self.testapp.session.add(subscription)
 
-            transaction = tx_model.get(tx_guid)
-            transaction.status = tx_model.STATUS_DONE
+            transaction = self.transaction_model.get(tx_guid)
+            transaction.status = self.transaction_model.STATUS_DONE
             transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
             self.testapp.session.add(transaction)
 
@@ -747,7 +662,7 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(transaction.refund_to.guid, tx_guid)
         self.assertEqual(transaction.subscription_guid, subscription_guid)
         self.assertEqual(transaction.amount, 234)
-        self.assertEqual(transaction.status, tx_model.STATUS_DONE)
+        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
         self.assertEqual(transaction.appears_on_statement_as, 'good bye')
 
         res = self.testapp.get(
@@ -759,33 +674,28 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(set(guids), set([tx_guid, transaction.guid]))
 
     def test_cancel_subscription_with_bad_arguments(self):
-        from billy.models.subscription import SubscriptionModel
-        from billy.models.transaction import TransactionModel
-
-        subscription_model = SubscriptionModel(self.testapp.session)
-        tx_model = TransactionModel(self.testapp.session)
         now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
-            subscription_guid = subscription_model.create(
+            subscription_guid = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
                 amount=10000,
             )
-            tx_guid = tx_model.create(
+            tx_guid = self.transaction_model.create(
                 subscription_guid=subscription_guid,
-                transaction_cls=tx_model.CLS_SUBSCRIPTION,
-                transaction_type=tx_model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10000, 
                 scheduled_at=now,
             )
-            subscription = subscription_model.get(subscription_guid)
+            subscription = self.subscription_model.get(subscription_guid)
             subscription.period = 1
             subscription.next_transaction_at = datetime.datetime(2013, 8, 23)
             self.testapp.session.add(subscription)
 
-            transaction = tx_model.get(tx_guid)
-            transaction.status = tx_model.STATUS_DONE
+            transaction = self.transaction_model.get(tx_guid)
+            transaction.status = self.transaction_model.STATUS_DONE
             transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
             self.testapp.session.add(transaction)
 
@@ -800,16 +710,12 @@ class TestSubscriptionViews(ViewTestCase):
         assert_bad_parameters(dict(refund_amount=10001))
 
     def test_transaction_list_by_subscription(self):
-        from billy.models.transaction import TransactionModel
-        from billy.models.subscription import SubscriptionModel
-        subscription_model = SubscriptionModel(self.testapp.session)
-        transaction_model = TransactionModel(self.testapp.session)
         with db_transaction.manager:
-            subscription_guid1 = subscription_model.create(
+            subscription_guid1 = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
             )
-            subscription_guid2 = subscription_model.create(
+            subscription_guid2 = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
             )
@@ -818,10 +724,10 @@ class TestSubscriptionViews(ViewTestCase):
         with db_transaction.manager:
             for i in range(10):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
-                    guid = transaction_model.create(
+                    guid = self.transaction_model.create(
                         subscription_guid=subscription_guid1,
-                        transaction_cls=transaction_model.CLS_SUBSCRIPTION,
-                        transaction_type=transaction_model.TYPE_CHARGE,
+                        transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                        transaction_type=self.transaction_model.TYPE_CHARGE,
                         amount=10 * i,
                         payment_uri='/v1/cards/tester',
                         scheduled_at=datetime.datetime.utcnow(),
@@ -829,10 +735,10 @@ class TestSubscriptionViews(ViewTestCase):
                     guids1.append(guid)
             for i in range(20):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
-                    guid = transaction_model.create(
+                    guid = self.transaction_model.create(
                         subscription_guid=subscription_guid2,
-                        transaction_cls=transaction_model.CLS_SUBSCRIPTION,
-                        transaction_type=transaction_model.TYPE_CHARGE,
+                        transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                        transaction_type=self.transaction_model.TYPE_CHARGE,
                         amount=10 * i,
                         payment_uri='/v1/cards/tester',
                         scheduled_at=datetime.datetime.utcnow(),
@@ -860,10 +766,8 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(result_guids, guids2)
 
     def test_transaction_list_by_subscription_with_bad_api_key(self):
-        from billy.models.subscription import SubscriptionModel
-        subscription_model = SubscriptionModel(self.testapp.session)
         with db_transaction.manager:
-            subscription_guid = subscription_model.create(
+            subscription_guid = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
             )
@@ -875,13 +779,11 @@ class TestSubscriptionViews(ViewTestCase):
         )
 
     def test_subscription_list(self):
-        from billy.models.subscription import SubscriptionModel
-        subscription_model = SubscriptionModel(self.testapp.session)
         with db_transaction.manager:
             guids = []
             for i in range(4):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
-                    guid = subscription_model.create(
+                    guid = self.subscription_model.create(
                         customer_guid=self.customer_guid,
                         plan_guid=self.plan_guid,
                     )

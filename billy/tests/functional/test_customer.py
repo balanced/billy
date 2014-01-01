@@ -11,12 +11,12 @@ from billy.tests.functional.helper import ViewTestCase
 class TestCustomerViews(ViewTestCase):
 
     def setUp(self):
-        from billy.models.company import CompanyModel
         super(TestCustomerViews, self).setUp()
-        model = CompanyModel(self.testapp.session)
         with db_transaction.manager:
-            self.company_guid = model.create(processor_key='MOCK_PROCESSOR_KEY')
-        company = model.get(self.company_guid)
+            self.company_guid = self.company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY',
+            )
+        company = self.company_model.get(self.company_guid)
         self.api_key = str(company.api_key)
 
     def test_create_customer(self):
@@ -82,11 +82,11 @@ class TestCustomerViews(ViewTestCase):
         )
 
     def test_get_customer_of_other_company(self):
-        from billy.models.company import CompanyModel
-        model = CompanyModel(self.testapp.session)
         with db_transaction.manager:
-            other_company_guid = model.create(processor_key='MOCK_PROCESSOR_KEY')
-        other_company = model.get(other_company_guid)
+            other_company_guid = self.company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY',
+            )
+        other_company = self.company_model.get(other_company_guid)
         other_api_key = str(other_company.api_key)
         res = self.testapp.post(
             '/v1/customers', 
@@ -101,13 +101,11 @@ class TestCustomerViews(ViewTestCase):
         )
 
     def test_customer_list(self):
-        from billy.models.customer import CustomerModel 
-        customer_model = CustomerModel(self.testapp.session)
         with db_transaction.manager:
             guids = []
             for i in range(4):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
-                    guid = customer_model.create(self.company_guid)
+                    guid = self.customer_model.create(self.company_guid)
                     guids.append(guid)
         guids = list(reversed(guids))
 
@@ -121,8 +119,6 @@ class TestCustomerViews(ViewTestCase):
         self.assertEqual(result_guids, guids)
 
     def test_customer_list_with_external_id(self):
-        from billy.models.customer import CustomerModel 
-        customer_model = CustomerModel(self.testapp.session)
         with db_transaction.manager:
             guids = []
             for i in range(4):
@@ -130,7 +126,7 @@ class TestCustomerViews(ViewTestCase):
                     external_id = i
                     if i >= 2:
                         external_id = None
-                    guid = customer_model.create(
+                    guid = self.customer_model.create(
                         self.company_guid,
                         external_id=external_id,
                     )
@@ -214,11 +210,11 @@ class TestCustomerViews(ViewTestCase):
         )
 
     def test_delete_customer_of_other_company(self):
-        from billy.models.company import CompanyModel
-        model = CompanyModel(self.testapp.session)
         with db_transaction.manager:
-            other_company_guid = model.create(processor_key='MOCK_PROCESSOR_KEY')
-        other_company = model.get(other_company_guid)
+            other_company_guid = self.company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY',
+            )
+        other_company = self.company_model.get(other_company_guid)
         other_api_key = str(other_company.api_key)
         res = self.testapp.post(
             '/v1/customers', 

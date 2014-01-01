@@ -11,12 +11,12 @@ from billy.tests.functional.helper import ViewTestCase
 class TestPlanViews(ViewTestCase):
 
     def setUp(self):
-        from billy.models.company import CompanyModel
         super(TestPlanViews, self).setUp()
-        model = CompanyModel(self.testapp.session)
         with db_transaction.manager:
-            self.company_guid = model.create(processor_key='MOCK_PROCESSOR_KEY')
-        company = model.get(self.company_guid)
+            self.company_guid = self.company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY',
+            )
+        company = self.company_model.get(self.company_guid)
         self.api_key = str(company.api_key)
 
     def test_create_plan(self):
@@ -237,11 +237,11 @@ class TestPlanViews(ViewTestCase):
         )
 
     def test_get_plan_of_other_company(self):
-        from billy.models.company import CompanyModel
-        model = CompanyModel(self.testapp.session)
         with db_transaction.manager:
-            other_company_guid = model.create(processor_key='MOCK_PROCESSOR_KEY')
-        other_company = model.get(other_company_guid)
+            other_company_guid = self.company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY',
+            )
+        other_company = self.company_model.get(other_company_guid)
         other_api_key = str(other_company.api_key)
         res = self.testapp.post(
             '/v1/plans', 
@@ -261,17 +261,15 @@ class TestPlanViews(ViewTestCase):
         )
 
     def test_plan_list(self):
-        from billy.models.plan import PlanModel 
-        plan_model = PlanModel(self.testapp.session)
         with db_transaction.manager:
             guids = []
             for i in range(4):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
-                    guid = plan_model.create(
+                    guid = self.plan_model.create(
                         company_guid=self.company_guid,
-                        plan_type=plan_model.TYPE_CHARGE,
-                        amount=55.66,
-                        frequency=plan_model.FREQ_DAILY,
+                        plan_type=self.plan_model.TYPE_CHARGE,
+                        amount=5566,
+                        frequency=self.plan_model.FREQ_DAILY,
                     )
                     guids.append(guid)
         guids = list(reversed(guids))
@@ -356,11 +354,11 @@ class TestPlanViews(ViewTestCase):
         )
 
     def test_delete_plan_of_other_company(self):
-        from billy.models.company import CompanyModel
-        model = CompanyModel(self.testapp.session)
         with db_transaction.manager:
-            other_company_guid = model.create(processor_key='MOCK_PROCESSOR_KEY')
-        other_company = model.get(other_company_guid)
+            other_company_guid = self.company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY',
+            )
+        other_company = self.company_model.get(other_company_guid)
         other_api_key = str(other_company.api_key)
         res = self.testapp.post(
             '/v1/plans', 

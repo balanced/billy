@@ -4,6 +4,12 @@ import datetime
 import transaction as db_transaction
 from freezegun import freeze_time
 
+from billy.renderers import company_adapter
+from billy.renderers import customer_adapter
+from billy.renderers import plan_adapter
+from billy.renderers import subscription_adapter
+from billy.renderers import invoice_adapter
+from billy.renderers import transaction_adapter
 from billy.tests.functional.helper import ViewTestCase
 
 
@@ -11,48 +17,35 @@ from billy.tests.functional.helper import ViewTestCase
 class TestRenderer(ViewTestCase):
 
     def setUp(self):
-        from pyramid.testing import DummyRequest
-        from billy.models.company import CompanyModel
-        from billy.models.customer import CustomerModel
-        from billy.models.plan import PlanModel
-        from billy.models.subscription import SubscriptionModel
-        from billy.models.transaction import TransactionModel
-        from billy.models.invoice import InvoiceModel
         super(TestRenderer, self).setUp()
-        company_model = CompanyModel(self.testapp.session)
-        customer_model = CustomerModel(self.testapp.session)
-        plan_model = PlanModel(self.testapp.session)
-        subscription_model = SubscriptionModel(self.testapp.session)
-        transaction_model = TransactionModel(self.testapp.session)
-        invoice_model = InvoiceModel(self.testapp.session)
         with db_transaction.manager:
-            self.company_guid = company_model.create(
+            self.company_guid = self.company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
             )
-            self.customer_guid = customer_model.create(
+            self.customer_guid = self.customer_model.create(
                 company_guid=self.company_guid
             )
-            self.plan_guid = plan_model.create(
+            self.plan_guid = self.plan_model.create(
                 company_guid=self.company_guid,
-                frequency=plan_model.FREQ_WEEKLY,
-                plan_type=plan_model.TYPE_CHARGE,
+                frequency=self.plan_model.FREQ_WEEKLY,
+                plan_type=self.plan_model.TYPE_CHARGE,
                 amount=10,
             )
-            self.subscription_guid = subscription_model.create(
+            self.subscription_guid = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
                 appears_on_statement_as='hello baby',
             )
-            self.transaction_guid = transaction_model.create(
+            self.transaction_guid = self.transaction_model.create(
                 subscription_guid=self.subscription_guid,
-                transaction_cls=transaction_model.CLS_SUBSCRIPTION,
-                transaction_type=transaction_model.TYPE_CHARGE,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
                 payment_uri='/v1/cards/tester',
                 appears_on_statement_as='hello baby',
                 scheduled_at=datetime.datetime.utcnow(),
             )
-            self.invoice_guid = invoice_model.create(
+            self.invoice_guid = self.invoice_model.create(
                 customer_guid=self.customer_guid,
                 amount=100,
                 title='foobar invoice',
@@ -68,13 +61,9 @@ class TestRenderer(ViewTestCase):
                     dict(total=3),
                 ],
             )
-        self.dummy_request = DummyRequest()
 
     def test_company(self):
-        from billy.models.company import CompanyModel
-        from billy.renderers import company_adapter
-        company_model = CompanyModel(self.testapp.session)
-        company = company_model.get(self.company_guid)
+        company = self.company_model.get(self.company_guid)
         json_data = company_adapter(company, self.dummy_request)
         expected = dict(
             guid=company.guid,
@@ -85,10 +74,7 @@ class TestRenderer(ViewTestCase):
         self.assertEqual(json_data, expected)
 
     def test_customer(self):
-        from billy.models.customer import CustomerModel
-        from billy.renderers import customer_adapter
-        customer_model = CustomerModel(self.testapp.session)
-        customer = customer_model.get(self.customer_guid)
+        customer = self.customer_model.get(self.customer_guid)
         json_data = customer_adapter(customer, self.dummy_request)
         expected = dict(
             guid=customer.guid,
@@ -101,10 +87,7 @@ class TestRenderer(ViewTestCase):
         self.assertEqual(json_data, expected)
 
     def test_invoice(self):
-        from billy.models.invoice import InvoiceModel
-        from billy.renderers import invoice_adapter
-        invoice_model = InvoiceModel(self.testapp.session)
-        invoice = invoice_model.get(self.invoice_guid)
+        invoice = self.invoice_model.get(self.invoice_guid)
         json_data = invoice_adapter(invoice, self.dummy_request)
         expected = dict(
             guid=invoice.guid,
@@ -136,20 +119,17 @@ class TestRenderer(ViewTestCase):
             json_data = invoice_adapter(invoice, self.dummy_request)
             self.assertEqual(json_data['status'], expected_status)
 
-        assert_status(InvoiceModel.STATUS_INIT, 'init')
-        assert_status(InvoiceModel.STATUS_PROCESSING, 'processing')
-        assert_status(InvoiceModel.STATUS_SETTLED, 'settled')
-        assert_status(InvoiceModel.STATUS_CANCELED, 'canceled')
-        assert_status(InvoiceModel.STATUS_PROCESS_FAILED, 'process_failed')
-        assert_status(InvoiceModel.STATUS_REFUNDING, 'refunding')
-        assert_status(InvoiceModel.STATUS_REFUNDED, 'refunded')
-        assert_status(InvoiceModel.STATUS_REFUND_FAILED, 'refund_failed')
+        assert_status(self.invoice_model.STATUS_INIT, 'init')
+        assert_status(self.invoice_model.STATUS_PROCESSING, 'processing')
+        assert_status(self.invoice_model.STATUS_SETTLED, 'settled')
+        assert_status(self.invoice_model.STATUS_CANCELED, 'canceled')
+        assert_status(self.invoice_model.STATUS_PROCESS_FAILED, 'process_failed')
+        assert_status(self.invoice_model.STATUS_REFUNDING, 'refunding')
+        assert_status(self.invoice_model.STATUS_REFUNDED, 'refunded')
+        assert_status(self.invoice_model.STATUS_REFUND_FAILED, 'refund_failed')
 
     def test_plan(self):
-        from billy.models.plan import PlanModel
-        from billy.renderers import plan_adapter
-        plan_model = PlanModel(self.testapp.session)
-        plan = plan_model.get(self.plan_guid)
+        plan = self.plan_model.get(self.plan_guid)
         json_data = plan_adapter(plan, self.dummy_request)
         expected = dict(
             guid=plan.guid, 
@@ -169,24 +149,21 @@ class TestRenderer(ViewTestCase):
             json_data = plan_adapter(plan, self.dummy_request)
             self.assertEqual(json_data['plan_type'], expected_type)
 
-        assert_type(PlanModel.TYPE_CHARGE, 'charge')
-        assert_type(PlanModel.TYPE_PAYOUT, 'payout')
+        assert_type(self.plan_model.TYPE_CHARGE, 'charge')
+        assert_type(self.plan_model.TYPE_PAYOUT, 'payout')
 
         def assert_frequency(frequency, expected_frequency):
             plan.frequency = frequency 
             json_data = plan_adapter(plan, self.dummy_request)
             self.assertEqual(json_data['frequency'], expected_frequency)
 
-        assert_frequency(PlanModel.FREQ_DAILY, 'daily')
-        assert_frequency(PlanModel.FREQ_WEEKLY, 'weekly')
-        assert_frequency(PlanModel.FREQ_MONTHLY, 'monthly')
-        assert_frequency(PlanModel.FREQ_YEARLY, 'yearly')
+        assert_frequency(self.plan_model.FREQ_DAILY, 'daily')
+        assert_frequency(self.plan_model.FREQ_WEEKLY, 'weekly')
+        assert_frequency(self.plan_model.FREQ_MONTHLY, 'monthly')
+        assert_frequency(self.plan_model.FREQ_YEARLY, 'yearly')
 
     def test_subscription(self):
-        from billy.models.subscription import SubscriptionModel
-        from billy.renderers import subscription_adapter
-        subscription_model = SubscriptionModel(self.testapp.session)
-        subscription = subscription_model.get(self.subscription_guid)
+        subscription = self.subscription_model.get(self.subscription_guid)
         json_data = subscription_adapter(subscription, self.dummy_request)
         expected = dict(
             guid=subscription.guid, 
@@ -223,10 +200,7 @@ class TestRenderer(ViewTestCase):
         assert_canceled_at(now, now.isoformat())
 
     def test_transaction(self):
-        from billy.models.transaction import TransactionModel
-        from billy.renderers import transaction_adapter
-        transaction_model = TransactionModel(self.testapp.session)
-        transaction = transaction_model.get(self.transaction_guid)
+        transaction = self.transaction_model.get(self.transaction_guid)
         json_data = transaction_adapter(transaction, self.dummy_request)
         expected = dict(
             guid=transaction.guid, 
@@ -251,32 +225,32 @@ class TestRenderer(ViewTestCase):
             json_data = transaction_adapter(transaction, self.dummy_request)
             self.assertEqual(json_data['transaction_type'], expected_type)
 
-        assert_type(TransactionModel.TYPE_CHARGE, 'charge')
-        assert_type(TransactionModel.TYPE_PAYOUT, 'payout')
-        assert_type(TransactionModel.TYPE_REFUND, 'refund')
+        assert_type(self.transaction_model.TYPE_CHARGE, 'charge')
+        assert_type(self.transaction_model.TYPE_PAYOUT, 'payout')
+        assert_type(self.transaction_model.TYPE_REFUND, 'refund')
 
         def assert_status(transaction_status, expected_status):
             transaction.status = transaction_status
             json_data = transaction_adapter(transaction, self.dummy_request)
             self.assertEqual(json_data['status'], expected_status)
 
-        assert_status(TransactionModel.STATUS_INIT, 'init')
-        assert_status(TransactionModel.STATUS_RETRYING, 'retrying')
-        assert_status(TransactionModel.STATUS_FAILED, 'failed')
-        assert_status(TransactionModel.STATUS_DONE, 'done')
-        assert_status(TransactionModel.STATUS_CANCELED, 'canceled')
+        assert_status(self.transaction_model.STATUS_INIT, 'init')
+        assert_status(self.transaction_model.STATUS_RETRYING, 'retrying')
+        assert_status(self.transaction_model.STATUS_FAILED, 'failed')
+        assert_status(self.transaction_model.STATUS_DONE, 'done')
+        assert_status(self.transaction_model.STATUS_CANCELED, 'canceled')
 
         # test invoice transaction
-        transaction_guid = transaction_model.create(
+        transaction_guid = self.transaction_model.create(
             invoice_guid=self.invoice_guid,
-            transaction_cls=transaction_model.CLS_INVOICE,
-            transaction_type=transaction_model.TYPE_CHARGE,
+            transaction_cls=self.transaction_model.CLS_INVOICE,
+            transaction_type=self.transaction_model.TYPE_CHARGE,
             amount=10,
             payment_uri='/v1/cards/tester',
             appears_on_statement_as='hello baby',
             scheduled_at=datetime.datetime.utcnow(),
         )
-        transaction = transaction_model.get(transaction_guid)
+        transaction = self.transaction_model.get(transaction_guid)
         json_data = transaction_adapter(transaction, self.dummy_request)
         expected = dict(
             guid=transaction.guid, 

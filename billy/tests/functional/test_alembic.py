@@ -7,17 +7,21 @@ import decimal
 import shutil
 
 import transaction as db_transaction
+from sqlalchemy import create_engine
+from sqlalchemy import Column
+from sqlalchemy import Integer
+from sqlalchemy import Numeric
+from sqlalchemy.orm import scoped_session
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+from zope.sqlalchemy import ZopeTransactionExtension
+from alembic import command
+from alembic.config import Config
 
 
 class TestAlembic(unittest.TestCase):
 
     def setUp(self):
-        from sqlalchemy import create_engine
-        from sqlalchemy.orm import scoped_session
-        from sqlalchemy.orm import sessionmaker
-        from sqlalchemy.ext.declarative import declarative_base
-        from zope.sqlalchemy import ZopeTransactionExtension
-        from alembic.config import Config
         self.temp_dir = tempfile.mkdtemp()
         # init database
         default_sqlite_url = 'sqlite:///{}/billy.sqlite'.format(self.temp_dir)
@@ -71,9 +75,6 @@ class TestAlembic(unittest.TestCase):
         shutil.rmtree(self.temp_dir)
 
     def test_use_integer_column_for_amount(self):
-        from sqlalchemy import Column
-        from sqlalchemy import Integer
-        from sqlalchemy import Numeric
 
         class Plan(self.declarative_base):
             __tablename__ = 'plan'
@@ -102,7 +103,6 @@ class TestAlembic(unittest.TestCase):
                 self.session.add(subscription)
                 self.session.add(transaction)
 
-        from alembic import command
         command.stamp(self.alembic_cfg, 'base')
 
         command.upgrade(self.alembic_cfg, 'b3d4192b123')

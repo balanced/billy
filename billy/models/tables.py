@@ -462,5 +462,5 @@ class Adjustment(DeclarativeBase):
     )
     #: reason of making this adjustment to invoice
     reason = Column(Unicode(128))
-    #: total adjustment applied to the invoice, could be negetive
+    #: total adjustment applied to the invoice, could be negative
     total = Column(Integer, nullable=False)

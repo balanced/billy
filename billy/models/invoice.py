@@ -92,7 +92,7 @@ class InvoiceModel(BaseTableModel):
         from sqlalchemy.exc import IntegrityError
 
         if amount < 0:
-            raise ValueError('Negetive amount {} is not allowed'.format(amount))
+            raise ValueError('Negative amount {} is not allowed'.format(amount))
 
         now = tables.now_func()
         invoice = tables.Invoice(
@@ -133,7 +133,7 @@ class InvoiceModel(BaseTableModel):
             self.session.flush()
 
         # TODO: what about an invalid adjust? say, it makes the total of invoice
-        # a negetive value? I think we should not allow user to create such 
+        # a negative value? I think we should not allow user to create such 
         # invalid invoice
         if adjustments:
             for adjustment in adjustments:

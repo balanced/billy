@@ -122,7 +122,7 @@ def invoice_list_post(request):
     )
     if not adjustments:
         adjustments = None
-    # TODO: what about negetive effective amount?
+    # TODO: what about negative effective amount?
 
     customer = customer_model.get(customer_guid)
     if customer.company_guid != company.guid:

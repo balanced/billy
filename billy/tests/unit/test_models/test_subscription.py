@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import datetime
+import contextlib
 
 import transaction as db_transaction
 from freezegun import freeze_time
@@ -183,9 +184,11 @@ class TestSubscriptionModel(ModelTestCase):
         created_at = subscription.created_at
 
         # advanced the current date time
-        with freeze_time('2013-08-16 07:00:01'):
-            with db_transaction.manager:
-                self.subscription_model.update(guid=guid)
+        with contextlib.nested(
+            freeze_time('2013-08-16 07:00:01'),
+            db_transaction.manager,
+        ):
+            self.subscription_model.update(guid=guid)
             updated_at = datetime.datetime.utcnow()
 
         subscription = self.subscription_model.get(guid)
@@ -194,10 +197,12 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(subscription.created_at, created_at)
 
         # advanced the current date time even more
-        with freeze_time('2013-08-16 08:35:40'):
+        with contextlib.nested(
+            freeze_time('2013-08-16 08:35:40'),
+            db_transaction.manager,
+        ):
             # this should update the updated_at field only
-            with db_transaction.manager:
-                self.subscription_model.update(guid)
+            self.subscription_model.update(guid)
             updated_at = datetime.datetime.utcnow()
 
         subscription = self.subscription_model.get(guid)
@@ -272,24 +277,28 @@ class TestSubscriptionModel(ModelTestCase):
         ])
 
     def test_subscription_cancel_with_prorated_refund(self):
-        with freeze_time('2013-06-01'):
-            with db_transaction.manager:
-                guid = self.subscription_model.create(
-                    customer_guid=self.customer_tom_guid,
-                    plan_guid=self.monthly_plan_guid,
-                )
-                tx_guids = self.subscription_model.yield_transactions()
-                transaction = self.transaction_model.get(tx_guids[0])
-                transaction.status = self.transaction_model.STATUS_DONE
-                transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
-                self.session.add(transaction)
+        with contextlib.nested(
+            freeze_time('2013-06-01'),
+            db_transaction.manager,
+        ):
+            guid = self.subscription_model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+            )
+            tx_guids = self.subscription_model.yield_transactions()
+            transaction = self.transaction_model.get(tx_guids[0])
+            transaction.status = self.transaction_model.STATUS_DONE
+            transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            self.session.add(transaction)
 
         # it is a monthly plan, there is 30 days in June, and only
         # 6 days are elapsed, so 6 / 30 days, the rate should be 1 - 0.2 = 0.8
         # and we have 1000 cent as the amount, we should return 800 to customer
-        with freeze_time('2013-06-07'):
-            with db_transaction.manager:
-                refund_guid = self.subscription_model.cancel(guid, prorated_refund=True)
+        with contextlib.nested(
+            freeze_time('2013-06-07'),
+            db_transaction.manager,
+        ):
+            refund_guid = self.subscription_model.cancel(guid, prorated_refund=True)
 
         transaction = self.transaction_model.get(refund_guid)
         self.assertEqual(transaction.refund_to_guid, tx_guids[0])
@@ -347,69 +356,81 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(transaction.appears_on_statement_as, 'good bye')
 
     def test_subscription_cancel_with_prorated_refund_and_amount_overwrite(self):
-        with freeze_time('2013-06-01'):
-            with db_transaction.manager:
-                guid = self.subscription_model.create(
-                    customer_guid=self.customer_tom_guid,
-                    plan_guid=self.monthly_plan_guid,
-                    amount=10000,
-                )
-                tx_guids = self.subscription_model.yield_transactions()
-                transaction = self.transaction_model.get(tx_guids[0])
-                transaction.status = self.transaction_model.STATUS_DONE
-                transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
-                self.session.add(transaction)
+        with contextlib.nested(
+            freeze_time('2013-06-01'),
+            db_transaction.manager,
+        ):
+            guid = self.subscription_model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+                amount=10000,
+            )
+            tx_guids = self.subscription_model.yield_transactions()
+            transaction = self.transaction_model.get(tx_guids[0])
+            transaction.status = self.transaction_model.STATUS_DONE
+            transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            self.session.add(transaction)
 
         # it is a monthly plan, there is 30 days in June, and only
         # 6 days are elapsed, so 6 / 30 days, the rate should be 1 - 0.2 = 0.8
         # and we have 100 dollars as the amount, we should return 80 dollars to 
         # customer
-        with freeze_time('2013-06-07'):
-            with db_transaction.manager:
-                refund_guid = self.subscription_model.cancel(
-                    guid=guid, 
-                    prorated_refund=True,
-                    appears_on_statement_as='good bye',
-                )
+        with contextlib.nested(
+            freeze_time('2013-06-07'),
+            db_transaction.manager,
+        ):
+            refund_guid = self.subscription_model.cancel(
+                guid=guid, 
+                prorated_refund=True,
+                appears_on_statement_as='good bye',
+            )
 
         transaction = self.transaction_model.get(refund_guid)
         self.assertEqual(transaction.amount, 8000)
         self.assertEqual(transaction.appears_on_statement_as, 'good bye')
 
     def test_subscription_cancel_with_prorated_refund_rounding(self):
-        with freeze_time('2013-06-01'):
-            with db_transaction.manager:
-                guid = self.subscription_model.create(
-                    customer_guid=self.customer_tom_guid,
-                    plan_guid=self.monthly_plan_guid,
-                )
-                tx_guids = self.subscription_model.yield_transactions()
-                transaction = self.transaction_model.get(tx_guids[0])
-                transaction.status = self.transaction_model.STATUS_DONE
-                transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
-                self.session.add(transaction)
+        with contextlib.nested(
+            freeze_time('2013-06-01'),
+            db_transaction.manager,
+        ):
+            guid = self.subscription_model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+            )
+            tx_guids = self.subscription_model.yield_transactions()
+            transaction = self.transaction_model.get(tx_guids[0])
+            transaction.status = self.transaction_model.STATUS_DONE
+            transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            self.session.add(transaction)
 
         # 17 / 30 days, the rate should be 1 - 0.56666..., which is
         # 0.43333...
-        with freeze_time('2013-06-18'):
-            with db_transaction.manager:
+        with contextlib.nested(
+            freeze_time('2013-06-18'),
+            db_transaction.manager,
+        ):
                 refund_guid = self.subscription_model.cancel(guid, prorated_refund=True)
 
         transaction = self.transaction_model.get(refund_guid)
         self.assertEqual(transaction.amount, 433)
 
     def test_subscription_cancel_with_zero_refund(self):
-        with freeze_time('2013-06-01'):
-            with db_transaction.manager:
-                guid = self.subscription_model.create(
-                    customer_guid=self.customer_tom_guid,
-                    plan_guid=self.monthly_plan_guid,
-                )
-                self.subscription_model.yield_transactions()
+        with contextlib.nested(
+            freeze_time('2013-06-01'),
+            db_transaction.manager,
+        ):
+            guid = self.subscription_model.create(
+                customer_guid=self.customer_tom_guid,
+                plan_guid=self.monthly_plan_guid,
+            )
+            self.subscription_model.yield_transactions()
         # the subscription period is finished, nothing to refund
-        with freeze_time('2013-07-01'):
-            with db_transaction.manager:
-                refund_guid = self.subscription_model.cancel(guid, prorated_refund=True)
+        with contextlib.nested(
+            freeze_time('2013-07-01'),
+            db_transaction.manager,
+        ):
+            refund_guid = self.subscription_model.cancel(guid, prorated_refund=True)
 
         self.assertEqual(refund_guid, None)
         subscription = self.subscription_model.get(guid)
@@ -462,17 +483,21 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertEqual(len(subscription.transactions), 1)
 
         # should not yield new transaction as 09-16 is the date
-        with freeze_time('2013-09-15'):
-            with db_transaction.manager:
+        with contextlib.nested(
+            freeze_time('2013-09-15'),
+            db_transaction.manager,
+        ):
                 tx_guids = self.subscription_model.yield_transactions()
         self.assertFalse(tx_guids)
         subscription = self.subscription_model.get(guid)
         self.assertEqual(len(subscription.transactions), 1)
 
         # okay, should yield new transaction now
-        with freeze_time('2013-09-16'):
-            with db_transaction.manager:
-                tx_guids = self.subscription_model.yield_transactions()
+        with contextlib.nested(
+            freeze_time('2013-09-16'),
+            db_transaction.manager,
+        ):
+            tx_guids = self.subscription_model.yield_transactions()
             scheduled_at = datetime.datetime.utcnow()
         self.assertEqual(len(tx_guids), 1)
         subscription = self.subscription_model.get(guid)
@@ -523,9 +548,11 @@ class TestSubscriptionModel(ModelTestCase):
             )
 
         # okay, 08-16, 09-16, 10-16, so we should have 3 new transactions
-        with freeze_time('2013-10-16'):
-            with db_transaction.manager:
-                tx_guids = self.subscription_model.yield_transactions()
+        with contextlib.nested(
+            freeze_time('2013-10-16'),
+            db_transaction.manager,
+        ):
+            tx_guids = self.subscription_model.yield_transactions()
 
         self.assertEqual(len(set(tx_guids)), 3)
         subscription = self.subscription_model.get(guid)
@@ -550,9 +577,11 @@ class TestSubscriptionModel(ModelTestCase):
             )
 
         # okay, 08-16, 09-16, 10-16, so we should have 3 new transactions
-        with freeze_time('2013-10-16'):
-            with db_transaction.manager:
-                self.subscription_model.yield_transactions()
+        with contextlib.nested(
+            freeze_time('2013-10-16'),
+            db_transaction.manager,
+        ):
+            self.subscription_model.yield_transactions()
 
         subscription = self.subscription_model.get(guid)
         amounts = [tx.amount for tx in subscription.transactions]
@@ -577,9 +606,11 @@ class TestSubscriptionModel(ModelTestCase):
             )
 
         # okay, 08-16, 10-16, so we should have 2 new transactions
-        with freeze_time('2013-10-16'):
-            with db_transaction.manager:
-                tx_guids = self.subscription_model.yield_transactions()
+        with contextlib.nested(
+            freeze_time('2013-10-16'),
+            db_transaction.manager,
+        ):
+            tx_guids = self.subscription_model.yield_transactions()
 
         self.assertEqual(len(set(tx_guids)), 2)
         subscription = self.subscription_model.get(guid)
@@ -620,9 +651,11 @@ class TestSubscriptionModel(ModelTestCase):
         self.assertFalse(subscription.transactions)
 
         # 
-        with freeze_time('2013-09-01'):
-            with db_transaction.manager:
-                tx_guids = self.subscription_model.yield_transactions()
+        with contextlib.nested(
+            freeze_time('2013-09-01'),
+            db_transaction.manager,
+        ):
+            tx_guids = self.subscription_model.yield_transactions()
 
         self.assertEqual(len(set(tx_guids)), 1)
         subscription = self.subscription_model.get(guid)
@@ -669,9 +702,11 @@ class TestSubscriptionModel(ModelTestCase):
             )
 
         # 08-16, 09-16, 10-16 transactions should be yielded
-        with freeze_time('2013-10-16'):
-            with db_transaction.manager:
-                tx_guids = self.subscription_model.yield_transactions()
+        with contextlib.nested(
+            freeze_time('2013-10-16'),
+            db_transaction.manager,
+        ):
+            tx_guids = self.subscription_model.yield_transactions()
 
         self.assertEqual(len(set(tx_guids)), 3)
         subscription = self.subscription_model.get(guid)
@@ -681,9 +716,11 @@ class TestSubscriptionModel(ModelTestCase):
         with db_transaction.manager:
             self.subscription_model.cancel(guid)
 
-        with freeze_time('2020-12-31'):
-            with db_transaction.manager:
-                tx_guids = self.subscription_model.yield_transactions()
+        with contextlib.nested(
+            freeze_time('2020-12-31'),
+            db_transaction.manager,
+        ):
+            tx_guids = self.subscription_model.yield_transactions()
 
         self.assertFalse(tx_guids)
         subscription = self.subscription_model.get(guid)

@@ -560,9 +560,11 @@ class TestTransactionModel(TestTransactionModelBase):
         created_at = transaction.created_at
 
         # advanced the current date time
-        with freeze_time('2013-08-16 07:00:01'):
-            with db_transaction.manager:
-                self.transaction_model.update(guid=guid)
+        with contextlib.nested(
+            freeze_time('2013-08-16 07:00:01'),
+            db_transaction.manager,
+        ):
+            self.transaction_model.update(guid=guid)
             updated_at = datetime.datetime.utcnow()
 
         transaction = self.transaction_model.get(guid)
@@ -570,10 +572,12 @@ class TestTransactionModel(TestTransactionModelBase):
         self.assertEqual(transaction.created_at, created_at)
 
         # advanced the current date time even more
-        with freeze_time('2013-08-16 08:35:40'):
+        with contextlib.nested(
+            freeze_time('2013-08-16 08:35:40'),
+            db_transaction.manager,
+        ):
             # this should update the updated_at field only
-            with db_transaction.manager:
-                self.transaction_model.update(guid)
+            self.transaction_model.update(guid)
             updated_at = datetime.datetime.utcnow()
 
         transaction = self.transaction_model.get(guid)
@@ -630,17 +634,19 @@ class TestTransactionModel(TestTransactionModelBase):
     def test_get_last_transaction(self):
         guids = []
         for dt in ['2013-08-17', '2013-08-15', '2013-08-15']:
-            with freeze_time(dt):
-                with db_transaction.manager:
-                    guid = self.transaction_model.create(
-                        subscription_guid=self.subscription_guid,
-                        transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
-                        transaction_type=self.transaction_model.TYPE_CHARGE,
-                        amount=10,
-                        payment_uri='/v1/cards/tester',
-                        scheduled_at=datetime.datetime.utcnow(),
-                    )
-                    guids.append(guid)
+            with contextlib.nested(
+                freeze_time(dt),
+                db_transaction.manager,
+            ):
+                guid = self.transaction_model.create(
+                    subscription_guid=self.subscription_guid,
+                    transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                    transaction_type=self.transaction_model.TYPE_CHARGE,
+                    amount=10,
+                    payment_uri='/v1/cards/tester',
+                    scheduled_at=datetime.datetime.utcnow(),
+                )
+                guids.append(guid)
         self.assertEqual(self.transaction_model.get_last_transaction().guid, 
                          guids[0])
 

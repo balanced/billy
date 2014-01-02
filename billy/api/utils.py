@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import re
 
 from pyramid.httpexceptions import HTTPBadRequest
+from pyramid.path import DottedNameResolver
 
 from .auth import auth_api_key
 
@@ -48,7 +49,7 @@ def validate_form(form_cls, request):
     """
     form = form_cls(request.params)
     # Notice: this make validators can query to database
-    form.session = request.session
+    form.model_factory = request.model_factory
     validation_result = form.validate()
     if not validation_result:
         raise form_errors_to_bad_request(form.errors)
@@ -64,8 +65,8 @@ class RecordExistValidator(object):
         self.model_cls = model_cls
 
     def __call__(self, form, field):
-        # Notice: we should set form.session before we call validate
-        model = self.model_cls(form.session)
+        # Notice: we should set form.model_factory before we call validate
+        model = self.model_cls(form.model_factory)
         if model.get(field.data) is None:
             msg = field.gettext('No such {} record {}'
                                 .format(self.model_cls.TABLE.__name__, 
@@ -78,7 +79,7 @@ def list_by_company_guid(request, model_cls):
 
     """
     company = auth_api_key(request)
-    model = model_cls(request.session)
+    model = model_cls(request.model_factory)
     offset = int(request.params.get('offset', 0))
     limit = int(request.params.get('limit', 20))
     kwargs = {}
@@ -98,3 +99,13 @@ def list_by_company_guid(request, model_cls):
         limit=limit,
     )
     return result
+
+
+def get_processor_factory(settings):
+    """Get processor factory from settings and return
+
+    """
+    resolver = DottedNameResolver()
+    processor_factory = settings['billy.processor_factory']
+    processor_factory = resolver.maybe_resolve(processor_factory)
+    return processor_factory

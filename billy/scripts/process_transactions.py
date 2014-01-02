@@ -8,11 +8,10 @@ from pyramid.paster import (
     get_appsettings,
     setup_logging,
 )
-from pyramid.path import DottedNameResolver
 
 from billy.models import setup_database
-from billy.models.subscription import SubscriptionModel
-from billy.models.transaction import TransactionModel
+from billy.models.model_factory import ModelFactory
+from billy.api.utils import get_processor_factory
 
 
 def usage(argv):
@@ -33,18 +32,17 @@ def main(argv=sys.argv, processor=None):
     settings = setup_database({}, **settings)
 
     session = settings['session']
-    maximum_retry = int(settings.get(
-        'billy.transaction.maximum_retry', 
-        TransactionModel.DEFAULT_MAXIMUM_RETRY,
-    ))
-    subscription_model = SubscriptionModel(session)
-    tx_model = TransactionModel(session, maximum_retry=maximum_retry)
-
-    resolver = DottedNameResolver()
     if processor is None:
-        processor_factory = settings['billy.processor_factory']
-        processor_factory = resolver.maybe_resolve(processor_factory)
-        processor = processor_factory()
+        processor_factory = get_processor_factory(settings)
+    else:
+        processor_factory = lambda: processor
+    factory = ModelFactory(
+        session=session, 
+        processor_factory=processor_factory, 
+        settings=settings,
+    )
+    subscription_model = factory.create_subscription_model()
+    tx_model = factory.create_transaction_model()
 
     # yield all transactions and commit before we process them, so that
     # we won't double process them. 
@@ -54,5 +52,5 @@ def main(argv=sys.argv, processor=None):
 
     with db_transaction.manager:
         logger.info('Processing transaction ...')
-        tx_model.process_transactions(processor)
+        tx_model.process_transactions()
     logger.info('Done')

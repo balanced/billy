@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 from billy.models import tables
 from billy.models.base import BaseTableModel
 from billy.models.base import decorate_offset_limit
-from billy.models.transaction import TransactionModel
 from billy.utils.generic import make_guid
 
 
@@ -145,7 +144,7 @@ class InvoiceModel(BaseTableModel):
                 self.session.add(record)
             self.session.flush()
 
-        tx_model = TransactionModel(self.session)
+        tx_model = self.factory.create_transaction_model()
         # as if we set the payment_uri at very first, we want to charge it
         # immediately, so we create a transaction right away, also set the 
         # status to PROCESSING
@@ -207,7 +206,7 @@ class InvoiceModel(BaseTableModel):
 
         @return: a list of yielded transaction guid
         """
-        tx_model = TransactionModel(self.session)
+        tx_model = self.factory.create_transaction_model()
         invoice = self.get(guid, raise_error=True, with_lockmode='update')
         now = tables.now_func()
         invoice.updated_at = now

@@ -118,7 +118,7 @@ class SubscriptionModel(BaseTableModel):
             raise ValueError('You cannot set refund_amount when '
                              'prorated_refund is True')
 
-        tx_model = TransactionModel(self.session)
+        tx_model = self.factory.create_transaction_model()
         Transaction = tables.Transaction
         SubscriptionTransaction = tables.SubscriptionTransaction
 
@@ -228,7 +228,7 @@ class SubscriptionModel(BaseTableModel):
         if now is None:
             now = tables.now_func()
 
-        tx_model = TransactionModel(self.session)
+        tx_model = self.factory.create_transaction_model()
         Subscription = tables.Subscription
 
         transaction_guids = []

@@ -9,12 +9,8 @@ from sqlalchemy.orm import sessionmaker
 from zope.sqlalchemy import ZopeTransactionExtension
 
 from billy.models import tables
-from billy.models.company import CompanyModel
-from billy.models.customer import CustomerModel
-from billy.models.plan import PlanModel
-from billy.models.subscription import SubscriptionModel
-from billy.models.invoice import InvoiceModel
-from billy.models.transaction import TransactionModel
+from billy.models.model_factory import ModelFactory
+from billy.tests.fixtures.processor import DummyProcessor
 
 
 def create_session(echo=False):
@@ -48,12 +44,19 @@ class ModelTestCase(unittest.TestCase):
         self.session = create_session()
         self._old_now_func = tables.set_now_func(datetime.datetime.utcnow)
 
-        self.company_model = CompanyModel(self.session)
-        self.customer_model = CustomerModel(self.session)
-        self.plan_model = PlanModel(self.session)
-        self.subscription_model = SubscriptionModel(self.session)
-        self.invoice_model = InvoiceModel(self.session)
-        self.transaction_model = TransactionModel(self.session)
+        self.dummy_processor = DummyProcessor()
+
+        self.model_factory = ModelFactory(
+            session=self.session, 
+            processor_factory=lambda: self.dummy_processor, 
+            settings={},
+        )
+        self.company_model = self.model_factory.create_company_model()
+        self.customer_model = self.model_factory.create_customer_model()
+        self.plan_model = self.model_factory.create_plan_model()
+        self.subscription_model = self.model_factory.create_subscription_model()
+        self.invoice_model = self.model_factory.create_invoice_model()
+        self.transaction_model = self.model_factory.create_transaction_model()
 
     def tearDown(self):
         self.session.remove()

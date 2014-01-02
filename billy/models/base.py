@@ -52,9 +52,10 @@ class BaseTableModel(object):
     #: the table for this model
     TABLE = None
 
-    def __init__(self, session, logger=None):
+    def __init__(self, factory, logger=None):
         self.logger = logger or logging.getLogger(__name__)
-        self.session = session
+        self.factory = factory
+        self.session = factory.session
         assert self.TABLE is not None
 
     def get(self, guid, raise_error=False, with_lockmode=None):

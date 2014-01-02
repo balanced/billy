@@ -91,10 +91,7 @@ def subscription_list_post(request):
     # this is not a deferred subscription, just process transactions right away
     if started_at is None:
         with db_transaction.manager:
-            tx_model.process_transactions(
-                processor=request.processor, 
-                guids=tx_guids,
-            )
+            tx_model.process_transactions(guids=tx_guids)
 
     subscription = sub_model.get(guid)
     return subscription
@@ -193,10 +190,7 @@ def subscription_cancel(request):
         )
     if tx_guid is not None:
         with db_transaction.manager:
-            tx_model.process_transactions(
-                processor=request.processor, 
-                guids=[tx_guid],
-            )
+            tx_model.process_transactions(guids=[tx_guid])
 
     subscription = sub_model.get(guid)
     return subscription 

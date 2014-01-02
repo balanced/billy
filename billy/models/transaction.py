@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+from sqlalchemy.sql.expression import or_
+
 from billy.models import tables
 from billy.models.base import BaseTableModel
 from billy.models.base import decorate_offset_limit
@@ -55,14 +57,18 @@ class TransactionModel(BaseTableModel):
         STATUS_CANCELED,
     ]
 
-    def __init__(
-        self, 
-        session, 
-        maximum_retry=DEFAULT_MAXIMUM_RETRY,
-        logger=None,
-    ):
-        super(TransactionModel, self).__init__(session, logger=logger)
-        self.maximum_retry = maximum_retry
+    @property
+    def maximum_retry(self):
+        maximum_retry = int(self.factory.settings.get(
+            'billy.transaction.maximum_retry', 
+            self.DEFAULT_MAXIMUM_RETRY,
+        ))
+        return maximum_retry
+
+    @property
+    def processor(self):
+        processor = self.factory.create_processor()
+        return processor
 
     def get_last_transaction(self):
         """Get last transaction
@@ -80,7 +86,6 @@ class TransactionModel(BaseTableModel):
         """Get transactions of a company by given guid
 
         """
-        from sqlalchemy.sql.expression import or_
         Transaction = tables.Transaction
         SubscriptionTransaction = tables.SubscriptionTransaction
         InvoiceTransaction = tables.InvoiceTransaction
@@ -211,17 +216,11 @@ class TransactionModel(BaseTableModel):
         self.session.add(transaction)
         self.session.flush()
 
-    def process_one(
-        self, 
-        processor, 
-        transaction, 
-    ):
+    def process_one(self, transaction):
         """Process one transaction
 
         """
-        from billy.models.invoice import InvoiceModel
-
-        invoice_model = InvoiceModel(self.session)
+        invoice_model = self.factory.create_invoice_model()
 
         # there is still chance we duplicate transaction, for example
         # 
@@ -249,15 +248,15 @@ class TransactionModel(BaseTableModel):
             invoice_model.get(transaction.invoice_guid, with_lockmode='update')
 
         method = {
-            self.TYPE_CHARGE: processor.charge,
-            self.TYPE_PAYOUT: processor.payout,
-            self.TYPE_REFUND: processor.refund,
+            self.TYPE_CHARGE: self.processor.charge,
+            self.TYPE_PAYOUT: self.processor.payout,
+            self.TYPE_REFUND: self.processor.refund,
         }[transaction.transaction_type]
 
         try:
             # create customer record in Balanced
             if customer.processor_uri is None:
-                customer.processor_uri = processor.create_customer(customer)
+                customer.processor_uri = self.processor.create_customer(customer)
                 self.session.add(customer)
                 self.session.flush()
 
@@ -267,7 +266,7 @@ class TransactionModel(BaseTableModel):
                 customer.processor_uri,
             )
             # prepare customer (add bank account or credit card)
-            processor.prepare_customer(customer, transaction.payment_uri)
+            self.processor.prepare_customer(customer, transaction.payment_uri)
             # do charge/payout/refund 
             transaction_id = method(transaction)
         except (SystemExit, KeyboardInterrupt):
@@ -291,8 +290,8 @@ class TransactionModel(BaseTableModel):
                 # the transaction is failed, update invoice status
                 if transaction.transaction_cls == self.CLS_INVOICE:
                     invoice_status = {
-                        self.TYPE_CHARGE: InvoiceModel.STATUS_PROCESS_FAILED,
-                        self.TYPE_REFUND: InvoiceModel.STATUS_REFUND_FAILED,
+                        self.TYPE_CHARGE: invoice_model.STATUS_PROCESS_FAILED,
+                        self.TYPE_REFUND: invoice_model.STATUS_REFUND_FAILED,
                     }[transaction.transaction_type]
                     transaction.invoice.status = invoice_status
                     self.session.add(transaction.invoice)
@@ -309,8 +308,8 @@ class TransactionModel(BaseTableModel):
         # the transaction is done, update invoice status
         if transaction.transaction_cls == self.CLS_INVOICE:
             invoice_status = {
-                self.TYPE_CHARGE: InvoiceModel.STATUS_SETTLED,
-                self.TYPE_REFUND: InvoiceModel.STATUS_REFUNDED,
+                self.TYPE_CHARGE: invoice_model.STATUS_SETTLED,
+                self.TYPE_REFUND: invoice_model.STATUS_REFUNDED,
             }[transaction.transaction_type]
             transaction.invoice.status = invoice_status
             self.session.add(transaction.invoice)
@@ -320,11 +319,7 @@ class TransactionModel(BaseTableModel):
                          transaction.guid, transaction.status, 
                          transaction.external_id)
 
-    def process_transactions(
-        self, 
-        processor, 
-        guids=None,
-    ):
+    def process_transactions(self, guids=None):
         """Process all transactions 
 
         """
@@ -341,6 +336,6 @@ class TransactionModel(BaseTableModel):
 
         processed_transaction_guids = []
         for transaction in query:
-            self.process_one(processor, transaction)
+            self.process_one(transaction)
             processed_transaction_guids.append(transaction.guid)
         return processed_transaction_guids

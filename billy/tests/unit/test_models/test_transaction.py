@@ -691,9 +691,10 @@ class TestTransactionModel(TestTransactionModelBase):
             .once()
         )
 
+        self.model_factory.processor_factory = lambda: mock_processor
         with freeze_time('2013-08-20'):
             with db_transaction.manager:
-                self.transaction_model.process_one(mock_processor, transaction)
+                self.transaction_model.process_one(transaction)
                 updated_at = datetime.datetime.utcnow()
 
         transaction = self.transaction_model.get(guid)
@@ -749,9 +750,10 @@ class TestTransactionModel(TestTransactionModelBase):
             .once()
         )
 
+        self.model_factory.processor_factory = lambda: mock_processor
         with freeze_time('2013-08-20'):
             with db_transaction.manager:
-                self.transaction_model.process_one(mock_processor, transaction)
+                self.transaction_model.process_one(transaction)
                 updated_at = datetime.datetime.utcnow()
 
         transaction = self.transaction_model.get(guid)
@@ -810,8 +812,9 @@ class TestTransactionModel(TestTransactionModelBase):
             .once()
         )
 
+        self.model_factory.processor_factory = lambda: mock_processor
         with db_transaction.manager:
-            self.transaction_model.process_one(mock_processor, transaction)
+            self.transaction_model.process_one(transaction)
             updated_at = datetime.datetime.utcnow()
 
         transaction = self.transaction_model.get(guid)
@@ -825,7 +828,7 @@ class TestTransactionModel(TestTransactionModelBase):
     def test_process_one_with_failure_exceed_limitation(self):
         self._create_records('AC_MOCK')
         payment_uri = '/v1/cards/tester'
-        self.transaction_model.maximum_retry = 3
+        self.model_factory.settings['billy.transaction.maximum_retry'] = 3
         now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
@@ -860,21 +863,16 @@ class TestTransactionModel(TestTransactionModelBase):
             .times(4)
         )
 
+        self.model_factory.processor_factory = lambda: mock_processor
         for _ in range(3):
             with db_transaction.manager:
                 transaction = self.transaction_model.get(guid)
-                self.transaction_model.process_one(
-                    processor=mock_processor, 
-                    transaction=transaction, 
-                )
+                self.transaction_model.process_one(transaction)
             transaction = self.transaction_model.get(guid)
             self.assertEqual(transaction.status, self.transaction_model.STATUS_RETRYING)
         with db_transaction.manager:
             transaction = self.transaction_model.get(guid)
-            self.transaction_model.process_one(
-                processor=mock_processor, 
-                transaction=transaction, 
-            )
+            self.transaction_model.process_one(transaction)
         transaction = self.transaction_model.get(guid)
         self.assertEqual(transaction.status, self.transaction_model.STATUS_FAILED)
 
@@ -909,8 +907,9 @@ class TestTransactionModel(TestTransactionModelBase):
             .replace_with(mock_create_customer_system_exit)
         )
 
+        self.model_factory.processor_factory = lambda: mock_processor
         with self.assertRaises(SystemExit):
-            self.transaction_model.process_one(mock_processor, transaction)
+            self.transaction_model.process_one(transaction)
 
         def mock_create_customer_keyboard_interrupt(transaction):
             raise KeyboardInterrupt
@@ -926,8 +925,9 @@ class TestTransactionModel(TestTransactionModelBase):
             .replace_with(mock_create_customer_keyboard_interrupt)
         )
 
+        self.model_factory.processor_factory = lambda: mock_processor
         with self.assertRaises(KeyboardInterrupt):
-            self.transaction_model.process_one(mock_processor, transaction)
+            self.transaction_model.process_one(transaction)
 
     def test_process_one_with_already_done(self):
         self._create_records('AC_MOCK')
@@ -947,10 +947,11 @@ class TestTransactionModel(TestTransactionModelBase):
             transaction.status = self.transaction_model.STATUS_DONE
             self.session.add(transaction)
 
-        processor = flexmock()
+        mock_processor = flexmock()
+        self.model_factory.processor_factory = lambda: mock_processor
         transaction = self.transaction_model.get(guid)
         with self.assertRaises(ValueError):
-            self.transaction_model.process_one(processor, transaction)
+            self.transaction_model.process_one(transaction)
 
     def test_process_transactions(self):
         self._create_records()
@@ -1001,8 +1002,9 @@ class TestTransactionModel(TestTransactionModelBase):
             payout=None,
             refund=None,
         )
+        self.model_factory.processor_factory = lambda: processor
         with db_transaction.manager:
-            tx_guids = self.transaction_model.process_transactions(processor)
+            tx_guids = self.transaction_model.process_transactions()
 
         self.assertEqual(set(tx_guids), set([guid1, guid2, guid3]))
 
@@ -1067,9 +1069,10 @@ class TestInvoiceTransactionModel(TestTransactionModelBase):
             .once()
         )
 
+        self.model_factory.processor_factory = lambda: mock_processor
         with freeze_time('2013-08-20'):
             with db_transaction.manager:
-                self.transaction_model.process_one(mock_processor, transaction)
+                self.transaction_model.process_one(transaction)
                 updated_at = datetime.datetime.utcnow()
 
         transaction = self.transaction_model.get(guid)
@@ -1135,9 +1138,10 @@ class TestInvoiceTransactionModel(TestTransactionModelBase):
             .once()
         )
 
+        self.model_factory.processor_factory = lambda: mock_processor
         with freeze_time('2013-08-20'):
             with db_transaction.manager:
-                self.transaction_model.process_one(mock_processor, transaction)
+                self.transaction_model.process_one(transaction)
                 updated_at = datetime.datetime.utcnow()
 
         transaction = self.transaction_model.get(guid)
@@ -1154,7 +1158,7 @@ class TestInvoiceTransactionModel(TestTransactionModelBase):
     def test_process_one_with_failure_exceed_limitation(self):
         self._create_records('AC_MOCK')
         payment_uri = '/v1/cards/tester'
-        self.transaction_model.maximum_retry = 3
+        self.model_factory.settings['billy.transaction.maximum_retry'] = 3
 
         with db_transaction.manager:
             self.invoice_model.update_payment_uri(self.invoice_guid, payment_uri)
@@ -1183,13 +1187,12 @@ class TestInvoiceTransactionModel(TestTransactionModelBase):
             .times(4)
         )
 
+        self.model_factory.processor_factory = lambda: mock_processor
+
         for _ in range(3):
             with db_transaction.manager:
                 transaction = self.transaction_model.get(guid)
-                self.transaction_model.process_one(
-                    processor=mock_processor, 
-                    transaction=transaction, 
-                )
+                self.transaction_model.process_one(transaction)
             transaction = self.transaction_model.get(guid)
             self.assertEqual(transaction.status, 
                              self.transaction_model.STATUS_RETRYING)
@@ -1198,10 +1201,7 @@ class TestInvoiceTransactionModel(TestTransactionModelBase):
                              self.invoice_model.STATUS_PROCESSING)
         with db_transaction.manager:
             transaction = self.transaction_model.get(guid)
-            self.transaction_model.process_one(
-                processor=mock_processor, 
-                transaction=transaction, 
-            )
+            self.transaction_model.process_one(transaction=transaction)
         transaction = self.transaction_model.get(guid)
         self.assertEqual(transaction.status, 
                          self.transaction_model.STATUS_FAILED)

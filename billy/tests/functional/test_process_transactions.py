@@ -11,13 +11,10 @@ import transaction as db_transaction
 from flexmock import flexmock
 from pyramid.paster import get_appsettings
 
+from billy.models import setup_database
 from billy.models.transaction import TransactionModel
 from billy.models.processors.balanced_payments import BalancedProcessor
-from billy.models import setup_database
-from billy.models.company import CompanyModel
-from billy.models.customer import CustomerModel
-from billy.models.plan import PlanModel
-from billy.models.subscription import SubscriptionModel
+from billy.models.model_factory import ModelFactory
 from billy.scripts import initializedb
 from billy.scripts import process_transactions
 from billy.scripts.process_transactions import main
@@ -49,14 +46,9 @@ class TestProcessTransactions(unittest.TestCase):
         self.assertMultiLineEqual(usage_out.getvalue(), expected)
 
     def test_main(self):
-
-        def mock_process_transactions(processor):
-            self.assertIsInstance(processor, BalancedProcessor)
-
         (
             flexmock(TransactionModel)
             .should_receive('process_transactions')
-            .replace_with(mock_process_transactions)
             .once()
         )
 
@@ -120,10 +112,15 @@ class TestProcessTransactions(unittest.TestCase):
         settings = get_appsettings(cfg_path)
         settings = setup_database({}, **settings)
         session = settings['session']
-        company_model = CompanyModel(session)
-        customer_model = CustomerModel(session)
-        plan_model = PlanModel(session)
-        subscription_model = SubscriptionModel(session)
+        factory = ModelFactory(
+            session=session,
+            processor_factory=lambda: mock_processor,
+            settings=settings,
+        )
+        company_model = factory.create_company_model()
+        customer_model = factory.create_customer_model()
+        plan_model = factory.create_plan_model()
+        subscription_model = factory.create_subscription_model()
 
         with db_transaction.manager:
             company_guid = company_model.create('my_secret_key')

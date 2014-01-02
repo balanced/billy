@@ -9,52 +9,50 @@ from billy.models.transaction import TransactionModel
 
 
 class ModelFactory(object):
-    """This object reads configurations from request and creates data models
 
-    """
+    def __init__(self, session, settings=None, processor_factory=None):
+        self.session = session
+        self.settings = settings or {}
+        self.processor_factory = processor_factory
 
-    def __init__(self, request):
-        self.request = request
+    def create_processor(self):
+        """Create a processor
+
+        """
+        return self.processor_factory()
 
     def create_company_model(self):
         """Create a company model
 
         """
-        return CompanyModel(self.request.session)
+        return CompanyModel(self)
 
     def create_customer_model(self):
         """Create a customer model
 
         """
-        return CustomerModel(self.request.session)
+        return CustomerModel(self)
 
     def create_plan_model(self):
         """Create a plan model
 
         """
-        return PlanModel(self.request.session)
+        return PlanModel(self)
 
     def create_invoice_model(self):
         """Create an invoice model
 
         """
-        return InvoiceModel(self.request.session)
+        return InvoiceModel(self)
 
     def create_subscription_model(self):
         """Create a subscription model
 
         """
-        return SubscriptionModel(self.request.session)
+        return SubscriptionModel(self)
 
     def create_transaction_model(self):
         """Create a transaction model
 
         """
-        maximum_retry = int(self.request.registry.settings.get(
-            'billy.transaction.maximum_retry', 
-            TransactionModel.DEFAULT_MAXIMUM_RETRY,
-        ))
-        return TransactionModel(
-            self.request.session, 
-            maximum_retry=maximum_retry,
-        )
+        return TransactionModel(self)

@@ -48,8 +48,15 @@ class CustomerModel(BaseTableModel):
         self.session.add(customer)
         self.session.flush()
 
+        if customer.processor_uri is None:
+            # TODO:
+            #customer.processor_uri = processor.create_customer(customer)
+            pass
+        else:
+            pass
         # TODO: create corresponding customer in processor, or validate it
 
+        self.session.flush()
         return customer.guid
 
     def update(self, guid, **kwargs):

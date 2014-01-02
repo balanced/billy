@@ -8,7 +8,7 @@ from pyramid.testing import DummyRequest
 from billy import main
 from billy.models import setup_database
 from billy.models.tables import DeclarativeBase
-from billy.api.model_factory import ModelFactory
+from billy.models.model_factory import ModelFactory
 from billy.tests.fixtures.processor import DummyProcessor
 
 
@@ -33,12 +33,14 @@ class ViewTestCase(unittest.TestCase):
         self.testapp = TestApp(app)
         self.testapp.session = self.settings['session']
 
-        # create model factory
         self.dummy_request = DummyRequest()
-        self.dummy_request.session = self.testapp.session
-        self.dummy_request.processor = self.dummy_processor
-        self.dummy_request.registry.settings = self.settings
-        self.model_factory = ModelFactory(self.dummy_request)
+
+        # create model factory
+        self.model_factory = ModelFactory(
+            session=self.testapp.session, 
+            processor_factory=lambda: self.dummy_processor, 
+            settings=self.settings,
+        )
 
         # create all models
         self.company_model = self.model_factory.create_company_model()

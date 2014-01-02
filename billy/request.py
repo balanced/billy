@@ -2,9 +2,9 @@ from __future__ import unicode_literals
 
 from pyramid.request import Request
 from pyramid.decorator import reify
-from pyramid.path import DottedNameResolver
 
-from billy.api.model_factory import ModelFactory
+from billy.models.model_factory import ModelFactory
+from billy.api.utils import get_processor_factory
 
 
 class APIRequest(Request):
@@ -18,20 +18,14 @@ class APIRequest(Request):
         return settings['session']
 
     @reify
-    def processor(self):
-        """The payment processor
-
-        """
-        settings = self.registry.settings
-        resolver = DottedNameResolver()
-        processor_factory = settings['billy.processor_factory']
-        processor_factory = resolver.maybe_resolve(processor_factory)
-        processor = processor_factory()
-        return processor
-
-    @reify
     def model_factory(self):
         """The factory for creating data models
 
         """
-        return ModelFactory(self)
+        settings = self.registry.settings
+        processor_factory = get_processor_factory(settings)
+        return ModelFactory(
+            session=self.session, 
+            processor_factory=processor_factory, 
+            settings=settings,
+        )

@@ -32,25 +32,28 @@ def main(argv=sys.argv, processor=None):
     settings = setup_database({}, **settings)
 
     session = settings['session']
-    if processor is None:
-        processor_factory = get_processor_factory(settings)
-    else:
-        processor_factory = lambda: processor
-    factory = ModelFactory(
-        session=session, 
-        processor_factory=processor_factory, 
-        settings=settings,
-    )
-    subscription_model = factory.create_subscription_model()
-    tx_model = factory.create_transaction_model()
+    try:
+        if processor is None:
+            processor_factory = get_processor_factory(settings)
+        else:
+            processor_factory = lambda: processor
+        factory = ModelFactory(
+            session=session, 
+            processor_factory=processor_factory, 
+            settings=settings,
+        )
+        subscription_model = factory.create_subscription_model()
+        tx_model = factory.create_transaction_model()
 
-    # yield all transactions and commit before we process them, so that
-    # we won't double process them. 
-    with db_transaction.manager:
-        logger.info('Yielding transaction ...')
-        subscription_model.yield_transactions()
+        # yield all transactions and commit before we process them, so that
+        # we won't double process them. 
+        with db_transaction.manager:
+            logger.info('Yielding transaction ...')
+            subscription_model.yield_transactions()
 
-    with db_transaction.manager:
-        logger.info('Processing transaction ...')
-        tx_model.process_transactions()
-    logger.info('Done')
+        with db_transaction.manager:
+            logger.info('Processing transaction ...')
+            tx_model.process_transactions()
+        logger.info('Done')
+    finally:
+        session.close()

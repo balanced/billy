@@ -1,6 +1,7 @@
 nose-cov
+nose-exclude
 webtest
 freezegun
 flexmock
 wsgiproxy2
-nose-exclude
+mock

@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import datetime
 import decimal
 
+import mock
 import transaction as db_transaction
 from flexmock import flexmock
 from freezegun import freeze_time
@@ -1030,7 +1031,8 @@ class TestTransactionModel(TestTransactionModelBase):
 @freeze_time('2013-08-16')
 class TestInvoiceTransactionModel(TestTransactionModelBase):
 
-    def test_process_one_charge(self):
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    def test_process_one_charge(self, charge):
         self._create_records()
         now = datetime.datetime.utcnow()
         payment_uri = '/v1/cards/tester'
@@ -1040,56 +1042,33 @@ class TestInvoiceTransactionModel(TestTransactionModelBase):
 
         invoice = self.invoice_model.get(self.invoice_guid)
         transaction = invoice.transactions[0]
-        customer = transaction.invoice.customer
         guid = transaction.guid
 
-        mock_processor = flexmock(
-            payout=None,
-            refund=None,
-        )
-        (
-            mock_processor 
-            .should_receive('create_customer')
-            .with_args(customer)
-            .replace_with(lambda c: 'AC_MOCK')
-            .once()
-        )
-        (
-            mock_processor 
-            .should_receive('prepare_customer')
-            .with_args(customer, payment_uri)
-            .replace_with(lambda c, payment_uri: None)
-            .once()
-        )
-        (
-            mock_processor 
-            .should_receive('charge')
-            .with_args(transaction)
-            .replace_with(lambda t: 'TX_MOCK')
-            .once()
-        )
-
-        self.model_factory.processor_factory = lambda: mock_processor
+        charge.return_value = 'TX_CHARGE_MOCK'
+        
         with freeze_time('2013-08-20'):
             with db_transaction.manager:
+                self.session.add(transaction)
                 self.transaction_model.process_one(transaction)
                 updated_at = datetime.datetime.utcnow()
 
+        charge.assert_called_once_with(transaction)
         transaction = self.transaction_model.get(guid)
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
-        self.assertEqual(transaction.external_id, 'TX_MOCK')
+        self.assertEqual(transaction.external_id, 'TX_CHARGE_MOCK')
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.scheduled_at, now)
         self.assertEqual(transaction.created_at, now)
-        self.assertEqual(transaction.invoice.customer.processor_uri, 'AC_MOCK')
+        self.assertEqual(transaction.invoice.customer.processor_uri, 
+                         'MOCK_CUSTOMER_URI')
 
         invoice = self.invoice_model.get(self.invoice_guid)
         self.assertEqual(invoice.status, self.invoice_model.STATUS_SETTLED)
 
-    def test_process_one_refund(self):
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.refund')
+    def test_process_one_refund(self, refund):
         self._create_records()
         now = datetime.datetime.utcnow()
-
         payment_uri = '/v1/cards/tester'
 
         with db_transaction.manager:
@@ -1110,52 +1089,35 @@ class TestInvoiceTransactionModel(TestTransactionModelBase):
 
         invoice = self.invoice_model.get(self.invoice_guid)
         transaction = self.transaction_model.get(guid)
-        customer = transaction.invoice.customer
 
-        mock_processor = flexmock(
-            payout=None,
-            charge=None,
-        )
-        (
-            mock_processor 
-            .should_receive('create_customer')
-            .with_args(customer)
-            .replace_with(lambda c: 'AC_MOCK')
-            .once()
-        )
-        (
-            mock_processor 
-            .should_receive('prepare_customer')
-            .with_args(customer, None)
-            .replace_with(lambda c, payment_uri: None)
-            .once()
-        )
-        (
-            mock_processor 
-            .should_receive('refund')
-            .with_args(transaction)
-            .replace_with(lambda t: 'TX_MOCK')
-            .once()
-        )
+        refund.return_value = 'TX_REFUND_MOCK'
 
-        self.model_factory.processor_factory = lambda: mock_processor
         with freeze_time('2013-08-20'):
             with db_transaction.manager:
+                self.session.add(transaction)
                 self.transaction_model.process_one(transaction)
                 updated_at = datetime.datetime.utcnow()
 
+        refund.assert_called_once_with(transaction)
         transaction = self.transaction_model.get(guid)
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
-        self.assertEqual(transaction.external_id, 'TX_MOCK')
+        self.assertEqual(transaction.external_id, 'TX_REFUND_MOCK')
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.scheduled_at, now)
         self.assertEqual(transaction.created_at, now)
-        self.assertEqual(transaction.invoice.customer.processor_uri, 'AC_MOCK')
+        self.assertEqual(transaction.invoice.customer.processor_uri, 
+                         'MOCK_CUSTOMER_URI')
 
         invoice = self.invoice_model.get(self.invoice_guid)
         self.assertEqual(invoice.status, self.invoice_model.STATUS_REFUNDED)
 
-    def test_process_one_with_failure_exceed_limitation(self):
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.prepare_customer')
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    def test_process_one_with_failure_exceed_limitation(
+        self, 
+        charge, 
+        prepare_customer,
+    ):
         self._create_records('AC_MOCK')
         payment_uri = '/v1/cards/tester'
         self.model_factory.settings['billy.transaction.maximum_retry'] = 3
@@ -1167,28 +1129,7 @@ class TestInvoiceTransactionModel(TestTransactionModelBase):
         transaction = invoice.transactions[0]
         guid = transaction.guid
 
-        def mock_charge(transaction):
-            raise RuntimeError('Failed to charge')
-
-        mock_processor = flexmock(
-            payout=None,
-            refund=None,
-        )
-        (
-            mock_processor 
-            .should_receive('prepare_customer')
-            .replace_with(lambda c, payment_uri: None)
-            .times(4)
-        )
-        (
-            mock_processor 
-            .should_receive('charge')
-            .replace_with(mock_charge)
-            .times(4)
-        )
-
-        self.model_factory.processor_factory = lambda: mock_processor
-
+        charge.side_effect = RuntimeError('Failed to charge')
         for _ in range(3):
             with db_transaction.manager:
                 transaction = self.transaction_model.get(guid)
@@ -1208,3 +1149,6 @@ class TestInvoiceTransactionModel(TestTransactionModelBase):
         invoice = self.invoice_model.get(self.invoice_guid)
         self.assertEqual(invoice.status, 
                          self.invoice_model.STATUS_PROCESS_FAILED)
+
+        self.assertEqual(prepare_customer.call_count, 4)
+        self.assertEqual(charge.call_count, 4)

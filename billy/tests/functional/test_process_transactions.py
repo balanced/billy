@@ -13,7 +13,6 @@ from pyramid.paster import get_appsettings
 
 from billy.models import setup_database
 from billy.models.transaction import TransactionModel
-from billy.models.processors.balanced_payments import BalancedProcessor
 from billy.models.model_factory import ModelFactory
 from billy.scripts import initializedb
 from billy.scripts import process_transactions

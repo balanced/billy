@@ -16,10 +16,10 @@ class DummyProcessor(object):
         pass
 
     def charge(self, transaction):
-        pass
+        return 'MOCK_CHARGE_TX_ID'
 
     def payout(self, transaction):
-        pass
+        return 'MOCK_PAYOUT_TX_ID'
 
     def refund(self, transaction):
-        pass
+        return 'MOCK_REFUND_TX_ID'

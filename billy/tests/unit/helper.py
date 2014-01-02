@@ -32,7 +32,7 @@ def create_session(echo=False):
         autocommit=False,
         autoflush=False,
         bind=engine,
-        extension=ZopeTransactionExtension()
+        extension=ZopeTransactionExtension(keep_session=True)
     ))
     return DBSession
 

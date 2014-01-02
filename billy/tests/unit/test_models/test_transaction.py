@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import datetime
 import decimal
+import contextlib
 
 import mock
 import transaction as db_transaction
@@ -1031,54 +1032,47 @@ class TestTransactionModel(TestTransactionModelBase):
 @freeze_time('2013-08-16')
 class TestInvoiceTransactionModel(TestTransactionModelBase):
 
-    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
-    def test_process_one_charge(self, charge):
+    def setUp(self):
+        super(TestInvoiceTransactionModel, self).setUp()
         self._create_records()
-        now = datetime.datetime.utcnow()
-        payment_uri = '/v1/cards/tester'
-
+        self.payment_uri = '/v1/cards/tester'
         with db_transaction.manager:
-            self.invoice_model.update_payment_uri(self.invoice_guid, payment_uri)
+            self.invoice_model.update_payment_uri(
+                self.invoice_guid, 
+                self.payment_uri,
+            )
 
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    def test_process_one_charge(self, charge_method):
+        now = datetime.datetime.utcnow()
         invoice = self.invoice_model.get(self.invoice_guid)
         transaction = invoice.transactions[0]
-        guid = transaction.guid
-
-        charge.return_value = 'TX_CHARGE_MOCK'
+        charge_method.return_value = 'MOCK_DEBIT_URI'
         
-        with freeze_time('2013-08-20'):
-            with db_transaction.manager:
-                self.session.add(transaction)
-                self.transaction_model.process_one(transaction)
-                updated_at = datetime.datetime.utcnow()
+        with contextlib.nested(
+            freeze_time('2013-08-20'),
+            db_transaction.manager,
+        ):
+            self.transaction_model.process_one(transaction)
+            updated_at = datetime.datetime.utcnow()
 
-        charge.assert_called_once_with(transaction)
-        transaction = self.transaction_model.get(guid)
+        charge_method.assert_called_once_with(transaction)
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
-        self.assertEqual(transaction.external_id, 'TX_CHARGE_MOCK')
+        self.assertEqual(transaction.external_id, 'MOCK_DEBIT_URI')
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.scheduled_at, now)
         self.assertEqual(transaction.created_at, now)
         self.assertEqual(transaction.invoice.customer.processor_uri, 
                          'MOCK_CUSTOMER_URI')
-
-        invoice = self.invoice_model.get(self.invoice_guid)
         self.assertEqual(invoice.status, self.invoice_model.STATUS_SETTLED)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.refund')
-    def test_process_one_refund(self, refund):
-        self._create_records()
-        now = datetime.datetime.utcnow()
-        payment_uri = '/v1/cards/tester'
+    def test_process_one_refund(self, refund_method):
+        self.test_process_one_charge()
 
         with db_transaction.manager:
-            self.invoice_model.update_payment_uri(self.invoice_guid, payment_uri)
             invoice = self.invoice_model.get(self.invoice_guid)
             invoice.status = self.invoice_model.STATUS_REFUNDING
-            transaction = invoice.transactions[0]
-            transaction.status = self.transaction_model.STATUS_DONE
-            self.session.add(invoice)
-            self.session.add(transaction)
             guid = self.transaction_model.create(
                 invoice_guid=self.invoice_guid,
                 transaction_cls=self.transaction_model.CLS_INVOICE,
@@ -1090,25 +1084,20 @@ class TestInvoiceTransactionModel(TestTransactionModelBase):
         invoice = self.invoice_model.get(self.invoice_guid)
         transaction = self.transaction_model.get(guid)
 
-        refund.return_value = 'TX_REFUND_MOCK'
+        refund_method.return_value = 'MOCK_REFUND_URI'
 
-        with freeze_time('2013-08-20'):
-            with db_transaction.manager:
-                self.session.add(transaction)
-                self.transaction_model.process_one(transaction)
-                updated_at = datetime.datetime.utcnow()
+        with contextlib.nested(
+            freeze_time('2013-08-20'),
+            db_transaction.manager,
+        ):
+            self.session.add(transaction)
+            self.transaction_model.process_one(transaction)
 
-        refund.assert_called_once_with(transaction)
-        transaction = self.transaction_model.get(guid)
+        refund_method.assert_called_once_with(transaction)
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
-        self.assertEqual(transaction.external_id, 'TX_REFUND_MOCK')
-        self.assertEqual(transaction.updated_at, updated_at)
-        self.assertEqual(transaction.scheduled_at, now)
-        self.assertEqual(transaction.created_at, now)
+        self.assertEqual(transaction.external_id, 'MOCK_REFUND_URI')
         self.assertEqual(transaction.invoice.customer.processor_uri, 
                          'MOCK_CUSTOMER_URI')
-
-        invoice = self.invoice_model.get(self.invoice_guid)
         self.assertEqual(invoice.status, self.invoice_model.STATUS_REFUNDED)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.prepare_customer')
@@ -1118,37 +1107,31 @@ class TestInvoiceTransactionModel(TestTransactionModelBase):
         charge, 
         prepare_customer,
     ):
-        self._create_records('AC_MOCK')
-        payment_uri = '/v1/cards/tester'
         self.model_factory.settings['billy.transaction.maximum_retry'] = 3
-
-        with db_transaction.manager:
-            self.invoice_model.update_payment_uri(self.invoice_guid, payment_uri)
 
         invoice = self.invoice_model.get(self.invoice_guid)
         transaction = invoice.transactions[0]
-        guid = transaction.guid
 
         charge.side_effect = RuntimeError('Failed to charge')
+        # 3 retrying ...
         for _ in range(3):
             with db_transaction.manager:
-                transaction = self.transaction_model.get(guid)
+                self.session.add(transaction)
                 self.transaction_model.process_one(transaction)
-            transaction = self.transaction_model.get(guid)
+            self.session.add(transaction)
             self.assertEqual(transaction.status, 
                              self.transaction_model.STATUS_RETRYING)
             invoice = self.invoice_model.get(self.invoice_guid)
             self.assertEqual(invoice.status, 
                              self.invoice_model.STATUS_PROCESSING)
+        # eventually failed
         with db_transaction.manager:
-            transaction = self.transaction_model.get(guid)
-            self.transaction_model.process_one(transaction=transaction)
-        transaction = self.transaction_model.get(guid)
+            self.session.add(transaction)
+            self.transaction_model.process_one(transaction)
+
         self.assertEqual(transaction.status, 
                          self.transaction_model.STATUS_FAILED)
-        invoice = self.invoice_model.get(self.invoice_guid)
         self.assertEqual(invoice.status, 
                          self.invoice_model.STATUS_PROCESS_FAILED)
-
         self.assertEqual(prepare_customer.call_count, 4)
         self.assertEqual(charge.call_count, 4)

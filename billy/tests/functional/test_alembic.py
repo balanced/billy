@@ -41,7 +41,7 @@ class TestAlembic(unittest.TestCase):
             autocommit=False,
             autoflush=False,
             bind=self.engine,
-            extension=ZopeTransactionExtension()
+            extension=ZopeTransactionExtension(keep_session=True)
         ))
 
         self.alembic_path = os.path.join(self.temp_dir, 'alembic.ini')

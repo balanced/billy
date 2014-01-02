@@ -1,12 +1,11 @@
 from __future__ import unicode_literals
 import datetime
 
+import mock
 import transaction as db_transaction
-from flexmock import flexmock
 from freezegun import freeze_time
 
 from billy.tests.functional.helper import ViewTestCase
-from billy.tests.fixtures.processor import DummyProcessor
 
 
 @freeze_time('2013-08-16')
@@ -190,31 +189,15 @@ class TestInvoiceViews(ViewTestCase):
                     del adjustment[key]
         self.assertEqual(adjustment_result, adjustments)
 
-    def test_create_invoice_with_payment_uri(self):
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    def test_create_invoice_with_payment_uri(self, charge_method):
         customer_guid = self.customer_guid
         amount = 5566
         payment_uri = 'MOCK_CARD_URI'
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat()
 
-        def mock_charge(transaction):
-            self.assertEqual(transaction.invoice.customer_guid, 
-                             customer_guid)
-            return 'MOCK_PROCESSOR_TRANSACTION_ID'
-
-        mock_processor = flexmock(DummyProcessor)
-        (
-            mock_processor
-            .should_receive('create_customer')
-            .once()
-        )
-
-        (
-            mock_processor
-            .should_receive('charge')
-            .replace_with(mock_charge)
-            .once()
-        )
+        charge_method.return_value = 'MOCK_DEBIT_URI'
 
         res = self.testapp.post(
             '/v1/invoices',
@@ -238,26 +221,16 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(len(invoice.transactions), 1)
         transaction = invoice.transactions[0]
         self.assertEqual(transaction.external_id, 
-                         'MOCK_PROCESSOR_TRANSACTION_ID')
+                         'MOCK_DEBIT_URI')
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
+        charge_method.assert_called_once_with(transaction)
 
-    def test_create_invoice_with_payment_uri_with_zero_amount(self):
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    def test_create_invoice_with_payment_uri_with_zero_amount(self, charge_method):
         customer_guid = self.customer_guid
         amount = 0
         payment_uri = 'MOCK_CARD_URI'
-
-        mock_processor = flexmock(DummyProcessor)
-        (
-            mock_processor
-            .should_receive('create_customer')
-            .never()
-        )
-
-        (
-            mock_processor
-            .should_receive('charge')
-            .never()
-        )
+        charge_method.return_value = 'MOCK_DEBIT_URI'
 
         res = self.testapp.post(
             '/v1/invoices',
@@ -273,6 +246,7 @@ class TestInvoiceViews(ViewTestCase):
 
         invoice = self.invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 0)
+        self.assertFalse(charge_method.called)
 
     def test_create_invoice_with_bad_parameters(self):
         def assert_bad_parameters(params):
@@ -581,29 +555,12 @@ class TestInvoiceViews(ViewTestCase):
                     del item[key]
         self.assertEqual(item_result, new_items)
 
-    def test_update_invoice_payment_uri(self):
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    def test_update_invoice_payment_uri(self, charge_method):
         customer_guid = self.customer_guid
         amount = 5566
         payment_uri = 'MOCK_CARD_URI'
-
-        def mock_charge(transaction):
-            self.assertEqual(transaction.invoice.customer_guid, 
-                             customer_guid)
-            return 'MOCK_PROCESSOR_TRANSACTION_ID'
-
-        mock_processor = flexmock(DummyProcessor)
-        (
-            mock_processor
-            .should_receive('create_customer')
-            .once()
-        )
-
-        (
-            mock_processor
-            .should_receive('charge')
-            .replace_with(mock_charge)
-            .once()
-        )
+        charge_method.return_value = 'MOCK_DEBIT_URI'
 
         res = self.testapp.post(
             '/v1/invoices',
@@ -632,32 +589,16 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(len(invoice.transactions), 1)
         transaction = invoice.transactions[0]
         self.assertEqual(transaction.external_id, 
-                         'MOCK_PROCESSOR_TRANSACTION_ID')
+                         'MOCK_DEBIT_URI')
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
+        charge_method.assert_called_once_with(transaction)
 
-    def test_update_invoice_payment_uri_with_zero_amount(self):
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    def test_update_invoice_payment_uri_with_zero_amount(self, charge_method):
         customer_guid = self.customer_guid
         amount = 0
         payment_uri = 'MOCK_CARD_URI'
-
-        def mock_charge(transaction):
-            self.assertEqual(transaction.invoice.customer_guid, 
-                             customer_guid)
-            return 'MOCK_PROCESSOR_TRANSACTION_ID'
-
-        mock_processor = flexmock(DummyProcessor)
-        (
-            mock_processor
-            .should_receive('create_customer')
-            .never()
-        )
-
-        (
-            mock_processor
-            .should_receive('charge')
-            .replace_with(mock_charge)
-            .never()
-        )
+        charge_method.return_value = 'MOCK_DEBIT_URI'
 
         res = self.testapp.post(
             '/v1/invoices',
@@ -670,6 +611,7 @@ class TestInvoiceViews(ViewTestCase):
         )
         self.failUnless('guid' in res.json)
         self.assertEqual(res.json['payment_uri'], None)
+        self.assertFalse(charge_method.called)
         guid = res.json['guid']
 
         res = self.testapp.put(
@@ -684,3 +626,4 @@ class TestInvoiceViews(ViewTestCase):
 
         invoice = self.invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 0)
+        self.assertFalse(charge_method.called)

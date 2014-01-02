@@ -1,12 +1,11 @@
 from __future__ import unicode_literals
 import datetime
 
+import mock
 import transaction as db_transaction
-from flexmock import flexmock
 from freezegun import freeze_time
 
 from billy.tests.functional.helper import ViewTestCase
-from billy.tests.fixtures.processor import DummyProcessor
 
 
 @freeze_time('2013-08-16')
@@ -30,7 +29,8 @@ class TestSubscriptionViews(ViewTestCase):
         company = self.company_model.get(self.company_guid)
         self.api_key = str(company.api_key)
 
-    def test_create_subscription(self):
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    def test_create_subscription(self, charge_method):
         customer_guid = self.customer_guid
         plan_guid = self.plan_guid
         amount = 5566
@@ -41,27 +41,7 @@ class TestSubscriptionViews(ViewTestCase):
         # next week
         next_transaction_at = datetime.datetime(2013, 8, 23)
         next_iso = next_transaction_at.isoformat()
-
-        def mock_charge(transaction):
-            self.assertEqual(transaction.subscription.customer_guid, 
-                             customer_guid)
-            self.assertEqual(transaction.subscription.plan_guid, 
-                             plan_guid)
-            return 'MOCK_PROCESSOR_TRANSACTION_ID'
-
-        mock_processor = flexmock(DummyProcessor)
-        (
-            mock_processor
-            .should_receive('create_customer')
-            .once()
-        )
-
-        (
-            mock_processor
-            .should_receive('charge')
-            .replace_with(mock_charge)
-            .once()
-        )
+        charge_method.return_value = 'MOCK_DEBIT_URI'
 
         res = self.testapp.post(
             '/v1/subscriptions',
@@ -75,6 +55,7 @@ class TestSubscriptionViews(ViewTestCase):
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
+        
         self.failUnless('guid' in res.json)
         self.assertEqual(res.json['created_at'], now_iso)
         self.assertEqual(res.json['updated_at'], now_iso)
@@ -92,71 +73,29 @@ class TestSubscriptionViews(ViewTestCase):
         subscription = self.subscription_model.get(res.json['guid'])
         self.assertEqual(len(subscription.transactions), 1)
         transaction = subscription.transactions[0]
+        charge_method.assert_called_once_with(transaction)
         self.assertEqual(transaction.external_id, 
-                         'MOCK_PROCESSOR_TRANSACTION_ID')
+                         'MOCK_DEBIT_URI')
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
         self.assertEqual(transaction.appears_on_statement_as, 
                          subscription.appears_on_statement_as)
 
-    def test_create_subscription_with_default_payment_uri(self):
-        customer_guid = self.customer_guid
-        plan_guid = self.plan_guid
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.prepare_customer')
+    def test_create_subscription_with_default_payment_uri(self, prepare_customer):
+        customer = self.customer_model.get(self.customer_guid)
         amount = 5566
-        now = datetime.datetime.utcnow()
-        now_iso = now.isoformat()
-        # next week
-        next_transaction_at = datetime.datetime(2013, 8, 23)
-        next_iso = next_transaction_at.isoformat()
 
-        def mock_charge(transaction):
-            self.assertEqual(transaction.subscription.customer_guid, 
-                             customer_guid)
-            self.assertEqual(transaction.subscription.plan_guid, 
-                             plan_guid)
-            return 'MOCK_PROCESSOR_TRANSACTION_ID'
-
-        mock_processor = flexmock(DummyProcessor)
-        (
-            mock_processor
-            .should_receive('create_customer')
-            .once()
-        )
-
-        (
-            mock_processor
-            .should_receive('charge')
-            .replace_with(mock_charge)
-            .once()
-        )
-
-        res = self.testapp.post(
+        self.testapp.post(
             '/v1/subscriptions',
             dict(
-                customer_guid=customer_guid,
-                plan_guid=plan_guid,
+                customer_guid=self.customer_guid,
+                plan_guid=self.plan_guid,
                 amount=amount,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
-        self.failUnless('guid' in res.json)
-        self.assertEqual(res.json['created_at'], now_iso)
-        self.assertEqual(res.json['updated_at'], now_iso)
-        self.assertEqual(res.json['canceled_at'], None)
-        self.assertEqual(res.json['next_transaction_at'], next_iso)
-        self.assertEqual(res.json['period'], 1)
-        self.assertEqual(res.json['amount'], amount)
-        self.assertEqual(res.json['customer_guid'], customer_guid)
-        self.assertEqual(res.json['plan_guid'], plan_guid)
-        self.assertEqual(res.json['payment_uri'], None)
-        self.assertEqual(res.json['canceled'], False)
-
-        subscription = self.subscription_model.get(res.json['guid'])
-        self.assertEqual(len(subscription.transactions), 1)
-        transaction = subscription.transactions[0]
-        self.assertEqual(transaction.external_id, 
-                         'MOCK_PROCESSOR_TRANSACTION_ID')
-        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
+        prepare_customer.assert_called_once_with(customer, None)
 
     def test_create_subscription_to_a_deleted_plan(self):
         with db_transaction.manager:
@@ -537,7 +476,8 @@ class TestSubscriptionViews(ViewTestCase):
             status=403,
         )
 
-    def test_cancel_subscription_with_prorated_refund(self):
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.refund')
+    def test_cancel_subscription_with_prorated_refund(self, refund_method):
         now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
@@ -563,19 +503,7 @@ class TestSubscriptionViews(ViewTestCase):
             transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
             self.testapp.session.add(transaction)
 
-        refund_called = []
-
-        def mock_refund(transaction):
-            refund_called.append(transaction)
-            return 'MOCK_PROCESSOR_REFUND_URI'
-
-        mock_processor = flexmock(DummyProcessor)
-        (
-            mock_processor
-            .should_receive('refund')
-            .replace_with(mock_refund)
-            .once()
-        )
+        refund_method.return_value = 'MOCK_REFUND_URI'
 
         with freeze_time('2013-08-17'):
             canceled_at = datetime.datetime.utcnow()
@@ -590,8 +518,8 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(subscription['canceled'], True)
         self.assertEqual(subscription['canceled_at'], canceled_at.isoformat())
 
-        transaction = refund_called[0]
-        self.testapp.session.add(transaction)
+        transaction = refund_method.call_args[0][0]
+        self.assertEqual(refund_method.call_count, 1)
         self.assertEqual(transaction.refund_to.guid, tx_guid)
         self.assertEqual(transaction.subscription_guid, subscription_guid)
         # only one day is elapsed, and it is a weekly plan, so
@@ -607,7 +535,8 @@ class TestSubscriptionViews(ViewTestCase):
         guids = [item['guid'] for item in res.json['items']]
         self.assertEqual(set(guids), set([tx_guid, transaction.guid]))
 
-    def test_cancel_subscription_with_refund_amount(self):
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.refund')
+    def test_cancel_subscription_with_refund_amount(self, refund_method):
         now = datetime.datetime.utcnow()
 
         with db_transaction.manager:
@@ -632,19 +561,7 @@ class TestSubscriptionViews(ViewTestCase):
             transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
             self.testapp.session.add(transaction)
 
-        refund_called = []
-
-        def mock_refund(transaction):
-            refund_called.append(transaction)
-            return 'MOCK_PROCESSOR_REFUND_URI'
-
-        mock_processor = flexmock(DummyProcessor)
-        (
-            mock_processor
-            .should_receive('refund')
-            .replace_with(mock_refund)
-            .once()
-        )
+        refund_method.return_value = 'MOCK_REFUND_URI'
 
         res = self.testapp.post(
             '/v1/subscriptions/{}/cancel'.format(subscription_guid), 
@@ -657,8 +574,7 @@ class TestSubscriptionViews(ViewTestCase):
         )
         subscription = res.json
 
-        transaction = refund_called[0]
-        self.testapp.session.add(transaction)
+        transaction = refund_method.call_args[0][0]
         self.assertEqual(transaction.refund_to.guid, tx_guid)
         self.assertEqual(transaction.subscription_guid, subscription_guid)
         self.assertEqual(transaction.amount, 234)

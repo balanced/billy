@@ -25,8 +25,8 @@ class SubscriptionModel(BaseTableModel):
     TABLE = tables.Subscription
 
     @decorate_offset_limit
-    def list_by_company_guid(self, company):
-        """Get subscriptions of a company by given guid
+    def list_by_ancestor(self, ancestor):
+        """List subscriptions by a given ancestor
 
         """
         Subscription = tables.Subscription
@@ -35,9 +35,10 @@ class SubscriptionModel(BaseTableModel):
             self.session
             .query(Subscription)
             .join(Plan, Plan.guid == Subscription.plan_guid)
-            .filter(Plan.company == company)
+            .filter(Plan.company == ancestor)
             .order_by(tables.Subscription.created_at.desc())
         )
+        # TODO: support other ancestor
         return query
 
     def create(

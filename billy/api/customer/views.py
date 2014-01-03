@@ -9,7 +9,7 @@ from pyramid.httpexceptions import HTTPBadRequest
 from billy.models.customer import CustomerModel
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
-from billy.api.utils import list_by_company_guid
+from billy.api.utils import list_by_ancestor
 from .forms import CustomerCreateForm
 
 
@@ -35,7 +35,8 @@ def customer_list_get(request):
     """Get and return the list of customer
 
     """
-    return list_by_company_guid(request, CustomerModel)
+    company = auth_api_key(request)
+    return list_by_ancestor(request, CustomerModel, company)
 
 
 @view_config(route_name='customer_list', 

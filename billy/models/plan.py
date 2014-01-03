@@ -2,11 +2,11 @@ from __future__ import unicode_literals
 
 from billy.models import tables
 from billy.models.base import BaseTableModel
-from billy.models.base import ListByCompanyMixin
+from billy.models.base import decorate_offset_limit
 from billy.utils.generic import make_guid
 
 
-class PlanModel(BaseTableModel, ListByCompanyMixin):
+class PlanModel(BaseTableModel):
 
     TABLE = tables.Plan
 
@@ -35,6 +35,20 @@ class PlanModel(BaseTableModel, ListByCompanyMixin):
         TYPE_CHARGE,
         TYPE_PAYOUT, 
     ]
+
+    @decorate_offset_limit
+    def list_by_ancestor(self, ancestor):
+        """List plan by a given ancestor
+
+        """
+        Plan = tables.Plan
+        query = (
+            self.session
+            .query(Plan)
+            .filter(Plan.company == ancestor)
+            .order_by(tables.Plan.created_at.desc())
+        )
+        return query
 
     def create(
         self, 

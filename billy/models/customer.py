@@ -14,15 +14,15 @@ class CustomerModel(BaseTableModel):
     NOT_SET = object()
 
     @decorate_offset_limit
-    def list_by_company_guid(self, company, processor_uri=NOT_SET):
-        """Get invoices of a company by given guid
+    def list_by_ancestor(self, ancestor, processor_uri=NOT_SET):
+        """List customer by a given ancestor
 
         """
         Customer = tables.Customer
         query = (
             self.session
             .query(Customer)
-            .filter(Customer.company == company)
+            .filter(Customer.company == ancestor)
             .order_by(tables.Customer.created_at.desc())
         )
         if processor_uri is not self.NOT_SET:

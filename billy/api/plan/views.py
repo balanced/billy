@@ -9,7 +9,7 @@ from pyramid.httpexceptions import HTTPBadRequest
 from billy.models.plan import PlanModel 
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
-from billy.api.utils import list_by_company_guid
+from billy.api.utils import list_by_ancestor
 from .forms import PlanCreateForm
 
 
@@ -35,7 +35,8 @@ def plan_list_get(request):
     """Get and return plans
 
     """
-    return list_by_company_guid(request, PlanModel)
+    company = auth_api_key(request)
+    return list_by_ancestor(request, PlanModel, company)
 
 
 @view_config(route_name='plan_list', 

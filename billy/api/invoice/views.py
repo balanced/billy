@@ -11,7 +11,7 @@ from billy.models.invoice import InvoiceModel
 from billy.models.invoice import DuplicateExternalIDError
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
-from billy.api.utils import list_by_company_guid
+from billy.api.utils import list_by_ancestor
 from .forms import InvoiceCreateForm
 from .forms import InvoiceUpdateForm
 
@@ -78,7 +78,8 @@ def invoice_list_get(request):
     """Get and return the list of invoice
 
     """
-    return list_by_company_guid(request, InvoiceModel)
+    company = auth_api_key(request)
+    return list_by_ancestor(request, InvoiceModel, company)
 
 
 @view_config(route_name='invoice_list', 

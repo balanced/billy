@@ -74,11 +74,11 @@ class RecordExistValidator(object):
             raise ValueError(msg)
 
 
-def list_by_company_guid(request, model_cls):
-    """List records by company guid
+def list_by_ancestor(request, model_cls, ancestor):
+    """List records by a given ancestor
 
     """
-    company = auth_api_key(request)
+    auth_api_key(request)
     model = model_cls(request.model_factory)
     offset = int(request.params.get('offset', 0))
     limit = int(request.params.get('limit', 20))
@@ -87,8 +87,8 @@ def list_by_company_guid(request, model_cls):
         kwargs['external_id'] = request.params['external_id']
     if 'processor_uri' in request.params:
         kwargs['processor_uri'] = request.params['processor_uri']
-    items = model.list_by_company_guid(
-        company=company,
+    items = model.list_by_ancestor(
+        ancestor=ancestor,
         offset=offset,
         limit=limit,
         **kwargs

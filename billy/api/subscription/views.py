@@ -11,7 +11,7 @@ from billy.models.subscription import SubscriptionModel
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
 from billy.api.utils import form_errors_to_bad_request
-from billy.api.utils import list_by_company_guid
+from billy.api.utils import list_by_ancestor
 from .forms import SubscriptionCreateForm
 from .forms import SubscriptionCancelForm
 
@@ -37,7 +37,8 @@ def subscription_list_get(request):
     """Get and return subscriptions
 
     """
-    return list_by_company_guid(request, SubscriptionModel)
+    company = auth_api_key(request)
+    return list_by_ancestor(request, SubscriptionModel, company)
 
 
 @view_config(route_name='subscription_list', 
@@ -125,8 +126,8 @@ def subscription_transaction_list(request):
     tx_model = request.model_factory.create_transaction_model()
     subscription = get_and_check_subscription(request, company, guid)
 
-    transactions = tx_model.list_by_subscription_guid(
-        subscription=subscription,
+    transactions = tx_model.list_by_ancestor(
+        ancestor=subscription,
         offset=offset,
         limit=limit,
     )

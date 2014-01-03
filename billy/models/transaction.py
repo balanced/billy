@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 
-from sqlalchemy.sql.expression import or_
-
 from billy.models import tables
 from billy.models.base import BaseTableModel
 from billy.models.base import decorate_offset_limit
@@ -82,61 +80,101 @@ class TransactionModel(BaseTableModel):
         return query.first()
 
     @decorate_offset_limit
-    def list_by_company_guid(self, company):
-        """Get transactions of a company by given guid
+    def list_by_ancestor(self, ancestor):
+        """List transactions by a given ancestor
 
         """
+        Company = tables.Company
+        Customer = tables.Customer
+        Invoice = tables.Invoice
+        Plan = tables.Plan
+        Subscription = tables.Subscription
         Transaction = tables.Transaction
         SubscriptionTransaction = tables.SubscriptionTransaction
         InvoiceTransaction = tables.InvoiceTransaction
-        Subscription = tables.Subscription
-        Invoice = tables.Invoice
-        Plan = tables.Plan
-        Customer = tables.Customer
 
-        subscription_transaction_guids = (
-            self.session
-            .query(SubscriptionTransaction.guid)
+        # joined subscription transaction query
+        subscription_tx_query = (
+            self.session.query(Transaction)
+            .join(
+                SubscriptionTransaction, 
+                Transaction.guid == SubscriptionTransaction.guid,
+            )
+        )
+        # joined invoice transaction query
+        invoice_tx_query = (
+            self.session.query(Transaction)
+            .join(
+                InvoiceTransaction, 
+                Transaction.guid == InvoiceTransaction.guid,
+            )
+        )
+        # joined subscription query
+        subscription_query = (
+            subscription_tx_query
             .join(
                 Subscription, 
                 Subscription.guid == SubscriptionTransaction.subscription_guid
             )
-            .join(Plan, Plan.guid == Subscription.plan_guid)
-            .filter(Plan.company == company)
-            .subquery()
         )
-        invoice_transaction_guids = (
-            self.session
-            .query(InvoiceTransaction.guid)
-            .join(Invoice, 
-                  Invoice.guid == InvoiceTransaction.invoice_guid)
-            .join(Customer, Customer.guid == Invoice.customer_guid)
-            .filter(Customer.company == company)
-            .subquery()
+        # joined invoice query
+        invoice_query = (
+            invoice_tx_query
+            .join(
+                Invoice, 
+                Invoice.guid == InvoiceTransaction.invoice_guid
+            )
         )
-        query = (
-            self.session
-            .query(Transaction)
-            .filter(or_(
-                Transaction.guid.in_(subscription_transaction_guids),
-                Transaction.guid.in_(invoice_transaction_guids),
-            ))
-            .order_by(Transaction.created_at.desc())
+        # joined plan query
+        plan_query = (
+            subscription_query
+            .join(
+                Plan,
+                Plan.guid == Subscription.plan_guid,
+            )
         )
-        return query
 
-    @decorate_offset_limit
-    def list_by_subscription_guid(self, subscription):
-        """Get transactions by given subscription
+        if isinstance(ancestor, Subscription):
+            query = (
+                subscription_tx_query
+                .filter(SubscriptionTransaction.subscription == ancestor)
+            )
+        elif isinstance(ancestor, Invoice):
+            query = (
+                invoice_tx_query
+                .filter(InvoiceTransaction.invoice == ancestor)
+            )
+        elif isinstance(ancestor, Customer):
+            q1 = (
+                subscription_query
+                .filter(Subscription.customer == ancestor)
+            )
+            q2 = (
+                invoice_query
+                .filter(Invoice.customer == ancestor)
+            )
+            query = q1.union(q2)
+        elif isinstance(ancestor, Plan):
+            query = (
+                subscription_query
+                .filter(Subscription.plan == ancestor)
+            )
+        elif isinstance(ancestor, Company):
+            q1 = (
+                plan_query
+                .filter(Plan.company == ancestor)
+            )
+            q2 = (
+                invoice_query
+                .join(
+                    Customer,
+                    Customer.guid == Invoice.customer_guid,
+                )
+                .filter(Customer.company == ancestor)
+            )
+            query = q1.union(q2)
 
-        """
-        Transaction = tables.SubscriptionTransaction
-        query = (
-            self.session
-            .query(Transaction)
-            .filter(Transaction.subscription == subscription)
-            .order_by(Transaction.created_at.desc())
-        )
+        query = query.order_by(Transaction.created_at.desc())
         return query
 
     def create(

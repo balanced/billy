@@ -27,26 +27,6 @@ def decorate_offset_limit(func):
     return callee
 
 
-class ListByCompanyMixin(object):
-
-    @decorate_offset_limit
-    def list_by_company_guid(self, company):
-        """Get records of a company by given guid
-
-        :param company: the given company
-        :param offset: offset for listing, None indicates no offset
-        :param limit: limit for listing, None indicates no limit
-        """
-        assert self.TABLE is not None
-        query = (
-            self.session
-            .query(self.TABLE)
-            .filter(self.TABLE.company == company)
-            .order_by(self.TABLE.created_at.desc())
-        )
-        return query
-
-
 class BaseTableModel(object):
 
     #: the table for this model

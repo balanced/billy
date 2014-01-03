@@ -64,6 +64,10 @@ class BalancedProcessor(PaymentProcessor):
         else:
             raise ValueError('Invalid payment_uri {}'.format(payment_uri))
 
+    def validate_customer(self, processor_uri):
+        self.customer_cls.find(processor_uri)
+        return True
+
     def _get_resource_by_tx_guid(self, resource_cls, guid):
         """Get Balanced resource object by Billy transaction GUID and return
         it, if there is not such resource, None is returned

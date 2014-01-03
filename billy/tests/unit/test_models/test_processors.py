@@ -16,6 +16,8 @@ class TestPaymentProcessorModel(unittest.TestCase):
     def test_base_processor(self):
         processor = PaymentProcessor()
         with self.assertRaises(NotImplementedError):
+            processor.validate_customer(None)
+        with self.assertRaises(NotImplementedError):
             processor.create_customer(None)
         with self.assertRaises(NotImplementedError):
             processor.prepare_customer(None)
@@ -59,6 +61,17 @@ class TestBalancedProcessorModel(ModelTestCase):
     def make_one(self, *args, **kwargs):
         from billy.models.processors.balanced_payments import BalancedProcessor
         return BalancedProcessor(*args, **kwargs)
+
+    def test_validate_customer(self):
+        # mock class
+        BalancedCustomer = mock.Mock()
+        BalancedCustomer.find.return_value = mock.Mock(uri='MOCK_CUSTOMER_URI')
+
+        processor = self.make_one(customer_cls=BalancedCustomer)
+        result = processor.validate_customer('MOCK_CUSTOMER_URI')
+        self.assertTrue(result)
+
+        BalancedCustomer.find.assert_called_once_with('MOCK_CUSTOMER_URI')
 
     @mock.patch('balanced.configure')
     def test_create_customer(self, configure_method):

@@ -20,6 +20,13 @@ class PaymentProcessor(object):
         """
         raise NotImplementedError
 
+    def validate_customer(self, processor_uri):
+        """Validate a given customer URI in processor
+
+        :param processor_uri: Customer URI in processor to validate
+        """
+        raise NotImplementedError
+
     def charge(self, transaction):
         """Charge from a bank acount or credit card
 

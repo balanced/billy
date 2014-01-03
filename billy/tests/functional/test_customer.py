@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import datetime
 
+import mock
 import transaction as db_transaction
 from freezegun import freeze_time
 
@@ -19,22 +20,50 @@ class TestCustomerViews(ViewTestCase):
         company = self.company_model.get(self.company_guid)
         self.api_key = str(company.api_key)
 
-    def test_create_customer(self):
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.validate_customer')
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.create_customer')
+    def test_create_customer(
+        self, 
+        create_customer_method, 
+        validate_customer_method,
+    ):
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat()
+        validate_customer_method.return_value = True
 
         res = self.testapp.post(
             '/v1/customers',
-            dict(processor_uri='MOCK_URI'),
+            dict(processor_uri='MOCK_CUSTOMER_URI'),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
         self.failUnless('guid' in res.json)
         self.assertEqual(res.json['created_at'], now_iso)
         self.assertEqual(res.json['updated_at'], now_iso)
-        self.assertEqual(res.json['processor_uri'], 'MOCK_URI')
+        self.assertEqual(res.json['processor_uri'], 'MOCK_CUSTOMER_URI')
         self.assertEqual(res.json['company_guid'], self.company_guid)
         self.assertEqual(res.json['deleted'], False)
+        self.assertFalse(create_customer_method.called)
+        validate_customer_method.assert_called_once_with('MOCK_CUSTOMER_URI')
+
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.validate_customer')
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.create_customer')
+    def test_create_customer_without_processor_uri(
+        self, 
+        create_customer_method, 
+        validate_customer_method,
+    ):
+        create_customer_method.return_value = 'MOCK_CUSTOMER_URI'
+        res = self.testapp.post(
+            '/v1/customers',
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.failUnless('guid' in res.json)
+        customer = self.customer_model.get(res.json['guid'])
+        self.assertEqual(res.json['processor_uri'], 'MOCK_CUSTOMER_URI')
+        self.assertFalse(validate_customer_method.called)
+        create_customer_method.assert_called_once_with(customer)
 
     def test_create_customer_with_bad_api_key(self):
         self.testapp.post(

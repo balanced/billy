@@ -254,12 +254,6 @@ class TransactionModel(BaseTableModel):
         }[transaction.transaction_type]
 
         try:
-            # create customer record in Balanced
-            if customer.processor_uri is None:
-                customer.processor_uri = self.processor.create_customer(customer)
-                self.session.add(customer)
-                self.session.flush()
-
             self.logger.info(
                 'Preparing customer %s (processor_uri=%s)', 
                 customer.guid,

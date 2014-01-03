@@ -48,13 +48,13 @@ class CustomerModel(BaseTableModel):
         self.session.add(customer)
         self.session.flush()
 
+        processor = self.factory.create_processor()
+        # create customer
         if customer.processor_uri is None:
-            # TODO:
-            #customer.processor_uri = processor.create_customer(customer)
-            pass
+            customer.processor_uri = processor.create_customer(customer)
+        # validate the customer processor URI
         else:
-            pass
-        # TODO: create corresponding customer in processor, or validate it
+            processor.validate_customer(customer.processor_uri)
 
         self.session.flush()
         return customer.guid

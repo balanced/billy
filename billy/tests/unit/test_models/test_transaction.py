@@ -748,20 +748,20 @@ class TestProcessSubscriptionTransaction(TestTransactionModelBase):
             self.transaction_model.process_one(transaction)
         self.assertEqual(transaction.status, self.transaction_model.STATUS_FAILED)
 
-    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.create_customer')
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.prepare_customer')
     def test_process_one_with_system_exit_and_keyboard_interrupt(
         self, 
-        create_customer_method
+        prepare_customer_method
     ):
         transaction = self._create_transaction(
             self.transaction_model.TYPE_CHARGE,
         )
 
-        create_customer_method.side_effect = SystemExit
+        prepare_customer_method.side_effect = SystemExit
         with self.assertRaises(SystemExit):
             self.transaction_model.process_one(transaction)
 
-        create_customer_method.side_effect = KeyboardInterrupt
+        prepare_customer_method.side_effect = KeyboardInterrupt
         with self.assertRaises(KeyboardInterrupt):
             self.transaction_model.process_one(transaction)
 

@@ -8,6 +8,8 @@ from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPBadRequest
 
 from billy.models.subscription import SubscriptionModel
+from billy.models.customer import CustomerModel
+from billy.models.transaction import TransactionModel
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
 from billy.api.utils import form_errors_to_bad_request
@@ -39,6 +41,32 @@ def subscription_list_get(request):
     """
     company = auth_api_key(request)
     return list_by_ancestor(request, SubscriptionModel, company)
+
+
+@view_config(route_name='subscription_transaction_list', 
+             request_method='GET', 
+             renderer='json')
+def subscription_transaction_list(request):
+    """Get and return transactions of subscription
+
+    """
+    company = auth_api_key(request)
+    guid = request.matchdict['subscription_guid']
+    subscription = get_and_check_subscription(request, company, guid)
+    return list_by_ancestor(request, TransactionModel, subscription)
+
+
+@view_config(route_name='subscription_customer_list', 
+             request_method='GET', 
+             renderer='json')
+def subscription_customer_list(request):
+    """Get and return customers of subscription
+
+    """
+    company = auth_api_key(request)
+    guid = request.matchdict['subscription_guid']
+    subscription = get_and_check_subscription(request, company, guid)
+    return list_by_ancestor(request, CustomerModel, subscription)
 
 
 @view_config(route_name='subscription_list', 
@@ -108,35 +136,6 @@ def subscription_get(request):
     guid = request.matchdict['subscription_guid']
     subscription = get_and_check_subscription(request, company, guid)
     return subscription 
-
-
-@view_config(route_name='subscription_transaction_list', 
-             request_method='GET', 
-             renderer='json')
-def subscription_transaction_list(request):
-    """Get and return transactions of subscription
-
-    """
-    company = auth_api_key(request)
-
-    offset = int(request.params.get('offset', 0))
-    limit = int(request.params.get('limit', 20))
-    guid = request.matchdict['subscription_guid']
-
-    tx_model = request.model_factory.create_transaction_model()
-    subscription = get_and_check_subscription(request, company, guid)
-
-    transactions = tx_model.list_by_ancestor(
-        ancestor=subscription,
-        offset=offset,
-        limit=limit,
-    )
-    result = dict(
-        items=list(transactions),
-        offset=offset,
-        limit=limit,
-    )
-    return result
 
 
 @view_config(route_name='subscription_cancel', 

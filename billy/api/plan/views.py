@@ -7,6 +7,9 @@ from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPBadRequest
 
 from billy.models.plan import PlanModel 
+from billy.models.customer import CustomerModel 
+from billy.models.subscription import SubscriptionModel 
+from billy.models.transaction import TransactionModel 
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
 from billy.api.utils import list_by_ancestor
@@ -37,6 +40,42 @@ def plan_list_get(request):
     """
     company = auth_api_key(request)
     return list_by_ancestor(request, PlanModel, company)
+
+
+@view_config(route_name='plan_customer_list', 
+             request_method='GET', 
+             renderer='json')
+def plan_customer_list_get(request):
+    """Get and return customer list under the plan
+
+    """
+    company = auth_api_key(request)
+    plan = get_and_check_plan(request, company)
+    return list_by_ancestor(request, CustomerModel, plan)
+
+
+@view_config(route_name='plan_subscription_list', 
+             request_method='GET', 
+             renderer='json')
+def plan_subscription_list_get(request):
+    """Get and return subscription list under the plan
+
+    """
+    company = auth_api_key(request)
+    plan = get_and_check_plan(request, company)
+    return list_by_ancestor(request, SubscriptionModel, plan)
+
+
+@view_config(route_name='plan_transaction_list', 
+             request_method='GET', 
+             renderer='json')
+def plan_transaction_list_get(request):
+    """Get and return subscription list under the plan
+
+    """
+    company = auth_api_key(request)
+    plan = get_and_check_plan(request, company)
+    return list_by_ancestor(request, TransactionModel, plan)
 
 
 @view_config(route_name='plan_list', 

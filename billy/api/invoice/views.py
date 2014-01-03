@@ -9,6 +9,7 @@ from pyramid.httpexceptions import HTTPConflict
 
 from billy.models.invoice import InvoiceModel
 from billy.models.invoice import DuplicateExternalIDError
+from billy.models.transaction import TransactionModel
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
 from billy.api.utils import list_by_ancestor
@@ -80,6 +81,18 @@ def invoice_list_get(request):
     """
     company = auth_api_key(request)
     return list_by_ancestor(request, InvoiceModel, company)
+
+
+@view_config(route_name='invoice_transaction_list', 
+             request_method='GET', 
+             renderer='json')
+def invoice_transaction_list_get(request):
+    """Get and return the list of transactions under the given invoice
+
+    """
+    company = auth_api_key(request)
+    invoice = get_and_check_invoice(request, company)
+    return list_by_ancestor(request, TransactionModel, invoice)
 
 
 @view_config(route_name='invoice_list', 

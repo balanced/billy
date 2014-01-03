@@ -13,7 +13,7 @@ from billy.models.transaction import TransactionModel
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
 from billy.api.utils import form_errors_to_bad_request
-from billy.api.utils import list_by_ancestor
+from billy.api.utils import list_by_context
 from .forms import SubscriptionCreateForm
 from .forms import SubscriptionCancelForm
 
@@ -40,7 +40,7 @@ def subscription_list_get(request):
 
     """
     company = auth_api_key(request)
-    return list_by_ancestor(request, SubscriptionModel, company)
+    return list_by_context(request, SubscriptionModel, company)
 
 
 @view_config(route_name='subscription_transaction_list', 
@@ -53,20 +53,7 @@ def subscription_transaction_list(request):
     company = auth_api_key(request)
     guid = request.matchdict['subscription_guid']
     subscription = get_and_check_subscription(request, company, guid)
-    return list_by_ancestor(request, TransactionModel, subscription)
-
-
-@view_config(route_name='subscription_customer_list', 
-             request_method='GET', 
-             renderer='json')
-def subscription_customer_list(request):
-    """Get and return customers of subscription
-
-    """
-    company = auth_api_key(request)
-    guid = request.matchdict['subscription_guid']
-    subscription = get_and_check_subscription(request, company, guid)
-    return list_by_ancestor(request, CustomerModel, subscription)
+    return list_by_context(request, TransactionModel, subscription)
 
 
 @view_config(route_name='subscription_list', 

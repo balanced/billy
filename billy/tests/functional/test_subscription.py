@@ -554,6 +554,21 @@ class TestSubscriptionViews(ViewTestCase):
                 customer=self.customer,
                 plan=self.plan,
             )
+            # make a transaction in other comapny, make sure it will not be
+            # included in listing result
+            subscription3 = self.subscription_model.create(
+                customer=self.customer2,
+                plan=self.plan2,
+            )
+            self.transaction_model.create(
+                subscription=subscription3,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
+                amount=100,
+                funding_instrument_uri='/v1/cards/tester',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+
         guids1 = []
         guids2 = []
         with db_transaction.manager:

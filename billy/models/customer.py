@@ -14,19 +14,33 @@ class CustomerModel(BaseTableModel):
     NOT_SET = object()
 
     @decorate_offset_limit
-    def list_by_ancestor(self, ancestor, processor_uri=NOT_SET):
-        """List customer by a given ancestor
+    def list_by_context(self, context, processor_uri=NOT_SET):
+        """List customer by a given context
 
         """
+        Company = tables.Company
         Customer = tables.Customer
-        query = (
-            self.session
-            .query(Customer)
-            .filter(Customer.company == ancestor)
-            .order_by(tables.Customer.created_at.desc())
-        )
+        Plan = tables.Plan
+        Subscription = tables.Subscription
+
+        query = self.session.query(Customer)
+        if isinstance(context, Plan):
+            query = (
+                query
+                .join(
+                    Subscription,
+                    Subscription.customer_guid == Customer.guid,
+                )
+                .filter(Subscription.plan == context)
+            )
+        elif isinstance(context, Company):
+            query = query.filter(Customer.company == context)
+        else:
+            raise ValueError('Unsupported context {}'.format(context))
+
         if processor_uri is not self.NOT_SET:
             query = query.filter(Customer.processor_uri == processor_uri)
+        query = query.order_by(Customer.created_at.desc())
         return query
 
     def create(

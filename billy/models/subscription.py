@@ -25,20 +25,30 @@ class SubscriptionModel(BaseTableModel):
     TABLE = tables.Subscription
 
     @decorate_offset_limit
-    def list_by_ancestor(self, ancestor):
-        """List subscriptions by a given ancestor
+    def list_by_context(self, context):
+        """List subscriptions by a given context
 
         """
-        Subscription = tables.Subscription
+        Company = tables.Company
         Plan = tables.Plan
-        query = (
-            self.session
-            .query(Subscription)
-            .join(Plan, Plan.guid == Subscription.plan_guid)
-            .filter(Plan.company == ancestor)
-            .order_by(tables.Subscription.created_at.desc())
-        )
-        # TODO: support other ancestor
+        Subscription = tables.Subscription
+
+        query = self.session.query(Subscription)
+        if isinstance(context, Plan):
+            query = query.filter(Subscription.plan == context)
+        elif isinstance(context, Company):
+            query = (
+                query
+                .join(
+                    Plan,
+                    Plan.guid == Subscription.plan_guid,
+                )
+                .filter(Plan.company == context)
+            )
+        else:
+            raise ValueError('Unsupported context {}'.format(context))
+
+        query = query.order_by(Subscription.created_at.desc())
         return query
 
     def create(

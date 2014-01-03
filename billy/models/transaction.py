@@ -80,8 +80,8 @@ class TransactionModel(BaseTableModel):
         return query.first()
 
     @decorate_offset_limit
-    def list_by_ancestor(self, ancestor):
-        """List transactions by a given ancestor
+    def list_by_context(self, context):
+        """List transactions by a given context
 
         """
         Company = tables.Company
@@ -134,35 +134,35 @@ class TransactionModel(BaseTableModel):
             )
         )
 
-        if isinstance(ancestor, Subscription):
+        if isinstance(context, Subscription):
             query = (
                 subscription_tx_query
-                .filter(SubscriptionTransaction.subscription == ancestor)
+                .filter(SubscriptionTransaction.subscription == context)
             )
-        elif isinstance(ancestor, Invoice):
+        elif isinstance(context, Invoice):
             query = (
                 invoice_tx_query
-                .filter(InvoiceTransaction.invoice == ancestor)
+                .filter(InvoiceTransaction.invoice == context)
             )
-        elif isinstance(ancestor, Customer):
+        elif isinstance(context, Customer):
             q1 = (
                 subscription_query
-                .filter(Subscription.customer == ancestor)
+                .filter(Subscription.customer == context)
             )
             q2 = (
                 invoice_query
-                .filter(Invoice.customer == ancestor)
+                .filter(Invoice.customer == context)
             )
             query = q1.union(q2)
-        elif isinstance(ancestor, Plan):
+        elif isinstance(context, Plan):
             query = (
                 subscription_query
-                .filter(Subscription.plan == ancestor)
+                .filter(Subscription.plan == context)
             )
-        elif isinstance(ancestor, Company):
+        elif isinstance(context, Company):
             q1 = (
                 plan_query
-                .filter(Plan.company == ancestor)
+                .filter(Plan.company == context)
             )
             q2 = (
                 invoice_query
@@ -170,9 +170,11 @@ class TransactionModel(BaseTableModel):
                     Customer,
                     Customer.guid == Invoice.customer_guid,
                 )
-                .filter(Customer.company == ancestor)
+                .filter(Customer.company == context)
             )
             query = q1.union(q2)
+        else:
+            raise ValueError('Unsupported context {}'.format(context))
 
         query = query.order_by(Transaction.created_at.desc())
         return query

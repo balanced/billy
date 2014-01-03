@@ -6,7 +6,7 @@ from pyramid.httpexceptions import HTTPForbidden
 
 from billy.models.transaction import TransactionModel 
 from billy.api.auth import auth_api_key
-from billy.api.utils import list_by_ancestor
+from billy.api.utils import list_by_context
 
 
 @view_config(route_name='transaction_list', 
@@ -17,7 +17,7 @@ def transaction_list_get(request):
 
     """
     company = auth_api_key(request)
-    return list_by_ancestor(request, TransactionModel, company)
+    return list_by_context(request, TransactionModel, company)
 
 
 @view_config(route_name='transaction', 

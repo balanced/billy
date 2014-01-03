@@ -16,6 +16,9 @@ class TestPlanViews(ViewTestCase):
             self.company = self.company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
             )
+            self.company2 = self.company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY2',
+            )
         self.api_key = str(self.company.api_key)
 
     def test_create_plan(self):
@@ -260,6 +263,17 @@ class TestPlanViews(ViewTestCase):
 
     def test_plan_list(self):
         with db_transaction.manager:
+            # make some plans in other company, make sure they will not be 
+            # listed
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    self.plan_model.create(
+                        company=self.company2,
+                        plan_type=self.plan_model.TYPE_CHARGE,
+                        amount=7788,
+                        frequency=self.plan_model.FREQ_DAILY,
+                    )
+
             guids = []
             for i in range(4):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
@@ -281,12 +295,88 @@ class TestPlanViews(ViewTestCase):
         result_guids = [item['guid'] for item in items]
         self.assertEqual(result_guids, guids)
 
+    def test_plan_customer_and_subscription_list(self):
+        # make some records in other comapny to make sure they will not be 
+        # included
+        with db_transaction.manager:
+            other_plan = self.plan_model.create(
+                company=self.company2,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=5566,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+        with db_transaction.manager:
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    other_customer = self.customer_model.create(self.company2)
+                    subscription = self.subscription_model.create(
+                        plan=other_plan,
+                        customer=other_customer,
+                    )
+
+        with db_transaction.manager:
+            plan = self.plan_model.create(
+                company=self.company,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=5566,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+        with db_transaction.manager:
+            customer_guids = []
+            subscription_guids = []
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    customer = self.customer_model.create(company=self.company)
+                    subscription = self.subscription_model.create(
+                        plan=plan,
+                        customer=customer,
+                    )
+                    customer_guids.append(customer.guid)
+                    subscription_guids.append(subscription.guid)
+        customer_guids = list(reversed(customer_guids))
+        subscription_guids = list(reversed(subscription_guids))
+
+        res = self.testapp.get(
+            '/v1/plans/{}/customers'.format(plan.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, customer_guids)
+
+        res = self.testapp.get(
+            '/v1/plans/{}/subscriptions'.format(plan.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, subscription_guids)
+
     def test_plan_list_with_bad_api_key(self):
+        with db_transaction.manager:
+            plan = self.plan_model.create(
+                company=self.company,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=5566,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
         self.testapp.get(
             '/v1/plans',
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
             status=403,
         )
+        for list_name in [
+            'customers',
+            'subscriptions',
+            'transactions',
+        ]:
+            self.testapp.get(
+                '/v1/plans/{}/{}'.format(plan.guid, list_name),
+                extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+                status=403,
+            )
 
     def test_delete_plan(self):
         res = self.testapp.post(

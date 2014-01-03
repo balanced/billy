@@ -74,8 +74,8 @@ class RecordExistValidator(object):
             raise ValueError(msg)
 
 
-def list_by_ancestor(request, model_cls, ancestor):
-    """List records by a given ancestor
+def list_by_context(request, model_cls, context):
+    """List records by a given context
 
     """
     auth_api_key(request)
@@ -87,8 +87,8 @@ def list_by_ancestor(request, model_cls, ancestor):
         kwargs['external_id'] = request.params['external_id']
     if 'processor_uri' in request.params:
         kwargs['processor_uri'] = request.params['processor_uri']
-    items = model.list_by_ancestor(
-        ancestor=ancestor,
+    items = model.list_by_context(
+        context=context,
         offset=offset,
         limit=limit,
         **kwargs

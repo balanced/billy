@@ -12,7 +12,7 @@ from billy.models.subscription import SubscriptionModel
 from billy.models.transaction import TransactionModel
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
-from billy.api.utils import list_by_ancestor
+from billy.api.utils import list_by_context
 from .forms import CustomerCreateForm
 
 
@@ -39,7 +39,7 @@ def customer_list_get(request):
 
     """
     company = auth_api_key(request)
-    return list_by_ancestor(request, CustomerModel, company)
+    return list_by_context(request, CustomerModel, company)
 
 
 @view_config(route_name='customer_invoice_list', 
@@ -51,7 +51,7 @@ def customer_invoice_list_get(request):
     """
     company = auth_api_key(request)
     customer = get_and_check_customer(request, company)
-    return list_by_ancestor(request, InvoiceModel, customer)
+    return list_by_context(request, InvoiceModel, customer)
 
 
 @view_config(route_name='customer_subscription_list', 
@@ -63,7 +63,7 @@ def customer_subscription_list_get(request):
     """
     company = auth_api_key(request)
     customer = get_and_check_customer(request, company)
-    return list_by_ancestor(request, SubscriptionModel, customer)
+    return list_by_context(request, SubscriptionModel, customer)
 
 
 @view_config(route_name='customer_transaction_list', 
@@ -75,7 +75,7 @@ def customer_transaction_list_get(request):
     """
     company = auth_api_key(request)
     customer = get_and_check_customer(request, company)
-    return list_by_ancestor(request, TransactionModel, customer)
+    return list_by_context(request, TransactionModel, customer)
 
 
 @view_config(route_name='customer_list', 

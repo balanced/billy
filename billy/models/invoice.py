@@ -57,8 +57,8 @@ class InvoiceModel(BaseTableModel):
     NOT_SET = object()
 
     @decorate_offset_limit
-    def list_by_ancestor(self, ancestor, external_id=NOT_SET):
-        """Get invoices of a given ancestor
+    def list_by_context(self, context, external_id=NOT_SET):
+        """Get invoices of a given context
 
         """
         Invoice = tables.Invoice
@@ -67,10 +67,10 @@ class InvoiceModel(BaseTableModel):
             self.session
             .query(Invoice)
             .join(Customer, Customer.guid == Invoice.customer_guid)
-            .filter(Customer.company == ancestor)
+            .filter(Customer.company == context)
             .order_by(tables.Invoice.created_at.desc())
         )
-        # TODO: support other ancestor, such as customer
+        # TODO: support other context, such as customer
         if external_id is not self.NOT_SET:
             query = query.filter(Invoice.external_id == external_id)
         return query

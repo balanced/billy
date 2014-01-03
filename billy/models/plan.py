@@ -37,15 +37,15 @@ class PlanModel(BaseTableModel):
     ]
 
     @decorate_offset_limit
-    def list_by_ancestor(self, ancestor):
-        """List plan by a given ancestor
+    def list_by_context(self, context):
+        """List plan by a given context
 
         """
         Plan = tables.Plan
         query = (
             self.session
             .query(Plan)
-            .filter(Plan.company == ancestor)
+            .filter(Plan.company == context)
             .order_by(tables.Plan.created_at.desc())
         )
         return query

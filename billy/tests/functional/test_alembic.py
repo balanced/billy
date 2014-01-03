@@ -41,7 +41,7 @@ class TestAlembic(unittest.TestCase):
             autocommit=False,
             autoflush=False,
             bind=self.engine,
-            extension=ZopeTransactionExtension(keep_session=True)
+            extension=ZopeTransactionExtension()
         ))
 
         self.alembic_path = os.path.join(self.temp_dir, 'alembic.ini')
@@ -104,6 +104,7 @@ class TestAlembic(unittest.TestCase):
                 self.session.add(transaction)
 
         command.stamp(self.alembic_cfg, 'base')
+        command.downgrade(self.alembic_cfg, 'base')
 
         command.upgrade(self.alembic_cfg, 'b3d4192b123')
         # Notice: this with statement here makes sure the database transaction

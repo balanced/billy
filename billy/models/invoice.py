@@ -61,18 +61,29 @@ class InvoiceModel(BaseTableModel):
         """Get invoices of a given context
 
         """
-        Invoice = tables.Invoice
+        Company = tables.Company
         Customer = tables.Customer
-        query = (
-            self.session
-            .query(Invoice)
-            .join(Customer, Customer.guid == Invoice.customer_guid)
-            .filter(Customer.company == context)
-            .order_by(tables.Invoice.created_at.desc())
-        )
-        # TODO: support other context, such as customer
+        Invoice = tables.Invoice
+
+        query = self.session.query(Invoice)
+        if isinstance(context, Customer):
+            query = query.filter(Invoice.customer == context)
+        elif isinstance(context, Company):
+            query = (
+                query
+                .join(
+                    Customer,
+                    Customer.guid == Invoice.customer_guid,
+                )
+                .filter(Customer.company == context)
+            )
+        else:
+            raise ValueError('Unsupported context {}'.format(context))
+
         if external_id is not self.NOT_SET:
             query = query.filter(Invoice.external_id == external_id)
+
+        query = query.order_by(Invoice.created_at.desc())
         return query
 
     def create(

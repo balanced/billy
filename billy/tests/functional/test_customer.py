@@ -17,7 +17,12 @@ class TestCustomerViews(ViewTestCase):
             self.company = self.company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
             )
+
+            self.company2 = self.company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY2',
+            )
         self.api_key = str(self.company.api_key)
+        self.api_key2 = str(self.company2.api_key)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.validate_customer')
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.create_customer')
@@ -110,14 +115,9 @@ class TestCustomerViews(ViewTestCase):
         )
 
     def test_get_customer_of_other_company(self):
-        with db_transaction.manager:
-            other_company = self.company_model.create(
-                processor_key='MOCK_PROCESSOR_KEY',
-            )
-        other_api_key = str(other_company.api_key)
         res = self.testapp.post(
             '/v1/customers', 
-            extra_environ=dict(REMOTE_USER=other_api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key2), 
             status=200,
         )
         guid = res.json['guid']
@@ -128,6 +128,12 @@ class TestCustomerViews(ViewTestCase):
         )
 
     def test_customer_list(self):
+        # create some customers in other company to make sure they will not
+        # be included in the result
+        with db_transaction.manager:
+            for i in range(4):
+                self.customer_model.create(self.company2)
+
         with db_transaction.manager:
             guids = []
             for i in range(4):
@@ -180,12 +186,188 @@ class TestCustomerViews(ViewTestCase):
         result_guids = [item['guid'] for item in items]
         self.assertEqual(result_guids, [guids[-2]])
 
+    def test_customer_invoice_list(self):
+        # create some invoices in other to make sure they will not be included
+        # in the result
+        with db_transaction.manager:
+            other_customer = self.customer_model.create(self.company2)
+            for i in range(4):
+                self.invoice_model.create(
+                    customer=other_customer,
+                    amount=1000,
+                )
+
+        with db_transaction.manager:
+            customer = self.customer_model.create(self.company)
+            guids = []
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    invoice = self.invoice_model.create(
+                        customer=customer,
+                        amount=1000,
+                    )
+                    guids.append(invoice.guid)
+        guids = list(reversed(guids))
+
+        res = self.testapp.get(
+            '/v1/customers/{}/invoices'.format(customer.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, guids)
+
+    def test_customer_subscription_list(self):
+        # create some subscriptions in other to make sure they will not be included
+        # in the result
+        with db_transaction.manager:
+            other_customer = self.customer_model.create(self.company2)
+            other_plan = self.plan_model.create(
+                company=self.company2,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=7788,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+            for i in range(4):
+                self.subscription_model.create(
+                    customer=other_customer,
+                    plan=other_plan,
+                )
+
+        with db_transaction.manager:
+            customer = self.customer_model.create(self.company)
+            plan = self.plan_model.create(
+                company=self.company,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=5566,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+            guids = []
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    subscription = self.subscription_model.create(
+                        customer=customer,
+                        plan=plan,
+                    )
+                    guids.append(subscription.guid)
+        guids = list(reversed(guids))
+
+        res = self.testapp.get(
+            '/v1/customers/{}/subscriptions'.format(customer.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, guids)
+
+    def test_customer_transaction_list(self):
+        # create some transactions in other to make sure they will not be included
+        # in the result
+        with db_transaction.manager:
+            other_customer = self.customer_model.create(self.company2)
+            other_plan = self.plan_model.create(
+                company=self.company2,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=7788,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+            other_subscription = self.subscription_model.create(
+                customer=other_customer,
+                plan=other_plan,
+            )
+            other_invoice = self.invoice_model.create(
+                customer=other_customer,
+                amount=9999,
+            )
+            for i in range(4):
+                self.transaction_model.create(
+                    invoice=other_invoice,
+                    transaction_cls=self.transaction_model.CLS_INVOICE,
+                    transaction_type=self.transaction_model.TYPE_CHARGE,
+                    amount=100,
+                    funding_instrument_uri='/v1/cards/tester',
+                    scheduled_at=datetime.datetime.utcnow(),
+                )
+            for i in range(4):
+                self.transaction_model.create(
+                    subscription=other_subscription,
+                    transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                    transaction_type=self.transaction_model.TYPE_CHARGE,
+                    amount=100,
+                    funding_instrument_uri='/v1/cards/tester',
+                    scheduled_at=datetime.datetime.utcnow(),
+                )
+
+        with db_transaction.manager:
+            customer = self.customer_model.create(self.company)
+            plan = self.plan_model.create(
+                company=self.company,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=5566,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+            subscription = self.subscription_model.create(
+                customer=customer,
+                plan=plan,
+            )
+            invoice = self.invoice_model.create(
+                customer=customer,
+                amount=7788,
+            )
+            guids = []
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    transaction = self.transaction_model.create(
+                        invoice=invoice,
+                        transaction_cls=self.transaction_model.CLS_INVOICE,
+                        transaction_type=self.transaction_model.TYPE_CHARGE,
+                        amount=100,
+                        funding_instrument_uri='/v1/cards/tester',
+                        scheduled_at=datetime.datetime.utcnow(),
+                    )
+                    guids.append(transaction.guid)
+            for i in range(4):
+                with freeze_time('2013-08-16 02:00:{:02}'.format(i + 1)):
+                    transaction = self.transaction_model.create(
+                        subscription=subscription,
+                        transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                        transaction_type=self.transaction_model.TYPE_CHARGE,
+                        amount=100,
+                        funding_instrument_uri='/v1/cards/tester',
+                        scheduled_at=datetime.datetime.utcnow(),
+                    )
+                    guids.append(transaction.guid)
+        guids = list(reversed(guids))
+
+        res = self.testapp.get(
+            '/v1/customers/{}/transactions'.format(customer.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, guids)
+
     def test_customer_list_with_bad_api_key(self):
+        with db_transaction.manager:
+            customer = self.customer_model.create(self.company)
         self.testapp.get(
             '/v1/customers',
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
             status=403,
         )
+        for list_name in [
+            'invoices',
+            'subscriptions',
+            'transactions',
+        ]:
+            self.testapp.get(
+                '/v1/customers/{}/{}'.format(customer.guid, list_name),
+                extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+                status=403,
+            )
 
     def test_delete_customer(self):
         res = self.testapp.post(

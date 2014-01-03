@@ -30,12 +30,15 @@ class SubscriptionModel(BaseTableModel):
 
         """
         Company = tables.Company
+        Customer = tables.Customer
         Plan = tables.Plan
         Subscription = tables.Subscription
 
         query = self.session.query(Subscription)
         if isinstance(context, Plan):
             query = query.filter(Subscription.plan == context)
+        elif isinstance(context, Customer):
+            query = query.filter(Subscription.customer == context)
         elif isinstance(context, Company):
             query = (
                 query

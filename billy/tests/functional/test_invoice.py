@@ -503,8 +503,18 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(result_guids, [guids[-2]])
 
     def test_invoice_list_with_bad_api_key(self):
+        with db_transaction.manager:
+            invoice = self.invoice_model.create(
+                customer=self.customer,
+                amount=9999,
+            )
         self.testapp.get(
             '/v1/invoices',
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )
+        self.testapp.get(
+            '/v1/invoices/{}/transactions'.format(invoice.guid),
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
             status=403,
         )

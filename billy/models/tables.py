@@ -211,6 +211,16 @@ class Subscription(DeclarativeBase):
         backref='subscription',
     )
 
+    @property
+    def effective_amount(self):
+        """The effective amount of this subscription, if the amount is None
+        on this subscription, plan's amount will be returned
+
+        """
+        if self.amount is None:
+            return self.plan.amount
+        return self.plan.amount
+
 
 class Transaction(DeclarativeBase):
     """A transaction 

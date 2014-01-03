@@ -106,6 +106,7 @@ def subscription_adapter(subscription, request):
     return dict(
         guid=subscription.guid, 
         amount=subscription.amount,
+        effective_amount=subscription.effective_amount,
         funding_instrument_uri=subscription.funding_instrument_uri,
         appears_on_statement_as=subscription.appears_on_statement_as,
         period=subscription.period,

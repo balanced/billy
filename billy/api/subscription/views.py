@@ -153,10 +153,7 @@ def subscription_cancel(request):
     # TODO: maybe we can find a better way to integrate this with the 
     # form validation?
     if refund_amount is not None:
-        if subscription.amount is not None:
-            amount = subscription.amount
-        else:
-            amount = subscription.plan.amount
+        amount = subscription.effective_amount
         if refund_amount > amount:
             return form_errors_to_bad_request(dict(
                 refund_amount=['refund_amount cannot be greater than '

@@ -29,7 +29,7 @@ class TestRenderer(ViewTestCase):
                 company=self.company,
                 frequency=self.plan_model.FREQ_WEEKLY,
                 plan_type=self.plan_model.TYPE_CHARGE,
-                amount=10,
+                amount=1234,
             )
             self.subscription = self.subscription_model.create(
                 customer=self.customer,
@@ -40,14 +40,14 @@ class TestRenderer(ViewTestCase):
                 subscription=self.subscription,
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
-                amount=10,
+                amount=5678,
                 funding_instrument_uri='/v1/cards/tester',
                 appears_on_statement_as='hello baby',
                 scheduled_at=datetime.datetime.utcnow(),
             )
             self.invoice = self.invoice_model.create(
                 customer=self.customer,
-                amount=100,
+                amount=7788,
                 title='foobar invoice',
                 external_id='external ID',
                 appears_on_statement_as='hello baby',
@@ -168,6 +168,7 @@ class TestRenderer(ViewTestCase):
         expected = dict(
             guid=subscription.guid, 
             amount=None,
+            effective_amount=subscription.plan.amount,
             funding_instrument_uri=subscription.funding_instrument_uri,
             appears_on_statement_as=subscription.appears_on_statement_as,
             period=subscription.period,
@@ -182,13 +183,15 @@ class TestRenderer(ViewTestCase):
         )
         self.assertEqual(json_data, expected)
 
-        def assert_amount(amount, expected_amount):
+        def assert_amount(amount, expected_amount, expected_effective_amount):
             subscription.amount = amount 
             json_data = subscription_adapter(subscription, self.dummy_request)
             self.assertEqual(json_data['amount'], expected_amount)
+            self.assertEqual(json_data['effective_amount'], 
+                             expected_effective_amount)
 
-        assert_amount(None, None)
-        assert_amount(1234, 1234)
+        assert_amount(None, None, subscription.plan.amount)
+        assert_amount(1234, 1234, 1234)
 
         def assert_canceled_at(canceled_at, expected_canceled_at):
             subscription.canceled_at = canceled_at 

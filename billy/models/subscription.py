@@ -278,12 +278,7 @@ class SubscriptionModel(BaseTableModel):
                 else:
                     raise ValueError('Unknown plan type {} to process'
                                      .format(subscription.plan.plan_type))
-                # when amount of subscription is given, we should use it
-                # instead the one from plan
-                if subscription.amount is None:
-                    amount = subscription.plan.amount 
-                else:
-                    amount = subscription.amount
+                amount = subscription.effective_amount
                 type_map = {
                     tx_model.TYPE_CHARGE: 'charge',
                     tx_model.TYPE_PAYOUT: 'payout',

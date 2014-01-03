@@ -8,7 +8,6 @@ from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPBadRequest
 
 from billy.models.subscription import SubscriptionModel
-from billy.models.customer import CustomerModel
 from billy.models.transaction import TransactionModel
 from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form

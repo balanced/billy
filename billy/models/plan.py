@@ -41,13 +41,16 @@ class PlanModel(BaseTableModel):
         """List plan by a given context
 
         """
+        Company = tables.Company
         Plan = tables.Plan
-        query = (
-            self.session
-            .query(Plan)
-            .filter(Plan.company == context)
-            .order_by(tables.Plan.created_at.desc())
-        )
+
+        query = self.session.query(Plan)
+        if isinstance(context, Company):
+            query = query.filter(Plan.company == context)
+        else:
+            raise ValueError('Unsupported context {}'.format(context))
+
+        query = query.order_by(Plan.created_at.desc())
         return query
 
     def create(

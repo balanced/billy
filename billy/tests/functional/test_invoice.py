@@ -18,7 +18,13 @@ class TestInvoiceViews(ViewTestCase):
                 processor_key='MOCK_PROCESSOR_KEY',
             )
             self.customer = self.customer_model.create(company=self.company)
+
+            self.company2 = self.company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY2',
+            )
+            self.customer2 = self.customer_model.create(company=self.company2)
         self.api_key = str(self.company.api_key)
+        self.api_key2 = str(self.company2.api_key)
 
     def _encode_item_params(self, items):
         """Encode items (a list of dict) into key/value parameters for URL
@@ -281,18 +287,10 @@ class TestInvoiceViews(ViewTestCase):
         ))
 
     def test_create_invoice_to_other_company_customer(self):
-        with db_transaction.manager:
-            other_company = self.company_model.create(
-                processor_key='MOCK_PROCESSOR_KEY',
-            )
-            other_customer = self.customer_model.create(
-                company=other_company
-            )
-
         self.testapp.post(
             '/v1/invoices', 
             dict(
-                customer_guid=other_customer.guid,
+                customer_guid=self.customer2.guid,
                 amount=1234,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
@@ -312,13 +310,12 @@ class TestInvoiceViews(ViewTestCase):
 
     def test_create_invoice_to_a_deleted_customer(self):
         with db_transaction.manager:
-            customer = self.customer_model.create(company=self.company)
-            self.customer_model.delete(customer)
+            self.customer_model.delete(self.customer)
 
         self.testapp.post(
             '/v1/invoices',
             dict(
-                customer_guid=customer.guid,
+                customer_guid=self.customer.guid,
                 amount=123,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
@@ -372,22 +369,13 @@ class TestInvoiceViews(ViewTestCase):
         )
 
     def test_get_invoice_of_other_company(self):
-        with db_transaction.manager:
-            other_company = self.company_model.create(
-                processor_key='MOCK_PROCESSOR_KEY',
-            )
-            other_customer = self.customer_model.create(
-                company=other_company
-            )
-        other_api_key = str(other_company.api_key)
-
         res = self.testapp.post(
             '/v1/invoices', 
             dict(
-                customer_guid=other_customer.guid,
+                customer_guid=self.customer2.guid,
                 amount=1234,
             ),
-            extra_environ=dict(REMOTE_USER=other_api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key2), 
             status=200,
         )
         other_guid = res.json['guid']
@@ -399,6 +387,16 @@ class TestInvoiceViews(ViewTestCase):
         )
 
     def test_invoice_list(self):
+        # make some invoice for other company, to make sure they won't be 
+        # included in the result
+        with db_transaction.manager:
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    self.invoice_model.create(
+                        customer=self.customer2,
+                        amount=9999,
+                    )
+
         with db_transaction.manager:
             guids = []
             for i in range(4):
@@ -412,6 +410,54 @@ class TestInvoiceViews(ViewTestCase):
 
         res = self.testapp.get(
             '/v1/invoices',
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, guids)
+
+    def test_invoice_transaction_list(self):
+        # create transaction in other company to make sure they will not be
+        # included in the result
+        with db_transaction.manager:
+            other_invoice = self.invoice_model.create(
+                customer=self.customer2,
+                amount=9999,
+            )
+        with db_transaction.manager:
+            for i in range(4):
+                self.transaction_model.create(
+                    invoice=other_invoice,
+                    transaction_cls=self.transaction_model.CLS_INVOICE,
+                    transaction_type=self.transaction_model.TYPE_CHARGE,
+                    amount=100,
+                    funding_instrument_uri='/v1/cards/tester',
+                    scheduled_at=datetime.datetime.utcnow(),
+                )
+
+        with db_transaction.manager:
+            invoice = self.invoice_model.create(
+                customer=self.customer,
+                amount=9999,
+            )
+        with db_transaction.manager:
+            guids = []
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    transaction = self.transaction_model.create(
+                        invoice=invoice,
+                        transaction_cls=self.transaction_model.CLS_INVOICE,
+                        transaction_type=self.transaction_model.TYPE_CHARGE,
+                        amount=100,
+                        funding_instrument_uri='/v1/cards/tester',
+                        scheduled_at=datetime.datetime.utcnow(),
+                    )
+                    guids.append(transaction.guid)
+        guids = list(reversed(guids))
+
+        res = self.testapp.get(
+            '/v1/invoices/{}/transactions'.format(invoice.guid),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )

@@ -131,7 +131,7 @@ class BalancedProcessor(PaymentProcessor):
 
         if transaction.transaction_type == TransactionModel.TYPE_REFUND:
             debit_transaction = transaction.refund_to
-            debit = self.debit_cls.find(debit_transaction.external_id)
+            debit = self.debit_cls.find(debit_transaction.processor_uri)
             method = getattr(debit, method_name)
         else:
             method = getattr(balanced_customer, method_name)

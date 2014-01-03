@@ -294,7 +294,7 @@ class TransactionModel(BaseTableModel):
             self.session.flush()
             return
 
-        transaction.external_id = transaction_id
+        transaction.processor_uri = transaction_id
         transaction.status = self.STATUS_DONE
         transaction.updated_at = tables.now_func()
         self.session.add(transaction)
@@ -311,7 +311,7 @@ class TransactionModel(BaseTableModel):
         self.session.flush()
         self.logger.info('Processed transaction %s, status=%s, external_id=%s',
                          transaction.guid, transaction.status, 
-                         transaction.external_id)
+                         transaction.processor_uri)
 
     def process_transactions(self, guids=None):
         """Process all transactions 

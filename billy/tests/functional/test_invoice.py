@@ -220,7 +220,7 @@ class TestInvoiceViews(ViewTestCase):
         invoice = self.invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 1)
         transaction = invoice.transactions[0]
-        self.assertEqual(transaction.external_id, 
+        self.assertEqual(transaction.processor_uri, 
                          'MOCK_DEBIT_URI')
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
         charge_method.assert_called_once_with(transaction)
@@ -588,7 +588,7 @@ class TestInvoiceViews(ViewTestCase):
         invoice = self.invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 1)
         transaction = invoice.transactions[0]
-        self.assertEqual(transaction.external_id, 
+        self.assertEqual(transaction.processor_uri, 
                          'MOCK_DEBIT_URI')
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
         charge_method.assert_called_once_with(transaction)

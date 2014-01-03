@@ -288,7 +288,7 @@ class TestSubscriptionModel(ModelTestCase):
             tx_guids = self.subscription_model.yield_transactions()
             transaction = self.transaction_model.get(tx_guids[0])
             transaction.status = self.transaction_model.STATUS_DONE
-            transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            transaction.processor_uri = 'MOCK_BALANCED_DEBIT_URI'
             self.session.add(transaction)
 
         # it is a monthly plan, there is 30 days in June, and only
@@ -315,7 +315,7 @@ class TestSubscriptionModel(ModelTestCase):
             tx_guids = self.subscription_model.yield_transactions()
             transaction = self.transaction_model.get(tx_guids[0])
             transaction.status = self.transaction_model.STATUS_DONE
-            transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            transaction.processor_uri = 'MOCK_BALANCED_DEBIT_URI'
             self.session.add(transaction)
 
         # we should not allow both prorated_refund and refund_amount to 
@@ -336,7 +336,7 @@ class TestSubscriptionModel(ModelTestCase):
             tx_guids = self.subscription_model.yield_transactions()
             transaction = self.transaction_model.get(tx_guids[0])
             transaction.status = self.transaction_model.STATUS_DONE
-            transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            transaction.processor_uri = 'MOCK_BALANCED_DEBIT_URI'
             self.session.add(transaction)
 
         # let's cancel and refund the latest transaction with amount 566 cent
@@ -368,7 +368,7 @@ class TestSubscriptionModel(ModelTestCase):
             tx_guids = self.subscription_model.yield_transactions()
             transaction = self.transaction_model.get(tx_guids[0])
             transaction.status = self.transaction_model.STATUS_DONE
-            transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            transaction.processor_uri = 'MOCK_BALANCED_DEBIT_URI'
             self.session.add(transaction)
 
         # it is a monthly plan, there is 30 days in June, and only
@@ -401,7 +401,7 @@ class TestSubscriptionModel(ModelTestCase):
             tx_guids = self.subscription_model.yield_transactions()
             transaction = self.transaction_model.get(tx_guids[0])
             transaction.status = self.transaction_model.STATUS_DONE
-            transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            transaction.processor_uri = 'MOCK_BALANCED_DEBIT_URI'
             self.session.add(transaction)
 
         # 17 / 30 days, the rate should be 1 - 0.56666..., which is

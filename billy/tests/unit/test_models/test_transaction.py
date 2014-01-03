@@ -689,7 +689,7 @@ class TestProcessSubscriptionTransaction(TestTransactionModelBase):
         self.assertEqual(transaction.transaction_type, 
                          self.transaction_model.TYPE_CHARGE)
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
-        self.assertEqual(transaction.external_id, 'MOCK_DEBIT_URI')
+        self.assertEqual(transaction.processor_uri, 'MOCK_DEBIT_URI')
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.scheduled_at, now)
         self.assertEqual(transaction.created_at, now)
@@ -850,7 +850,7 @@ class TestProcessInvoiceTransaction(TestTransactionModelBase):
 
         charge_method.assert_called_once_with(transaction)
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
-        self.assertEqual(transaction.external_id, 'MOCK_DEBIT_URI')
+        self.assertEqual(transaction.processor_uri, 'MOCK_DEBIT_URI')
         self.assertEqual(transaction.updated_at, updated_at)
         self.assertEqual(transaction.scheduled_at, now)
         self.assertEqual(transaction.created_at, now)
@@ -887,7 +887,7 @@ class TestProcessInvoiceTransaction(TestTransactionModelBase):
 
         refund_method.assert_called_once_with(transaction)
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
-        self.assertEqual(transaction.external_id, 'MOCK_REFUND_URI')
+        self.assertEqual(transaction.processor_uri, 'MOCK_REFUND_URI')
         self.assertEqual(transaction.invoice.customer.processor_uri, 
                          'MOCK_CUSTOMER_URI')
         self.assertEqual(invoice.status, self.invoice_model.STATUS_REFUNDED)

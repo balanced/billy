@@ -1,12 +1,13 @@
 from __future__ import unicode_literals
 
+import balanced
+
 from billy.tests.integration.helper import IntegrationTestCase
 
 
 class TestBasicScenarios(IntegrationTestCase):
 
     def test_simple_subscription_and_cancel(self):
-        import balanced
         balanced.configure(self.processor_key)
         marketplace = balanced.Marketplace.find(self.marketplace_uri)
 
@@ -85,7 +86,7 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(transaction['transaction_type'], 'charge')
         self.assertEqual(transaction['appears_on_statement_as'], 'hello baby')
 
-        debit = balanced.Debit.find(transaction['external_id'])
+        debit = balanced.Debit.find(transaction['processor_uri'])
         self.assertEqual(debit.meta['billy.transaction_guid'], transaction['guid'])
         self.assertEqual(debit.amount, 1234)
         self.assertEqual(debit.status, 'succeeded')
@@ -116,7 +117,7 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(transaction['status'], 'done')
         self.assertEqual(transaction['transaction_type'], 'refund')
 
-        refund = balanced.Debit.find(transaction['external_id'])
+        refund = balanced.Debit.find(transaction['processor_uri'])
         self.assertEqual(refund.meta['billy.transaction_guid'], 
                          transaction['guid'])
         self.assertEqual(refund.amount, 1234)
@@ -141,7 +142,6 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(customer['deleted'], True)
 
     def test_invoicing(self):
-        import balanced
         balanced.configure(self.processor_key)
         marketplace = balanced.Marketplace.find(self.marketplace_uri)
 
@@ -207,7 +207,7 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(transaction['transaction_type'], 'charge')
         self.assertEqual(transaction['appears_on_statement_as'], 'hello baby')
 
-        debit = balanced.Debit.find(transaction['external_id'])
+        debit = balanced.Debit.find(transaction['processor_uri'])
         self.assertEqual(debit.meta['billy.transaction_guid'], transaction['guid'])
         self.assertEqual(debit.amount, 5566)
         self.assertEqual(debit.status, 'succeeded')

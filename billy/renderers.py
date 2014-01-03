@@ -156,7 +156,7 @@ def transaction_adapter(transaction, request):
         status=status,
         amount=transaction.amount,
         funding_instrument_uri=transaction.funding_instrument_uri,
-        external_id=transaction.external_id,
+        processor_uri=transaction.processor_uri,
         appears_on_statement_as=transaction.appears_on_statement_as,
         failure_count=transaction.failure_count,
         error_message=transaction.error_message,

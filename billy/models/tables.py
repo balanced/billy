@@ -235,8 +235,8 @@ class Transaction(DeclarativeBase):
     transaction_cls = Column(Integer, index=True, nullable=False)
     #: what type of transaction it is, 0=charge, 1=refund, 2=payout
     transaction_type = Column(Integer, index=True, nullable=False)
-    #: the ID of transaction record in payment processing system
-    external_id = Column(Unicode(128), index=True)
+    #: the URI of transaction record in payment processing system
+    processor_uri = Column(Unicode(128), index=True)
     #: the statement to appear on customer's transaction record (either 
     #  bank account or credit card)
     appears_on_statement_as = Column(Unicode(32))    

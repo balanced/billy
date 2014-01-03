@@ -74,7 +74,7 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(len(subscription.transactions), 1)
         transaction = subscription.transactions[0]
         charge_method.assert_called_once_with(transaction)
-        self.assertEqual(transaction.external_id, 
+        self.assertEqual(transaction.processor_uri, 
                          'MOCK_DEBIT_URI')
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
         self.assertEqual(transaction.appears_on_statement_as, 
@@ -500,7 +500,7 @@ class TestSubscriptionViews(ViewTestCase):
 
             transaction = self.transaction_model.get(tx_guid)
             transaction.status = self.transaction_model.STATUS_DONE
-            transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            transaction.processor_uri = 'MOCK_BALANCED_DEBIT_URI'
             self.testapp.session.add(transaction)
 
         refund_method.return_value = 'MOCK_REFUND_URI'
@@ -558,7 +558,7 @@ class TestSubscriptionViews(ViewTestCase):
 
             transaction = self.transaction_model.get(tx_guid)
             transaction.status = self.transaction_model.STATUS_DONE
-            transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            transaction.processor_uri = 'MOCK_BALANCED_DEBIT_URI'
             self.testapp.session.add(transaction)
 
         refund_method.return_value = 'MOCK_REFUND_URI'
@@ -612,7 +612,7 @@ class TestSubscriptionViews(ViewTestCase):
 
             transaction = self.transaction_model.get(tx_guid)
             transaction.status = self.transaction_model.STATUS_DONE
-            transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
+            transaction.processor_uri = 'MOCK_BALANCED_DEBIT_URI'
             self.testapp.session.add(transaction)
 
         def assert_bad_parameters(kwargs):

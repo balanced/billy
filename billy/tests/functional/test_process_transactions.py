@@ -7,12 +7,11 @@ import shutil
 import textwrap
 import StringIO
 
+import mock
 import transaction as db_transaction
-from flexmock import flexmock
 from pyramid.paster import get_appsettings
 
 from billy.models import setup_database
-from billy.models.transaction import TransactionModel
 from billy.models.model_factory import ModelFactory
 from billy.scripts import initializedb
 from billy.scripts import process_transactions
@@ -44,13 +43,8 @@ class TestProcessTransactions(unittest.TestCase):
         """)
         self.assertMultiLineEqual(usage_out.getvalue(), expected)
 
-    def test_main(self):
-        (
-            flexmock(TransactionModel)
-            .should_receive('process_transactions')
-            .once()
-        )
-
+    @mock.patch('billy.models.transaction.TransactionModel.process_transactions')
+    def test_main(self, process_transactions_method):
         cfg_path = os.path.join(self.temp_dir, 'config.ini')
         with open(cfg_path, 'wt') as f:
             f.write(textwrap.dedent("""\
@@ -63,7 +57,8 @@ class TestProcessTransactions(unittest.TestCase):
             """))
         initializedb.main([initializedb.__file__, cfg_path])
         process_transactions.main([process_transactions.__file__, cfg_path])
-        # TODO: do more check here?
+        # ensure process_transaction method is called correctly
+        process_transactions_method.assert_called_once()
 
     def test_main_with_crash(self):
 

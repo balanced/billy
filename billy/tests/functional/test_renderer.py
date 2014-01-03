@@ -19,25 +19,25 @@ class TestRenderer(ViewTestCase):
     def setUp(self):
         super(TestRenderer, self).setUp()
         with db_transaction.manager:
-            self.company_guid = self.company_model.create(
+            self.company = self.company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
             )
-            self.customer_guid = self.customer_model.create(
-                company_guid=self.company_guid
+            self.customer = self.customer_model.create(
+                company=self.company
             )
-            self.plan_guid = self.plan_model.create(
-                company_guid=self.company_guid,
+            self.plan = self.plan_model.create(
+                company=self.company,
                 frequency=self.plan_model.FREQ_WEEKLY,
                 plan_type=self.plan_model.TYPE_CHARGE,
                 amount=10,
             )
-            self.subscription_guid = self.subscription_model.create(
-                customer_guid=self.customer_guid,
-                plan_guid=self.plan_guid,
+            self.subscription = self.subscription_model.create(
+                customer=self.customer,
+                plan=self.plan,
                 appears_on_statement_as='hello baby',
             )
-            self.transaction_guid = self.transaction_model.create(
-                subscription_guid=self.subscription_guid,
+            self.transaction = self.transaction_model.create(
+                subscription=self.subscription,
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
@@ -45,8 +45,8 @@ class TestRenderer(ViewTestCase):
                 appears_on_statement_as='hello baby',
                 scheduled_at=datetime.datetime.utcnow(),
             )
-            self.invoice_guid = self.invoice_model.create(
-                customer_guid=self.customer_guid,
+            self.invoice = self.invoice_model.create(
+                customer=self.customer,
                 amount=100,
                 title='foobar invoice',
                 external_id='external ID',
@@ -63,7 +63,7 @@ class TestRenderer(ViewTestCase):
             )
 
     def test_company(self):
-        company = self.company_model.get(self.company_guid)
+        company = self.company
         json_data = company_adapter(company, self.dummy_request)
         expected = dict(
             guid=company.guid,
@@ -74,7 +74,7 @@ class TestRenderer(ViewTestCase):
         self.assertEqual(json_data, expected)
 
     def test_customer(self):
-        customer = self.customer_model.get(self.customer_guid)
+        customer = self.customer
         json_data = customer_adapter(customer, self.dummy_request)
         expected = dict(
             guid=customer.guid,
@@ -87,7 +87,7 @@ class TestRenderer(ViewTestCase):
         self.assertEqual(json_data, expected)
 
     def test_invoice(self):
-        invoice = self.invoice_model.get(self.invoice_guid)
+        invoice = self.invoice
         json_data = invoice_adapter(invoice, self.dummy_request)
         expected = dict(
             guid=invoice.guid,
@@ -129,7 +129,7 @@ class TestRenderer(ViewTestCase):
         assert_status(self.invoice_model.STATUS_REFUND_FAILED, 'refund_failed')
 
     def test_plan(self):
-        plan = self.plan_model.get(self.plan_guid)
+        plan = self.plan
         json_data = plan_adapter(plan, self.dummy_request)
         expected = dict(
             guid=plan.guid, 
@@ -163,7 +163,7 @@ class TestRenderer(ViewTestCase):
         assert_frequency(self.plan_model.FREQ_YEARLY, 'yearly')
 
     def test_subscription(self):
-        subscription = self.subscription_model.get(self.subscription_guid)
+        subscription = self.subscription
         json_data = subscription_adapter(subscription, self.dummy_request)
         expected = dict(
             guid=subscription.guid, 
@@ -200,7 +200,7 @@ class TestRenderer(ViewTestCase):
         assert_canceled_at(now, now.isoformat())
 
     def test_transaction(self):
-        transaction = self.transaction_model.get(self.transaction_guid)
+        transaction = self.transaction
         json_data = transaction_adapter(transaction, self.dummy_request)
         expected = dict(
             guid=transaction.guid, 
@@ -241,8 +241,8 @@ class TestRenderer(ViewTestCase):
         assert_status(self.transaction_model.STATUS_CANCELED, 'canceled')
 
         # test invoice transaction
-        transaction_guid = self.transaction_model.create(
-            invoice_guid=self.invoice_guid,
+        transaction = self.transaction_model.create(
+            invoice=self.invoice,
             transaction_cls=self.transaction_model.CLS_INVOICE,
             transaction_type=self.transaction_model.TYPE_CHARGE,
             amount=10,
@@ -250,7 +250,6 @@ class TestRenderer(ViewTestCase):
             appears_on_statement_as='hello baby',
             scheduled_at=datetime.datetime.utcnow(),
         )
-        transaction = self.transaction_model.get(transaction_guid)
         json_data = transaction_adapter(transaction, self.dummy_request)
         expected = dict(
             guid=transaction.guid, 

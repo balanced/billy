@@ -19,12 +19,11 @@ def company_list_post(request):
     """
     form = validate_form(CompanyCreateForm, request)
     processor_key = form.data['processor_key']
+    # TODO: validate API key in processor?
 
     model = request.model_factory.create_company_model()
-    # TODO: do validation here
     with db_transaction.manager:
-        guid = model.create(processor_key=processor_key)
-    company = model.get(guid)
+        company = model.create(processor_key=processor_key)
     return company
 
 

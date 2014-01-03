@@ -14,11 +14,10 @@ class TestCustomerViews(ViewTestCase):
     def setUp(self):
         super(TestCustomerViews, self).setUp()
         with db_transaction.manager:
-            self.company_guid = self.company_model.create(
+            self.company = self.company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
             )
-        company = self.company_model.get(self.company_guid)
-        self.api_key = str(company.api_key)
+        self.api_key = str(self.company.api_key)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.validate_customer')
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.create_customer')
@@ -41,7 +40,7 @@ class TestCustomerViews(ViewTestCase):
         self.assertEqual(res.json['created_at'], now_iso)
         self.assertEqual(res.json['updated_at'], now_iso)
         self.assertEqual(res.json['processor_uri'], 'MOCK_CUSTOMER_URI')
-        self.assertEqual(res.json['company_guid'], self.company_guid)
+        self.assertEqual(res.json['company_guid'], self.company.guid)
         self.assertEqual(res.json['deleted'], False)
         self.assertFalse(create_customer_method.called)
         validate_customer_method.assert_called_once_with('MOCK_CUSTOMER_URI')
@@ -112,10 +111,9 @@ class TestCustomerViews(ViewTestCase):
 
     def test_get_customer_of_other_company(self):
         with db_transaction.manager:
-            other_company_guid = self.company_model.create(
+            other_company = self.company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
             )
-        other_company = self.company_model.get(other_company_guid)
         other_api_key = str(other_company.api_key)
         res = self.testapp.post(
             '/v1/customers', 
@@ -134,8 +132,8 @@ class TestCustomerViews(ViewTestCase):
             guids = []
             for i in range(4):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
-                    guid = self.customer_model.create(self.company_guid)
-                    guids.append(guid)
+                    customer = self.customer_model.create(self.company)
+                    guids.append(customer.guid)
         guids = list(reversed(guids))
 
         res = self.testapp.get(
@@ -155,11 +153,11 @@ class TestCustomerViews(ViewTestCase):
                     processor_uri = i
                     if i >= 2:
                         processor_uri = None
-                    guid = self.customer_model.create(
-                        self.company_guid,
+                    customer = self.customer_model.create(
+                        self.company,
                         processor_uri=processor_uri,
                     )
-                    guids.append(guid)
+                    guids.append(customer.guid)
         guids = list(reversed(guids))
 
         res = self.testapp.get(
@@ -237,10 +235,9 @@ class TestCustomerViews(ViewTestCase):
 
     def test_delete_customer_of_other_company(self):
         with db_transaction.manager:
-            other_company_guid = self.company_model.create(
+            other_company = self.company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
             )
-        other_company = self.company_model.get(other_company_guid)
         other_api_key = str(other_company.api_key)
         res = self.testapp.post(
             '/v1/customers', 

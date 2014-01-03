@@ -30,10 +30,10 @@ def decorate_offset_limit(func):
 class ListByCompanyMixin(object):
 
     @decorate_offset_limit
-    def list_by_company_guid(self, company_guid):
+    def list_by_company_guid(self, company):
         """Get records of a company by given guid
 
-        :param company_guid: the given company GUID
+        :param company: the given company
         :param offset: offset for listing, None indicates no offset
         :param limit: limit for listing, None indicates no limit
         """
@@ -41,7 +41,7 @@ class ListByCompanyMixin(object):
         query = (
             self.session
             .query(self.TABLE)
-            .filter(self.TABLE.company_guid == company_guid)
+            .filter(self.TABLE.company == company)
             .order_by(self.TABLE.created_at.desc())
         )
         return query

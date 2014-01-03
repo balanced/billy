@@ -54,7 +54,6 @@ def plan_list_post(request):
     interval = form.data['interval']
     if interval is None:
         interval = 1
-    company_guid = company.guid
 
     # TODO: make sure user cannot create a post to a deleted company
 
@@ -73,14 +72,13 @@ def plan_list_post(request):
     frequency = freq_map[frequency]
 
     with db_transaction.manager:
-        guid = model.create(
-            company_guid=company_guid, 
+        plan = model.create(
+            company=company, 
             plan_type=plan_type,
             amount=amount, 
             frequency=frequency, 
             interval=interval, 
         )
-    plan = model.get(guid)
     return plan 
 
 
@@ -109,6 +107,5 @@ def plan_delete(request):
     if plan.deleted:
         return HTTPBadRequest('Plan {} was already deleted'.format(plan.guid))
     with db_transaction.manager:
-        model.delete(plan.guid)
-    plan = model.get(plan.guid)
+        model.delete(plan)
     return plan 

@@ -14,14 +14,11 @@ class TestInvoiceViews(ViewTestCase):
     def setUp(self):
         super(TestInvoiceViews, self).setUp()
         with db_transaction.manager:
-            self.company_guid = self.company_model.create(
+            self.company = self.company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
             )
-            self.customer_guid = self.customer_model.create(
-                company_guid=self.company_guid
-            )
-        company = self.company_model.get(self.company_guid)
-        self.api_key = str(company.api_key)
+            self.customer = self.customer_model.create(company=self.company)
+        self.api_key = str(self.company.api_key)
 
     def _encode_item_params(self, items):
         """Encode items (a list of dict) into key/value parameters for URL
@@ -53,7 +50,6 @@ class TestInvoiceViews(ViewTestCase):
         return adjustment_params 
 
     def test_create_invoice(self):
-        customer_guid = self.customer_guid
         amount = 5566
         title = 'foobar invoice'
         external_id = 'external ID'
@@ -64,7 +60,7 @@ class TestInvoiceViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/invoices',
             dict(
-                customer_guid=customer_guid,
+                customer_guid=self.customer.guid,
                 amount=amount,
                 title=title,
                 external_id=external_id,
@@ -81,7 +77,7 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(res.json['external_id'], external_id)
         self.assertEqual(res.json['appears_on_statement_as'], 
                          appears_on_statement_as)
-        self.assertEqual(res.json['customer_guid'], customer_guid)
+        self.assertEqual(res.json['customer_guid'], self.customer.guid)
         self.assertEqual(res.json['funding_instrument_uri'], None)
 
         invoice = self.invoice_model.get(res.json['guid'])
@@ -93,7 +89,7 @@ class TestInvoiceViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/invoices',
             dict(
-                customer_guid=self.customer_guid,
+                customer_guid=self.customer.guid,
                 amount=amount,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
@@ -103,25 +99,24 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(res.json['amount'], amount)
 
     def test_create_invoice_with_external_id(self):
-        customer_guid = self.customer_guid
         amount = 5566
         external_id = 'external ID'
 
         self.testapp.post(
             '/v1/invoices',
             dict(
-                customer_guid=customer_guid,
+                customer_guid=self.customer.guid,
                 amount=amount,
                 external_id=external_id,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
-
+        # ensure duplicate (customer, external_d) cannot be created
         self.testapp.post(
             '/v1/invoices',
             dict(
-                customer_guid=customer_guid,
+                customer_guid=self.customer.guid,
                 amount=amount,
                 external_id=external_id,
             ),
@@ -130,7 +125,6 @@ class TestInvoiceViews(ViewTestCase):
         )
 
     def test_create_invoice_with_items(self):
-        customer_guid = self.customer_guid
         items = [
             dict(name='foo', total=1234),
             dict(name='bar', total=5678, unit='unit'),
@@ -141,7 +135,7 @@ class TestInvoiceViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/invoices',
             dict(
-                customer_guid=customer_guid,
+                customer_guid=self.customer.guid,
                 amount=5566,
                 item_namexxx='SHOULD NOT BE PARSED',
                 **item_params
@@ -160,7 +154,6 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(item_result, items)
 
     def test_create_invoice_with_adjustments(self):
-        customer_guid = self.customer_guid
         adjustments = [
             dict(total=-100, reason='A Lannister always pays his debts!'),
             dict(total=20, reason='you owe me'),
@@ -171,7 +164,7 @@ class TestInvoiceViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/invoices',
             dict(
-                customer_guid=customer_guid,
+                customer_guid=self.customer.guid,
                 amount=200,
                 adjustment_amountxxx='SHOULD NOT BE PARSED',
                 **adjustment_params
@@ -191,7 +184,6 @@ class TestInvoiceViews(ViewTestCase):
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
     def test_create_invoice_with_funding_instrument_uri(self, charge_method):
-        customer_guid = self.customer_guid
         amount = 5566
         funding_instrument_uri = 'MOCK_CARD_URI'
         now = datetime.datetime.utcnow()
@@ -202,7 +194,7 @@ class TestInvoiceViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/invoices',
             dict(
-                customer_guid=customer_guid,
+                customer_guid=self.customer.guid,
                 amount=amount,
                 funding_instrument_uri=funding_instrument_uri,
             ),
@@ -214,8 +206,9 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(res.json['updated_at'], now_iso)
         self.assertEqual(res.json['amount'], amount)
         self.assertEqual(res.json['title'], None)
-        self.assertEqual(res.json['customer_guid'], customer_guid)
-        self.assertEqual(res.json['funding_instrument_uri'], funding_instrument_uri)
+        self.assertEqual(res.json['customer_guid'], self.customer.guid)
+        self.assertEqual(res.json['funding_instrument_uri'], 
+                         funding_instrument_uri)
 
         invoice = self.invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 1)
@@ -227,7 +220,6 @@ class TestInvoiceViews(ViewTestCase):
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
     def test_create_invoice_with_funding_instrument_uri_with_zero_amount(self, charge_method):
-        customer_guid = self.customer_guid
         amount = 0
         funding_instrument_uri = 'MOCK_CARD_URI'
         charge_method.return_value = 'MOCK_DEBIT_URI'
@@ -235,7 +227,7 @@ class TestInvoiceViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/invoices',
             dict(
-                customer_guid=customer_guid,
+                customer_guid=self.customer.guid,
                 amount=amount,
                 funding_instrument_uri=funding_instrument_uri,
             ),
@@ -258,49 +250,49 @@ class TestInvoiceViews(ViewTestCase):
             )
         assert_bad_parameters({})
         assert_bad_parameters(dict(
-            customer_guid=self.customer_guid,
+            customer_guid=self.customer.guid,
             funding_instrument_uri='MOCK_CARD_URI',
         ))
         assert_bad_parameters(dict(
-            customer_guid=self.customer_guid,
+            customer_guid=self.customer.guid,
         ))
         assert_bad_parameters(dict(
             amount=123,
             funding_instrument_uri='MOCK_CARD_URI',
         ))
         assert_bad_parameters(dict(
-            customer_guid=self.customer_guid,
+            customer_guid=self.customer.guid,
             amount=-1,
         ))
         assert_bad_parameters(dict(
-            customer_guid=self.customer_guid,
+            customer_guid=self.customer.guid,
             amount=999,
             title='t' * 129,
         ))
         assert_bad_parameters(dict(
-            customer_guid=self.customer_guid,
+            customer_guid=self.customer.guid,
             amount=999,
             appears_on_statement_as='illegal\tstatement', 
         ))
         assert_bad_parameters(dict(
-            customer_guid=self.customer_guid,
+            customer_guid=self.customer.guid,
             amount=999,
             appears_on_statement_as='illegal\0statement', 
         ))
 
     def test_create_invoice_to_other_company_customer(self):
         with db_transaction.manager:
-            other_company_guid = self.company_model.create(
+            other_company = self.company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
             )
-            other_customer_guid = self.customer_model.create(
-                company_guid=other_company_guid
+            other_customer = self.customer_model.create(
+                company=other_company
             )
 
         self.testapp.post(
             '/v1/invoices', 
             dict(
-                customer_guid=other_customer_guid,
+                customer_guid=other_customer.guid,
                 amount=1234,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
@@ -311,7 +303,7 @@ class TestInvoiceViews(ViewTestCase):
         self.testapp.post(
             '/v1/invoices',
             dict(
-                customer_guid=self.customer_guid,
+                customer_guid=self.customer.guid,
                 amount=1234,
             ),
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
@@ -320,15 +312,13 @@ class TestInvoiceViews(ViewTestCase):
 
     def test_create_invoice_to_a_deleted_customer(self):
         with db_transaction.manager:
-            customer_guid = self.customer_model.create(
-                company_guid=self.company_guid
-            )
-            self.customer_model.delete(customer_guid)
+            customer = self.customer_model.create(company=self.company)
+            self.customer_model.delete(customer)
 
         self.testapp.post(
             '/v1/invoices',
             dict(
-                customer_guid=customer_guid,
+                customer_guid=customer.guid,
                 amount=123,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
@@ -339,7 +329,7 @@ class TestInvoiceViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/invoices', 
             dict(
-                customer_guid=self.customer_guid,
+                customer_guid=self.customer.guid,
                 amount=1234,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
@@ -366,7 +356,7 @@ class TestInvoiceViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/invoices', 
             dict(
-                customer_guid=self.customer_guid,
+                customer_guid=self.customer.guid,
                 amount=1234,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
@@ -383,19 +373,18 @@ class TestInvoiceViews(ViewTestCase):
 
     def test_get_invoice_of_other_company(self):
         with db_transaction.manager:
-            other_company_guid = self.company_model.create(
+            other_company = self.company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
             )
-            other_customer_guid = self.customer_model.create(
-                company_guid=other_company_guid
+            other_customer = self.customer_model.create(
+                company=other_company
             )
-        other_company = self.company_model.get(other_company_guid)
         other_api_key = str(other_company.api_key)
 
         res = self.testapp.post(
             '/v1/invoices', 
             dict(
-                customer_guid=other_customer_guid,
+                customer_guid=other_customer.guid,
                 amount=1234,
             ),
             extra_environ=dict(REMOTE_USER=other_api_key), 
@@ -414,11 +403,11 @@ class TestInvoiceViews(ViewTestCase):
             guids = []
             for i in range(4):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
-                    guid = self.invoice_model.create(
-                        customer_guid=self.customer_guid,
+                    invoice = self.invoice_model.create(
+                        customer=self.customer,
                         amount=(i + 1) * 1000,
                     )
-                    guids.append(guid)
+                    guids.append(invoice.guid)
         guids = list(reversed(guids))
 
         res = self.testapp.get(
@@ -439,12 +428,12 @@ class TestInvoiceViews(ViewTestCase):
                     if i >= 2:
                         external_id = None
                     # external_id will be 0, 1, None, None
-                    guid = self.invoice_model.create(
-                        customer_guid=self.customer_guid,
+                    invoice = self.invoice_model.create(
+                        customer=self.customer,
                         amount=(i + 1) * 1000,
                         external_id=external_id,
                     )
-                    guids.append(guid)
+                    guids.append(invoice.guid)
         guids = list(reversed(guids))
 
         res = self.testapp.get(
@@ -478,7 +467,7 @@ class TestInvoiceViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/invoices', 
             dict(
-                customer_guid=self.customer_guid,
+                customer_guid=self.customer.guid,
                 amount=1234,
                 title='old title',
             ),
@@ -515,7 +504,7 @@ class TestInvoiceViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/invoices', 
             dict(
-                customer_guid=self.customer_guid,
+                customer_guid=self.customer.guid,
                 amount=1234,
                 **item_params
             ),
@@ -557,7 +546,6 @@ class TestInvoiceViews(ViewTestCase):
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
     def test_update_invoice_funding_instrument_uri(self, charge_method):
-        customer_guid = self.customer_guid
         amount = 5566
         funding_instrument_uri = 'MOCK_CARD_URI'
         charge_method.return_value = 'MOCK_DEBIT_URI'
@@ -565,7 +553,7 @@ class TestInvoiceViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/invoices',
             dict(
-                customer_guid=customer_guid,
+                customer_guid=self.customer.guid,
                 amount=amount,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
@@ -595,7 +583,6 @@ class TestInvoiceViews(ViewTestCase):
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
     def test_update_invoice_funding_instrument_uri_with_zero_amount(self, charge_method):
-        customer_guid = self.customer_guid
         amount = 0
         funding_instrument_uri = 'MOCK_CARD_URI'
         charge_method.return_value = 'MOCK_DEBIT_URI'
@@ -603,7 +590,7 @@ class TestInvoiceViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/invoices',
             dict(
-                customer_guid=customer_guid,
+                customer_guid=self.customer.guid,
                 amount=amount,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 

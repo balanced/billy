@@ -3,20 +3,12 @@ import os
 import unittest
 import tempfile
 import textwrap
-import decimal
 import shutil
 
-import transaction as db_transaction
-from sqlalchemy import create_engine
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import Numeric
-from sqlalchemy.orm import scoped_session
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-from zope.sqlalchemy import ZopeTransactionExtension
 from alembic import command
 from alembic.config import Config
+
+from billy.scripts import initializedb
 
 
 class TestAlembic(unittest.TestCase):
@@ -33,16 +25,6 @@ class TestAlembic(unittest.TestCase):
         # a sqlite URL, we use the one in temp folder anyway
         if self.db_url.startswith('sqlite:'):
             self.db_url = default_sqlite_url
-        self.engine = create_engine(self.db_url, convert_unicode=True)
-        self.declarative_base = declarative_base()
-        self.declarative_base.metadata.bind = self.engine
-
-        self.session = scoped_session(sessionmaker(
-            autocommit=False,
-            autoflush=False,
-            bind=self.engine,
-            extension=ZopeTransactionExtension()
-        ))
 
         self.alembic_path = os.path.join(self.temp_dir, 'alembic.ini')
         with open(self.alembic_path, 'wt') as f:
@@ -68,64 +50,20 @@ class TestAlembic(unittest.TestCase):
             """).format(self.db_url))
         self.alembic_cfg = Config(self.alembic_path)
 
+        self.cfg_path = os.path.join(self.temp_dir, 'config.ini')
+        with open(self.cfg_path, 'wt') as f:
+            f.write(textwrap.dedent("""\
+            [app:main]
+            use = egg:billy
+
+            sqlalchemy.url = {} 
+            """.format(self.db_url)))
+
     def tearDown(self):
-        # drop all tables
-        self.session.remove()
-        self.declarative_base.metadata.drop_all()
         shutil.rmtree(self.temp_dir)
 
-    def test_use_integer_column_for_amount(self):
-
-        class Plan(self.declarative_base):
-            __tablename__ = 'plan'
-            guid = Column(Integer, primary_key=True, autoincrement=True)
-            amount = Column(Numeric(10, 2))
-
-        class Subscription(self.declarative_base):
-            __tablename__ = 'subscription'
-            guid = Column(Integer, primary_key=True, autoincrement=True)
-            amount = Column(Numeric(10, 2))
-
-        class Transaction(self.declarative_base):
-            __tablename__ = 'transaction'
-            guid = Column(Integer, primary_key=True, autoincrement=True)
-            amount = Column(Numeric(10, 2))
-
-        self.declarative_base.metadata.create_all()
-
-        with db_transaction.manager:
-            for amount in ['12.34', '55.66', '10']:
-                amount = decimal.Decimal(amount)
-                plan = Plan(amount=amount)
-                subscription = Subscription(amount=amount)
-                transaction = Transaction(amount=amount)
-                self.session.add(plan)
-                self.session.add(subscription)
-                self.session.add(transaction)
-
+    def test_downgrade_and_upgrade(self):
+        initializedb.main([initializedb.__file__, self.cfg_path])
         command.stamp(self.alembic_cfg, 'base')
         command.downgrade(self.alembic_cfg, 'base')
-
-        command.upgrade(self.alembic_cfg, 'b3d4192b123')
-        # Notice: this with statement here makes sure the database transaction
-        # will be closed after querying, otherwise, we have two connections
-        # to postgresql (one by testing code, one by Alembic), when we are
-        # doing following downgrade, there is table alter, it appears
-        # there will be a deadlock when there is a overlap of two transaction
-        # scope
-        with db_transaction.manager:
-            for table in [Plan, Subscription, Transaction]:
-                amounts = self.session.query(table.amount).all()
-                amounts = map(lambda item: float(item[0]), amounts)
-                # make sure all float dollars are converted into integer cents
-                self.assertEqual(set(amounts), set([1234, 5566, 1000]))
-
-        command.downgrade(self.alembic_cfg, 'base')
-        with db_transaction.manager:
-            for table in [Plan, Subscription, Transaction]:
-                amounts = self.session.query(table.amount).all()
-                amounts = map(lambda item: item[0], amounts)
-                self.assertEqual(
-                    set(amounts), 
-                    set(map(decimal.Decimal, ['12.34', '55.66', '10']))
-                )
+        command.upgrade(self.alembic_cfg, 'head')

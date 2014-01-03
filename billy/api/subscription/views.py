@@ -24,7 +24,7 @@ def get_and_check_subscription(request, company, guid):
     subscription = model.get(guid)
     if subscription is None:
         raise HTTPNotFound('No such subscription {}'.format(guid))
-    if subscription.customer.company_guid != company.guid:
+    if subscription.customer.company != company:
         raise HTTPForbidden('You have no permission to access subscription {}'
                             .format(guid))
     return subscription
@@ -79,21 +79,20 @@ def subscription_list_post(request):
 
     # create subscription and yield transactions
     with db_transaction.manager:
-        guid = sub_model.create(
-            customer_guid=customer_guid, 
-            plan_guid=plan_guid, 
+        subscription = sub_model.create(
+            customer=customer, 
+            plan=plan, 
             amount=amount, 
             funding_instrument_uri=funding_instrument_uri,
             appears_on_statement_as=appears_on_statement_as,
             started_at=started_at, 
         )
-        tx_guids = sub_model.yield_transactions([guid])
+        transactions = sub_model.yield_transactions([subscription])
     # this is not a deferred subscription, just process transactions right away
     if started_at is None:
         with db_transaction.manager:
-            tx_model.process_transactions(guids=tx_guids)
+            tx_model.process_transactions(transactions)
 
-    subscription = sub_model.get(guid)
     return subscription
 
 
@@ -127,7 +126,7 @@ def subscription_transaction_list(request):
     subscription = get_and_check_subscription(request, company, guid)
 
     transactions = tx_model.list_by_subscription_guid(
-        subscription_guid=subscription.guid,
+        subscription=subscription,
         offset=offset,
         limit=limit,
     )
@@ -182,15 +181,14 @@ def subscription_cancel(request):
         return HTTPBadRequest('Cannot cancel a canceled subscription')
 
     with db_transaction.manager:
-        tx_guid = sub_model.cancel(
-            guid, 
+        transaction = sub_model.cancel(
+            subscription, 
             prorated_refund=prorated_refund,
             refund_amount=refund_amount, 
             appears_on_statement_as=appears_on_statement_as,
         )
-    if tx_guid is not None:
+    if transaction is not None:
         with db_transaction.manager:
-            tx_model.process_transactions(guids=[tx_guid])
+            tx_model.process_transactions([transaction])
 
-    subscription = sub_model.get(guid)
     return subscription 

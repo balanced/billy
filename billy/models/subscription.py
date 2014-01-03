@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 import decimal
 
+from sqlalchemy.sql.expression import not_
+
 from billy.models import tables
 from billy.models.base import BaseTableModel
 from billy.models.base import decorate_offset_limit
@@ -23,7 +25,7 @@ class SubscriptionModel(BaseTableModel):
     TABLE = tables.Subscription
 
     @decorate_offset_limit
-    def list_by_company_guid(self, company_guid):
+    def list_by_company_guid(self, company):
         """Get subscriptions of a company by given guid
 
         """
@@ -33,15 +35,15 @@ class SubscriptionModel(BaseTableModel):
             self.session
             .query(Subscription)
             .join(Plan, Plan.guid == Subscription.plan_guid)
-            .filter(Plan.company_guid == company_guid)
+            .filter(Plan.company == company)
             .order_by(tables.Subscription.created_at.desc())
         )
         return query
 
     def create(
         self, 
-        customer_guid, 
-        plan_guid, 
+        customer, 
+        plan, 
         funding_instrument_uri=None, 
         started_at=None,
         external_id=None,
@@ -60,8 +62,8 @@ class SubscriptionModel(BaseTableModel):
             raise ValueError('Past started_at time is not allowed')
         subscription = tables.Subscription(
             guid='SU' + make_guid(),
-            customer_guid=customer_guid,
-            plan_guid=plan_guid,
+            customer=customer,
+            plan=plan,
             amount=amount, 
             funding_instrument_uri=funding_instrument_uri, 
             external_id=external_id, 
@@ -73,15 +75,13 @@ class SubscriptionModel(BaseTableModel):
         )
         self.session.add(subscription)
         self.session.flush()
-        return subscription.guid
+        return subscription
 
-    def update(self, guid, **kwargs):
+    def update(self, subscription, **kwargs):
         """Update a subscription
 
-        :param guid: the guid of subscription to update
         :param external_id: external_id to update
         """
-        subscription = self.get(guid, raise_error=True)
         now = tables.now_func()
         subscription.updated_at = now
         for key in ['external_id']:
@@ -91,19 +91,18 @@ class SubscriptionModel(BaseTableModel):
             setattr(subscription, key, value)
         if kwargs:
             raise TypeError('Unknown attributes {} to update'.format(tuple(kwargs.keys())))
-        self.session.add(subscription)
         self.session.flush()
 
     def cancel(
         self, 
-        guid, 
+        subscription, 
         prorated_refund=False, 
         refund_amount=None, 
         appears_on_statement_as=None,
     ):
         """Cancel a subscription
 
-        :param guid: the guid of subscription to cancel
+        :param subscription: the subscription to cancel
         :param prorated_refund: Should we generate a prorated refund 
             transaction according to remaining time of subscription period?
         :param refund_amount: if refund_amount is given, it will be used 
@@ -122,14 +121,17 @@ class SubscriptionModel(BaseTableModel):
         Transaction = tables.Transaction
         SubscriptionTransaction = tables.SubscriptionTransaction
 
-        subscription = self.get(guid, raise_error=True)
         if subscription.canceled:
-            raise SubscriptionCanceledError('Subscription {} is already '
-                                            'canceled'.format(guid))
+            raise SubscriptionCanceledError(
+                'Subscription {} is already canceled'.format(subscription.guid)
+            )
         now = tables.now_func()
         subscription.canceled = True
         subscription.canceled_at = now
-        tx_guid = None
+        transaction = None
+
+        # TODO: what is the transaction is submitted but not really done
+        # in processor?
 
         # should we do refund
         do_refund = False
@@ -141,7 +143,7 @@ class SubscriptionModel(BaseTableModel):
         ):
             previous_transaction = (
                 self.session.query(SubscriptionTransaction)
-                .filter_by(subscription_guid=subscription.guid)
+                .filter_by(subscription=subscription)
                 .order_by(SubscriptionTransaction.scheduled_at.desc())
                 .first()
             )
@@ -177,13 +179,13 @@ class SubscriptionModel(BaseTableModel):
             # make sure we will not refund zero dollar
             # TODO: or... should we?
             if amount:
-                tx_guid = tx_model.create(
-                    subscription_guid=subscription.guid, 
+                transaction = tx_model.create(
+                    subscription=subscription, 
                     amount=amount, 
                     transaction_type=tx_model.TYPE_REFUND, 
                     transaction_cls=tx_model.CLS_SUBSCRIPTION, 
                     scheduled_at=subscription.next_transaction_at, 
-                    refund_to_guid=previous_transaction.guid, 
+                    refund_to=previous_transaction, 
                     appears_on_statement_as=appears_on_statement_as,
                 )
 
@@ -191,7 +193,7 @@ class SubscriptionModel(BaseTableModel):
 
         not_done_transaction_guids = (
             self.session.query(SubscriptionTransaction.guid)
-            .filter(SubscriptionTransaction.subscription_guid == guid)
+            .filter(SubscriptionTransaction.subscription == subscription)
             .filter(Transaction.transaction_type != TransactionModel.TYPE_REFUND)
             .filter(Transaction.status.in_([
                 tx_model.STATUS_INIT,
@@ -208,30 +210,32 @@ class SubscriptionModel(BaseTableModel):
             updated_at=now, 
         ), synchronize_session='fetch')
 
-        self.session.add(subscription)
         self.session.flush()
-        return tx_guid 
+        return transaction 
 
-    def yield_transactions(self, subscription_guids=None, now=None):
+    def yield_transactions(self, subscriptions=None, now=None):
         """Generate new necessary transactions according to subscriptions we 
         had return guid list
 
-        :param subscription_guids: A list subscription guid to yield 
-            transaction_type from, if None is given, all subscriptions
-            in the database will be the yielding source
+        :param subscriptions: A list subscription to yield transaction
+            from, if None is given, all subscriptions in the database will be 
+            the yielding source
         :param now: the current date time to use, now_func() will be used by 
             default
         :return: a generated transaction guid list
         """
-        from sqlalchemy.sql.expression import not_
-
         if now is None:
             now = tables.now_func()
 
         tx_model = self.factory.create_transaction_model()
         Subscription = tables.Subscription
 
-        transaction_guids = []
+        subscription_guids = []
+        if subscriptions is not None:
+            subscription_guids = [
+                subscription.guid for subscription in subscriptions
+            ]
+        transactions = []
 
         # as we may have multiple new transactions for one subscription to
         # process, for example, we didn't run this method for a long while,
@@ -243,16 +247,16 @@ class SubscriptionModel(BaseTableModel):
                 .filter(Subscription.next_transaction_at <= now)
                 .filter(not_(Subscription.canceled))
             )
-            if subscription_guids is not None:
+            if subscription_guids:
                 query = query.filter(Subscription.guid.in_(subscription_guids))
-            subscriptions = query.all()
+            query = list(query)
 
             # okay, we have no more subscription to process, just break
-            if not subscriptions:
+            if not query:
                 self.logger.info('No more subscriptions to process')
                 break
 
-            for subscription in subscriptions:
+            for subscription in query:
                 if subscription.plan.plan_type == PlanModel.TYPE_CHARGE:
                     transaction_type = tx_model.TYPE_CHARGE
                 elif subscription.plan.plan_type == PlanModel.TYPE_PAYOUT:
@@ -281,8 +285,8 @@ class SubscriptionModel(BaseTableModel):
                     subscription.period, 
                 )
                 # create the new transaction for this subscription
-                guid = tx_model.create(
-                    subscription_guid=subscription.guid, 
+                transaction = tx_model.create(
+                    subscription=subscription, 
                     funding_instrument_uri=subscription.funding_instrument_uri, 
                     amount=amount, 
                     transaction_type=transaction_type, 
@@ -294,7 +298,7 @@ class SubscriptionModel(BaseTableModel):
                     'Created transaction for %s, guid=%s, transaction_type=%s, '
                     'funding_instrument_uri=%s, amount=%s, scheduled_at=%s, period=%s', 
                     subscription.guid, 
-                    guid,
+                    transaction.guid,
                     type_map[transaction_type],
                     subscription.funding_instrument_uri,
                     amount,
@@ -311,7 +315,7 @@ class SubscriptionModel(BaseTableModel):
                 )
                 self.session.add(subscription)
                 self.session.flush()
-                transaction_guids.append(guid)
+                transactions.append(transaction)
 
         self.session.flush()
-        return transaction_guids
+        return transactions

@@ -38,7 +38,7 @@ class PlanModel(BaseTableModel, ListByCompanyMixin):
 
     def create(
         self, 
-        company_guid, 
+        company, 
         plan_type, 
         amount, 
         frequency, 
@@ -59,7 +59,7 @@ class PlanModel(BaseTableModel, ListByCompanyMixin):
         now = tables.now_func()
         plan = tables.Plan(
             guid='PL' + make_guid(),
-            company_guid=company_guid,
+            company=company,
             plan_type=plan_type,
             amount=amount, 
             frequency=frequency, 
@@ -72,13 +72,12 @@ class PlanModel(BaseTableModel, ListByCompanyMixin):
         )
         self.session.add(plan)
         self.session.flush()
-        return plan.guid
+        return plan
 
-    def update(self, guid, **kwargs):
+    def update(self, plan, **kwargs):
         """Update a plan
 
         """
-        plan = self.get(guid, raise_error=True)
         now = tables.now_func()
         plan.updated_at = now
         for key in ['name', 'external_id', 'description']:
@@ -88,14 +87,11 @@ class PlanModel(BaseTableModel, ListByCompanyMixin):
             setattr(plan, key, value)
         if kwargs:
             raise TypeError('Unknown attributes {} to update'.format(tuple(kwargs.keys())))
-        self.session.add(plan)
         self.session.flush()
 
-    def delete(self, guid):
+    def delete(self, plan):
         """Delete a plan
 
         """
-        plan = self.get(guid, raise_error=True)
         plan.deleted = True
-        self.session.add(plan)
         self.session.flush()

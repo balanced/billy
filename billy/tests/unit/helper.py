@@ -59,6 +59,7 @@ class ModelTestCase(unittest.TestCase):
         self.transaction_model = self.model_factory.create_transaction_model()
 
     def tearDown(self):
+        self.session.close()
         self.session.remove()
         tables.DeclarativeBase.metadata.drop_all()
         self.session.bind.dispose()

@@ -57,7 +57,7 @@ class InvoiceModel(BaseTableModel):
     NOT_SET = object()
 
     @decorate_offset_limit
-    def list_by_company_guid(self, company_guid, external_id=NOT_SET):
+    def list_by_company_guid(self, company, external_id=NOT_SET):
         """Get invoices of a company by given guid
 
         """
@@ -67,7 +67,7 @@ class InvoiceModel(BaseTableModel):
             self.session
             .query(Invoice)
             .join(Customer, Customer.guid == Invoice.customer_guid)
-            .filter(Customer.company_guid == company_guid)
+            .filter(Customer.company == company)
             .order_by(tables.Invoice.created_at.desc())
         )
         if external_id is not self.NOT_SET:
@@ -76,7 +76,7 @@ class InvoiceModel(BaseTableModel):
 
     def create(
         self, 
-        customer_guid, 
+        customer, 
         amount,
         funding_instrument_uri=None, 
         title=None,
@@ -97,7 +97,7 @@ class InvoiceModel(BaseTableModel):
         invoice = tables.Invoice(
             guid='IV' + make_guid(),
             status=self.STATUS_INIT,
-            customer_guid=customer_guid,
+            customer=customer,
             amount=amount, 
             funding_instrument_uri=funding_instrument_uri, 
             title=title,
@@ -112,15 +112,16 @@ class InvoiceModel(BaseTableModel):
         try:
             self.session.flush()
         except IntegrityError:
+            self.session.rollback()
             raise DuplicateExternalIDError(
-                'Customer {} with external_id {} already exist'
-                .format(customer_guid, external_id)
+                'Invoice {} with external_id {} already exists'
+                .format(customer.guid, external_id)
             )
 
         if items:
             for item in items:
                 record = tables.Item(
-                    invoice_guid=invoice.guid,
+                    invoice=invoice,
                     name=item['name'],
                     total=item['total'],
                     type=item.get('type'),
@@ -137,7 +138,7 @@ class InvoiceModel(BaseTableModel):
         if adjustments:
             for adjustment in adjustments:
                 record = tables.Adjustment(
-                    invoice_guid=invoice.guid,
+                    invoice=invoice,
                     total=adjustment['total'],
                     reason=adjustment.get('reason'),
                 )
@@ -151,7 +152,7 @@ class InvoiceModel(BaseTableModel):
         if funding_instrument_uri is not None and invoice.amount > 0:
             invoice.status = self.STATUS_PROCESSING
             tx_model.create(
-                invoice_guid=invoice.guid, 
+                invoice=invoice, 
                 funding_instrument_uri=funding_instrument_uri, 
                 amount=invoice.amount, 
                 transaction_type=tx_model.TYPE_CHARGE, 
@@ -164,15 +165,19 @@ class InvoiceModel(BaseTableModel):
         elif invoice.amount == 0:
             invoice.status = self.STATUS_SETTLED
 
-        self.session.add(invoice)
         self.session.flush()
-        return invoice.guid
+        return invoice
 
-    def update(self, guid, funding_instrument_uri=NOT_SET, title=NOT_SET, items=NOT_SET):
+    def update(
+        self, 
+        invoice, 
+        funding_instrument_uri=NOT_SET, 
+        title=NOT_SET, 
+        items=NOT_SET,
+    ):
         """Update an invoice
 
         """
-        invoice = self.get(guid, raise_error=True, with_lockmode='update')
         now = tables.now_func()
         invoice.updated_at = now
 
@@ -197,25 +202,23 @@ class InvoiceModel(BaseTableModel):
                 new_items.append(item)
                 self.session.add(item)
             invoice.items = new_items
-        self.session.add(invoice)
         self.session.flush()
 
-    def update_funding_instrument_uri(self, guid, funding_instrument_uri):
+    def update_funding_instrument_uri(self, invoice, funding_instrument_uri):
         """Update the funding_instrument_uri of an invoice, as it may yield 
         transactions, we don't want to put this in `update` method
 
-        @return: a list of yielded transaction guid
+        @return: a list of yielded transaction
         """
         tx_model = self.factory.create_transaction_model()
-        invoice = self.get(guid, raise_error=True, with_lockmode='update')
         now = tables.now_func()
         invoice.updated_at = now
         invoice.funding_instrument_uri = funding_instrument_uri
-        tx_guids = []
+        transactions = []
 
         # We have nothing to do if the amount is zero, just return
         if invoice.amount == 0:
-            return tx_guids
+            return transactions 
 
         # think about race condition issue, what if we update the 
         # funding_instrument_uri during processing previous transaction? say
@@ -242,15 +245,15 @@ class InvoiceModel(BaseTableModel):
         last_transaction = (
             self.session
             .query(tables.InvoiceTransaction)
-            .filter(tables.InvoiceTransaction.invoice_guid == guid)
+            .filter(tables.InvoiceTransaction.invoice == invoice)
             .order_by(tables.InvoiceTransaction.created_at.desc())
             .first()
         )
 
         # the invoice is just created, simply create a transaction for it
         if invoice.status == self.STATUS_INIT:
-            tx_guid = tx_model.create(
-                invoice_guid=invoice.guid, 
+            transaction = tx_model.create(
+                invoice=invoice, 
                 funding_instrument_uri=funding_instrument_uri, 
                 amount=invoice.amount, 
                 transaction_type=tx_model.TYPE_CHARGE, 
@@ -258,7 +261,7 @@ class InvoiceModel(BaseTableModel):
                 appears_on_statement_as=invoice.appears_on_statement_as, 
                 scheduled_at=now, 
             )
-            tx_guids.append(tx_guid)
+            transactions.append(transaction)
         # we are already processing, abort current transaction and create
         # a new one
         elif invoice.status == self.STATUS_PROCESSING:
@@ -272,8 +275,8 @@ class InvoiceModel(BaseTableModel):
             last_transaction.canceled_at = now
             self.session.add(last_transaction)
             # create a new one
-            tx_guid = tx_model.create(
-                invoice_guid=invoice.guid, 
+            transaction = tx_model.create(
+                invoice=invoice, 
                 funding_instrument_uri=funding_instrument_uri, 
                 amount=invoice.amount, 
                 transaction_type=tx_model.TYPE_CHARGE, 
@@ -281,13 +284,13 @@ class InvoiceModel(BaseTableModel):
                 appears_on_statement_as=invoice.appears_on_statement_as, 
                 scheduled_at=now, 
             )
-            tx_guids.append(tx_guid)
+            transactions.append(transaction)
         # the previous transaction failed, just create a new one
         elif invoice.status == self.STATUS_PROCESS_FAILED:
             assert last_transaction.status == tx_model.STATUS_FAILED, \
                 'The last transaction status should be FAILED'
-            tx_guid = tx_model.create(
-                invoice_guid=invoice.guid, 
+            transaction = tx_model.create(
+                invoice=invoice, 
                 funding_instrument_uri=funding_instrument_uri, 
                 amount=invoice.amount, 
                 transaction_type=tx_model.TYPE_CHARGE, 
@@ -295,7 +298,7 @@ class InvoiceModel(BaseTableModel):
                 appears_on_statement_as=invoice.appears_on_statement_as, 
                 scheduled_at=now, 
             )
-            tx_guids.append(tx_guid)
+            transactions.append(transaction)
         else:
             raise InvalidOperationError(
                 'Invalid operation, you can only update funding_instrument_uri when '
@@ -303,8 +306,7 @@ class InvoiceModel(BaseTableModel):
             )
         invoice.status = self.STATUS_PROCESSING
 
-        self.session.add(invoice)
         self.session.flush()
-        return tx_guids
+        return transactions
 
     # TODO: implement invoice refund here

@@ -88,7 +88,7 @@ def list_by_company_guid(request, model_cls):
     if 'processor_uri' in request.params:
         kwargs['processor_uri'] = request.params['processor_uri']
     items = model.list_by_company_guid(
-        company_guid=company.guid,
+        company=company,
         offset=offset,
         limit=limit,
         **kwargs

@@ -49,17 +49,15 @@ def customer_list_post(request):
     form = validate_form(CustomerCreateForm, request)
     
     processor_uri = form.data.get('processor_uri')
-    company_guid = company.guid
 
     # TODO: make sure user cannot create a customer to a deleted company
 
     model = request.model_factory.create_customer_model()
     with db_transaction.manager:
-        guid = model.create(
+        customer = model.create(
             processor_uri=processor_uri,
-            company_guid=company_guid, 
+            company=company, 
         )
-    customer = model.get(guid)
     return customer 
 
 
@@ -89,6 +87,5 @@ def customer_delete(request):
         return HTTPBadRequest('Customer {} was already deleted'
                               .format(customer.guid))
     with db_transaction.manager:
-        model.delete(customer.guid)
-    customer = model.get(customer.guid)
+        model.delete(customer)
     return customer

@@ -117,24 +117,24 @@ class TestProcessTransactions(unittest.TestCase):
         subscription_model = factory.create_subscription_model()
 
         with db_transaction.manager:
-            company_guid = company_model.create('my_secret_key')
-            plan_guid = plan_model.create(
-                company_guid=company_guid,
+            company = company_model.create('my_secret_key')
+            plan = plan_model.create(
+                company=company,
                 plan_type=plan_model.TYPE_CHARGE,
                 amount=10,
                 frequency=plan_model.FREQ_MONTHLY,
             )
-            customer_guid = customer_model.create(
-                company_guid=company_guid,
+            customer = customer_model.create(
+                company=company,
             )
             subscription_model.create(
-                customer_guid=customer_guid,
-                plan_guid=plan_guid,
+                customer=customer,
+                plan=plan,
                 funding_instrument_uri='/v1/cards/tester',
             )
             subscription_model.create(
-                customer_guid=customer_guid,
-                plan_guid=plan_guid,
+                customer=customer,
+                plan=plan,
                 funding_instrument_uri='/v1/cards/tester',
             )
 

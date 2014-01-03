@@ -125,15 +125,15 @@ def invoice_list_post(request):
     # TODO: what about negative effective amount?
 
     customer = customer_model.get(customer_guid)
-    if customer.company_guid != company.guid:
+    if customer.company != company:
         return HTTPForbidden('Can only create an invoice for your own customer')
     if customer.deleted:
         return HTTPBadRequest('Cannot create an invoice for a deleted customer')
     
     try:
         with db_transaction.manager:
-            guid = model.create(
-                customer_guid=customer_guid,
+            invoice = model.create(
+                customer=customer,
                 amount=amount,
                 funding_instrument_uri=funding_instrument_uri,
                 title=title,
@@ -146,12 +146,10 @@ def invoice_list_post(request):
         return HTTPConflict(e.args[0])
     # funding_instrument_uri is set, just process all transactions right away
     if funding_instrument_uri is not None:
-        with db_transaction.manager:
-            invoice = model.get(guid)
-            tx_guids = [tx.guid for tx in invoice.transactions]
-            if tx_guids:
-                tx_model.process_transactions(guids=tx_guids)
-    invoice = model.get(guid)
+        transactions = list(invoice.transactions)
+        if transactions:
+            with db_transaction.manager:
+                tx_model.process_transactions(transactions)
     return invoice 
 
 
@@ -179,7 +177,6 @@ def invoice_put(request):
     form = validate_form(InvoiceUpdateForm, request)
     model = request.model_factory.create_invoice_model()
     tx_model = request.model_factory.create_transaction_model()
-    guid = invoice.guid
 
     funding_instrument_uri = form.data.get('funding_instrument_uri')
     title = form.data.get('title')
@@ -196,15 +193,13 @@ def invoice_put(request):
         kwargs['items'] = items
 
     with db_transaction.manager:
-        model.update(guid=guid, **kwargs)
+        model.update(invoice, **kwargs)
         if funding_instrument_uri:
-            tx_guids = model.update_funding_instrument_uri(guid, funding_instrument_uri)
+            transactions = model.update_funding_instrument_uri(invoice, funding_instrument_uri)
 
     # funding_instrument_uri is set, just process all transactions right away
-    if funding_instrument_uri and tx_guids:
+    if funding_instrument_uri and transactions:
         with db_transaction.manager:
-            invoice = model.get(guid)
-            tx_model.process_transactions(guids=tx_guids)
+            tx_model.process_transactions(transactions)
 
-    invoice = model.get(guid)
     return invoice 

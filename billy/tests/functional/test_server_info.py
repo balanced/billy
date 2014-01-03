@@ -18,32 +18,30 @@ class TestServerInfo(ViewTestCase):
 
     def test_server_info_with_transaction(self):
         with db_transaction.manager:
-            company_guid = self.company_model.create(
+            company = self.company_model.create(
                 processor_key='MOCK_PROCESSOR_KEY',
             )
-            customer_guid = self.customer_model.create(
-                company_guid=company_guid
+            customer = self.customer_model.create(
+                company=company
             )
-            plan_guid = self.plan_model.create(
-                company_guid=company_guid,
+            plan = self.plan_model.create(
+                company=company,
                 frequency=self.plan_model.FREQ_WEEKLY,
                 plan_type=self.plan_model.TYPE_CHARGE,
                 amount=10,
             )
-            subscription_guid = self.subscription_model.create(
-                customer_guid=customer_guid,
-                plan_guid=plan_guid,
+            subscription = self.subscription_model.create(
+                customer=customer,
+                plan=plan,
             )
-            transaction_guid = self.transaction_model.create(
-                subscription_guid=subscription_guid,
+            transaction = self.transaction_model.create(
+                subscription=subscription,
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
                 funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
-
-        transaction = self.transaction_model.get(transaction_guid)
 
         res = self.testapp.get('/', status=200)
         self.assertEqual(res.json['last_transaction_created_at'], 

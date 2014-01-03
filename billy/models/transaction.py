@@ -82,7 +82,7 @@ class TransactionModel(BaseTableModel):
         return query.first()
 
     @decorate_offset_limit
-    def list_by_company_guid(self, company_guid):
+    def list_by_company_guid(self, company):
         """Get transactions of a company by given guid
 
         """
@@ -102,7 +102,7 @@ class TransactionModel(BaseTableModel):
                 Subscription.guid == SubscriptionTransaction.subscription_guid
             )
             .join(Plan, Plan.guid == Subscription.plan_guid)
-            .filter(Plan.company_guid == company_guid)
+            .filter(Plan.company == company)
             .subquery()
         )
         invoice_transaction_guids = (
@@ -111,7 +111,7 @@ class TransactionModel(BaseTableModel):
             .join(Invoice, 
                   Invoice.guid == InvoiceTransaction.invoice_guid)
             .join(Customer, Customer.guid == Invoice.customer_guid)
-            .filter(Customer.company_guid == company_guid)
+            .filter(Customer.company == company)
             .subquery()
         )
         query = (
@@ -126,15 +126,15 @@ class TransactionModel(BaseTableModel):
         return query
 
     @decorate_offset_limit
-    def list_by_subscription_guid(self, subscription_guid):
-        """Get transactions of a subscription by given guid
+    def list_by_subscription_guid(self, subscription):
+        """Get transactions by given subscription
 
         """
         Transaction = tables.SubscriptionTransaction
         query = (
             self.session
             .query(Transaction)
-            .filter(Transaction.subscription_guid == subscription_guid)
+            .filter(Transaction.subscription == subscription)
             .order_by(Transaction.created_at.desc())
         )
         return query
@@ -145,10 +145,10 @@ class TransactionModel(BaseTableModel):
         transaction_cls, 
         amount,
         scheduled_at,
-        subscription_guid=None, 
-        invoice_guid=None, 
+        subscription=None, 
+        invoice=None, 
         funding_instrument_uri=None,
-        refund_to_guid=None,
+        refund_to=None,
         appears_on_statement_as=None,
     ):
         """Create a transaction and return its ID
@@ -160,27 +160,26 @@ class TransactionModel(BaseTableModel):
         if transaction_cls not in self.CLS_ALL:
             raise ValueError('Invalid transaction_cls {}'
                              .format(transaction_cls))
-        if refund_to_guid is not None:
+        if refund_to is not None:
             if transaction_type != self.TYPE_REFUND:
-                raise ValueError('refund_to_guid can only be set to a refund '
+                raise ValueError('refund_to can only be set to a refund '
                                  'transaction')
             if funding_instrument_uri is not None:
                 raise ValueError('funding_instrument_uri cannot be set to a refund '
                                  'transaction')
-            refund_transaction = self.get(refund_to_guid, raise_error=True)
-            if refund_transaction.transaction_type != self.TYPE_CHARGE:
+            if refund_to.transaction_type != self.TYPE_CHARGE:
                 raise ValueError('Only charge transaction can be refunded')
 
         if transaction_cls == self.CLS_SUBSCRIPTION:
             table_cls = tables.SubscriptionTransaction
-            if subscription_guid is None:
-                raise ValueError('subscription_guid cannot be None')
-            extra_args = dict(subscription_guid=subscription_guid)
+            if subscription is None:
+                raise ValueError('subscription cannot be None')
+            extra_args = dict(subscription=subscription)
         elif transaction_cls == self.CLS_INVOICE:
             table_cls = tables.InvoiceTransaction
-            if invoice_guid is None:
-                raise ValueError('invoice_guid cannot be None')
-            extra_args = dict(invoice_guid=invoice_guid)
+            if invoice is None:
+                raise ValueError('invoice cannot be None')
+            extra_args = dict(invoice=invoice)
         now = tables.now_func()
         transaction = table_cls(
             guid='TX' + make_guid(),
@@ -190,20 +189,19 @@ class TransactionModel(BaseTableModel):
             appears_on_statement_as=appears_on_statement_as, 
             status=self.STATUS_INIT, 
             scheduled_at=scheduled_at, 
-            refund_to_guid=refund_to_guid, 
+            refund_to=refund_to, 
             created_at=now, 
             updated_at=now, 
             **extra_args
         )
         self.session.add(transaction)
         self.session.flush()
-        return transaction.guid
+        return transaction
 
-    def update(self, guid, **kwargs):
+    def update(self, transaction, **kwargs):
         """Update a transaction 
 
         """
-        transaction = self.get(guid, raise_error=True)
         now = tables.now_func()
         transaction.updated_at = now
         if 'status' in kwargs:
@@ -213,7 +211,6 @@ class TransactionModel(BaseTableModel):
             transaction.status = status
         if kwargs:
             raise TypeError('Unknown attributes {} to update'.format(tuple(kwargs.keys())))
-        self.session.add(transaction)
         self.session.flush()
 
     def process_one(self, transaction):
@@ -313,7 +310,7 @@ class TransactionModel(BaseTableModel):
                          transaction.guid, transaction.status, 
                          transaction.processor_uri)
 
-    def process_transactions(self, guids=None):
+    def process_transactions(self, transactions=None):
         """Process all transactions 
 
         """
@@ -325,11 +322,11 @@ class TransactionModel(BaseTableModel):
                 self.STATUS_RETRYING]
             ))
         )
-        if guids is not None:
-            query = query.filter(Transaction.guid.in_(guids))
+        if transactions is not None:
+            query = transactions
 
-        processed_transaction_guids = []
+        processed_transactions = []
         for transaction in query:
             self.process_one(transaction)
-            processed_transaction_guids.append(transaction.guid)
-        return processed_transaction_guids
+            processed_transactions.append(transaction)
+        return processed_transactions

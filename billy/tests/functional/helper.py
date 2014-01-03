@@ -51,6 +51,7 @@ class ViewTestCase(unittest.TestCase):
         self.invoice_model = self.model_factory.create_invoice_model()
 
     def tearDown(self):
+        self.testapp.session.close()
         self.testapp.session.remove()
         DeclarativeBase.metadata.drop_all()
         self.testapp.session.bind.dispose()

@@ -14,7 +14,7 @@ class CustomerModel(BaseTableModel):
     NOT_SET = object()
 
     @decorate_offset_limit
-    def list_by_company_guid(self, company_guid, processor_uri=NOT_SET):
+    def list_by_company_guid(self, company, processor_uri=NOT_SET):
         """Get invoices of a company by given guid
 
         """
@@ -22,7 +22,7 @@ class CustomerModel(BaseTableModel):
         query = (
             self.session
             .query(Customer)
-            .filter(Customer.company_guid == company_guid)
+            .filter(Customer.company == company)
             .order_by(tables.Customer.created_at.desc())
         )
         if processor_uri is not self.NOT_SET:
@@ -31,7 +31,7 @@ class CustomerModel(BaseTableModel):
 
     def create(
         self, 
-        company_guid, 
+        company, 
         processor_uri=None,
     ):
         """Create a customer and return its id
@@ -40,7 +40,7 @@ class CustomerModel(BaseTableModel):
         now = tables.now_func()
         customer = tables.Customer(
             guid='CU' + make_guid(),
-            company_guid=company_guid,
+            company=company,
             processor_uri=processor_uri, 
             created_at=now,
             updated_at=now,
@@ -57,13 +57,12 @@ class CustomerModel(BaseTableModel):
             processor.validate_customer(customer.processor_uri)
 
         self.session.flush()
-        return customer.guid
+        return customer
 
-    def update(self, guid, **kwargs):
+    def update(self, customer, **kwargs):
         """Update a customer 
 
         """
-        customer = self.get(guid, raise_error=True)
         now = tables.now_func()
         customer.updated_at = now
         for key in ['processor_uri']:
@@ -73,14 +72,11 @@ class CustomerModel(BaseTableModel):
             setattr(customer, key, value)
         if kwargs:
             raise TypeError('Unknown attributes {} to update'.format(tuple(kwargs.keys())))
-        self.session.add(customer)
         self.session.flush()
 
-    def delete(self, guid):
+    def delete(self, customer):
         """Delete a customer 
 
         """
-        customer = self.get(guid, raise_error=True)
         customer.deleted = True
-        self.session.add(customer)
         self.session.flush()

@@ -65,7 +65,7 @@ def invoice_adapter(invoice, request):
         title=invoice.title, 
         external_id=invoice.external_id, 
         appears_on_statement_as=invoice.appears_on_statement_as, 
-        payment_uri=invoice.payment_uri, 
+        funding_instrument_uri=invoice.funding_instrument_uri, 
         items=items,
         adjustments=adjustments,
     )
@@ -106,7 +106,7 @@ def subscription_adapter(subscription, request):
     return dict(
         guid=subscription.guid, 
         amount=subscription.amount,
-        payment_uri=subscription.payment_uri,
+        funding_instrument_uri=subscription.funding_instrument_uri,
         appears_on_statement_as=subscription.appears_on_statement_as,
         period=subscription.period,
         canceled=subscription.canceled,
@@ -155,7 +155,7 @@ def transaction_adapter(transaction, request):
         transaction_cls=transaction_cls,
         status=status,
         amount=transaction.amount,
-        payment_uri=transaction.payment_uri,
+        funding_instrument_uri=transaction.funding_instrument_uri,
         external_id=transaction.external_id,
         appears_on_statement_as=transaction.appears_on_statement_as,
         failure_count=transaction.failure_count,

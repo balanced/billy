@@ -139,15 +139,15 @@ Subscribe to a plan
 
 So far, you have a customer and a plan in the Billy system, however, at this 
 moment, Billy have no idea what the funding source is. To subscribe the 
-customer to the plan, you will need a `payment_uri` in Balanced system. In most 
-cases, the `payment_uri` is a tokenlized credit card number or bank account. 
+customer to the plan, you will need a `funding_instrument_uri` in Balanced system. In most 
+cases, the `funding_instrument_uri` is a tokenlized credit card number or bank account. 
 In this example, we use a tokenlized credit card number looks like this:
 
 ::
 
     /v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno
 
-With that `payment_uri`, here we call
+With that `funding_instrument_uri`, here we call
 
 ::
 
@@ -155,7 +155,7 @@ With that `payment_uri`, here we call
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
         -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
         -d "plan_guid=PL97ZvyeA4wzM3WUyEG8xwps" \
-        -d "payment_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
+        -d "funding_instrument_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
 
 Then, here comes our subscription response:
 
@@ -165,7 +165,7 @@ Then, here comes our subscription response:
         "guid": "SUR6jKqqSyaFfGeeAsGaXFqZ",
         "plan_guid": "PL97ZvyeA4wzM3WUyEG8xwps", 
         "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
-        "payment_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
+        "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
         "period": 1, 
         "amount": null, 
         "canceled": false, 
@@ -197,7 +197,7 @@ an old customer, the original price is $5 USD, so the discounted amount would be
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
         -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
         -d "plan_guid=PL97ZvyeA4wzM3WUyEG8xwps" \
-        -d "payment_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
+        -d "funding_instrument_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
         -d "amount=350"
 
 Schedule your subscription at a specific time
@@ -244,7 +244,7 @@ In this case, to subscribe a student to your course plan, you can give it a
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
         -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
         -d "plan_guid=PL97ZvyeA4wzM3WUyEG8xwps" \
-        -d "payment_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
+        -d "funding_instrument_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
         -d "started_at=2013-10-01T00:00:00"
 
 Cancel a subscription

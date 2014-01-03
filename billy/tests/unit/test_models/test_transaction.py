@@ -30,7 +30,7 @@ class TestTransactionModelBase(ModelTestCase):
             self.subscription_guid = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
             )
             self.invoice_guid = self.invoice_model.create(
                 customer_guid=self.customer_guid,
@@ -54,7 +54,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
@@ -96,12 +96,12 @@ class TestTransactionModel(TestTransactionModelBase):
             other_subscription_guid1 = self.subscription_model.create(
                 customer_guid=other_customer_guid,
                 plan_guid=other_plan_guid1,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
             )
             other_subscription_guid2 = self.subscription_model.create(
                 customer_guid=other_customer_guid,
                 plan_guid=other_plan_guid2,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
             )
             other_invoice_guid = self.invoice_model.create(
                 customer_guid=other_customer_guid,
@@ -113,7 +113,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
             other_guid2 = self.transaction_model.create(
@@ -121,7 +121,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
             other_guid3 = self.transaction_model.create(
@@ -129,7 +129,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_INVOICE,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
         # Following code basically crerates our records under default company
@@ -149,7 +149,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
             guid2 = self.transaction_model.create(
@@ -157,7 +157,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
             guid3 = self.transaction_model.create(
@@ -165,7 +165,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
         result_guids = [tx.guid for tx in 
@@ -193,7 +193,7 @@ class TestTransactionModel(TestTransactionModelBase):
             subscription_guid1 = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
             )
             # add some invoice transactions here to make sure
             # it will only return subscription transactions
@@ -202,7 +202,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_INVOICE,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
             guid_ids1 = []
@@ -212,7 +212,7 @@ class TestTransactionModel(TestTransactionModelBase):
                     transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                     transaction_type=self.transaction_model.TYPE_CHARGE,
                     amount=10,
-                    payment_uri='/v1/cards/tester',
+                    funding_instrument_uri='/v1/cards/tester',
                     scheduled_at=datetime.datetime.utcnow(),
                 )
                 guid_ids1.append(guid)
@@ -221,14 +221,14 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_INVOICE,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
             subscription_guid2 = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
             )
             guid_ids2 = []
             for _ in range(2):
@@ -237,7 +237,7 @@ class TestTransactionModel(TestTransactionModelBase):
                     transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                     transaction_type=self.transaction_model.TYPE_CHARGE,
                     amount=10,
-                    payment_uri='/v1/cards/tester',
+                    funding_instrument_uri='/v1/cards/tester',
                     scheduled_at=datetime.datetime.utcnow(),
                 )
                 guid_ids2.append(guid)
@@ -260,7 +260,7 @@ class TestTransactionModel(TestTransactionModelBase):
                         transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                         transaction_type=self.transaction_model.TYPE_CHARGE,
                         amount=10 * i,
-                        payment_uri='/v1/cards/tester',
+                        funding_instrument_uri='/v1/cards/tester',
                         scheduled_at=datetime.datetime.utcnow(),
                     )
                     guids.append(guid)
@@ -287,7 +287,7 @@ class TestTransactionModel(TestTransactionModelBase):
         transaction_type = self.transaction_model.TYPE_CHARGE
         transaction_cls = self.transaction_model.CLS_SUBSCRIPTION
         amount = 100
-        payment_uri = '/v1/cards/tester'
+        funding_instrument_uri = '/v1/cards/tester'
         appears_on_statement_as = 'hello baby'
         now = datetime.datetime.utcnow()
         scheduled_at = now + datetime.timedelta(days=1)
@@ -298,7 +298,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=transaction_cls,
                 transaction_type=transaction_type,
                 amount=amount,
-                payment_uri=payment_uri,
+                funding_instrument_uri=funding_instrument_uri,
                 appears_on_statement_as=appears_on_statement_as,
                 scheduled_at=scheduled_at,
             )
@@ -310,7 +310,7 @@ class TestTransactionModel(TestTransactionModelBase):
         self.assertEqual(transaction.transaction_type, transaction_type)
         self.assertEqual(transaction.transaction_cls, transaction_cls)
         self.assertEqual(transaction.amount, amount)
-        self.assertEqual(transaction.payment_uri, payment_uri)
+        self.assertEqual(transaction.funding_instrument_uri, funding_instrument_uri)
         self.assertEqual(transaction.appears_on_statement_as, 
                          appears_on_statement_as)
         self.assertEqual(transaction.status, self.transaction_model.STATUS_INIT)
@@ -337,7 +337,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
@@ -353,7 +353,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=now,
             )
 
@@ -397,7 +397,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=now,
             )
             self.transaction_model.create(
@@ -409,7 +409,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 scheduled_at=now,
             )
 
-    def test_create_refund_with_payment_uri(self):
+    def test_create_refund_with_funding_instrument_uri(self):
         now = datetime.datetime.utcnow()
 
         with self.assertRaises(ValueError):
@@ -418,7 +418,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=now,
             )
             self.transaction_model.create(
@@ -428,7 +428,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 refund_to_guid=tx_guid, 
                 amount=50,
                 scheduled_at=now,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
             )
 
     def test_create_refund_with_wrong_target(self):
@@ -440,7 +440,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=now,
             )
             refund_guid = self.transaction_model.create(
@@ -468,7 +468,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_PAYOUT,
                 amount=100,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=now,
             )
 
@@ -489,7 +489,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=999,
                 amount=123,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
@@ -500,7 +500,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=999,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=123,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
@@ -510,7 +510,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=123,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
         with self.assertRaises(ValueError):
@@ -518,7 +518,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_INVOICE,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=123,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
@@ -529,7 +529,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
@@ -552,7 +552,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
@@ -591,7 +591,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
@@ -610,7 +610,7 @@ class TestTransactionModel(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 
@@ -643,7 +643,7 @@ class TestTransactionModel(TestTransactionModelBase):
                     transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                     transaction_type=self.transaction_model.TYPE_CHARGE,
                     amount=10,
-                    payment_uri='/v1/cards/tester',
+                    funding_instrument_uri='/v1/cards/tester',
                     scheduled_at=datetime.datetime.utcnow(),
                 )
                 guids.append(guid)
@@ -664,7 +664,7 @@ class TestProcessSubscriptionTransaction(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_type,
                 amount=100,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
         transaction = self.transaction_model.get(transaction_guid)
@@ -776,7 +776,7 @@ class TestProcessSubscriptionTransaction(TestTransactionModelBase):
 
     def test_process_transactions(self):
         now = datetime.datetime.utcnow()
-        payment_uri = '/v1/cards/tester'
+        funding_instrument_uri = '/v1/cards/tester'
 
         with db_transaction.manager:
             guid1 = self.transaction_model.create(
@@ -784,7 +784,7 @@ class TestProcessSubscriptionTransaction(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
-                payment_uri=payment_uri,
+                funding_instrument_uri=funding_instrument_uri,
                 scheduled_at=now,
             )
 
@@ -793,7 +793,7 @@ class TestProcessSubscriptionTransaction(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
-                payment_uri=payment_uri,
+                funding_instrument_uri=funding_instrument_uri,
                 scheduled_at=now,
             )
             self.transaction_model.update(guid2, status=self.transaction_model.STATUS_RETRYING)
@@ -803,7 +803,7 @@ class TestProcessSubscriptionTransaction(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
-                payment_uri=payment_uri,
+                funding_instrument_uri=funding_instrument_uri,
                 scheduled_at=now,
             )
             
@@ -812,7 +812,7 @@ class TestProcessSubscriptionTransaction(TestTransactionModelBase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
-                payment_uri=payment_uri,
+                funding_instrument_uri=funding_instrument_uri,
                 scheduled_at=now,
             )
             self.transaction_model.update(guid4, status=self.transaction_model.STATUS_DONE)
@@ -827,11 +827,11 @@ class TestProcessInvoiceTransaction(TestTransactionModelBase):
 
     def setUp(self):
         super(TestProcessInvoiceTransaction, self).setUp()
-        self.payment_uri = '/v1/cards/tester'
+        self.funding_instrument_uri = '/v1/cards/tester'
         with db_transaction.manager:
-            self.invoice_model.update_payment_uri(
+            self.invoice_model.update_funding_instrument_uri(
                 self.invoice_guid, 
-                self.payment_uri,
+                self.funding_instrument_uri,
             )
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')

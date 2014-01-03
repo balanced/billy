@@ -12,7 +12,7 @@ class DummyProcessor(object):
     def validate_customer(self, processor_uri):
         return True
 
-    def prepare_customer(self, customer, payment_uri=None):
+    def prepare_customer(self, customer, funding_instrument_uri=None):
         pass
 
     def charge(self, transaction):

@@ -75,7 +75,7 @@ class SubscriptionCreateForm(Form):
         validators.Required(),
         RecordExistValidator(PlanModel),
     ])
-    payment_uri = TextField('Payment URI', [
+    funding_instrument_uri = TextField('Funding instrument URI', [
         validators.Optional(),
     ])
     amount = IntegerField('Amount', [

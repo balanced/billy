@@ -96,9 +96,9 @@ def invoice_list_post(request):
     
     customer_guid = form.data['customer_guid']
     amount = form.data['amount']
-    payment_uri = form.data.get('payment_uri')
-    if not payment_uri:
-        payment_uri = None
+    funding_instrument_uri = form.data.get('funding_instrument_uri')
+    if not funding_instrument_uri:
+        funding_instrument_uri = None
     title = form.data.get('title')
     if not title:
         title = None
@@ -135,7 +135,7 @@ def invoice_list_post(request):
             guid = model.create(
                 customer_guid=customer_guid,
                 amount=amount,
-                payment_uri=payment_uri,
+                funding_instrument_uri=funding_instrument_uri,
                 title=title,
                 items=items,
                 adjustments=adjustments,
@@ -144,8 +144,8 @@ def invoice_list_post(request):
             )
     except DuplicateExternalIDError, e:
         return HTTPConflict(e.args[0])
-    # payment_uri is set, just process all transactions right away
-    if payment_uri is not None:
+    # funding_instrument_uri is set, just process all transactions right away
+    if funding_instrument_uri is not None:
         with db_transaction.manager:
             invoice = model.get(guid)
             tx_guids = [tx.guid for tx in invoice.transactions]
@@ -181,7 +181,7 @@ def invoice_put(request):
     tx_model = request.model_factory.create_transaction_model()
     guid = invoice.guid
 
-    payment_uri = form.data.get('payment_uri')
+    funding_instrument_uri = form.data.get('funding_instrument_uri')
     title = form.data.get('title')
     items = parse_items(
         request=request, 
@@ -197,11 +197,11 @@ def invoice_put(request):
 
     with db_transaction.manager:
         model.update(guid=guid, **kwargs)
-        if payment_uri:
-            tx_guids = model.update_payment_uri(guid, payment_uri)
+        if funding_instrument_uri:
+            tx_guids = model.update_funding_instrument_uri(guid, funding_instrument_uri)
 
-    # payment_uri is set, just process all transactions right away
-    if payment_uri and tx_guids:
+    # funding_instrument_uri is set, just process all transactions right away
+    if funding_instrument_uri and tx_guids:
         with db_transaction.manager:
             invoice = model.get(guid)
             tx_model.process_transactions(guids=tx_guids)

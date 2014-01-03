@@ -72,7 +72,7 @@ class TestProcessTransactions(unittest.TestCase):
             def create_customer(self, customer):
                 return 'MOCK_PROCESSOR_CUSTOMER_ID'
 
-            def prepare_customer(self, customer, payment_uri=None):
+            def prepare_customer(self, customer, funding_instrument_uri=None):
                 pass
 
             def payout(self):
@@ -130,12 +130,12 @@ class TestProcessTransactions(unittest.TestCase):
             subscription_model.create(
                 customer_guid=customer_guid,
                 plan_guid=plan_guid,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
             )
             subscription_model.create(
                 customer_guid=customer_guid,
                 plan_guid=plan_guid,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
             )
 
         with self.assertRaises(KeyboardInterrupt):

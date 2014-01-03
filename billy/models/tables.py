@@ -179,8 +179,9 @@ class Subscription(DeclarativeBase):
         index=True,
         nullable=False,
     )
-    #: the payment URI to charge/payout, such as bank account or credit card
-    payment_uri = Column(Unicode(128), index=True)
+    #: the funding instrument URI to charge/payout, such as bank account or 
+    #  credit card
+    funding_instrument_uri = Column(Unicode(128), index=True)
     #: if this amount is not null, the amount of plan will be overwritten
     amount = Column(Integer)
     #: the external ID given by user
@@ -244,8 +245,8 @@ class Transaction(DeclarativeBase):
     status = Column(Integer, index=True, nullable=False)
     #: the amount to do transaction (charge, payout or refund)
     amount = Column(Integer, nullable=False)
-    #: the payment URI
-    payment_uri = Column(Unicode(128), index=True)
+    #: the funding instrument URI
+    funding_instrument_uri = Column(Unicode(128), index=True)
     #: count of failure times
     failure_count = Column(Integer, default=0)
     #: error message when failed
@@ -348,8 +349,9 @@ class Invoice(DeclarativeBase):
         index=True,
         nullable=False,
     )
-    #: the payment URI to charge to, such as bank account or credit card
-    payment_uri = Column(Unicode(128), index=True)
+    #: the funding instrument URI to charge to, such as bank account or credit 
+    #  card
+    funding_instrument_uri = Column(Unicode(128), index=True)
     #: the total amount of this invoice
     amount = Column(Integer, nullable=False)
     #: current status of this invoice, could be

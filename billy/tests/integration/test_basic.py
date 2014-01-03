@@ -60,7 +60,7 @@ class TestBasicScenarios(IntegrationTestCase):
             dict(
                 customer_guid=customer['guid'],
                 plan_guid=plan['guid'],
-                payment_uri=card.uri,
+                funding_instrument_uri=card.uri,
                 appears_on_statement_as='hello baby',
             ),
             headers=[self.make_auth(api_key)],
@@ -181,7 +181,7 @@ class TestBasicScenarios(IntegrationTestCase):
                 title='Awesome invoice',
                 item_name1='Foobar',
                 item_total1=200,
-                payment_uri=card.uri,
+                funding_instrument_uri=card.uri,
                 appears_on_statement_as='hello baby',
             ),
             headers=[self.make_auth(api_key)],

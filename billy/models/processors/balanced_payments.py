@@ -39,30 +39,30 @@ class BalancedProcessor(PaymentProcessor):
         self.logger.info('Created Balanced customer for %s', customer.guid)
         return record.uri
 
-    def prepare_customer(self, customer, payment_uri=None):
+    def prepare_customer(self, customer, funding_instrument_uri=None):
         self._configure_api_key(customer)
-        self.logger.debug('Preparing customer %s with payment_uri=%s', 
-                          customer.guid, payment_uri)
-        # when payment_uri is None, it means we are going to use the 
+        self.logger.debug('Preparing customer %s with funding_instrument_uri=%s', 
+                          customer.guid, funding_instrument_uri)
+        # when funding_instrument_uri is None, it means we are going to use the 
         # default funding instrument, just return
-        if payment_uri is None:
+        if funding_instrument_uri is None:
             return
         # get balanced customer record
         balanced_customer = self.customer_cls.find(customer.processor_uri)
-        if '/bank_accounts/' in payment_uri:
+        if '/bank_accounts/' in funding_instrument_uri:
             self.logger.debug('Adding bank account %s to %s', 
-                              payment_uri, customer.guid)
-            balanced_customer.add_bank_account(payment_uri)
+                              funding_instrument_uri, customer.guid)
+            balanced_customer.add_bank_account(funding_instrument_uri)
             self.logger.info('Added bank account %s to %s', 
-                             payment_uri, customer.guid)
-        elif '/cards/' in payment_uri:
+                             funding_instrument_uri, customer.guid)
+        elif '/cards/' in funding_instrument_uri:
             self.logger.debug('Adding credit card %s to %s', 
-                              payment_uri, customer.guid)
-            balanced_customer.add_card(payment_uri)
+                              funding_instrument_uri, customer.guid)
+            balanced_customer.add_card(funding_instrument_uri)
             self.logger.info('Added credit card %s to %s', 
-                             payment_uri, customer.guid)
+                             funding_instrument_uri, customer.guid)
         else:
-            raise ValueError('Invalid payment_uri {}'.format(payment_uri))
+            raise ValueError('Invalid funding_instrument_uri {}'.format(funding_instrument_uri))
 
     def validate_customer(self, processor_uri):
         self.customer_cls.find(processor_uri)
@@ -143,8 +143,8 @@ class BalancedProcessor(PaymentProcessor):
 
     def charge(self, transaction):
         extra_kwargs = {}
-        if transaction.payment_uri is not None:
-            extra_kwargs['source_uri'] = transaction.payment_uri
+        if transaction.funding_instrument_uri is not None:
+            extra_kwargs['source_uri'] = transaction.funding_instrument_uri
         return self._do_transaction(
             transaction=transaction, 
             resource_cls=self.debit_cls,
@@ -154,8 +154,8 @@ class BalancedProcessor(PaymentProcessor):
 
     def payout(self, transaction):
         extra_kwargs = {}
-        if transaction.payment_uri is not None:
-            extra_kwargs['destination_uri'] = transaction.payment_uri
+        if transaction.funding_instrument_uri is not None:
+            extra_kwargs['destination_uri'] = transaction.funding_instrument_uri
         return self._do_transaction(
             transaction=transaction, 
             resource_cls=self.credit_cls,

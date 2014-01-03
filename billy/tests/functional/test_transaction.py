@@ -34,7 +34,7 @@ class TestTransactionViews(ViewTestCase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
         company = self.company_model.get(self.company_guid)
@@ -55,7 +55,7 @@ class TestTransactionViews(ViewTestCase):
         self.assertEqual(res.json['scheduled_at'], 
                          transaction.scheduled_at.isoformat())
         self.assertEqual(res.json['amount'], transaction.amount)
-        self.assertEqual(res.json['payment_uri'], transaction.payment_uri)
+        self.assertEqual(res.json['funding_instrument_uri'], transaction.funding_instrument_uri)
         self.assertEqual(res.json['transaction_type'], 'charge')
         self.assertEqual(res.json['transaction_cls'], 'subscription')
         self.assertEqual(res.json['status'], 'init')
@@ -75,7 +75,7 @@ class TestTransactionViews(ViewTestCase):
                         transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                         transaction_type=self.transaction_model.TYPE_CHARGE,
                         amount=10 * i,
-                        payment_uri='/v1/cards/tester',
+                        funding_instrument_uri='/v1/cards/tester',
                         scheduled_at=datetime.datetime.utcnow(),
                     )
                     guids.append(guid)
@@ -174,7 +174,7 @@ class TestTransactionViews(ViewTestCase):
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
         self.testapp.get(

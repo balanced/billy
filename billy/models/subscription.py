@@ -42,7 +42,7 @@ class SubscriptionModel(BaseTableModel):
         self, 
         customer_guid, 
         plan_guid, 
-        payment_uri=None, 
+        funding_instrument_uri=None, 
         started_at=None,
         external_id=None,
         appears_on_statement_as=None,
@@ -63,7 +63,7 @@ class SubscriptionModel(BaseTableModel):
             customer_guid=customer_guid,
             plan_guid=plan_guid,
             amount=amount, 
-            payment_uri=payment_uri, 
+            funding_instrument_uri=funding_instrument_uri, 
             external_id=external_id, 
             appears_on_statement_as=appears_on_statement_as, 
             started_at=started_at, 
@@ -272,10 +272,10 @@ class SubscriptionModel(BaseTableModel):
                 }
                 self.logger.debug(
                     'Creating transaction for %s, transaction_type=%s, '
-                    'payment_uri=%s, amount=%s, scheduled_at=%s, period=%s', 
+                    'funding_instrument_uri=%s, amount=%s, scheduled_at=%s, period=%s', 
                     subscription.guid, 
                     type_map[transaction_type],
-                    subscription.payment_uri,
+                    subscription.funding_instrument_uri,
                     amount,
                     subscription.next_transaction_at, 
                     subscription.period, 
@@ -283,7 +283,7 @@ class SubscriptionModel(BaseTableModel):
                 # create the new transaction for this subscription
                 guid = tx_model.create(
                     subscription_guid=subscription.guid, 
-                    payment_uri=subscription.payment_uri, 
+                    funding_instrument_uri=subscription.funding_instrument_uri, 
                     amount=amount, 
                     transaction_type=transaction_type, 
                     transaction_cls=tx_model.CLS_SUBSCRIPTION, 
@@ -292,11 +292,11 @@ class SubscriptionModel(BaseTableModel):
                 )
                 self.logger.info(
                     'Created transaction for %s, guid=%s, transaction_type=%s, '
-                    'payment_uri=%s, amount=%s, scheduled_at=%s, period=%s', 
+                    'funding_instrument_uri=%s, amount=%s, scheduled_at=%s, period=%s', 
                     subscription.guid, 
                     guid,
                     type_map[transaction_type],
-                    subscription.payment_uri,
+                    subscription.funding_instrument_uri,
                     amount,
                     subscription.next_transaction_at, 
                     subscription.period, 

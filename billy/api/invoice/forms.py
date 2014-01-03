@@ -19,7 +19,7 @@ class InvoiceCreateForm(Form):
         validators.InputRequired(),
         validators.NumberRange(min=0)
     ])
-    payment_uri = TextField('Payment URI', [
+    funding_instrument_uri = TextField('Funding instrument URI', [
         validators.Optional(),
     ])
     title = TextField('Title', [
@@ -38,7 +38,7 @@ class InvoiceCreateForm(Form):
 
 
 class InvoiceUpdateForm(Form):
-    payment_uri = TextField('Payment URI', [
+    funding_instrument_uri = TextField('Funding instrument URI', [
         validators.Optional(),
     ])
     title = TextField('Title', [

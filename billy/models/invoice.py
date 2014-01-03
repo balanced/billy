@@ -8,7 +8,7 @@ from billy.utils.generic import make_guid
 
 class InvalidOperationError(RuntimeError):
     """This error indicates an invalid operation to invoice model, such as 
-    updating an invoice's payment_uri in wrong status
+    updating an invoice's funding_instrument_uri in wrong status
 
     """
 
@@ -78,7 +78,7 @@ class InvoiceModel(BaseTableModel):
         self, 
         customer_guid, 
         amount,
-        payment_uri=None, 
+        funding_instrument_uri=None, 
         title=None,
         items=None,
         adjustments=None,
@@ -99,7 +99,7 @@ class InvoiceModel(BaseTableModel):
             status=self.STATUS_INIT,
             customer_guid=customer_guid,
             amount=amount, 
-            payment_uri=payment_uri, 
+            funding_instrument_uri=funding_instrument_uri, 
             title=title,
             created_at=now,
             updated_at=now,
@@ -145,14 +145,14 @@ class InvoiceModel(BaseTableModel):
             self.session.flush()
 
         tx_model = self.factory.create_transaction_model()
-        # as if we set the payment_uri at very first, we want to charge it
+        # as if we set the funding_instrument_uri at very first, we want to charge it
         # immediately, so we create a transaction right away, also set the 
         # status to PROCESSING
-        if payment_uri is not None and invoice.amount > 0:
+        if funding_instrument_uri is not None and invoice.amount > 0:
             invoice.status = self.STATUS_PROCESSING
             tx_model.create(
                 invoice_guid=invoice.guid, 
-                payment_uri=payment_uri, 
+                funding_instrument_uri=funding_instrument_uri, 
                 amount=invoice.amount, 
                 transaction_type=tx_model.TYPE_CHARGE, 
                 transaction_cls=tx_model.CLS_INVOICE, 
@@ -168,7 +168,7 @@ class InvoiceModel(BaseTableModel):
         self.session.flush()
         return invoice.guid
 
-    def update(self, guid, payment_uri=NOT_SET, title=NOT_SET, items=NOT_SET):
+    def update(self, guid, funding_instrument_uri=NOT_SET, title=NOT_SET, items=NOT_SET):
         """Update an invoice
 
         """
@@ -200,9 +200,9 @@ class InvoiceModel(BaseTableModel):
         self.session.add(invoice)
         self.session.flush()
 
-    def update_payment_uri(self, guid, payment_uri):
-        """Update the payment uri of an invoice, as it may yield transactions,
-        we don't want to put this in `update` method
+    def update_funding_instrument_uri(self, guid, funding_instrument_uri):
+        """Update the funding_instrument_uri of an invoice, as it may yield 
+        transactions, we don't want to put this in `update` method
 
         @return: a list of yielded transaction guid
         """
@@ -210,7 +210,7 @@ class InvoiceModel(BaseTableModel):
         invoice = self.get(guid, raise_error=True, with_lockmode='update')
         now = tables.now_func()
         invoice.updated_at = now
-        invoice.payment_uri = payment_uri
+        invoice.funding_instrument_uri = funding_instrument_uri
         tx_guids = []
 
         # We have nothing to do if the amount is zero, just return
@@ -218,7 +218,7 @@ class InvoiceModel(BaseTableModel):
             return tx_guids
 
         # think about race condition issue, what if we update the 
-        # payment_uri during processing previous transaction? say
+        # funding_instrument_uri during processing previous transaction? say
         # 
         #     DB Transaction A begin
         #     Call to Balanced API
@@ -251,7 +251,7 @@ class InvoiceModel(BaseTableModel):
         if invoice.status == self.STATUS_INIT:
             tx_guid = tx_model.create(
                 invoice_guid=invoice.guid, 
-                payment_uri=payment_uri, 
+                funding_instrument_uri=funding_instrument_uri, 
                 amount=invoice.amount, 
                 transaction_type=tx_model.TYPE_CHARGE, 
                 transaction_cls=tx_model.CLS_INVOICE, 
@@ -274,7 +274,7 @@ class InvoiceModel(BaseTableModel):
             # create a new one
             tx_guid = tx_model.create(
                 invoice_guid=invoice.guid, 
-                payment_uri=payment_uri, 
+                funding_instrument_uri=funding_instrument_uri, 
                 amount=invoice.amount, 
                 transaction_type=tx_model.TYPE_CHARGE, 
                 transaction_cls=tx_model.CLS_INVOICE, 
@@ -288,7 +288,7 @@ class InvoiceModel(BaseTableModel):
                 'The last transaction status should be FAILED'
             tx_guid = tx_model.create(
                 invoice_guid=invoice.guid, 
-                payment_uri=payment_uri, 
+                funding_instrument_uri=funding_instrument_uri, 
                 amount=invoice.amount, 
                 transaction_type=tx_model.TYPE_CHARGE, 
                 transaction_cls=tx_model.CLS_INVOICE, 
@@ -298,7 +298,7 @@ class InvoiceModel(BaseTableModel):
             tx_guids.append(tx_guid)
         else:
             raise InvalidOperationError(
-                'Invalid operation, you can only update payment_uri when '
+                'Invalid operation, you can only update funding_instrument_uri when '
                 'the status is one of INIT, PROCESSING and PROCESS_FAILED'
             )
         invoice.status = self.STATUS_PROCESSING

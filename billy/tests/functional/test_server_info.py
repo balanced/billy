@@ -39,7 +39,7 @@ class TestServerInfo(ViewTestCase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
 

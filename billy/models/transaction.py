@@ -147,7 +147,7 @@ class TransactionModel(BaseTableModel):
         scheduled_at,
         subscription_guid=None, 
         invoice_guid=None, 
-        payment_uri=None,
+        funding_instrument_uri=None,
         refund_to_guid=None,
         appears_on_statement_as=None,
     ):
@@ -164,8 +164,8 @@ class TransactionModel(BaseTableModel):
             if transaction_type != self.TYPE_REFUND:
                 raise ValueError('refund_to_guid can only be set to a refund '
                                  'transaction')
-            if payment_uri is not None:
-                raise ValueError('payment_uri cannot be set to a refund '
+            if funding_instrument_uri is not None:
+                raise ValueError('funding_instrument_uri cannot be set to a refund '
                                  'transaction')
             refund_transaction = self.get(refund_to_guid, raise_error=True)
             if refund_transaction.transaction_type != self.TYPE_CHARGE:
@@ -186,7 +186,7 @@ class TransactionModel(BaseTableModel):
             guid='TX' + make_guid(),
             transaction_type=transaction_type,
             amount=amount, 
-            payment_uri=payment_uri, 
+            funding_instrument_uri=funding_instrument_uri, 
             appears_on_statement_as=appears_on_statement_as, 
             status=self.STATUS_INIT, 
             scheduled_at=scheduled_at, 
@@ -260,7 +260,7 @@ class TransactionModel(BaseTableModel):
                 customer.processor_uri,
             )
             # prepare customer (add bank account or credit card)
-            self.processor.prepare_customer(customer, transaction.payment_uri)
+            self.processor.prepare_customer(customer, transaction.funding_instrument_uri)
             # do charge/payout/refund 
             transaction_id = method(transaction)
         except (SystemExit, KeyboardInterrupt):

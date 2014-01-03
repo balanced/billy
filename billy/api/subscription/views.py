@@ -53,9 +53,9 @@ def subscription_list_post(request):
     customer_guid = form.data['customer_guid']
     plan_guid = form.data['plan_guid']
     amount = form.data.get('amount')
-    payment_uri = form.data.get('payment_uri')
-    if not payment_uri:
-        payment_uri = None
+    funding_instrument_uri = form.data.get('funding_instrument_uri')
+    if not funding_instrument_uri:
+        funding_instrument_uri = None
     appears_on_statement_as = form.data.get('appears_on_statement_as')
     if not appears_on_statement_as:
         appears_on_statement_as = None
@@ -83,7 +83,7 @@ def subscription_list_post(request):
             customer_guid=customer_guid, 
             plan_guid=plan_guid, 
             amount=amount, 
-            payment_uri=payment_uri,
+            funding_instrument_uri=funding_instrument_uri,
             appears_on_statement_as=appears_on_statement_as,
             started_at=started_at, 
         )

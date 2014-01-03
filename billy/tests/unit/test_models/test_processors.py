@@ -50,7 +50,7 @@ class TestBalancedProcessorModel(ModelTestCase):
             self.subscription_guid = self.subscription_model.create(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
-                payment_uri='/v1/credit_card/tester',
+                funding_instrument_uri='/v1/credit_card/tester',
             )
             self.invoice_guid = self.invoice_model.create(
                 customer_guid=self.customer_guid,
@@ -135,7 +135,7 @@ class TestBalancedProcessorModel(ModelTestCase):
             '/v1/bank_accounts/my_account',
         )
 
-    def test_prepare_customer_with_none_payment_uri(self):
+    def test_prepare_customer_with_none_funding_instrument_uri(self):
         # mock instance
         balanced_customer = mock.Mock()
         # mock class
@@ -149,7 +149,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         self.assertFalse(balanced_customer.add_card.called, 0)
         self.assertFalse(balanced_customer.add_bank_account.called, 0)
 
-    def test_prepare_customer_with_bad_payment_uri(self):
+    def test_prepare_customer_with_bad_funding_instrument_uri(self):
         # mock instance
         balanced_customer = mock.Mock()
         # mock class
@@ -178,7 +178,7 @@ class TestBalancedProcessorModel(ModelTestCase):
                     transaction_cls=tx_model.CLS_SUBSCRIPTION,
                     transaction_type=tx_model.TYPE_CHARGE,
                     amount=10,
-                    payment_uri='/v1/credit_card/tester',
+                    funding_instrument_uri='/v1/credit_card/tester',
                     appears_on_statement_as='hello baby',
                     scheduled_at=datetime.datetime.utcnow(),
                 )
@@ -196,7 +196,7 @@ class TestBalancedProcessorModel(ModelTestCase):
                     transaction_cls=tx_model.CLS_INVOICE,
                     transaction_type=tx_model.TYPE_CHARGE,
                     amount=10,
-                    payment_uri='/v1/credit_card/tester',
+                    funding_instrument_uri='/v1/credit_card/tester',
                     appears_on_statement_as='hello baby',
                     scheduled_at=datetime.datetime.utcnow(),
                 )
@@ -269,7 +269,7 @@ class TestBalancedProcessorModel(ModelTestCase):
                 transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/credit_card/tester',
+                funding_instrument_uri='/v1/credit_card/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
             transaction = tx_model.get(guid)
@@ -365,7 +365,7 @@ class TestBalancedProcessorModel(ModelTestCase):
                 transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_CHARGE,
                 amount=100,
-                payment_uri='/v1/credit_card/tester',
+                funding_instrument_uri='/v1/credit_card/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
             charge_transaction = tx_model.get(charge_guid)
@@ -435,7 +435,7 @@ class TestBalancedProcessorModel(ModelTestCase):
                 transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_CHARGE,
                 amount=100,
-                payment_uri='/v1/credit_card/tester',
+                funding_instrument_uri='/v1/credit_card/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
             charge_transaction = tx_model.get(charge_guid)

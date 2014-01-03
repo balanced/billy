@@ -34,7 +34,7 @@ class TestSubscriptionViews(ViewTestCase):
         customer_guid = self.customer_guid
         plan_guid = self.plan_guid
         amount = 5566
-        payment_uri = 'MOCK_CARD_URI'
+        funding_instrument_uri = 'MOCK_CARD_URI'
         appears_on_statement_as = 'hello baby'
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat()
@@ -49,7 +49,7 @@ class TestSubscriptionViews(ViewTestCase):
                 customer_guid=customer_guid,
                 plan_guid=plan_guid,
                 amount=amount,
-                payment_uri=payment_uri,
+                funding_instrument_uri=funding_instrument_uri,
                 appears_on_statement_as=appears_on_statement_as,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
@@ -65,7 +65,7 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(res.json['amount'], amount)
         self.assertEqual(res.json['customer_guid'], customer_guid)
         self.assertEqual(res.json['plan_guid'], plan_guid)
-        self.assertEqual(res.json['payment_uri'], payment_uri)
+        self.assertEqual(res.json['funding_instrument_uri'], funding_instrument_uri)
         self.assertEqual(res.json['appears_on_statement_as'], 
                          appears_on_statement_as)
         self.assertEqual(res.json['canceled'], False)
@@ -81,7 +81,7 @@ class TestSubscriptionViews(ViewTestCase):
                          subscription.appears_on_statement_as)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.prepare_customer')
-    def test_create_subscription_with_default_payment_uri(self, prepare_customer):
+    def test_create_subscription_with_default_funding_instrument_uri(self, prepare_customer):
         customer = self.customer_model.get(self.customer_guid)
         amount = 5566
 
@@ -113,7 +113,7 @@ class TestSubscriptionViews(ViewTestCase):
                 customer_guid=self.customer_guid,
                 plan_guid=plan_guid,
                 amount='123',
-                payment_uri='MOCK_CARD_URI',
+                funding_instrument_uri='MOCK_CARD_URI',
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=400,
@@ -132,7 +132,7 @@ class TestSubscriptionViews(ViewTestCase):
                 customer_guid=customer_guid,
                 plan_guid=self.plan_guid,
                 amount='123',
-                payment_uri='MOCK_CARD_URI',
+                funding_instrument_uri='MOCK_CARD_URI',
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=400,
@@ -144,7 +144,7 @@ class TestSubscriptionViews(ViewTestCase):
             dict(
                 customer_guid=self.customer_guid,
                 plan_guid=self.plan_guid,
-                payment_uri='MOCK_CARD_URI',
+                funding_instrument_uri='MOCK_CARD_URI',
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
@@ -645,7 +645,7 @@ class TestSubscriptionViews(ViewTestCase):
                         transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                         transaction_type=self.transaction_model.TYPE_CHARGE,
                         amount=10 * i,
-                        payment_uri='/v1/cards/tester',
+                        funding_instrument_uri='/v1/cards/tester',
                         scheduled_at=datetime.datetime.utcnow(),
                     )
                     guids1.append(guid)
@@ -656,7 +656,7 @@ class TestSubscriptionViews(ViewTestCase):
                         transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                         transaction_type=self.transaction_model.TYPE_CHARGE,
                         amount=10 * i,
-                        payment_uri='/v1/cards/tester',
+                        funding_instrument_uri='/v1/cards/tester',
                         scheduled_at=datetime.datetime.utcnow(),
                     )
                     guids2.append(guid)

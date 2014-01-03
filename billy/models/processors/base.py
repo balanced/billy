@@ -11,12 +11,12 @@ class PaymentProcessor(object):
         """
         raise NotImplementedError
 
-    def prepare_customer(self, customer, payment_uri=None):
+    def prepare_customer(self, customer, funding_instrument_uri=None):
         """Prepare customer for transaction, usually this would associate
         bank account or credit card to the customer
 
         :param customer: customer to be prepared
-        :param payment_uri: payment URI to prepare
+        :param funding_instrument_uri: URI of funding instrument to be attached
         """
         raise NotImplementedError
 

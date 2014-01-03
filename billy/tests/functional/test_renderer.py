@@ -41,7 +41,7 @@ class TestRenderer(ViewTestCase):
                 transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/cards/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 appears_on_statement_as='hello baby',
                 scheduled_at=datetime.datetime.utcnow(),
             )
@@ -99,7 +99,7 @@ class TestRenderer(ViewTestCase):
             total_adjustment_amount=invoice.total_adjustment_amount, 
             title=invoice.title, 
             external_id=invoice.external_id, 
-            payment_uri=None, 
+            funding_instrument_uri=None, 
             appears_on_statement_as='hello baby', 
             items=[
                 dict(type='debit', name='foo', total=123, quantity=None, 
@@ -168,7 +168,7 @@ class TestRenderer(ViewTestCase):
         expected = dict(
             guid=subscription.guid, 
             amount=None,
-            payment_uri=subscription.payment_uri,
+            funding_instrument_uri=subscription.funding_instrument_uri,
             appears_on_statement_as=subscription.appears_on_statement_as,
             period=subscription.period,
             canceled=subscription.canceled,
@@ -208,7 +208,7 @@ class TestRenderer(ViewTestCase):
             transaction_cls='subscription',
             status='init',
             amount=transaction.amount,
-            payment_uri=transaction.payment_uri,
+            funding_instrument_uri=transaction.funding_instrument_uri,
             external_id=transaction.external_id,
             appears_on_statement_as=transaction.appears_on_statement_as,
             failure_count=transaction.failure_count,
@@ -246,7 +246,7 @@ class TestRenderer(ViewTestCase):
             transaction_cls=self.transaction_model.CLS_INVOICE,
             transaction_type=self.transaction_model.TYPE_CHARGE,
             amount=10,
-            payment_uri='/v1/cards/tester',
+            funding_instrument_uri='/v1/cards/tester',
             appears_on_statement_as='hello baby',
             scheduled_at=datetime.datetime.utcnow(),
         )
@@ -258,7 +258,7 @@ class TestRenderer(ViewTestCase):
             transaction_cls='invoice',
             status='init',
             amount=transaction.amount,
-            payment_uri=transaction.payment_uri,
+            funding_instrument_uri=transaction.funding_instrument_uri,
             external_id=transaction.external_id,
             appears_on_statement_as=transaction.appears_on_statement_as,
             failure_count=transaction.failure_count,

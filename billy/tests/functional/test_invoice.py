@@ -82,7 +82,7 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(res.json['appears_on_statement_as'], 
                          appears_on_statement_as)
         self.assertEqual(res.json['customer_guid'], customer_guid)
-        self.assertEqual(res.json['payment_uri'], None)
+        self.assertEqual(res.json['funding_instrument_uri'], None)
 
         invoice = self.invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 0)
@@ -150,7 +150,7 @@ class TestInvoiceViews(ViewTestCase):
             status=200,
         )
         self.failUnless('guid' in res.json)
-        self.assertEqual(res.json['payment_uri'], None)
+        self.assertEqual(res.json['funding_instrument_uri'], None)
 
         item_result = res.json['items']
         for item in item_result:
@@ -190,10 +190,10 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(adjustment_result, adjustments)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
-    def test_create_invoice_with_payment_uri(self, charge_method):
+    def test_create_invoice_with_funding_instrument_uri(self, charge_method):
         customer_guid = self.customer_guid
         amount = 5566
-        payment_uri = 'MOCK_CARD_URI'
+        funding_instrument_uri = 'MOCK_CARD_URI'
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat()
 
@@ -204,7 +204,7 @@ class TestInvoiceViews(ViewTestCase):
             dict(
                 customer_guid=customer_guid,
                 amount=amount,
-                payment_uri=payment_uri,
+                funding_instrument_uri=funding_instrument_uri,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
@@ -215,7 +215,7 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(res.json['amount'], amount)
         self.assertEqual(res.json['title'], None)
         self.assertEqual(res.json['customer_guid'], customer_guid)
-        self.assertEqual(res.json['payment_uri'], payment_uri)
+        self.assertEqual(res.json['funding_instrument_uri'], funding_instrument_uri)
 
         invoice = self.invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 1)
@@ -226,10 +226,10 @@ class TestInvoiceViews(ViewTestCase):
         charge_method.assert_called_once_with(transaction)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
-    def test_create_invoice_with_payment_uri_with_zero_amount(self, charge_method):
+    def test_create_invoice_with_funding_instrument_uri_with_zero_amount(self, charge_method):
         customer_guid = self.customer_guid
         amount = 0
-        payment_uri = 'MOCK_CARD_URI'
+        funding_instrument_uri = 'MOCK_CARD_URI'
         charge_method.return_value = 'MOCK_DEBIT_URI'
 
         res = self.testapp.post(
@@ -237,7 +237,7 @@ class TestInvoiceViews(ViewTestCase):
             dict(
                 customer_guid=customer_guid,
                 amount=amount,
-                payment_uri=payment_uri,
+                funding_instrument_uri=funding_instrument_uri,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
@@ -259,14 +259,14 @@ class TestInvoiceViews(ViewTestCase):
         assert_bad_parameters({})
         assert_bad_parameters(dict(
             customer_guid=self.customer_guid,
-            payment_uri='MOCK_CARD_URI',
+            funding_instrument_uri='MOCK_CARD_URI',
         ))
         assert_bad_parameters(dict(
             customer_guid=self.customer_guid,
         ))
         assert_bad_parameters(dict(
             amount=123,
-            payment_uri='MOCK_CARD_URI',
+            funding_instrument_uri='MOCK_CARD_URI',
         ))
         assert_bad_parameters(dict(
             customer_guid=self.customer_guid,
@@ -556,10 +556,10 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(item_result, new_items)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
-    def test_update_invoice_payment_uri(self, charge_method):
+    def test_update_invoice_funding_instrument_uri(self, charge_method):
         customer_guid = self.customer_guid
         amount = 5566
-        payment_uri = 'MOCK_CARD_URI'
+        funding_instrument_uri = 'MOCK_CARD_URI'
         charge_method.return_value = 'MOCK_DEBIT_URI'
 
         res = self.testapp.post(
@@ -572,18 +572,18 @@ class TestInvoiceViews(ViewTestCase):
             status=200,
         )
         self.failUnless('guid' in res.json)
-        self.assertEqual(res.json['payment_uri'], None)
+        self.assertEqual(res.json['funding_instrument_uri'], None)
         guid = res.json['guid']
 
         res = self.testapp.put(
             '/v1/invoices/{}'.format(guid),
             dict(
-                payment_uri=payment_uri,
+                funding_instrument_uri=funding_instrument_uri,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
-        self.assertEqual(res.json['payment_uri'], payment_uri)
+        self.assertEqual(res.json['funding_instrument_uri'], funding_instrument_uri)
 
         invoice = self.invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 1)
@@ -594,10 +594,10 @@ class TestInvoiceViews(ViewTestCase):
         charge_method.assert_called_once_with(transaction)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
-    def test_update_invoice_payment_uri_with_zero_amount(self, charge_method):
+    def test_update_invoice_funding_instrument_uri_with_zero_amount(self, charge_method):
         customer_guid = self.customer_guid
         amount = 0
-        payment_uri = 'MOCK_CARD_URI'
+        funding_instrument_uri = 'MOCK_CARD_URI'
         charge_method.return_value = 'MOCK_DEBIT_URI'
 
         res = self.testapp.post(
@@ -610,19 +610,19 @@ class TestInvoiceViews(ViewTestCase):
             status=200,
         )
         self.failUnless('guid' in res.json)
-        self.assertEqual(res.json['payment_uri'], None)
+        self.assertEqual(res.json['funding_instrument_uri'], None)
         self.assertFalse(charge_method.called)
         guid = res.json['guid']
 
         res = self.testapp.put(
             '/v1/invoices/{}'.format(guid),
             dict(
-                payment_uri=payment_uri,
+                funding_instrument_uri=funding_instrument_uri,
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
-        self.assertEqual(res.json['payment_uri'], payment_uri)
+        self.assertEqual(res.json['funding_instrument_uri'], funding_instrument_uri)
 
         invoice = self.invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 0)

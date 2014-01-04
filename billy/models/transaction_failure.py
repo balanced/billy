@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 from billy.models import tables
 from billy.models.base import BaseTableModel
-from billy.models.base import decorate_offset_limit
 from billy.utils.generic import make_guid
 
 

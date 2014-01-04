@@ -183,7 +183,14 @@ def transaction_failure_adapter(transaction_failure, request):
 
 
 def includeme(config):
-    json_renderer = JSON()
+    settings = config.registry.settings
+    kwargs = {}
+    cfg_key = 'api.json.pretty_print'
+    pretty_print = settings.get(cfg_key, True)    
+    if pretty_print:
+        kwargs = dict(sort_keys=True, indent=4, separators=(',', ': '))
+
+    json_renderer = JSON(**kwargs)
     json_renderer.add_adapter(tables.Company, company_adapter)
     json_renderer.add_adapter(tables.Customer, customer_adapter)
     json_renderer.add_adapter(tables.Invoice, invoice_adapter)

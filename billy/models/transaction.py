@@ -304,9 +304,14 @@ class TransactionModel(BaseTableModel):
             raise
         except Exception, e:
             transaction.status = self.STATUS_RETRYING
-            # TODO: provide more expressive error message?
-            transaction.error_message = unicode(e)
-            transaction.failure_count += 1
+
+            failure_model = self.factory.create_transaction_failure_model()
+
+            failure = failure_model.create(
+                transaction=transaction,
+                error_message=unicode(e),
+                # TODO: error number and code?
+            )
             self.logger.error('Failed to process transaction %s, '
                               'failure_count=%s', 
                               transaction.guid, transaction.failure_count, 
@@ -327,7 +332,6 @@ class TransactionModel(BaseTableModel):
                     transaction.invoice.status = invoice_status
                     self.session.add(transaction.invoice)
             transaction.updated_at = now
-            self.session.add(transaction)
             self.session.flush()
             return
 

@@ -150,6 +150,10 @@ def transaction_adapter(transaction, request):
     elif transaction.transaction_cls == TransactionModel.CLS_INVOICE:
         extra_args = dict(invoice_guid=transaction.invoice_guid)
 
+    serialized_failures = [
+        transaction_failure_adapter(f, request) 
+        for f in transaction.failures
+    ]
     return dict(
         guid=transaction.guid, 
         transaction_type=transaction_type,
@@ -160,11 +164,21 @@ def transaction_adapter(transaction, request):
         processor_uri=transaction.processor_uri,
         appears_on_statement_as=transaction.appears_on_statement_as,
         failure_count=transaction.failure_count,
-        error_message=transaction.error_message,
+        failures=serialized_failures,
         created_at=transaction.created_at.isoformat(),
         updated_at=transaction.updated_at.isoformat(),
         scheduled_at=transaction.scheduled_at.isoformat(),
         **extra_args
+    )
+
+
+def transaction_failure_adapter(transaction_failure, request):
+    return dict(
+        guid=transaction_failure.guid,
+        error_message=transaction_failure.error_message,
+        error_number=transaction_failure.error_number,
+        error_code=transaction_failure.error_code,
+        created_at=transaction_failure.created_at.isoformat(),
     )
 
 
@@ -176,4 +190,6 @@ def includeme(config):
     json_renderer.add_adapter(tables.Plan, plan_adapter)
     json_renderer.add_adapter(tables.Subscription, subscription_adapter)
     json_renderer.add_adapter(tables.Transaction, transaction_adapter)
+    json_renderer.add_adapter(tables.TransactionFailure, 
+                              transaction_failure_adapter)
     config.add_renderer('json', json_renderer)

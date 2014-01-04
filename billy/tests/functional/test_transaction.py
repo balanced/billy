@@ -58,8 +58,8 @@ class TestTransactionViews(ViewTestCase):
         self.assertEqual(res.json['transaction_type'], 'charge')
         self.assertEqual(res.json['transaction_cls'], 'subscription')
         self.assertEqual(res.json['status'], 'init')
-        self.assertEqual(res.json['error_message'], None)
         self.assertEqual(res.json['failure_count'], 0)
+        self.assertEqual(res.json['failures'], [])
         self.assertEqual(res.json['processor_uri'], None)
         self.assertEqual(res.json['subscription_guid'], 
                          transaction.subscription_guid)

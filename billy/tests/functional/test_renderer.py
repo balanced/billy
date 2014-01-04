@@ -10,6 +10,7 @@ from billy.renderers import plan_adapter
 from billy.renderers import subscription_adapter
 from billy.renderers import invoice_adapter
 from billy.renderers import transaction_adapter
+from billy.renderers import transaction_failure_adapter
 from billy.tests.functional.helper import ViewTestCase
 
 
@@ -36,15 +37,6 @@ class TestRenderer(ViewTestCase):
                 plan=self.plan,
                 appears_on_statement_as='hello baby',
             )
-            self.transaction = self.transaction_model.create(
-                subscription=self.subscription,
-                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
-                transaction_type=self.transaction_model.TYPE_CHARGE,
-                amount=5678,
-                funding_instrument_uri='/v1/cards/tester',
-                appears_on_statement_as='hello baby',
-                scheduled_at=datetime.datetime.utcnow(),
-            )
             self.invoice = self.invoice_model.create(
                 customer=self.customer,
                 amount=7788,
@@ -61,6 +53,28 @@ class TestRenderer(ViewTestCase):
                     dict(total=3),
                 ],
             )
+            self.transaction = self.transaction_model.create(
+                subscription=self.subscription,
+                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
+                amount=5678,
+                funding_instrument_uri='/v1/cards/tester',
+                appears_on_statement_as='hello baby',
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+            self.transaction_failure1 = self.transaction_failure_model.create(
+                transaction=self.transaction,
+                error_message='boom!',
+                error_number=666,
+                error_code='damin-it',
+            )
+            with freeze_time('2013-08-17'):
+                self.transaction_failure2 = self.transaction_failure_model.create(
+                    transaction=self.transaction,
+                    error_message='doomed!',
+                    error_number=777,
+                    error_code='screw-it',
+                )
 
     def test_company(self):
         company = self.company
@@ -204,6 +218,11 @@ class TestRenderer(ViewTestCase):
 
     def test_transaction(self):
         transaction = self.transaction
+        serialized_failures = [
+            transaction_failure_adapter(f, self.dummy_request) 
+            for f in transaction.failures
+        ]
+
         json_data = transaction_adapter(transaction, self.dummy_request)
         expected = dict(
             guid=transaction.guid, 
@@ -215,11 +234,11 @@ class TestRenderer(ViewTestCase):
             processor_uri=transaction.processor_uri,
             appears_on_statement_as=transaction.appears_on_statement_as,
             failure_count=transaction.failure_count,
-            error_message=transaction.error_message,
             created_at=transaction.created_at.isoformat(),
             updated_at=transaction.updated_at.isoformat(),
             scheduled_at=transaction.scheduled_at.isoformat(),
             subscription_guid=transaction.subscription_guid,
+            failures=serialized_failures,
         )
         self.assertEqual(json_data, expected)
 
@@ -264,10 +283,22 @@ class TestRenderer(ViewTestCase):
             processor_uri=transaction.processor_uri,
             appears_on_statement_as=transaction.appears_on_statement_as,
             failure_count=transaction.failure_count,
-            error_message=transaction.error_message,
             created_at=transaction.created_at.isoformat(),
             updated_at=transaction.updated_at.isoformat(),
             scheduled_at=transaction.scheduled_at.isoformat(),
             invoice_guid=transaction.invoice_guid,
+            failures=[],
+        )
+        self.assertEqual(json_data, expected)
+
+    def test_transaction_failure(self):
+        transaction_failure = self.transaction_failure1
+        json_data = transaction_failure_adapter(transaction_failure, self.dummy_request)
+        expected = dict(
+            guid=transaction_failure.guid,
+            error_message=transaction_failure.error_message,
+            error_code=transaction_failure.error_code,
+            error_number=transaction_failure.error_number,
+            created_at=transaction_failure.created_at.isoformat(),
         )
         self.assertEqual(json_data, expected)

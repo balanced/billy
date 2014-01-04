@@ -276,6 +276,8 @@ class InvoiceModel(BaseTableModel):
             transactions.append(transaction)
         # we are already processing, abort current transaction and create
         # a new one
+        # TODO: what about offline transaction? shound't we abort it in 
+        # processor?
         elif invoice.status == self.STATUS_PROCESSING:
             assert last_transaction.status in [
                 tx_model.STATUS_INIT, 

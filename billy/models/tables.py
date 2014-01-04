@@ -257,10 +257,6 @@ class Transaction(DeclarativeBase):
     amount = Column(Integer, nullable=False)
     #: the funding instrument URI
     funding_instrument_uri = Column(Unicode(128), index=True)
-    #: count of failure times
-    failure_count = Column(Integer, default=0)
-    #: error message when failed
-    error_message = Column(UnicodeText)
     #: the scheduled datetime of this transaction should be processed
     scheduled_at = Column(DateTime, default=now_func)
     #: the created datetime of this subscription 
@@ -277,6 +273,51 @@ class Transaction(DeclarativeBase):
         uselist=False, 
         single_parent=True,
     )
+
+    #: transaction failures
+    failures = relationship(
+        'TransactionFailure', 
+        cascade='all, delete-orphan', 
+        backref='transaction',
+        order_by='TransactionFailure.created_at',
+        lazy='dynamic',  # so that we can query count on it
+    )
+
+    @property
+    def failure_count(self):
+        """Count of failures
+
+        """
+        return self.failures.count()
+
+
+class TransactionFailure(DeclarativeBase):
+    """A failure of transaction 
+
+    """
+    __tablename__ = 'transaction_failure'
+
+    guid = Column(Unicode(64), primary_key=True)
+
+    #: the guid of transaction which owns this failure
+    transaction_guid = Column(
+        Unicode(64), 
+        ForeignKey(
+            'transaction.guid', 
+            ondelete='CASCADE', onupdate='CASCADE'
+        ), 
+        index=True,
+        nullable=False,
+    )
+
+    #: error message when failed
+    error_message = Column(UnicodeText)
+    #: error number
+    error_number = Column(Integer)
+    #: error code
+    error_code = Column(Unicode(64))
+    #: the created datetime of this failure
+    created_at = Column(DateTime, default=now_func)
 
 
 class SubscriptionTransaction(Transaction):

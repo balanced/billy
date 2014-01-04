@@ -50,5 +50,7 @@ class BaseTableModel(object):
             query = query.with_lockmode(with_lockmode)
         query = query.get(guid)
         if raise_error and query is None:
-            raise KeyError('No such subscription {}'.format(guid))
+            raise KeyError('No such {} {}'.format(
+                self.TABLE.__name__.lower(), guid
+            ))
         return query

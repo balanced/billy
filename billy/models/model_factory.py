@@ -6,6 +6,7 @@ from billy.models.plan import PlanModel
 from billy.models.invoice import InvoiceModel
 from billy.models.subscription import SubscriptionModel
 from billy.models.transaction import TransactionModel
+from billy.models.transaction_failure import TransactionFailureModel
 
 
 class ModelFactory(object):
@@ -56,3 +57,9 @@ class ModelFactory(object):
 
         """
         return TransactionModel(self)
+
+    def create_transaction_failure_model(self):
+        """Create a transaction failure model
+
+        """
+        return TransactionFailureModel(self)

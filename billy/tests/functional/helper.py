@@ -47,8 +47,9 @@ class ViewTestCase(unittest.TestCase):
         self.customer_model = self.model_factory.create_customer_model()
         self.plan_model = self.model_factory.create_plan_model()
         self.subscription_model = self.model_factory.create_subscription_model()
-        self.transaction_model = self.model_factory.create_transaction_model()
         self.invoice_model = self.model_factory.create_invoice_model()
+        self.transaction_model = self.model_factory.create_transaction_model()
+        self.transaction_failure_model = self.model_factory.create_transaction_failure_model()
 
     def tearDown(self):
         self.testapp.session.close()

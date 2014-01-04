@@ -62,8 +62,12 @@ class TestAlembic(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.temp_dir)
 
+    @unittest.skipUnless(
+        os.environ.get('BILLY_TEST_ALEMBIC'), 
+        'Skip alembic database migration',
+    )
     def test_downgrade_and_upgrade(self):
         initializedb.main([initializedb.__file__, self.cfg_path])
-        command.stamp(self.alembic_cfg, 'base')
+        command.stamp(self.alembic_cfg, 'head')
         command.downgrade(self.alembic_cfg, 'base')
         command.upgrade(self.alembic_cfg, 'head')

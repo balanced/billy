@@ -61,8 +61,9 @@ def upgrade():
     op.execute((
         transaction_failure.insert()
         .from_select(
-            ['guid', 'error_message', 'created_at'], 
+            ['guid', 'transaction_guid', 'error_message', 'created_at'], 
             select([
+                transaction.c.guid,
                 transaction.c.guid,
                 transaction.c.error_message, 
                 transaction.c.created_at, 

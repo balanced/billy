@@ -33,6 +33,7 @@ transaction = table(
 transaction_failure = table(
     'transaction_failure',
     Column('guid', Unicode(64), primary_key=True),
+    Column('transaction_guid', Unicode(64)),
     Column('error_message', UnicodeText),
     Column('created_at', DateTime),
 ) 

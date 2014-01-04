@@ -81,5 +81,5 @@ def downgrade():
     # ouch.. SQLlite doens't support alter column syntax,
     bind = op.get_bind()
     if bind is None or bind.engine.name != 'sqlite':
-        op.add_column('transaction', 'error_message', Column(UnicodeText))
-        op.add_column('transaction', 'failure_count', Column(Integer))
+        op.add_column('transaction', Column('error_message', UnicodeText))
+        op.add_column('transaction', Column('failure_count', Integer))

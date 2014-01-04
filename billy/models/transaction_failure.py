@@ -10,26 +10,6 @@ class TransactionFailureModel(BaseTableModel):
 
     TABLE = tables.TransactionFailure
 
-    @decorate_offset_limit
-    def list_by_context(self, context):
-        """List transaction failures by a given context
-
-        """
-        Transaction = tables.Transaction
-        TransactionFailure = tables.TransactionFailure
-
-        if isinstance(context, Transaction):
-            query = (
-                self.session
-                .query(TransactionFailure)
-                .filter(TransactionFailure.transaction == context)
-            )
-        else:
-            raise ValueError('Unsupported context {}'.format(context))
-
-        query = query.order_by(TransactionFailure.created_at.desc())
-        return query
-
     def create(
         self, 
         transaction, 

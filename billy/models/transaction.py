@@ -304,10 +304,8 @@ class TransactionModel(BaseTableModel):
             raise
         except Exception, e:
             transaction.status = self.STATUS_RETRYING
-
             failure_model = self.factory.create_transaction_failure_model()
-
-            failure = failure_model.create(
+            failure_model.create(
                 transaction=transaction,
                 error_message=unicode(e),
                 # TODO: error number and code?

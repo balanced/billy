@@ -91,6 +91,60 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(transaction.appears_on_statement_as, 
                          subscription.appears_on_statement_as)
 
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    def test_create_subscription_with_charge_failure(self, charge_method):
+        error = RuntimeError('Oops!')
+        charge_method.side_effect = error
+
+        res = self.testapp.post(
+            '/v1/subscriptions',
+            dict(
+                customer_guid=self.customer.guid,
+                plan_guid=self.plan.guid,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        subscription = self.subscription_model.get(res.json['guid'])
+        self.assertEqual(len(subscription.transactions), 1)
+        transaction = subscription.transactions[0]
+        self.assertEqual(transaction.failure_count, 1)
+        self.assertEqual(transaction.failures[0].error_message, unicode(error))
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_RETRYING)
+
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    def test_create_subscription_with_charge_failure_exceed_limit(
+        self, 
+        charge_method,
+    ):
+        self.model_factory.settings['billy.transaction.maximum_retry'] = 3
+        error = RuntimeError('Oops!')
+        charge_method.side_effect = error
+
+        res = self.testapp.post(
+            '/v1/subscriptions',
+            dict(
+                customer_guid=self.customer.guid,
+                plan_guid=self.plan.guid,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        subscription = self.subscription_model.get(res.json['guid'])
+        transaction = subscription.transactions[0]
+
+        for i in range(2):
+            self.transaction_model.process_one(transaction)
+            self.assertEqual(transaction.failure_count, 2 + i)
+            self.assertEqual(transaction.status, 
+                             self.transaction_model.STATUS_RETRYING)
+
+        self.transaction_model.process_one(transaction)
+        self.assertEqual(transaction.failure_count, 4)
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_FAILED)
+
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.prepare_customer')
     def test_create_subscription_with_default_funding_instrument_uri(self, prepare_customer):
         amount = 5566

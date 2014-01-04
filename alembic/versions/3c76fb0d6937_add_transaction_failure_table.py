@@ -64,8 +64,8 @@ def upgrade():
         .from_select(
             ['guid', 'transaction_guid', 'error_message', 'created_at'], 
             select([
-                transaction.c.guid,
-                transaction.c.guid,
+                transaction.c.guid.label('TF_ID'),
+                transaction.c.guid.label('TX_ID'),
                 transaction.c.error_message, 
                 transaction.c.created_at, 
             ])

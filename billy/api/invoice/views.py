@@ -2,11 +2,7 @@ from __future__ import unicode_literals
 
 import transaction as db_transaction
 from pyramid.view import view_config
-from pyramid.view import view_defaults
-from pyramid.security import Allow
-from pyramid.security import Authenticated
 from pyramid.security import authenticated_userid
-from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.httpexceptions import HTTPConflict
@@ -16,6 +12,11 @@ from billy.models.invoice import DuplicateExternalIDError
 from billy.models.transaction import TransactionModel
 from billy.api.utils import validate_form
 from billy.api.utils import list_by_context
+from billy.api.resources import IndexResource
+from billy.api.resources import EntityResource
+from billy.api.views import IndexView
+from billy.api.views import EntityView
+from billy.api.views import api_view_defaults
 from .forms import InvoiceCreateForm
 from .forms import InvoiceUpdateForm
 
@@ -60,45 +61,20 @@ def parse_items(request, prefix, keywords):
     return [items[key] for key in keys]
 
 
-class InvoiceIndexResource(object):
-    __acl__ = [
-        #       principal      action
-        (Allow, Authenticated, 'view'),
-        (Allow, Authenticated, 'create'),
-    ]
-
-    def __init__(self, request):
-        self.request = request
-
-    def __getitem__(self, key):
-        model = self.request.model_factory.create_invoice_model()
-        invoice = model.get(key)
-        if invoice is None:
-            raise HTTPNotFound('No such invoice {}'.format(key))
-        return InvoiceResource(invoice)
+class InvoiceResource(EntityResource):
+    @property
+    def company(self):
+        return self.entity.customer.company
 
 
-class InvoiceResource(object):
-    def __init__(self, invoice):
-        self.invoice = invoice
-        # make sure only the owner company can access the invoice
-        company_principal = 'company:{}'.format(self.invoice.customer.company.guid)
-        self.__acl__ = [
-            #       principal          action
-            (Allow, company_principal, 'view'),
-        ]
+class InvoiceIndexResource(IndexResource):
+    MODEL_CLS = InvoiceModel
+    ENTITY_NAME = 'invoice'
+    ENTITY_RESOURCE = InvoiceResource
 
 
-@view_defaults(
-    route_name='invoice_index', 
-    context=InvoiceIndexResource, 
-    renderer='json',
-)
-class InvoiceIndexView(object):
-
-    def __init__(self, context, request):
-        self.context = context
-        self.request = request
+@api_view_defaults(context=InvoiceIndexResource)
+class InvoiceIndexView(IndexView):
 
     @view_config(request_method='GET', permission='view')
     def get(self):
@@ -175,26 +151,14 @@ class InvoiceIndexView(object):
         return invoice 
 
 
-@view_defaults(
-    route_name='invoice_index', 
-    context=InvoiceResource, 
-    renderer='json',
-)
-class InvoiceView(object):
-
-    def __init__(self, context, request):
-        self.context = context
-        self.request = request
-
-    @view_config(request_method='GET')
-    def get(self):
-        return self.context.invoice 
+@api_view_defaults(context=InvoiceResource)
+class InvoiceView(EntityView):
 
     @view_config(request_method='PUT')
     def put(self):
         request = self.request
 
-        invoice = self.context.invoice
+        invoice = self.context.entity
         form = validate_form(InvoiceUpdateForm, request)
         model = request.model_factory.create_invoice_model()
         tx_model = request.model_factory.create_transaction_model()
@@ -233,9 +197,5 @@ class InvoiceView(object):
         return list_by_context(
             self.request, 
             TransactionModel, 
-            self.context.invoice,
+            self.context.entity,
         )
-
-
-def invoice_index_root(request):
-    return InvoiceIndexResource(request)

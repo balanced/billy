@@ -2,55 +2,32 @@ from __future__ import unicode_literals
 
 import transaction as db_transaction
 from pyramid.view import view_config
-from pyramid.view import view_defaults
-from pyramid.security import Allow
-from pyramid.security import Authenticated
 from pyramid.security import NO_PERMISSION_REQUIRED
-from pyramid.httpexceptions import HTTPNotFound
 
+from billy.models.company import CompanyModel
 from billy.api.utils import validate_form
+from billy.api.resources import IndexResource
+from billy.api.resources import EntityResource
+from billy.api.views import IndexView
+from billy.api.views import EntityView
+from billy.api.views import api_view_defaults
 from .forms import CompanyCreateForm
 
 
-class CompanyIndexResource(object):
-    __acl__ = [
-        #       principal      action
-        (Allow, Authenticated, 'view'),
-        (Allow, Authenticated, 'create'),
-    ]
-
-    def __init__(self, request):
-        self.request = request
-
-    def __getitem__(self, key):
-        model = self.request.model_factory.create_company_model()
-        company = model.get(key)
-        if company is None:
-            raise HTTPNotFound('No such company {}'.format(key))
-        return CompanyResource(company)
+class CompanyResource(EntityResource):
+    @property
+    def company(self):
+        return self.entity
 
 
-class CompanyResource(object):
-    def __init__(self, company):
-        self.company = company
-        # make sure only the owner company can access the company
-        company_principal = 'company:{}'.format(self.company.guid)
-        self.__acl__ = [
-            #       principal          action
-            (Allow, company_principal, 'view'),
-        ]
+class CompanyIndexResource(IndexResource):
+    MODEL_CLS = CompanyModel
+    ENTITY_NAME = 'company'
+    ENTITY_RESOURCE = CompanyResource
 
 
-@view_defaults(
-    route_name='company_index', 
-    context=CompanyIndexResource, 
-    renderer='json',
-)
-class CompanyIndexView(object):
-
-    def __init__(self, context, request):
-        self.context = context
-        self.request = request
+@api_view_defaults(context=CompanyIndexResource)
+class CompanyIndexView(IndexView):
 
     @view_config(request_method='POST', permission=NO_PERMISSION_REQUIRED)
     def post(self):
@@ -65,23 +42,6 @@ class CompanyIndexView(object):
         return company
 
 
-@view_defaults(
-    route_name='company_index', 
-    context=CompanyResource, 
-    renderer='json',
-)
-class CustomerView(object):
-
-    def __init__(self, context, request):
-        self.context = context
-        self.request = request
-
-    @view_config(request_method='GET')
-    def get(self):
-        company = self.context.company
-        return company
-
-
-# TODO: replace this with a global root factory
-def company_index_root(request):
-    return CompanyIndexResource(request)
+@api_view_defaults(context=CompanyResource)
+class CompanyView(EntityView):
+    pass

@@ -2,11 +2,7 @@ from __future__ import unicode_literals
 
 import transaction as db_transaction
 from pyramid.view import view_config
-from pyramid.view import view_defaults
-from pyramid.security import Allow
-from pyramid.security import Authenticated
 from pyramid.security import authenticated_userid
-from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPBadRequest
 
 from billy.models.plan import PlanModel 
@@ -15,48 +11,28 @@ from billy.models.subscription import SubscriptionModel
 from billy.models.transaction import TransactionModel 
 from billy.api.utils import validate_form
 from billy.api.utils import list_by_context
+from billy.api.resources import IndexResource
+from billy.api.resources import EntityResource
+from billy.api.views import IndexView
+from billy.api.views import EntityView
+from billy.api.views import api_view_defaults
 from .forms import PlanCreateForm
 
 
-class PlanIndexResource(object):
-    __acl__ = [
-        #       principal      action
-        (Allow, Authenticated, 'view'),
-        (Allow, Authenticated, 'create'),
-    ]
-
-    def __init__(self, request):
-        self.request = request
-
-    def __getitem__(self, key):
-        model = self.request.model_factory.create_plan_model()
-        plan = model.get(key)
-        if plan is None:
-            raise HTTPNotFound('No such plan {}'.format(key))
-        return PlanResource(plan)
+class PlanResource(EntityResource):
+    @property
+    def company(self):
+        return self.entity.company
 
 
-class PlanResource(object):
-    def __init__(self, plan):
-        self.plan = plan
-        # make sure only the owner company can access the plan
-        company_principal = 'company:{}'.format(self.plan.company.guid)
-        self.__acl__ = [
-            #       principal          action
-            (Allow, company_principal, 'view'),
-        ]
+class PlanIndexResource(IndexResource):
+    MODEL_CLS = PlanModel
+    ENTITY_NAME = 'plan'
+    ENTITY_RESOURCE = PlanResource
 
 
-@view_defaults(
-    route_name='plan_index', 
-    context=PlanIndexResource, 
-    renderer='json',
-)
-class PlanIndexView(object):
-
-    def __init__(self, context, request):
-        self.context = context
-        self.request = request
+@api_view_defaults(context=PlanIndexResource)
+class PlanIndexView(IndexView):
 
     @view_config(request_method='GET', permission='view')
     def get(self):
@@ -104,25 +80,13 @@ class PlanIndexView(object):
         return plan 
 
 
-@view_defaults(
-    route_name='plan_index', 
-    context=PlanResource, 
-    renderer='json',
-)
-class PlanView(object):
-
-    def __init__(self, context, request):
-        self.context = context
-        self.request = request
-
-    @view_config(request_method='GET')
-    def get(self):
-        return self.context.plan
+@api_view_defaults(context=PlanResource)
+class PlanView(EntityView):
 
     @view_config(request_method='DELETE')
     def delete(self):
         model = self.request.model_factory.create_plan_model()
-        plan = self.context.plan
+        plan = self.context.entity
         if plan.deleted:
             return HTTPBadRequest('Plan {} was already deleted'.format(plan.guid))
         with db_transaction.manager:
@@ -134,22 +98,18 @@ class PlanView(object):
         """Get and return the list of customers unrder current plan
 
         """
-        return list_by_context(self.request, CustomerModel, self.context.plan)
+        return list_by_context(self.request, CustomerModel, self.context.entity)
 
     @view_config(name='subscriptions')
     def subscription_index(self):
         """Get and return the list of subscriptions unrder current plan
 
         """
-        return list_by_context(self.request, SubscriptionModel, self.context.plan)
+        return list_by_context(self.request, SubscriptionModel, self.context.entity)
 
     @view_config(name='transactions')
     def transaction_index(self):
         """Get and return the list of transactions unrder current plan
 
         """
-        return list_by_context(self.request, TransactionModel, self.context.plan)
-
-
-def plan_index_root(request):
-    return PlanIndexResource(request)
+        return list_by_context(self.request, TransactionModel, self.context.entity)

@@ -2,12 +2,8 @@ from __future__ import unicode_literals
 
 import transaction as db_transaction
 from pyramid.view import view_config
-from pyramid.view import view_defaults
 from pyramid.settings import asbool
-from pyramid.security import Allow
-from pyramid.security import Authenticated
 from pyramid.security import authenticated_userid
-from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPBadRequest
 
@@ -16,49 +12,29 @@ from billy.models.transaction import TransactionModel
 from billy.api.utils import validate_form
 from billy.api.utils import form_errors_to_bad_request
 from billy.api.utils import list_by_context
+from billy.api.resources import IndexResource
+from billy.api.resources import EntityResource
+from billy.api.views import IndexView
+from billy.api.views import EntityView
+from billy.api.views import api_view_defaults
 from .forms import SubscriptionCreateForm
 from .forms import SubscriptionCancelForm
 
 
-class SubscriptionIndexResource(object):
-    __acl__ = [
-        #       principal      action
-        (Allow, Authenticated, 'view'),
-        (Allow, Authenticated, 'create'),
-    ]
-
-    def __init__(self, request):
-        self.request = request
-
-    def __getitem__(self, key):
-        model = self.request.model_factory.create_subscription_model()
-        subscription = model.get(key)
-        if subscription is None:
-            raise HTTPNotFound('No such subscription {}'.format(key))
-        return SubscriptionResource(subscription)
+class SubscriptionResource(EntityResource):
+    @property
+    def company(self):
+        return self.entity.plan.company
 
 
-class SubscriptionResource(object):
-    def __init__(self, subscription):
-        self.subscription = subscription
-        # make sure only the owner company can access the subscription
-        company_principal = 'company:{}'.format(self.subscription.plan.company.guid)
-        self.__acl__ = [
-            #       principal          action
-            (Allow, company_principal, 'view'),
-        ]
+class SubscriptionIndexResource(IndexResource):
+    MODEL_CLS = SubscriptionModel
+    ENTITY_NAME = 'subscription'
+    ENTITY_RESOURCE = SubscriptionResource
 
 
-@view_defaults(
-    route_name='subscription_index', 
-    context=SubscriptionIndexResource, 
-    renderer='json',
-)
-class SubscriptionIndexView(object):
-
-    def __init__(self, context, request):
-        self.context = context
-        self.request = request
+@api_view_defaults(context=SubscriptionIndexResource)
+class SubscriptionIndexView(IndexView):
 
     @view_config(request_method='GET', permission='view')
     def get(self):
@@ -119,20 +95,8 @@ class SubscriptionIndexView(object):
         return subscription
 
 
-@view_defaults(
-    route_name='subscription_index', 
-    context=SubscriptionResource, 
-    renderer='json',
-)
-class SubscriptionView(object):
-
-    def __init__(self, context, request):
-        self.context = context
-        self.request = request
-
-    @view_config(request_method='GET')
-    def get(self):
-        return self.context.subscription
+@api_view_defaults(context=SubscriptionResource)
+class SubscriptionView(EntityView):
 
     @view_config(name='cancel', request_method='POST')
     def cancel(self):
@@ -141,7 +105,7 @@ class SubscriptionView(object):
         # we use another view with post method, maybe we should use a better 
         # approach later
         request = self.request
-        subscription = self.context.subscription
+        subscription = self.context.entity
         form = validate_form(SubscriptionCancelForm, request)
 
         prorated_refund = asbool(form.data.get('prorated_refund', False))
@@ -184,8 +148,4 @@ class SubscriptionView(object):
         """Get and return the list of transactions unrder current customer
 
         """
-        return list_by_context(self.request, TransactionModel, self.context.subscription)
-
-
-def subscription_index_root(request):
-    return SubscriptionIndexResource(request)
+        return list_by_context(self.request, TransactionModel, self.context.entity)

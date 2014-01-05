@@ -2,11 +2,7 @@ from __future__ import unicode_literals
 
 import transaction as db_transaction
 from pyramid.view import view_config
-from pyramid.view import view_defaults
-from pyramid.security import Allow
-from pyramid.security import Authenticated
 from pyramid.security import authenticated_userid
-from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPBadRequest
 
 from billy.models.customer import CustomerModel
@@ -15,48 +11,28 @@ from billy.models.subscription import SubscriptionModel
 from billy.models.transaction import TransactionModel
 from billy.api.utils import validate_form
 from billy.api.utils import list_by_context
+from billy.api.resources import IndexResource
+from billy.api.resources import EntityResource
+from billy.api.views import IndexView
+from billy.api.views import EntityView
+from billy.api.views import api_view_defaults
 from .forms import CustomerCreateForm
 
 
-class CustomerIndexResource(object):
-    __acl__ = [
-        #       principal      action
-        (Allow, Authenticated, 'view'),
-        (Allow, Authenticated, 'create'),
-    ]
-
-    def __init__(self, request):
-        self.request = request
-
-    def __getitem__(self, key):
-        model = self.request.model_factory.create_customer_model()
-        customer = model.get(key)
-        if customer is None:
-            raise HTTPNotFound('No such customer {}'.format(key))
-        return CustomerResource(customer)
+class CustomerResource(EntityResource):
+    @property
+    def company(self):
+        return self.entity.company
 
 
-class CustomerResource(object):
-    def __init__(self, customer):
-        self.customer = customer
-        # make sure only the owner company can access the customer
-        company_principal = 'company:{}'.format(self.customer.company.guid)
-        self.__acl__ = [
-            #       principal          action
-            (Allow, company_principal, 'view'),
-        ]
+class CustomerIndexResource(IndexResource):
+    MODEL_CLS = CustomerModel
+    ENTITY_NAME = 'customer'
+    ENTITY_RESOURCE = CustomerResource
 
 
-@view_defaults(
-    route_name='customer_index', 
-    context=CustomerIndexResource, 
-    renderer='json',
-)
-class CustomerIndexView(object):
-
-    def __init__(self, context, request):
-        self.context = context
-        self.request = request
+@api_view_defaults(context=CustomerIndexResource)
+class CustomerIndexView(IndexView):
 
     @view_config(request_method='GET', permission='view')
     def get(self):
@@ -83,25 +59,13 @@ class CustomerIndexView(object):
         return customer
 
 
-@view_defaults(
-    route_name='customer_index', 
-    context=CustomerResource, 
-    renderer='json',
-)
-class CustomerView(object):
-
-    def __init__(self, context, request):
-        self.context = context
-        self.request = request
-
-    @view_config(request_method='GET')
-    def get(self):
-        return self.context.customer
+@api_view_defaults(context=CustomerResource)
+class CustomerView(EntityView):
 
     @view_config(request_method='DELETE')
     def delete(self):
         model = self.request.model_factory.create_customer_model()
-        customer = self.context.customer
+        customer = self.context.entity
         if customer.deleted:
             return HTTPBadRequest('Customer {} was already deleted'
                                   .format(customer.guid))
@@ -114,7 +78,7 @@ class CustomerView(object):
         """Get and return the list of invoices unrder current customer
 
         """
-        customer = self.context.customer
+        customer = self.context.entity
         return list_by_context(self.request, InvoiceModel, customer)
 
     @view_config(name='subscriptions')
@@ -122,7 +86,7 @@ class CustomerView(object):
         """Get and return the list of subscriptions unrder current customer
 
         """
-        customer = self.context.customer
+        customer = self.context.entity
         return list_by_context(self.request, SubscriptionModel, customer)
 
     @view_config(name='transactions')
@@ -130,9 +94,5 @@ class CustomerView(object):
         """Get and return the list of transactions unrder current customer
 
         """
-        customer = self.context.customer
+        customer = self.context.entity
         return list_by_context(self.request, TransactionModel, customer)
-
-
-def customer_index_root(request):
-    return CustomerIndexResource(request)

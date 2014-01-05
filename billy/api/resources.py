@@ -50,12 +50,12 @@ class EntityResource(object):
         # make sure only the owner company can access the entity
         company_principal = 'company:{}'.format(self.company.guid)
         self.__acl__ = [
-            #       principal          action
+            #       principal, action
             (Allow, company_principal, 'view'),
             # Notice: denying Everyone principal makes sure we won't
             # allow user to access resource of other company via parent's
             # ACL
-            (Deny,  Everyone,          ALL_PERMISSIONS), 
+            (Deny, Everyone, ALL_PERMISSIONS), 
         ]
 
     @property

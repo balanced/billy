@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import transaction as db_transaction
 from pyramid.view import view_config
+from pyramid.view import view_defaults
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPBadRequest
@@ -31,101 +32,111 @@ def get_and_check_customer(request, company):
     return customer 
 
 
-@view_config(route_name='customer_list', 
-             request_method='GET', 
-             renderer='json')
-def customer_list_get(request):
-    """Get and return the list of customer
+class CustomerIndexResource(object):
 
-    """
-    company = auth_api_key(request)
-    return list_by_context(request, CustomerModel, company)
-
-
-@view_config(route_name='customer_invoice_list', 
-             request_method='GET', 
-             renderer='json')
-def customer_invoice_list_get(request):
-    """Get and return the list of invoices unrder given customer
-
-    """
-    company = auth_api_key(request)
-    customer = get_and_check_customer(request, company)
-    return list_by_context(request, InvoiceModel, customer)
-
-
-@view_config(route_name='customer_subscription_list', 
-             request_method='GET', 
-             renderer='json')
-def customer_subscription_list_get(request):
-    """Get and return the list of subscriptions unrder given customer
-
-    """
-    company = auth_api_key(request)
-    customer = get_and_check_customer(request, company)
-    return list_by_context(request, SubscriptionModel, customer)
-
-
-@view_config(route_name='customer_transaction_list', 
-             request_method='GET', 
-             renderer='json')
-def customer_transaction_list_get(request):
-    """Get and return the list of transactions unrder given customer
-
-    """
-    company = auth_api_key(request)
-    customer = get_and_check_customer(request, company)
-    return list_by_context(request, TransactionModel, customer)
-
-
-@view_config(route_name='customer_list', 
-             request_method='POST', 
-             renderer='json')
-def customer_list_post(request):
-    """Create a new customer 
-
-    """
-    company = auth_api_key(request)
-    form = validate_form(CustomerCreateForm, request)
+    def __init__(self, request):
+        self.request = request
     
-    processor_uri = form.data.get('processor_uri')
+    # TODO: set ACL here
 
-    # TODO: make sure user cannot create a customer to a deleted company
-
-    model = request.model_factory.create_customer_model()
-    with db_transaction.manager:
-        customer = model.create(
-            processor_uri=processor_uri,
-            company=company, 
-        )
-    return customer 
+    def __getitem__(self, key):
+        model = self.request.model_factory.create_customer_model()
+        #customer = get_and_check_customer(self.request, company)
+        customer = model.get(key)
+        if customer is None:
+            raise HTTPNotFound('No such customer {}'.format(key))
+        return CustomerResource(customer)
 
 
-@view_config(route_name='customer', 
-             request_method='GET', 
-             renderer='json')
-def customer_get(request):
-    """Get and return a customer 
-
-    """
-    company = auth_api_key(request)
-    customer = get_and_check_customer(request, company)
-    return customer 
+class CustomerResource(object):
+    def __init__(self, customer):
+        self.customer = customer
+    # TODO: set ACL here
 
 
-@view_config(route_name='customer', 
-             request_method='DELETE', 
-             renderer='json')
-def customer_delete(request):
-    """Delete and return customer
+@view_defaults(
+    route_name='customer_index', 
+    context=CustomerIndexResource, 
+    renderer='json',
+)
+class CustomerIndexView(object):
 
-    """
-    company = auth_api_key(request)
-    model = request.model_factory.create_customer_model()
-    customer = get_and_check_customer(request, company)
-    if customer.deleted:
-        return HTTPBadRequest('Customer {} was already deleted'
-                              .format(customer.guid))
-    with db_transaction.manager:
-        model.delete(customer)
-    return customer
+    def __init__(self, context, request):
+        self.context = context
+        self.request = request
+
+    @view_config(request_method='GET')
+    def get(self):
+        request = self.request
+        company = auth_api_key(request)
+        return list_by_context(request, CustomerModel, company)
+
+    @view_config(request_method='POST')
+    def post(self):
+        request = self.request
+        company = auth_api_key(request)
+        form = validate_form(CustomerCreateForm, request)
+        
+        processor_uri = form.data.get('processor_uri')
+
+        # TODO: make sure user cannot create a customer to a deleted company
+
+        model = request.model_factory.create_customer_model()
+        with db_transaction.manager:
+            customer = model.create(
+                processor_uri=processor_uri,
+                company=company, 
+            )
+        return customer
+
+
+@view_defaults(route_name='customer_index', context=CustomerResource, renderer='json')
+class CustomerView(object):
+
+    def __init__(self, context, request):
+        self.context = context
+        self.request = request
+
+    @view_config(request_method='GET')
+    def get(self):
+        customer = self.context.customer
+        return customer 
+
+    @view_config(request_method='DELETE')
+    def delete(self):
+        model = self.request.model_factory.create_customer_model()
+        customer = self.context.customer
+        if customer.deleted:
+            return HTTPBadRequest('Customer {} was already deleted'
+                                  .format(customer.guid))
+        with db_transaction.manager:
+            model.delete(customer)
+        return customer
+
+    @view_config(name='invoices')
+    def invoice_index(self):
+        """Get and return the list of invoices unrder current customer
+
+        """
+        customer = self.context.customer
+        return list_by_context(self.request, InvoiceModel, customer)
+
+    @view_config(name='subscriptions')
+    def subscription_index(self):
+        """Get and return the list of subscriptions unrder current customer
+
+        """
+        customer = self.context.customer
+        return list_by_context(self.request, SubscriptionModel, customer)
+
+    @view_config(name='transactions')
+    def transaction_index(self):
+        """Get and return the list of transactions unrder current customer
+
+        """
+        customer = self.context.customer
+        return list_by_context(self.request, TransactionModel, customer)
+
+
+def customer_index_root(request):
+    return CustomerIndexResource(request)

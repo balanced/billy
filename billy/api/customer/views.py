@@ -41,10 +41,14 @@ class CustomerIndexResource(object):
 
     def __getitem__(self, key):
         model = self.request.model_factory.create_customer_model()
+        company = auth_api_key(self.request)
         #customer = get_and_check_customer(self.request, company)
         customer = model.get(key)
         if customer is None:
             raise HTTPNotFound('No such customer {}'.format(key))
+        if customer.company != company:
+            raise HTTPForbidden('You have no permission to access customer {}'
+                                .format(key))
         return CustomerResource(customer)
 
 

@@ -5,6 +5,7 @@ from pyramid.view import view_config
 from pyramid.view import view_defaults
 from pyramid.security import Allow
 from pyramid.security import Authenticated
+from pyramid.security import NO_PERMISSION_REQUIRED
 from pyramid.httpexceptions import HTTPNotFound
 
 from billy.api.utils import validate_form
@@ -51,7 +52,7 @@ class CompanyIndexView(object):
         self.context = context
         self.request = request
 
-    @view_config(request_method='POST', permission='create')
+    @view_config(request_method='POST', permission=NO_PERMISSION_REQUIRED)
     def post(self):
         request = self.request
         form = validate_form(CompanyCreateForm, request)

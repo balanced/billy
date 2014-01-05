@@ -7,7 +7,6 @@ from pyramid.security import Allow
 from pyramid.security import Authenticated
 from pyramid.security import authenticated_userid
 from pyramid.httpexceptions import HTTPNotFound
-from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPBadRequest
 
 from billy.models.plan import PlanModel 

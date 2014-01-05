@@ -3,59 +3,48 @@ from __future__ import unicode_literals
 import transaction as db_transaction
 from pyramid.view import view_config
 from pyramid.view import view_defaults
+from pyramid.security import Allow
+from pyramid.security import Authenticated
+from pyramid.security import authenticated_userid
 from pyramid.httpexceptions import HTTPNotFound
-from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPBadRequest
 
 from billy.models.customer import CustomerModel
 from billy.models.invoice import InvoiceModel
 from billy.models.subscription import SubscriptionModel
 from billy.models.transaction import TransactionModel
-from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
 from billy.api.utils import list_by_context
 from .forms import CustomerCreateForm
 
 
-def get_and_check_customer(request, company):
-    """Get and check permission to access a customer
-
-    """
-    model = request.model_factory.create_customer_model()
-    guid = request.matchdict['customer_guid']
-    customer = model.get(guid)
-    if customer is None:
-        raise HTTPNotFound('No such customer {}'.format(guid))
-    if customer.company_guid != company.guid:
-        raise HTTPForbidden('You have no permission to access customer {}'
-                            .format(guid))
-    return customer 
-
-
 class CustomerIndexResource(object):
+    __acl__ = [
+        #       principal      action
+        (Allow, Authenticated, 'view'),
+        (Allow, Authenticated, 'create'),
+    ]
 
     def __init__(self, request):
         self.request = request
-    
-    # TODO: set ACL here
 
     def __getitem__(self, key):
         model = self.request.model_factory.create_customer_model()
-        company = auth_api_key(self.request)
-        #customer = get_and_check_customer(self.request, company)
         customer = model.get(key)
         if customer is None:
             raise HTTPNotFound('No such customer {}'.format(key))
-        if customer.company != company:
-            raise HTTPForbidden('You have no permission to access customer {}'
-                                .format(key))
         return CustomerResource(customer)
 
 
 class CustomerResource(object):
     def __init__(self, customer):
         self.customer = customer
-    # TODO: set ACL here
+        # make sure only the owner company can access the customer
+        company_principal = 'company:{}'.format(self.customer.company.guid)
+        self.__acl__ = [
+            #       principal          action
+            (Allow, company_principal, 'view'),
+        ]
 
 
 @view_defaults(
@@ -69,16 +58,16 @@ class CustomerIndexView(object):
         self.context = context
         self.request = request
 
-    @view_config(request_method='GET')
+    @view_config(request_method='GET', permission='view')
     def get(self):
         request = self.request
-        company = auth_api_key(request)
+        company = authenticated_userid(request)
         return list_by_context(request, CustomerModel, company)
 
-    @view_config(request_method='POST')
+    @view_config(request_method='POST', permission='create')
     def post(self):
         request = self.request
-        company = auth_api_key(request)
+        company = authenticated_userid(request)
         form = validate_form(CustomerCreateForm, request)
         
         processor_uri = form.data.get('processor_uri')
@@ -94,7 +83,11 @@ class CustomerIndexView(object):
         return customer
 
 
-@view_defaults(route_name='customer_index', context=CustomerResource, renderer='json')
+@view_defaults(
+    route_name='customer_index', 
+    context=CustomerResource, 
+    renderer='json',
+)
 class CustomerView(object):
 
     def __init__(self, context, request):
@@ -103,8 +96,7 @@ class CustomerView(object):
 
     @view_config(request_method='GET')
     def get(self):
-        customer = self.context.customer
-        return customer 
+        return self.context.customer
 
     @view_config(request_method='DELETE')
     def delete(self):

@@ -2,6 +2,10 @@ from __future__ import unicode_literals
 
 import transaction as db_transaction
 from pyramid.view import view_config
+from pyramid.view import view_defaults
+from pyramid.security import Allow
+from pyramid.security import Authenticated
+from pyramid.security import authenticated_userid
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPBadRequest
@@ -10,26 +14,10 @@ from pyramid.httpexceptions import HTTPConflict
 from billy.models.invoice import InvoiceModel
 from billy.models.invoice import DuplicateExternalIDError
 from billy.models.transaction import TransactionModel
-from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
 from billy.api.utils import list_by_context
 from .forms import InvoiceCreateForm
 from .forms import InvoiceUpdateForm
-
-
-def get_and_check_invoice(request, company):
-    """Get and check permission to access an invoice
-
-    """
-    model = request.model_factory.create_invoice_model()
-    guid = request.matchdict['invoice_guid']
-    invoice = model.get(guid)
-    if invoice is None:
-        raise HTTPNotFound('No such invoice {}'.format(guid))
-    if invoice.customer.company_guid != company.guid:
-        raise HTTPForbidden('You have no permission to access invoice {}'
-                            .format(guid))
-    return invoice 
 
 
 def parse_items(request, prefix, keywords):
@@ -72,148 +60,182 @@ def parse_items(request, prefix, keywords):
     return [items[key] for key in keys]
 
 
-@view_config(route_name='invoice_list', 
-             request_method='GET', 
-             renderer='json')
-def invoice_list_get(request):
-    """Get and return the list of invoice
+class InvoiceIndexResource(object):
+    __acl__ = [
+        #       principal      action
+        (Allow, Authenticated, 'view'),
+        (Allow, Authenticated, 'create'),
+    ]
 
-    """
-    company = auth_api_key(request)
-    return list_by_context(request, InvoiceModel, company)
+    def __init__(self, request):
+        self.request = request
 
-
-@view_config(route_name='invoice_transaction_list', 
-             request_method='GET', 
-             renderer='json')
-def invoice_transaction_list_get(request):
-    """Get and return the list of transactions under the given invoice
-
-    """
-    company = auth_api_key(request)
-    invoice = get_and_check_invoice(request, company)
-    return list_by_context(request, TransactionModel, invoice)
+    def __getitem__(self, key):
+        model = self.request.model_factory.create_invoice_model()
+        invoice = model.get(key)
+        if invoice is None:
+            raise HTTPNotFound('No such invoice {}'.format(key))
+        return InvoiceResource(invoice)
 
 
-@view_config(route_name='invoice_list', 
-             request_method='POST', 
-             renderer='json')
-def invoice_list_post(request):
-    """Create a new invoice 
+class InvoiceResource(object):
+    def __init__(self, invoice):
+        self.invoice = invoice
+        # make sure only the owner company can access the invoice
+        company_principal = 'company:{}'.format(self.invoice.customer.company.guid)
+        self.__acl__ = [
+            #       principal          action
+            (Allow, company_principal, 'view'),
+        ]
 
-    """
-    company = auth_api_key(request)
-    form = validate_form(InvoiceCreateForm, request)
-    model = request.model_factory.create_invoice_model()
-    customer_model = request.model_factory.create_customer_model()
-    tx_model = request.model_factory.create_transaction_model()
-    
-    customer_guid = form.data['customer_guid']
-    amount = form.data['amount']
-    funding_instrument_uri = form.data.get('funding_instrument_uri')
-    if not funding_instrument_uri:
-        funding_instrument_uri = None
-    title = form.data.get('title')
-    if not title:
-        title = None
-    external_id = form.data.get('external_id')
-    if not external_id:
-        external_id = None
-    appears_on_statement_as = form.data.get('appears_on_statement_as')
-    if not appears_on_statement_as:
-        appears_on_statement_as = None
-    items = parse_items(
-        request=request, 
-        prefix='item_', 
-        keywords=('type', 'name', 'total', 'amount', 'unit', 'quantity'),
-    )
-    if not items:
-        items = None
-    adjustments = parse_items(
-        request=request, 
-        prefix='adjustment_', 
-        keywords=('total', 'reason'),
-    )
-    if not adjustments:
-        adjustments = None
-    # TODO: what about negative effective amount?
 
-    customer = customer_model.get(customer_guid)
-    if customer.company != company:
-        return HTTPForbidden('Can only create an invoice for your own customer')
-    if customer.deleted:
-        return HTTPBadRequest('Cannot create an invoice for a deleted customer')
-    
-    try:
+@view_defaults(
+    route_name='invoice_index', 
+    context=InvoiceIndexResource, 
+    renderer='json',
+)
+class InvoiceIndexView(object):
+
+    def __init__(self, context, request):
+        self.context = context
+        self.request = request
+
+    @view_config(request_method='GET', permission='view')
+    def get(self):
+        request = self.request
+        company = authenticated_userid(request)
+        return list_by_context(request, InvoiceModel, company)
+
+    @view_config(request_method='POST', permission='create')
+    def post(self):
+        request = self.request
+
+        form = validate_form(InvoiceCreateForm, request)
+        model = request.model_factory.create_invoice_model()
+        customer_model = request.model_factory.create_customer_model()
+        tx_model = request.model_factory.create_transaction_model()
+        company = authenticated_userid(request)
+        
+        customer_guid = form.data['customer_guid']
+        amount = form.data['amount']
+        funding_instrument_uri = form.data.get('funding_instrument_uri')
+        if not funding_instrument_uri:
+            funding_instrument_uri = None
+        title = form.data.get('title')
+        if not title:
+            title = None
+        external_id = form.data.get('external_id')
+        if not external_id:
+            external_id = None
+        appears_on_statement_as = form.data.get('appears_on_statement_as')
+        if not appears_on_statement_as:
+            appears_on_statement_as = None
+        items = parse_items(
+            request=request, 
+            prefix='item_', 
+            keywords=('type', 'name', 'total', 'amount', 'unit', 'quantity'),
+        )
+        if not items:
+            items = None
+        adjustments = parse_items(
+            request=request, 
+            prefix='adjustment_', 
+            keywords=('total', 'reason'),
+        )
+        if not adjustments:
+            adjustments = None
+        # TODO: what about negative effective amount?
+
+        customer = customer_model.get(customer_guid)
+        if customer.company != company:
+            return HTTPForbidden('Can only create an invoice for your own customer')
+        if customer.deleted:
+            return HTTPBadRequest('Cannot create an invoice for a deleted customer')
+        
+        try:
+            with db_transaction.manager:
+                invoice = model.create(
+                    customer=customer,
+                    amount=amount,
+                    funding_instrument_uri=funding_instrument_uri,
+                    title=title,
+                    items=items,
+                    adjustments=adjustments,
+                    external_id=external_id,
+                    appears_on_statement_as=appears_on_statement_as,
+                )
+        except DuplicateExternalIDError, e:
+            return HTTPConflict(e.args[0])
+        # funding_instrument_uri is set, just process all transactions right away
+        if funding_instrument_uri is not None:
+            transactions = list(invoice.transactions)
+            if transactions:
+                with db_transaction.manager:
+                    tx_model.process_transactions(transactions)
+        return invoice 
+
+
+@view_defaults(
+    route_name='invoice_index', 
+    context=InvoiceResource, 
+    renderer='json',
+)
+class InvoiceView(object):
+
+    def __init__(self, context, request):
+        self.context = context
+        self.request = request
+
+    @view_config(request_method='GET')
+    def get(self):
+        return self.context.invoice 
+
+    @view_config(request_method='PUT')
+    def put(self):
+        request = self.request
+
+        invoice = self.context.invoice
+        form = validate_form(InvoiceUpdateForm, request)
+        model = request.model_factory.create_invoice_model()
+        tx_model = request.model_factory.create_transaction_model()
+
+        funding_instrument_uri = form.data.get('funding_instrument_uri')
+        title = form.data.get('title')
+        items = parse_items(
+            request=request, 
+            prefix='item_', 
+            keywords=('type', 'name', 'total', 'amount', 'unit', 'quantity'),
+        )
+
+        kwargs = {}
+        if title:
+            kwargs['title'] = title
+        if items:
+            kwargs['items'] = items
+
         with db_transaction.manager:
-            invoice = model.create(
-                customer=customer,
-                amount=amount,
-                funding_instrument_uri=funding_instrument_uri,
-                title=title,
-                items=items,
-                adjustments=adjustments,
-                external_id=external_id,
-                appears_on_statement_as=appears_on_statement_as,
-            )
-    except DuplicateExternalIDError, e:
-        return HTTPConflict(e.args[0])
-    # funding_instrument_uri is set, just process all transactions right away
-    if funding_instrument_uri is not None:
-        transactions = list(invoice.transactions)
-        if transactions:
+            model.update(invoice, **kwargs)
+            if funding_instrument_uri:
+                transactions = model.update_funding_instrument_uri(invoice, funding_instrument_uri)
+
+        # funding_instrument_uri is set, just process all transactions right away
+        if funding_instrument_uri and transactions:
             with db_transaction.manager:
                 tx_model.process_transactions(transactions)
-    return invoice 
+
+        return invoice 
+
+    @view_config(name='transactions')
+    def transaction_index(self):
+        """Get and return the list of transactions unrder current customer
+
+        """
+        return list_by_context(
+            self.request, 
+            TransactionModel, 
+            self.context.invoice,
+        )
 
 
-@view_config(route_name='invoice', 
-             request_method='GET', 
-             renderer='json')
-def invoice_get(request):
-    """Get and return an invoice 
-
-    """
-    company = auth_api_key(request)
-    invoice = get_and_check_invoice(request, company)
-    return invoice 
-
-
-@view_config(route_name='invoice', 
-             request_method='PUT', 
-             renderer='json')
-def invoice_put(request):
-    """Update an invoice
-
-    """
-    company = auth_api_key(request)
-    invoice = get_and_check_invoice(request, company)
-    form = validate_form(InvoiceUpdateForm, request)
-    model = request.model_factory.create_invoice_model()
-    tx_model = request.model_factory.create_transaction_model()
-
-    funding_instrument_uri = form.data.get('funding_instrument_uri')
-    title = form.data.get('title')
-    items = parse_items(
-        request=request, 
-        prefix='item_', 
-        keywords=('type', 'name', 'total', 'amount', 'unit', 'quantity'),
-    )
-
-    kwargs = {}
-    if title:
-        kwargs['title'] = title
-    if items:
-        kwargs['items'] = items
-
-    with db_transaction.manager:
-        model.update(invoice, **kwargs)
-        if funding_instrument_uri:
-            transactions = model.update_funding_instrument_uri(invoice, funding_instrument_uri)
-
-    # funding_instrument_uri is set, just process all transactions right away
-    if funding_instrument_uri and transactions:
-        with db_transaction.manager:
-            tx_model.process_transactions(transactions)
-
-    return invoice 
+def invoice_index_root(request):
+    return InvoiceIndexResource(request)

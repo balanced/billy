@@ -1,39 +1,82 @@
 from __future__ import unicode_literals
 
 from pyramid.view import view_config
+from pyramid.view import view_defaults
+from pyramid.security import Allow
+from pyramid.security import Authenticated
+from pyramid.security import authenticated_userid
 from pyramid.httpexceptions import HTTPNotFound
-from pyramid.httpexceptions import HTTPForbidden
 
 from billy.models.transaction import TransactionModel 
-from billy.api.auth import auth_api_key
 from billy.api.utils import list_by_context
 
 
-@view_config(route_name='transaction_list', 
-             request_method='GET', 
-             renderer='json')
-def transaction_list_get(request):
-    """Get and return transactions
+class TransactionIndexResource(object):
+    __acl__ = [
+        #       principal      action
+        (Allow, Authenticated, 'view'),
+        (Allow, Authenticated, 'create'),
+    ]
 
-    """
-    company = auth_api_key(request)
-    return list_by_context(request, TransactionModel, company)
+    def __init__(self, request):
+        self.request = request
+
+    def __getitem__(self, key):
+        model = self.request.model_factory.create_transaction_model()
+        transaction = model.get(key)
+        if transaction is None:
+            raise HTTPNotFound('No such transaction {}'.format(key))
+        return TransactionResource(transaction)
 
 
-@view_config(route_name='transaction', 
-             request_method='GET', 
-             renderer='json')
-def transaction_get(request):
-    """Get and return a transaction 
+class TransactionResource(object):
+    def __init__(self, transaction):
+        self.transaction = transaction 
+        # make sure only the owner company can access the customer
+        if self.transaction.transaction_cls == TransactionModel.CLS_SUBSCRIPTION:
+            company = self.transaction.subscription.plan.company
+        else:
+            company = self.transaction.invoice.customer.company
+        company_principal = 'company:{}'.format(company.guid)
+        self.__acl__ = [
+            #       principal          action
+            (Allow, company_principal, 'view'),
+        ]
 
-    """
-    company = auth_api_key(request)
-    model = request.model_factory.create_transaction_model()
-    guid = request.matchdict['transaction_guid']
-    transaction = model.get(guid)
-    if transaction is None:
-        return HTTPNotFound('No such transaction {}'.format(guid))
-    if transaction.subscription.customer.company_guid != company.guid:
-        return HTTPForbidden('You have no permission to access transaction {}'
-                             .format(guid))
-    return transaction 
+
+@view_defaults(
+    route_name='transaction_index', 
+    context=TransactionIndexResource, 
+    renderer='json',
+)
+class TransactionIndexView(object):
+
+    def __init__(self, context, request):
+        self.context = context
+        self.request = request
+
+    @view_config(request_method='GET', permission='view')
+    def get(self):
+        request = self.request
+        company = authenticated_userid(request)
+        return list_by_context(request, TransactionModel, company)
+
+
+@view_defaults(
+    route_name='transaction_index', 
+    context=TransactionResource, 
+    renderer='json',
+)
+class TransactionView(object):
+
+    def __init__(self, context, request):
+        self.context = context
+        self.request = request
+
+    @view_config(request_method='GET')
+    def get(self):
+        return self.context.transaction
+
+
+def transaction_index_root(request):
+    return TransactionIndexResource(request)

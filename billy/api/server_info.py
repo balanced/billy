@@ -1,13 +1,17 @@
 from __future__ import unicode_literals
 
 from pyramid.view import view_config
+from pyramid.security import NO_PERMISSION_REQUIRED
 
 from billy.utils.generic import get_git_rev
 
 
-@view_config(route_name='server_info', 
-             request_method='GET', 
-             renderer='json')
+@view_config(
+    route_name='server_info', 
+    request_method='GET', 
+    renderer='json',
+    permission=NO_PERMISSION_REQUIRED,
+)
 def server_info(request):
     """Get server information
 

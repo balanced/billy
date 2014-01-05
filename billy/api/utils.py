@@ -4,8 +4,6 @@ import re
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.path import DottedNameResolver
 
-from .auth import auth_api_key
-
 # the minimum amount in a transaction
 MINIMUM_AMOUNT = 50
 
@@ -78,7 +76,6 @@ def list_by_context(request, model_cls, context):
     """List records by a given context
 
     """
-    auth_api_key(request)
     model = model_cls(request.model_factory)
     offset = int(request.params.get('offset', 0))
     limit = int(request.params.get('limit', 20))

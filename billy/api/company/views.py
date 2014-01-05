@@ -2,44 +2,85 @@ from __future__ import unicode_literals
 
 import transaction as db_transaction
 from pyramid.view import view_config
+from pyramid.view import view_defaults
+from pyramid.security import Allow
+from pyramid.security import Authenticated
 from pyramid.httpexceptions import HTTPNotFound
-from pyramid.httpexceptions import HTTPForbidden
 
-from billy.api.auth import auth_api_key
 from billy.api.utils import validate_form
 from .forms import CompanyCreateForm
 
 
-@view_config(route_name='company_list', 
-             request_method='POST', 
-             renderer='json')
-def company_list_post(request):
-    """Create a new company
+class CompanyIndexResource(object):
+    __acl__ = [
+        #       principal      action
+        (Allow, Authenticated, 'view'),
+        (Allow, Authenticated, 'create'),
+    ]
 
-    """
-    form = validate_form(CompanyCreateForm, request)
-    processor_key = form.data['processor_key']
-    # TODO: validate API key in processor?
+    def __init__(self, request):
+        self.request = request
 
-    model = request.model_factory.create_company_model()
-    with db_transaction.manager:
-        company = model.create(processor_key=processor_key)
-    return company
+    def __getitem__(self, key):
+        model = self.request.model_factory.create_company_model()
+        company = model.get(key)
+        if company is None:
+            raise HTTPNotFound('No such company {}'.format(key))
+        return CompanyResource(company)
 
 
-@view_config(route_name='company', 
-             request_method='GET', 
-             renderer='json')
-def company_get(request):
-    """Get and return a company
+class CompanyResource(object):
+    def __init__(self, company):
+        self.company = company
+        # make sure only the owner company can access the company
+        company_principal = 'company:{}'.format(self.company.guid)
+        self.__acl__ = [
+            #       principal          action
+            (Allow, company_principal, 'view'),
+        ]
 
-    """
-    api_company = auth_api_key(request)
-    model = request.model_factory.create_company_model()
-    guid = request.matchdict['company_guid']
-    company = model.get(guid)
-    if company is None:
-        return HTTPNotFound('No such company {}'.format(guid))
-    if guid != api_company.guid:
-        return HTTPForbidden('You have no premission to access company {}'.format(guid))
-    return company
+
+@view_defaults(
+    route_name='company_index', 
+    context=CompanyIndexResource, 
+    renderer='json',
+)
+class CompanyIndexView(object):
+
+    def __init__(self, context, request):
+        self.context = context
+        self.request = request
+
+    @view_config(request_method='POST', permission='create')
+    def post(self):
+        request = self.request
+        form = validate_form(CompanyCreateForm, request)
+        processor_key = form.data['processor_key']
+        # TODO: validate API key in processor?
+
+        model = request.model_factory.create_company_model()
+        with db_transaction.manager:
+            company = model.create(processor_key=processor_key)
+        return company
+
+
+@view_defaults(
+    route_name='company_index', 
+    context=CompanyResource, 
+    renderer='json',
+)
+class CustomerView(object):
+
+    def __init__(self, context, request):
+        self.context = context
+        self.request = request
+
+    @view_config(request_method='GET')
+    def get(self):
+        company = self.context.company
+        return company
+
+
+# TODO: replace this with a global root factory
+def company_index_root(request):
+    return CompanyIndexResource(request)

@@ -8,6 +8,8 @@ import textwrap
 import sqlite3
 import StringIO
 
+from billy.scripts import initializedb
+
 
 class TestInitializedb(unittest.TestCase):
 
@@ -18,7 +20,6 @@ class TestInitializedb(unittest.TestCase):
         shutil.rmtree(self.temp_dir)
 
     def test_usage(self):
-        from billy.scripts import initializedb
 
         filename = '/path/to/initializedb'
 
@@ -37,7 +38,6 @@ class TestInitializedb(unittest.TestCase):
         self.assertMultiLineEqual(usage_out.getvalue(), expected)
 
     def test_main(self):
-        from billy.scripts import initializedb
         cfg_path = os.path.join(self.temp_dir, 'config.ini')
         with open(cfg_path, 'wt') as f:
             f.write(textwrap.dedent("""\
@@ -85,6 +85,12 @@ class TestInitializedb(unittest.TestCase):
             'plan',
             'subscription',
             'transaction',
+            'transaction_failure',
+            'subscription_transaction',
+            'invoice_transaction',
+            'invoice',
+            'item',
+            'adjustment',
             'alembic_version',
         ]))
 

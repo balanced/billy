@@ -13,6 +13,8 @@ from billy.models import tables
 from billy.models.customer import CustomerModel
 from billy.models.plan import PlanModel
 from billy.api.utils import RecordExistValidator
+from billy.api.utils import STATEMENT_REXP 
+from billy.api.utils import MINIMUM_AMOUNT
 
 
 class ISO8601Field(Field):
@@ -73,13 +75,17 @@ class SubscriptionCreateForm(Form):
         validators.Required(),
         RecordExistValidator(PlanModel),
     ])
-    payment_uri = TextField('Payment URI', [
+    funding_instrument_uri = TextField('Funding instrument URI', [
         validators.Optional(),
     ])
     amount = IntegerField('Amount', [
         validators.Optional(),
-        # TODO: what is the minimum amount limitation we have?
-        validators.NumberRange(min=1)
+        validators.NumberRange(min=MINIMUM_AMOUNT)
+    ])
+    appears_on_statement_as = TextField('Appears on statement as', [
+        validators.Optional(),
+        validators.Regexp(STATEMENT_REXP),
+        validators.Length(max=18),
     ])
     started_at = ISO8601Field('Started at datetime', [
         validators.Optional(),
@@ -94,6 +100,10 @@ class SubscriptionCancelForm(Form):
     refund_amount = IntegerField('Refund amount', [
         validators.Optional(),
         RefundAmountConflict(),
-        # TODO: what is the minimum amount limitation we have?
-        validators.NumberRange(min=1),
+        validators.NumberRange(min=MINIMUM_AMOUNT),
+    ])
+    appears_on_statement_as = TextField('Appears on statement as', [
+        validators.Optional(),
+        validators.Regexp(STATEMENT_REXP),
+        validators.Length(max=18),
     ])

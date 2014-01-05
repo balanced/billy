@@ -20,8 +20,8 @@ def setup_database(global_config, **settings):
   
     if 'session' not in settings:
         settings['session'] = scoped_session(sessionmaker(
-            extension=ZopeTransactionExtension(),
-            bind=settings['engine']
+            extension=ZopeTransactionExtension(keep_session=True),
+            bind=settings['engine'],
         ))
 
     tables.set_now_func(datetime.datetime.utcnow)

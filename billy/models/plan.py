@@ -2,11 +2,11 @@ from __future__ import unicode_literals
 
 from billy.models import tables
 from billy.models.base import BaseTableModel
-from billy.models.base import ListByCompanyMixin
+from billy.models.base import decorate_offset_limit
 from billy.utils.generic import make_guid
 
 
-class PlanModel(BaseTableModel, ListByCompanyMixin):
+class PlanModel(BaseTableModel):
 
     TABLE = tables.Plan
 
@@ -36,9 +36,26 @@ class PlanModel(BaseTableModel, ListByCompanyMixin):
         TYPE_PAYOUT, 
     ]
 
+    @decorate_offset_limit
+    def list_by_context(self, context):
+        """List plan by a given context
+
+        """
+        Company = tables.Company
+        Plan = tables.Plan
+
+        query = self.session.query(Plan)
+        if isinstance(context, Company):
+            query = query.filter(Plan.company == context)
+        else:
+            raise ValueError('Unsupported context {}'.format(context))
+
+        query = query.order_by(Plan.created_at.desc())
+        return query
+
     def create(
         self, 
-        company_guid, 
+        company, 
         plan_type, 
         amount, 
         frequency, 
@@ -59,7 +76,7 @@ class PlanModel(BaseTableModel, ListByCompanyMixin):
         now = tables.now_func()
         plan = tables.Plan(
             guid='PL' + make_guid(),
-            company_guid=company_guid,
+            company=company,
             plan_type=plan_type,
             amount=amount, 
             frequency=frequency, 
@@ -72,13 +89,12 @@ class PlanModel(BaseTableModel, ListByCompanyMixin):
         )
         self.session.add(plan)
         self.session.flush()
-        return plan.guid
+        return plan
 
-    def update(self, guid, **kwargs):
+    def update(self, plan, **kwargs):
         """Update a plan
 
         """
-        plan = self.get(guid, raise_error=True)
         now = tables.now_func()
         plan.updated_at = now
         for key in ['name', 'external_id', 'description']:
@@ -88,14 +104,11 @@ class PlanModel(BaseTableModel, ListByCompanyMixin):
             setattr(plan, key, value)
         if kwargs:
             raise TypeError('Unknown attributes {} to update'.format(tuple(kwargs.keys())))
-        self.session.add(plan)
         self.session.flush()
 
-    def delete(self, guid):
+    def delete(self, plan):
         """Delete a plan
 
         """
-        plan = self.get(guid, raise_error=True)
         plan.deleted = True
-        self.session.add(plan)
         self.session.flush()

@@ -3,13 +3,14 @@ import base64
 
 from webtest.app import TestRequest
 
+from billy.api.auth import get_remote_user
+from billy.api.auth import basic_auth_tween_factory
 from billy.tests.functional.helper import ViewTestCase
 
 
 class TestAuth(ViewTestCase):
 
     def make_one(self):
-        from billy.api.auth import get_remote_user
         return get_remote_user
 
     def test_get_remote(self):
@@ -57,8 +58,6 @@ class TestAuth(ViewTestCase):
         self.assertEqual(user, None)
 
     def test_basic_auth_tween(self):
-        from billy.api.auth import basic_auth_tween_factory
-
         encoded = base64.b64encode('USERNAME:PASSWORD')
         auth = 'basic {}'.format(encoded)
         request = TestRequest(dict(HTTP_AUTHORIZATION=auth))

@@ -1,38 +1,47 @@
 from __future__ import unicode_literals
 
 from pyramid.view import view_config
-from pyramid.httpexceptions import HTTPNotFound
-from pyramid.httpexceptions import HTTPForbidden
+from pyramid.security import authenticated_userid
 
 from billy.models.transaction import TransactionModel 
-from billy.api.auth import auth_api_key
-from billy.api.utils import list_by_company_guid
+from billy.api.utils import list_by_context
+from billy.api.resources import IndexResource
+from billy.api.resources import EntityResource
+from billy.api.views import IndexView
+from billy.api.views import EntityView
+from billy.api.views import api_view_defaults
 
 
-@view_config(route_name='transaction_list', 
-             request_method='GET', 
-             renderer='json')
-def transaction_list_get(request):
-    """Get and return transactions
+class TransactionResource(EntityResource):
+    @property
+    def company(self):
+        # make sure only the owner company can access the customer
+        if self.entity.transaction_cls == TransactionModel.CLS_SUBSCRIPTION:
+            company = self.entity.subscription.plan.company
+        else:
+            company = self.entity.invoice.customer.company
+        return company
 
-    """
-    return list_by_company_guid(request, TransactionModel)
+
+class TransactionIndexResource(IndexResource):
+    MODEL_CLS = TransactionModel
+    ENTITY_NAME = 'transaction'
+    ENTITY_RESOURCE = TransactionResource
 
 
-@view_config(route_name='transaction', 
-             request_method='GET', 
-             renderer='json')
-def transaction_get(request):
-    """Get and return a transaction 
+@api_view_defaults(context=TransactionIndexResource)
+class TransactionIndexView(IndexView):
 
-    """
-    company = auth_api_key(request)
-    model = TransactionModel(request.session)
-    guid = request.matchdict['transaction_guid']
-    transaction = model.get(guid)
-    if transaction is None:
-        return HTTPNotFound('No such transaction {}'.format(guid))
-    if transaction.subscription.customer.company_guid != company.guid:
-        return HTTPForbidden('You have no permission to access transaction {}'
-                             .format(guid))
-    return transaction 
+    @view_config(request_method='GET', permission='view')
+    def get(self):
+        request = self.request
+        company = authenticated_userid(request)
+        return list_by_context(request, TransactionModel, company)
+
+
+@api_view_defaults(context=TransactionResource)
+class TransactionView(EntityView):
+
+    @view_config(request_method='GET')
+    def get(self):
+        return self.context.entity

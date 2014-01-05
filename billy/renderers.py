@@ -17,11 +17,57 @@ def company_adapter(company, request):
 def customer_adapter(customer, request):
     return dict(
         guid=customer.guid,
-        external_id=customer.external_id, 
+        processor_uri=customer.processor_uri, 
         created_at=customer.created_at.isoformat(),
         updated_at=customer.updated_at.isoformat(),
         company_guid=customer.company_guid, 
         deleted=customer.deleted, 
+    )
+
+
+def invoice_adapter(invoice, request):
+    from billy.models.invoice import InvoiceModel
+    items = []
+    for item in invoice.items:
+        items.append(dict(
+            name=item.name,
+            total=item.total,
+            type=item.type,
+            quantity=item.quantity,
+            amount=item.amount,
+            unit=item.unit,
+        ))
+    adjustments = []
+    for adjustment in invoice.adjustments:
+        adjustments.append(dict(
+            total=adjustment.total,
+            reason=adjustment.reason,
+        ))
+    status_map = {
+        InvoiceModel.STATUS_INIT: 'init',
+        InvoiceModel.STATUS_PROCESSING: 'processing',
+        InvoiceModel.STATUS_SETTLED: 'settled',
+        InvoiceModel.STATUS_CANCELED: 'canceled',
+        InvoiceModel.STATUS_PROCESS_FAILED: 'process_failed',
+        InvoiceModel.STATUS_REFUNDING: 'refunding',
+        InvoiceModel.STATUS_REFUNDED: 'refunded',
+        InvoiceModel.STATUS_REFUND_FAILED: 'refund_failed',
+    }
+    status = status_map[invoice.status]
+    return dict(
+        guid=invoice.guid,
+        status=status,
+        created_at=invoice.created_at.isoformat(),
+        updated_at=invoice.updated_at.isoformat(),
+        customer_guid=invoice.customer_guid, 
+        amount=invoice.amount, 
+        total_adjustment_amount=invoice.total_adjustment_amount, 
+        title=invoice.title, 
+        external_id=invoice.external_id, 
+        appears_on_statement_as=invoice.appears_on_statement_as, 
+        funding_instrument_uri=invoice.funding_instrument_uri, 
+        items=items,
+        adjustments=adjustments,
     )
 
 
@@ -60,7 +106,9 @@ def subscription_adapter(subscription, request):
     return dict(
         guid=subscription.guid, 
         amount=subscription.amount,
-        payment_uri=subscription.payment_uri,
+        effective_amount=subscription.effective_amount,
+        funding_instrument_uri=subscription.funding_instrument_uri,
+        appears_on_statement_as=subscription.appears_on_statement_as,
         period=subscription.period,
         canceled=subscription.canceled,
         next_transaction_at=subscription.next_transaction_at.isoformat(),
@@ -91,27 +139,64 @@ def transaction_adapter(transaction, request):
     }
     status = status_map[transaction.status]
 
+    cls_map = {
+        TransactionModel.CLS_SUBSCRIPTION: 'subscription',
+        TransactionModel.CLS_INVOICE: 'invoice',
+    }
+    transaction_cls = cls_map[transaction.transaction_cls]
+
+    if transaction.transaction_cls == TransactionModel.CLS_SUBSCRIPTION:
+        extra_args = dict(subscription_guid=transaction.subscription_guid)
+    elif transaction.transaction_cls == TransactionModel.CLS_INVOICE:
+        extra_args = dict(invoice_guid=transaction.invoice_guid)
+
+    serialized_failures = [
+        transaction_failure_adapter(f, request) 
+        for f in transaction.failures
+    ]
     return dict(
         guid=transaction.guid, 
         transaction_type=transaction_type,
+        transaction_cls=transaction_cls,
         status=status,
         amount=transaction.amount,
-        payment_uri=transaction.payment_uri,
-        external_id=transaction.external_id,
+        funding_instrument_uri=transaction.funding_instrument_uri,
+        processor_uri=transaction.processor_uri,
+        appears_on_statement_as=transaction.appears_on_statement_as,
         failure_count=transaction.failure_count,
-        error_message=transaction.error_message,
+        failures=serialized_failures,
         created_at=transaction.created_at.isoformat(),
         updated_at=transaction.updated_at.isoformat(),
         scheduled_at=transaction.scheduled_at.isoformat(),
-        subscription_guid=transaction.subscription_guid,
+        **extra_args
+    )
+
+
+def transaction_failure_adapter(transaction_failure, request):
+    return dict(
+        guid=transaction_failure.guid,
+        error_message=transaction_failure.error_message,
+        error_number=transaction_failure.error_number,
+        error_code=transaction_failure.error_code,
+        created_at=transaction_failure.created_at.isoformat(),
     )
 
 
 def includeme(config):
-    json_renderer = JSON()
+    settings = config.registry.settings
+    kwargs = {}
+    cfg_key = 'api.json.pretty_print'
+    pretty_print = settings.get(cfg_key, True)    
+    if pretty_print:
+        kwargs = dict(sort_keys=True, indent=4, separators=(',', ': '))
+
+    json_renderer = JSON(**kwargs)
     json_renderer.add_adapter(tables.Company, company_adapter)
     json_renderer.add_adapter(tables.Customer, customer_adapter)
+    json_renderer.add_adapter(tables.Invoice, invoice_adapter)
     json_renderer.add_adapter(tables.Plan, plan_adapter)
     json_renderer.add_adapter(tables.Subscription, subscription_adapter)
     json_renderer.add_adapter(tables.Transaction, transaction_adapter)
+    json_renderer.add_adapter(tables.TransactionFailure, 
+                              transaction_failure_adapter)
     config.add_renderer('json', json_renderer)

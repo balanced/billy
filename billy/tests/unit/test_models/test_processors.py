@@ -2,18 +2,21 @@ from __future__ import unicode_literals
 import unittest
 import datetime
 
+import mock
+import balanced
 import transaction as db_transaction
-from flexmock import flexmock
 from freezegun import freeze_time
 
+from billy.models.processors.base import PaymentProcessor
 from billy.tests.unit.helper import ModelTestCase
 
 
 class TestPaymentProcessorModel(unittest.TestCase):
 
     def test_base_processor(self):
-        from billy.models.processors.base import PaymentProcessor
         processor = PaymentProcessor()
+        with self.assertRaises(NotImplementedError):
+            processor.validate_customer(None)
         with self.assertRaises(NotImplementedError):
             processor.create_customer(None)
         with self.assertRaises(NotImplementedError):
@@ -30,304 +33,199 @@ class TestPaymentProcessorModel(unittest.TestCase):
 class TestBalancedProcessorModel(ModelTestCase):
 
     def setUp(self):
-        from billy.models.company import CompanyModel
-        from billy.models.customer import CustomerModel
-        from billy.models.plan import PlanModel
-        from billy.models.subscription import SubscriptionModel
-        from billy.models.transaction import TransactionModel
         super(TestBalancedProcessorModel, self).setUp()
         # build the basic scenario for transaction model
-        self.company_model = CompanyModel(self.session)
-        self.customer_model = CustomerModel(self.session)
-        self.plan_model = PlanModel(self.session)
-        self.subscription_model = SubscriptionModel(self.session)
-        self.transaction_model = TransactionModel(self.session)
         with db_transaction.manager:
-            self.company_guid = self.company_model.create('my_secret_key')
-            self.plan_guid = self.plan_model.create(
-                company_guid=self.company_guid,
+            self.company = self.company_model.create('my_secret_key')
+            self.plan = self.plan_model.create(
+                company=self.company,
                 plan_type=self.plan_model.TYPE_CHARGE,
                 amount=10,
                 frequency=self.plan_model.FREQ_MONTHLY,
             )
-            self.customer_guid = self.customer_model.create(
-                company_guid=self.company_guid,
+            self.customer = self.customer_model.create(
+                company=self.company,
+                processor_uri='MOCK_BALANCED_CUSTOMER_URI',
             )
-            self.subscription_guid = self.subscription_model.create(
-                customer_guid=self.customer_guid,
-                plan_guid=self.plan_guid,
-                payment_uri='/v1/credit_card/tester',
+            self.subscription = self.subscription_model.create(
+                customer=self.customer,
+                plan=self.plan,
+                funding_instrument_uri='/v1/credit_card/tester',
+            )
+            self.invoice = self.invoice_model.create(
+                customer=self.customer,
+                amount=100,
             )
 
     def make_one(self, *args, **kwargs):
         from billy.models.processors.balanced_payments import BalancedProcessor
         return BalancedProcessor(*args, **kwargs)
 
-    def test_create_customer(self):
-        import balanced
+    def test_validate_customer(self):
+        # mock class
+        BalancedCustomer = mock.Mock()
+        BalancedCustomer.find.return_value = mock.Mock(uri='MOCK_CUSTOMER_URI')
 
-        customer = self.customer_model.get(self.customer_guid)
+        processor = self.make_one(customer_cls=BalancedCustomer)
+        result = processor.validate_customer('MOCK_CUSTOMER_URI')
+        self.assertTrue(result)
+
+        BalancedCustomer.find.assert_called_once_with('MOCK_CUSTOMER_URI')
+
+    @mock.patch('balanced.configure')
+    def test_create_customer(self, configure_method):
+        self.customer.processor_uri = None
+
+        # mock instance
+        balanced_customer = mock.Mock()
+        balanced_customer.save.return_value = mock.Mock(uri='MOCK_CUSTOMER_URI')
+        # mock class
+        BalancedCustomer = mock.Mock()
+        BalancedCustomer.return_value = balanced_customer
+
+        processor = self.make_one(customer_cls=BalancedCustomer)
+        customer_id = processor.create_customer(self.customer)
+        self.assertEqual(customer_id, 'MOCK_CUSTOMER_URI')
 
         # make sure API key is set correctly
-        (
-            flexmock(balanced)
-            .should_receive('configure')
-            .with_args('my_secret_key')
-            .once()
-        )
+        configure_method.assert_called_once_with('my_secret_key')
+        # make sure the customer is created correctly
+        BalancedCustomer.assert_called_once_with(**{
+            'meta.billy_customer_guid': self.customer.guid,
+        })
+        balanced_customer.save.assert_called_once_with()
 
-        # mock balanced customer instance
-        mock_balanced_customer = (
-            flexmock(uri='MOCK_BALANCED_CUSTOMER_URI')
-            .should_receive('save')
-            .replace_with(lambda: mock_balanced_customer)
-            .once()
-            .mock()
-        )
-
-        class BalancedCustomer(object):
-            pass
-        flexmock(BalancedCustomer).new_instances(mock_balanced_customer) 
+    @mock.patch('balanced.configure')
+    def test_prepare_customer_with_card(self, configure_method):
+        # mock instance
+        balanced_customer = mock.Mock()
+        # mock class
+        BalancedCustomer = mock.Mock()
+        BalancedCustomer.find.return_value = balanced_customer
 
         processor = self.make_one(customer_cls=BalancedCustomer)
-        customer_id = processor.create_customer(customer)
-        self.assertEqual(customer_id, 'MOCK_BALANCED_CUSTOMER_URI')
-
-    def test_prepare_customer_with_card(self):
-        import balanced
-
-        with db_transaction.manager:
-            self.customer_model.update(
-                guid=self.customer_guid,
-                external_id='MOCK_BALANCED_CUSTOMER_URI',
-            )
-        customer = self.customer_model.get(self.customer_guid)
-
+        processor.prepare_customer(self.customer, '/v1/cards/my_card')
         # make sure API key is set correctly
-        (
-            flexmock(balanced)
-            .should_receive('configure')
-            .with_args('my_secret_key')
-            .once()
-        )
+        configure_method.assert_called_once_with('my_secret_key')
+        # make sure the customer find method is called
+        BalancedCustomer.find.assert_called_once_with(self.customer.processor_uri)
+        # make sure card is added correctly
+        balanced_customer.add_card.assert_called_once_with('/v1/cards/my_card')
 
-        # mock balanced.Customer instance
-        mock_balanced_customer = (
-            flexmock()
-            .should_receive('add_card')
-            .with_args('/v1/cards/my_card')
-            .once()
-            .mock()
-        )
-
-        # mock balanced.Customer class
-        class BalancedCustomer(object): 
-            def find(self, uri):
-                pass
-        (
-            flexmock(BalancedCustomer)
-            .should_receive('find')
-            .with_args('MOCK_BALANCED_CUSTOMER_URI')
-            .replace_with(lambda _: mock_balanced_customer)
-            .once()
-        )
+    @mock.patch('balanced.configure')
+    def test_prepare_customer_with_bank_account(self, configure_method):
+        # mock instance
+        balanced_customer = mock.Mock()
+        # mock class
+        BalancedCustomer = mock.Mock()
+        BalancedCustomer.find.return_value = balanced_customer
 
         processor = self.make_one(customer_cls=BalancedCustomer)
-        processor.prepare_customer(customer, '/v1/cards/my_card')
-
-    def test_prepare_customer_with_bank_account(self):
-        import balanced
-
-        with db_transaction.manager:
-            self.customer_model.update(
-                guid=self.customer_guid,
-                external_id='MOCK_BALANCED_CUSTOMER_URI',
-            )
-        customer = self.customer_model.get(self.customer_guid)
-
+        processor.prepare_customer(
+            self.customer, 
+            '/v1/bank_accounts/my_account'
+        )
         # make sure API key is set correctly
-        (
-            flexmock(balanced)
-            .should_receive('configure')
-            .with_args('my_secret_key')
-            .once()
+        configure_method.assert_called_once_with('my_secret_key')
+        # make sure the customer find method is called
+        BalancedCustomer.find.assert_called_once_with(self.customer.processor_uri)
+        # make sure card is added correctly
+        balanced_customer.add_bank_account.assert_called_once_with(
+            '/v1/bank_accounts/my_account',
         )
 
-        # mock balanced.Customer instance
-        mock_balanced_customer = (
-            flexmock()
-            .should_receive('add_bank_account')
-            .with_args('/v1/bank_accounts/my_account')
-            .once()
-            .mock()
-        )
-
-        # mock balanced.Customer class
-        class BalancedCustomer(object): 
-            def find(self, uri):
-                pass
-        (
-            flexmock(BalancedCustomer)
-            .should_receive('find')
-            .with_args('MOCK_BALANCED_CUSTOMER_URI')
-            .replace_with(lambda _: mock_balanced_customer)
-            .once()
-        )
+    def test_prepare_customer_with_none_funding_instrument_uri(self):
+        # mock instance
+        balanced_customer = mock.Mock()
+        # mock class
+        BalancedCustomer = mock.Mock()
+        BalancedCustomer.find.return_value = balanced_customer
 
         processor = self.make_one(customer_cls=BalancedCustomer)
-        processor.prepare_customer(customer, '/v1/bank_accounts/my_account')
+        processor.prepare_customer(self.customer, None)
 
-    def test_prepare_customer_with_none_payment_uri(self):
-        with db_transaction.manager:
-            self.customer_model.update(
-                guid=self.customer_guid,
-                external_id='MOCK_BALANCED_CUSTOMER_URI',
-            )
-        customer = self.customer_model.get(self.customer_guid)
+        # make sure add_card and add_bank_account will not be called
+        self.assertFalse(balanced_customer.add_card.called, 0)
+        self.assertFalse(balanced_customer.add_bank_account.called, 0)
 
-        # mock balanced.Customer instance
-        mock_balanced_customer = (
-            flexmock()
-            .should_receive('add_bank_account')
-            .never()
-            .mock()
-        )
-
-        # mock balanced.Customer class
-        class BalancedCustomer(object): 
-            def find(self, uri):
-                pass
-        (
-            flexmock(BalancedCustomer)
-            .should_receive('find')
-            .with_args('MOCK_BALANCED_CUSTOMER_URI')
-            .replace_with(lambda _: mock_balanced_customer)
-            .never()
-        )
-
-        processor = self.make_one(customer_cls=BalancedCustomer)
-        processor.prepare_customer(customer, None)
-
-    def test_prepare_customer_with_bad_payment_uri(self):
-        with db_transaction.manager:
-            self.customer_model.update(
-                guid=self.customer_guid,
-                external_id='MOCK_BALANCED_CUSTOMER_URI',
-            )
-        customer = self.customer_model.get(self.customer_guid)
-
-        # mock balanced.Customer instance
-        mock_balanced_customer = flexmock()
-
-        # mock balanced.Customer class
-        class BalancedCustomer(object): 
-            def find(self, uri):
-                pass
-        (
-            flexmock(BalancedCustomer)
-            .should_receive('find')
-            .with_args('MOCK_BALANCED_CUSTOMER_URI')
-            .replace_with(lambda _: mock_balanced_customer)
-            .once()
-        )
+    def test_prepare_customer_with_bad_funding_instrument_uri(self):
+        # mock instance
+        balanced_customer = mock.Mock()
+        # mock class
+        BalancedCustomer = mock.Mock()
+        BalancedCustomer.find.return_value = balanced_customer
 
         processor = self.make_one(customer_cls=BalancedCustomer)
         with self.assertRaises(ValueError):
-            processor.prepare_customer(customer, '/v1/bitcoin/12345')
+            processor.prepare_customer(self.customer, '/v1/bitcoin/12345')
 
+    @mock.patch('balanced.configure')
     def _test_operation(
         self, 
+        configure_method,
         cls_name, 
+        transaction_cls,
         processor_method_name, 
         api_method_name,
         extra_api_kwargs,
     ):
-        import balanced
-
         tx_model = self.transaction_model
         with db_transaction.manager:
-            guid = tx_model.create(
-                subscription_guid=self.subscription_guid,
-                transaction_type=tx_model.TYPE_CHARGE,
-                amount=10,
-                payment_uri='/v1/credit_card/tester',
-                scheduled_at=datetime.datetime.utcnow(),
-            )
-            transaction = tx_model.get(guid)
+            if transaction_cls == tx_model.CLS_SUBSCRIPTION:
+                transaction = tx_model.create(
+                    subscription=self.subscription,
+                    transaction_cls=tx_model.CLS_SUBSCRIPTION,
+                    transaction_type=tx_model.TYPE_CHARGE,
+                    amount=10,
+                    funding_instrument_uri='/v1/credit_card/tester',
+                    appears_on_statement_as='hello baby',
+                    scheduled_at=datetime.datetime.utcnow(),
+                )
+                description = (
+                    'Generated by Billy from subscription {}, scheduled_at={}'
+                    .format(
+                        self.subscription.guid, 
+                        transaction.scheduled_at,
+                    )
+                )
+            elif transaction_cls == tx_model.CLS_INVOICE:
+                transaction = tx_model.create(
+                    invoice=self.invoice,
+                    transaction_cls=tx_model.CLS_INVOICE,
+                    transaction_type=tx_model.TYPE_CHARGE,
+                    amount=10,
+                    funding_instrument_uri='/v1/credit_card/tester',
+                    appears_on_statement_as='hello baby',
+                    scheduled_at=datetime.datetime.utcnow(),
+                )
+                description = (
+                    'Generated by Billy from invoice {}, scheduled_at={}'
+                    .format(
+                        self.invoice.guid, 
+                        transaction.scheduled_at,
+                    )
+                )
             self.customer_model.update(
-                guid=transaction.subscription.customer_guid,
-                external_id='MOCK_BALANCED_CUSTOMER_URI',
+                customer=self.customer,
+                processor_uri='MOCK_BALANCED_CUSTOMER_URI',
             )
-        transaction = tx_model.get(guid)
 
-        # make sure API key is set correctly
-        (
-            flexmock(balanced)
-            .should_receive('configure')
-            .with_args('my_secret_key')
-            .once()
-        )
-
-        # mock result page object of balanced.RESOURCE.query.filter(...)
-
-        def mock_one():
-            raise balanced.exc.NoResultFound
-
-        mock_page = (
-            flexmock()
-            .should_receive('one')
-            .replace_with(mock_one)
-            .once()
-            .mock()
-        )
-
-        # mock balanced.RESOURCE.query
-        mock_query = (
-            flexmock()
-            .should_receive('filter')
-            .with_args(**{'meta.billy.transaction_guid': transaction.guid})
-            .replace_with(lambda **kw: mock_page)
-            .mock()
-        )
-
-        # mock balanced.RESOURCE class
-        class Resource(object): 
-            pass
-        Resource.query = mock_query
-
-        # mock balanced.RESOURCE instance
-        mock_resource = flexmock(uri='MOCK_BALANCED_RESOURCE_URI')
-
-        # mock balanced.Customer instance
-        kwargs = dict(
-            amount=transaction.amount,
-            meta={'billy.transaction_guid': transaction.guid},
-            description=(
-                'Generated by Billy from subscription {}, scheduled_at={}'
-                .format(transaction.subscription.guid, transaction.scheduled_at)
-            )
-        )
-        kwargs.update(extra_api_kwargs)
-        mock_balanced_customer = (
-            flexmock()
-            .should_receive(api_method_name)
-            .with_args(**kwargs)
-            .replace_with(lambda **kw: mock_resource)
-            .once()
-            .mock()
-        )
-
-        # mock balanced.Customer class
-        class BalancedCustomer(object): 
-            def find(self, uri):
-                pass
-        (
-            flexmock(BalancedCustomer)
-            .should_receive('find')
-            .with_args('MOCK_BALANCED_CUSTOMER_URI')
-            .replace_with(lambda _: mock_balanced_customer)
-            .once()
-        )
+        # mock page
+        page = mock.Mock()
+        page.one.side_effect = balanced.exc.NoResultFound
+        # mock resource
+        resource = mock.Mock(uri='MOCK_BALANCED_RESOURCE_URI')
+        # mock customer instance
+        balanced_customer = mock.Mock()
+        api_method = getattr(balanced_customer, api_method_name)
+        api_method.return_value = resource
+        api_method.__name__ = api_method_name
+        # mock customer class
+        BalancedCustomer = mock.Mock()
+        BalancedCustomer.find.return_value = balanced_customer
+        # mock resource class
+        Resource = mock.Mock()
+        Resource.query.filter.return_value = page
 
         processor = self.make_one(
             customer_cls=BalancedCustomer, 
@@ -336,58 +234,86 @@ class TestBalancedProcessorModel(ModelTestCase):
         method = getattr(processor, processor_method_name)
         balanced_tx_id = method(transaction)
         self.assertEqual(balanced_tx_id, 'MOCK_BALANCED_RESOURCE_URI')
+        # make sure the customer find method is called
+        BalancedCustomer.find.assert_called_once_with(self.customer.processor_uri)
+        # make sure API key is set correctly
+        configure_method.assert_called_once_with('my_secret_key')
+        # make sure query is made correctly
+        expected_kwargs = {'meta.billy.transaction_guid': transaction.guid}
+        Resource.query.filter.assert_called_once_with(**expected_kwargs)
+        # make sure the operation method is called properly
+        expected_kwargs = dict(
+            amount=transaction.amount,
+            meta={'billy.transaction_guid': transaction.guid},
+            description=description,
+            appears_on_statement_as='hello baby',
+        )
+        expected_kwargs.update(extra_api_kwargs)
+        api_method = getattr(balanced_customer, api_method_name)
+        api_method.assert_called_once_with(**expected_kwargs)
 
     def _test_operation_with_created_record(
         self, 
         cls_name, 
         processor_method_name,
+        api_method_name,
     ):
         tx_model = self.transaction_model
         with db_transaction.manager:
-            guid = tx_model.create(
-                subscription_guid=self.subscription_guid,
+            transaction = tx_model.create(
+                subscription=self.subscription,
+                transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_CHARGE,
                 amount=10,
-                payment_uri='/v1/credit_card/tester',
+                funding_instrument_uri='/v1/credit_card/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
-            transaction = tx_model.get(guid)
-        transaction = tx_model.get(guid)
 
-        # mock balanced.RESOURCE instance
-        mock_resource = flexmock(uri='MOCK_BALANCED_RESOURCE_URI')
+        # mock resource
+        resource = mock.Mock(uri='MOCK_BALANCED_RESOURCE_URI')
+        # mock page
+        page = mock.Mock()
+        page.one.return_value = resource
+        # mock customer instance
+        customer = mock.Mock()
+        api_method = getattr(customer, api_method_name)
+        api_method.return_value = resource
+        api_method.__name__ = api_method_name
+        # mock customer class
+        Customer = mock.Mock()
+        Customer.find.return_value = customer 
+        # mock resource class
+        Resource = mock.Mock()
+        Resource.query.filter.return_value = page
 
-        # mock result page object of balanced.RESOURCE.query.filter(...)
-        mock_page = (
-            flexmock()
-            .should_receive('one')
-            .replace_with(lambda: mock_resource)
-            .once()
-            .mock()
+        processor = self.make_one(
+            customer_cls=Customer, 
+            **{cls_name: Resource}
         )
-
-        # mock balanced.RESOURCE.query
-        mock_query = (
-            flexmock()
-            .should_receive('filter')
-            .with_args(**{'meta.billy.transaction_guid': transaction.guid})
-            .replace_with(lambda **kw: mock_page)
-            .mock()
-        )
-
-        # mock balanced.RESOURCE class
-        class Resource(object): 
-            pass
-        Resource.query = mock_query
-
-        processor = self.make_one(**{cls_name: Resource})
         method = getattr(processor, processor_method_name)
         balanced_res_uri = method(transaction)
         self.assertEqual(balanced_res_uri, 'MOCK_BALANCED_RESOURCE_URI')
 
-    def test_charge(self):
+        # make sure the api method is not called
+        self.assertFalse(Customer.find.called)
+        self.assertFalse(api_method.called)
+        # make sure query is made correctly
+        expected_kwargs = {'meta.billy.transaction_guid': transaction.guid}
+        Resource.query.filter.assert_called_once_with(**expected_kwargs)
+
+    def test_charge_subscription(self):
         self._test_operation(
             cls_name='debit_cls', 
+            transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+            processor_method_name='charge',
+            api_method_name='debit',
+            extra_api_kwargs=dict(source_uri='/v1/credit_card/tester'),
+        )
+
+    def test_charge_invoice(self):
+        self._test_operation(
+            cls_name='debit_cls', 
+            transaction_cls=self.transaction_model.CLS_INVOICE,
             processor_method_name='charge',
             api_method_name='debit',
             extra_api_kwargs=dict(source_uri='/v1/credit_card/tester'),
@@ -397,11 +323,22 @@ class TestBalancedProcessorModel(ModelTestCase):
         self._test_operation_with_created_record(
             cls_name='debit_cls',
             processor_method_name='charge',
+            api_method_name='debit',
         )
 
-    def test_payout(self):
+    def test_payout_subscription(self):
         self._test_operation(
             cls_name='credit_cls', 
+            transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+            processor_method_name='payout',
+            api_method_name='credit',
+            extra_api_kwargs=dict(destination_uri='/v1/credit_card/tester'),
+        )
+
+    def test_payout_invoice(self):
+        self._test_operation(
+            cls_name='credit_cls', 
+            transaction_cls=self.transaction_model.CLS_INVOICE,
             processor_method_name='payout',
             api_method_name='credit',
             extra_api_kwargs=dict(destination_uri='/v1/credit_card/tester'),
@@ -411,167 +348,111 @@ class TestBalancedProcessorModel(ModelTestCase):
         self._test_operation_with_created_record(
             cls_name='credit_cls',
             processor_method_name='payout',
+            api_method_name='credit',
         )
 
-    def test_refund(self):
-        import balanced
-
+    def _create_refund_transaction(self):
         tx_model = self.transaction_model
         with db_transaction.manager:
-            charge_guid = tx_model.create(
-                subscription_guid=self.subscription_guid,
+            charge_transaction = tx_model.create(
+                subscription=self.subscription,
+                transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_CHARGE,
                 amount=100,
-                payment_uri='/v1/credit_card/tester',
+                funding_instrument_uri='/v1/credit_card/tester',
                 scheduled_at=datetime.datetime.utcnow(),
             )
-            charge_transaction = tx_model.get(charge_guid)
             charge_transaction.status = tx_model.STATUS_DONE
-            charge_transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
-            self.session.add(charge_transaction)
+            charge_transaction.processor_uri = 'MOCK_BALANCED_DEBIT_URI'
             self.session.flush()
 
-            refund_guid = tx_model.create(
-                subscription_guid=self.subscription_guid,
+            transaction = tx_model.create(
+                subscription=self.subscription,
+                transaction_cls=tx_model.CLS_SUBSCRIPTION,
                 transaction_type=tx_model.TYPE_REFUND,
-                refund_to_guid=charge_guid,
+                refund_to=charge_transaction,
                 amount=56,
                 scheduled_at=datetime.datetime.utcnow(),
+                appears_on_statement_as='hello baby',
             )
+        return transaction
 
-        transaction = tx_model.get(refund_guid)
+    def test_refund(self):
+        transaction = self._create_refund_transaction()
 
-        # make sure API key is set correctly
-        (
-            flexmock(balanced)
-            .should_receive('configure')
-            .with_args('my_secret_key')
-            .once()
-        )
-
-        # mock result page object of balanced.Refund.query.filter(...)
-
-        def mock_one():
-            raise balanced.exc.NoResultFound
-
-        mock_page = (
-            flexmock()
-            .should_receive('one')
-            .replace_with(mock_one)
-            .once()
-            .mock()
-        )
-
-        # mock balanced.Refund.query
-        mock_query = (
-            flexmock()
-            .should_receive('filter')
-            .with_args(**{'meta.billy.transaction_guid': transaction.guid})
-            .replace_with(lambda **kw: mock_page)
-            .mock()
-        )
-
-        # mock balanced.Refund class
-        class Refund(object): 
-            pass
-        Refund.query = mock_query
-
-        # mock balanced.Refund instance
-        mock_refund = flexmock(uri='MOCK_BALANCED_REFUND_URI')
-
-        # mock balanced.Debit instance
-        kwargs = dict(
-            amount=transaction.amount,
-            meta={'billy.transaction_guid': transaction.guid},
-            description=(
-                'Generated by Billy from subscription {}, scheduled_at={}'
-                .format(transaction.subscription.guid, transaction.scheduled_at)
-            )
-        )
-        mock_balanced_debit = (
-            flexmock()
-            .should_receive('refund')
-            .with_args(**kwargs)
-            .replace_with(lambda **kw: mock_refund)
-            .once()
-            .mock()
-        )
-
-        # mock balanced.Debit class
-        class BalancedDebit(object): 
-            def find(self, uri):
-                pass
-        (
-            flexmock(BalancedDebit)
-            .should_receive('find')
-            .with_args('MOCK_BALANCED_DEBIT_URI')
-            .replace_with(lambda _: mock_balanced_debit)
-            .once()
-        )
+        # mock page
+        page = mock.Mock()
+        page.one.side_effect = balanced.exc.NoResultFound
+        # mock debit instance
+        debit = mock.Mock()
+        debit.refund.return_value = mock.Mock(uri='MOCK_REFUND_URI')
+        debit.refund.__name__ = 'refund'
+        # mock customer class
+        Customer = mock.Mock()
+        Customer.find.return_value = mock.Mock()
+        # mock refund class
+        Refund = mock.Mock()
+        Refund.query.filter.return_value = page
+        # mock debit class
+        Debit = mock.Mock()
+        Debit.find.return_value = debit
 
         processor = self.make_one(
             refund_cls=Refund,
-            debit_cls=BalancedDebit,
+            debit_cls=Debit,
+            customer_cls=Customer,
         )
         refund_uri = processor.refund(transaction)
-        self.assertEqual(refund_uri, 'MOCK_BALANCED_REFUND_URI')
+        self.assertEqual(refund_uri, 'MOCK_REFUND_URI')
+
+        Debit.find.assert_called_once_with(transaction.refund_to.processor_uri)
+        description = (
+            'Generated by Billy from subscription {}, scheduled_at={}'
+            .format(
+                self.subscription.guid, 
+                transaction.scheduled_at,
+            )
+        )
+        expected_kwargs = dict(
+            amount=transaction.amount,
+            meta={'billy.transaction_guid': transaction.guid},
+            description=description,
+            appears_on_statement_as='hello baby',
+        )
+        debit.refund.assert_called_once_with(**expected_kwargs)
 
     def test_refund_with_created_record(self):
-        tx_model = self.transaction_model
-        with db_transaction.manager:
-            charge_guid = tx_model.create(
-                subscription_guid=self.subscription_guid,
-                transaction_type=tx_model.TYPE_CHARGE,
-                amount=100,
-                payment_uri='/v1/credit_card/tester',
-                scheduled_at=datetime.datetime.utcnow(),
-            )
-            charge_transaction = tx_model.get(charge_guid)
-            charge_transaction.status = tx_model.STATUS_DONE
-            charge_transaction.external_id = 'MOCK_BALANCED_DEBIT_URI'
-            self.session.add(charge_transaction)
-            self.session.flush()
+        transaction = self._create_refund_transaction()
 
-            refund_guid = tx_model.create(
-                subscription_guid=self.subscription_guid,
-                transaction_type=tx_model.TYPE_REFUND,
-                refund_to_guid=charge_guid,
-                amount=56,
-                scheduled_at=datetime.datetime.utcnow(),
-            )
+        # mock resource
+        resource = mock.Mock(uri='MOCK_BALANCED_REFUND_URI')
+        # mock page
+        page = mock.Mock()
+        page.one.return_value = resource
+        # mock debit instance
+        debit = mock.Mock()
+        debit.refund.return_value = mock.Mock(uri='MOCK_REFUND_URI')
+        debit.refund.__name__ = 'refund'
+        # mock customer class
+        Customer = mock.Mock()
+        Customer.find.return_value = mock.Mock()
+        # mock refund class
+        Refund = mock.Mock()
+        Refund.query.filter.return_value = page
+        # mock debit class
+        Debit = mock.Mock()
+        Debit.find.return_value = debit
 
-        transaction = tx_model.get(refund_guid)
-
-        # mock balanced.Refund instance
-        mock_refund = flexmock(uri='MOCK_BALANCED_REFUND_URI')
-
-        # mock result page object of balanced.Refund.query.filter(...)
-
-        def mock_one():
-            return mock_refund
-
-        mock_page = (
-            flexmock()
-            .should_receive('one')
-            .replace_with(mock_one)
-            .once()
-            .mock()
+        processor = self.make_one(
+            refund_cls=Refund,
+            debit_cls=Debit,
+            customer_cls=Customer,
         )
-
-        # mock balanced.Refund.query
-        mock_query = (
-            flexmock()
-            .should_receive('filter')
-            .with_args(**{'meta.billy.transaction_guid': transaction.guid})
-            .replace_with(lambda **kw: mock_page)
-            .mock()
-        )
-
-        # mock balanced.Refund class
-        class Refund(object): 
-            pass
-        Refund.query = mock_query
-
-        processor = self.make_one(refund_cls=Refund)
         refund_uri = processor.refund(transaction)
         self.assertEqual(refund_uri, 'MOCK_BALANCED_REFUND_URI')
+
+        # make sure we won't duplicate refund
+        self.assertFalse(debit.refund.called)
+        # make sure query is made correctly
+        expected_kwargs = {'meta.billy.transaction_guid': transaction.guid}
+        Refund.query.filter.assert_called_once_with(**expected_kwargs)

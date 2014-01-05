@@ -105,4 +105,4 @@ class TestCompanyViews(ViewTestCase):
             '/v1/companies/{}'.format(guid1), 
             extra_environ=dict(REMOTE_USER=api_key2), 
             status=403,
-        )       
+        )

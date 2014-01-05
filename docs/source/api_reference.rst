@@ -420,7 +420,7 @@ To subscribe a customer to a plan, you can create a subscription record.
 Create
 ~~~~~~
 
-Create a subscription and return the record. If the **payment_uri** is given,
+Create a subscription and return the record. If the **funding_instrument_uri** is given,
 it will be used to charge or payout to customer, however, if it is omitted,
 the default payment method for that customer in Balanced will be used (The
 latest added one will be used). If **started_at** is given, the subscription
@@ -434,7 +434,7 @@ Endpoint
 Parameters
     - **plan_guid** - The GUID of plan to subscribe 
     - **customer_guid** - The GUID of customer to subscribe
-    - **payment_uri** - (optional) The URI to funding source in Balanced, 
+    - **funding_instrument_uri** - (optional) The URI to funding source in Balanced, 
       could be a tokenlized credit card or bank account URI
     - **amount** - (optional) The amount in USD cents of this subscription for 
       overwriting the one from plan, useful for giving a discount to customer
@@ -449,7 +449,7 @@ Example:
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
         -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
         -d "plan_guid=PL97ZvyeA4wzM3WUyEG8xwps" \
-        -d "payment_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
+        -d "funding_instrument_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
 
 Response:
 
@@ -459,7 +459,7 @@ Response:
         "guid": "SUR6jKqqSyaFfGeeAsGaXFqZ",
         "plan_guid": "PL97ZvyeA4wzM3WUyEG8xwps", 
         "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
-        "payment_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
+        "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
         "period": 1, 
         "amount": null, 
         "canceled": false, 
@@ -495,7 +495,7 @@ Response:
         "guid": "SUR6jKqqSyaFfGeeAsGaXFqZ",
         "plan_guid": "PL97ZvyeA4wzM3WUyEG8xwps", 
         "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
-        "payment_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
+        "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
         "period": 1, 
         "amount": null, 
         "canceled": false, 
@@ -538,7 +538,7 @@ Response:
         "guid": "SUR6jKqqSyaFfGeeAsGaXFqZ",
         "plan_guid": "PL97ZvyeA4wzM3WUyEG8xwps", 
         "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
-        "payment_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
+        "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
         "period": 1, 
         "amount": null, 
         "canceled": true, 
@@ -579,7 +579,7 @@ Response:
                 "guid": "SUR6jKqqSyaFfGeeAsGaXFqZ",
                 "plan_guid": "PL97ZvyeA4wzM3WUyEG8xwps", 
                 "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
-                "payment_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
+                "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
                 "period": 1, 
                 "amount": null, 
                 "canceled": false, 
@@ -598,7 +598,7 @@ Transaction
 -----------
 
 Transactions are records generated from subscriptions. It contains the current
-status, type of transaction, amount, payment URI, failure count and 
+status, type of transaction, amount, funding instrument URI, failure count and 
 error message. The life cycle of a transaction is shown in following state 
 transition diagram
 
@@ -641,7 +641,7 @@ Response:
         "status": "done", 
         "transaction_type": "charge", 
         "amount": 500, 
-        "payment_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC5ildoSnySGnXRfrYvH49eo", 
+        "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC5ildoSnySGnXRfrYvH49eo", 
         "external_id": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/debits/WD5P9jvc7fLSoA6gYXxHkPd4", 
         "failure_count": 0, 
         "error_message": null, 
@@ -682,7 +682,7 @@ Response:
                 "status": "done", 
                 "transaction_type": "charge", 
                 "amount": 500, 
-                "payment_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC5ildoSnySGnXRfrYvH49eo", 
+                "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC5ildoSnySGnXRfrYvH49eo", 
                 "external_id": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/debits/WD5P9jvc7fLSoA6gYXxHkPd4", 
                 "failure_count": 0, 
                 "error_message": null, 

@@ -25,7 +25,7 @@ class CompanyModel(BaseTableModel):
         return query
 
     def create(self, processor_key, name=None):
-        """Create a company and return its id
+        """Create a company and return
 
         """
         now = tables.now_func()
@@ -39,13 +39,12 @@ class CompanyModel(BaseTableModel):
         )
         self.session.add(company)
         self.session.flush()
-        return company.guid
+        return company
 
-    def update(self, guid, **kwargs):
+    def update(self, company, **kwargs):
         """Update a company
 
         """
-        company = self.get(guid, raise_error=True)
         now = tables.now_func()
         company.updated_at = now
         for key in ['name', 'processor_key', 'api_key']:
@@ -55,14 +54,11 @@ class CompanyModel(BaseTableModel):
             setattr(company, key, value)
         if kwargs:
             raise TypeError('Unknown attributes {} to update'.format(tuple(kwargs.keys())))
-        self.session.add(company)
         self.session.flush()
 
-    def delete(self, guid):
+    def delete(self, company):
         """Delete a company
 
         """
-        company = self.get(guid, raise_error=True)
         company.deleted = True
-        self.session.add(company)
         self.session.flush()

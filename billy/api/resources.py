@@ -1,7 +1,10 @@
 from __future__ import unicode_literals
 
 from pyramid.security import Allow
+from pyramid.security import Deny
+from pyramid.security import Everyone
 from pyramid.security import Authenticated
+from pyramid.security import ALL_PERMISSIONS
 from pyramid.httpexceptions import HTTPNotFound
 
 
@@ -49,6 +52,10 @@ class EntityResource(object):
         self.__acl__ = [
             #       principal          action
             (Allow, company_principal, 'view'),
+            # Notice: denying Everyone principal makes sure we won't
+            # allow user to access resource of other company via parent's
+            # ACL
+            (Deny,  Everyone,          ALL_PERMISSIONS), 
         ]
 
     @property

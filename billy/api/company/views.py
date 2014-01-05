@@ -44,4 +44,7 @@ class CompanyIndexView(IndexView):
 
 @api_view_defaults(context=CompanyResource)
 class CompanyView(EntityView):
-    pass
+
+    @view_config(request_method='GET')
+    def get(self):
+        return self.context.entity

@@ -98,6 +98,10 @@ class SubscriptionIndexView(IndexView):
 @api_view_defaults(context=SubscriptionResource)
 class SubscriptionView(EntityView):
 
+    @view_config(request_method='GET')
+    def get(self):
+        return self.context.entity
+
     @view_config(name='cancel', request_method='POST')
     def cancel(self):
         # TODO: it appears a DELETE request with body is not a good idea

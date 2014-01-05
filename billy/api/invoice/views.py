@@ -154,6 +154,10 @@ class InvoiceIndexView(IndexView):
 @api_view_defaults(context=InvoiceResource)
 class InvoiceView(EntityView):
 
+    @view_config(request_method='GET')
+    def get(self):
+        return self.context.entity
+
     @view_config(request_method='PUT')
     def put(self):
         request = self.request

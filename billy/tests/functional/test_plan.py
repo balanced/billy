@@ -376,20 +376,16 @@ class TestPlanViews(ViewTestCase):
             for i in range(4):
                 self.transaction_model.create(
                     invoice=other_invoice,
-                    transaction_cls=self.transaction_model.CLS_INVOICE,
                     transaction_type=self.transaction_model.TYPE_CHARGE,
                     amount=100,
                     funding_instrument_uri='/v1/cards/tester',
-                    scheduled_at=datetime.datetime.utcnow(),
                 )
             for i in range(4):
                 self.transaction_model.create(
-                    subscription=other_subscription,
-                    transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                    invoice=other_subscription.invoices[0],
                     transaction_type=self.transaction_model.TYPE_CHARGE,
                     amount=100,
                     funding_instrument_uri='/v1/cards/tester',
-                    scheduled_at=datetime.datetime.utcnow(),
                 )
 
         with db_transaction.manager:
@@ -421,32 +417,26 @@ class TestPlanViews(ViewTestCase):
             # make sure invoice transaction will not be included
             self.transaction_model.create(
                 invoice=invoice,
-                transaction_cls=self.transaction_model.CLS_INVOICE,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 funding_instrument_uri='/v1/cards/tester',
-                scheduled_at=datetime.datetime.utcnow(),
             )
             # make sure transaction of other plan will not be included
             self.transaction_model.create(
-                subscription=subscription2,
-                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                invoice=subscription2.invoices[0],
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 funding_instrument_uri='/v1/cards/tester',
-                scheduled_at=datetime.datetime.utcnow(),
             )
             
             guids = []
             for i in range(4):
                 with freeze_time('2013-08-16 02:00:{:02}'.format(i + 1)):
                     transaction = self.transaction_model.create(
-                        subscription=subscription,
-                        transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                        invoice=subscription.invoices[0],
                         transaction_type=self.transaction_model.TYPE_CHARGE,
                         amount=100,
                         funding_instrument_uri='/v1/cards/tester',
-                        scheduled_at=datetime.datetime.utcnow(),
                     )
                     guids.append(transaction.guid)
         guids = list(reversed(guids))

@@ -465,7 +465,7 @@ Response:
         "canceled": false, 
         "canceled_at": null, 
         "started_at": "2013-10-02T06:35:00.380234", 
-        "next_transaction_at": "2013-11-02T06:35:00.380234", 
+        "next_invoice_at": "2013-11-02T06:35:00.380234", 
         "created_at": "2013-10-02T06:35:00.380234", 
         "updated_at": "2013-10-02T06:35:00.380234", 
     }
@@ -501,7 +501,7 @@ Response:
         "canceled": false, 
         "canceled_at": null, 
         "started_at": "2013-10-02T06:35:00.380234", 
-        "next_transaction_at": "2013-11-02T06:35:00.380234", 
+        "next_invoice_at": "2013-11-02T06:35:00.380234", 
         "created_at": "2013-10-02T06:35:00.380234", 
         "updated_at": "2013-10-02T06:35:00.380234", 
     }
@@ -544,7 +544,7 @@ Response:
         "canceled": true, 
         "canceled_at": "2013-10-03T12:16:00.532295", 
         "started_at": "2013-10-02T06:35:00.380234", 
-        "next_transaction_at": "2013-11-02T06:35:00.380234", 
+        "next_invoice_at": "2013-11-02T06:35:00.380234", 
         "created_at": "2013-10-02T06:35:00.380234", 
         "updated_at": "2013-10-02T06:35:00.380234", 
     }
@@ -585,7 +585,7 @@ Response:
                 "canceled": false, 
                 "canceled_at": null, 
                 "started_at": "2013-10-02T06:35:00.380234", 
-                "next_transaction_at": "2013-11-02T06:35:00.380234", 
+                "next_invoice_at": "2013-11-02T06:35:00.380234", 
                 "created_at": "2013-10-02T06:35:00.380234", 
                 "updated_at": "2013-10-02T06:35:00.380234", 
             }

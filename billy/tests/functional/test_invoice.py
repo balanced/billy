@@ -427,14 +427,7 @@ class TestInvoiceViews(ViewTestCase):
             )
         with db_transaction.manager:
             for i in range(4):
-                self.transaction_model.create(
-                    invoice=other_invoice,
-                    transaction_cls=self.transaction_model.CLS_INVOICE,
-                    transaction_type=self.transaction_model.TYPE_CHARGE,
-                    amount=100,
-                    funding_instrument_uri='/v1/cards/tester',
-                    scheduled_at=datetime.datetime.utcnow(),
-                )
+                self.transaction_model.create(invoice=other_invoice)
 
         with db_transaction.manager:
             invoice = self.invoice_model.create(
@@ -445,14 +438,7 @@ class TestInvoiceViews(ViewTestCase):
             guids = []
             for i in range(4):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
-                    transaction = self.transaction_model.create(
-                        invoice=invoice,
-                        transaction_cls=self.transaction_model.CLS_INVOICE,
-                        transaction_type=self.transaction_model.TYPE_CHARGE,
-                        amount=100,
-                        funding_instrument_uri='/v1/cards/tester',
-                        scheduled_at=datetime.datetime.utcnow(),
-                    )
+                    transaction = self.transaction_model.create(invoice=invoice)
                     guids.append(transaction.guid)
         guids = list(reversed(guids))
 

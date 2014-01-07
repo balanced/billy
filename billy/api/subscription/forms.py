@@ -91,19 +91,3 @@ class SubscriptionCreateForm(Form):
         validators.Optional(),
         NoPastValidator(),
     ])
-
-
-class SubscriptionCancelForm(Form):
-    prorated_refund = BooleanField('Prorated refund', [
-        validators.Optional(),
-    ], default=False)
-    refund_amount = IntegerField('Refund amount', [
-        validators.Optional(),
-        RefundAmountConflict(),
-        validators.NumberRange(min=MINIMUM_AMOUNT),
-    ])
-    appears_on_statement_as = TextField('Appears on statement as', [
-        validators.Optional(),
-        validators.Regexp(STATEMENT_REXP),
-        validators.Length(max=18),
-    ])

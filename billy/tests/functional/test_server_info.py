@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import datetime
 
 import transaction as db_transaction
 
@@ -35,12 +34,10 @@ class TestServerInfo(ViewTestCase):
                 plan=plan,
             )
             transaction = self.transaction_model.create(
-                subscription=subscription,
-                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                invoice=subscription.invoices[0],
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=10,
                 funding_instrument_uri='/v1/cards/tester',
-                scheduled_at=datetime.datetime.utcnow(),
             )
 
         res = self.testapp.get('/', status=200)

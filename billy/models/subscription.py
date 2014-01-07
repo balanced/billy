@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import decimal
 
 from sqlalchemy.sql.expression import not_
 
@@ -7,10 +6,8 @@ from billy.models import tables
 from billy.models.base import BaseTableModel
 from billy.models.base import decorate_offset_limit
 from billy.models.plan import PlanModel
-from billy.models.transaction import TransactionModel
 from billy.models.schedule import next_transaction_datetime
 from billy.utils.generic import make_guid
-from billy.utils.generic import round_down_cent
 
 
 class SubscriptionCanceledError(RuntimeError):

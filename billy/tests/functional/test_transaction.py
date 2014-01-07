@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import datetime
 
 import transaction as db_transaction
 from freezegun import freeze_time

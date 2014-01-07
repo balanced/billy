@@ -5,7 +5,6 @@ import iso8601
 from wtforms import Form
 from wtforms import TextField
 from wtforms import IntegerField
-from wtforms import BooleanField
 from wtforms import Field
 from wtforms import validators
 

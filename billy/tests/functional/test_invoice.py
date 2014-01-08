@@ -633,6 +633,120 @@ class TestInvoiceViews(ViewTestCase):
         charge_method.assert_called_once_with(transaction)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    def test_update_invoice_funding_instrument_uri_for_settled_invoice(
+        self, 
+        charge_method,
+    ):
+        charge_method.return_value = 'MOCK_DEBIT_URI'
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=self.customer.guid,
+                amount=5566,
+                funding_instrument_uri='MOCK_CARD_URI',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.testapp.put(
+            '/v1/invoices/{}'.format(res.json['guid']),
+            dict(
+                funding_instrument_uri='MOCK_CARD_URI2',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
+
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    def test_update_invoice_funding_instrument_uri_with_mutiple_failures(
+        self, 
+        charge_method
+    ):
+        # make it fail immediately
+        self.model_factory.settings['billy.transaction.maximum_retry'] = 0
+        charge_method.side_effect = RuntimeError('Ouch!')
+
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=self.customer.guid,
+                amount=5566,
+                funding_instrument_uri='instrument1',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        invoice = self.invoice_model.get(res.json['guid'])
+        self.assertEqual(invoice.status, 
+                         self.invoice_model.STATUS_PROCESS_FAILED)
+        self.assertEqual(len(invoice.transactions), 1)
+        transaction = invoice.transactions[0]
+        self.assertEqual(transaction.funding_instrument_uri, 'instrument1')
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_FAILED)
+
+        def update_instrument_uri(when, uri):
+            with freeze_time(when):
+                self.testapp.put(
+                    '/v1/invoices/{}'.format(invoice.guid),
+                    dict(
+                        funding_instrument_uri=uri,
+                    ),
+                    extra_environ=dict(REMOTE_USER=self.api_key), 
+                    status=200,
+                )
+
+        update_instrument_uri('2013-08-17', 'instrument2')
+        self.assertEqual(invoice.status, 
+                         self.invoice_model.STATUS_PROCESS_FAILED)
+        self.assertEqual(len(invoice.transactions), 2)
+        transaction = invoice.transactions[-1]
+        self.assertEqual(transaction.funding_instrument_uri, 'instrument2')
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_FAILED)
+
+        self.model_factory.settings['billy.transaction.maximum_retry'] = 1
+        update_instrument_uri('2013-08-18', 'instrument3')
+        self.assertEqual(invoice.status, 
+                         self.invoice_model.STATUS_PROCESSING)
+        self.assertEqual(len(invoice.transactions), 3)
+        transaction = invoice.transactions[-1]
+        self.assertEqual(transaction.funding_instrument_uri, 'instrument3')
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_RETRYING)
+
+        update_instrument_uri('2013-08-19', 'instrument4')
+        self.assertEqual(invoice.status, 
+                         self.invoice_model.STATUS_PROCESSING)
+        self.assertEqual(len(invoice.transactions), 4)
+        # make sure previous retrying transaction was canceled
+        transaction = invoice.transactions[-2]
+        self.assertEqual(transaction.funding_instrument_uri, 'instrument3')
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_CANCELED)
+        transaction = invoice.transactions[-1]
+        self.assertEqual(transaction.funding_instrument_uri, 'instrument4')
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_RETRYING)
+
+        charge_method.side_effect = None
+        charge_method.return_value = 'MOCK_DEBIT_URI'
+        update_instrument_uri('2013-08-20', 'instrument5')
+        self.assertEqual(invoice.status, 
+                         self.invoice_model.STATUS_SETTLED)
+        self.assertEqual(len(invoice.transactions), 5)
+        # make sure previous retrying transaction was canceled
+        transaction = invoice.transactions[-2]
+        self.assertEqual(transaction.funding_instrument_uri, 'instrument4')
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_CANCELED)
+        transaction = invoice.transactions[-1]
+        self.assertEqual(transaction.funding_instrument_uri, 'instrument5')
+        self.assertEqual(transaction.processor_uri, 'MOCK_DEBIT_URI')
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_DONE)
+
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
     def test_update_invoice_funding_instrument_uri_with_zero_amount(self, charge_method):
         amount = 0
         funding_instrument_uri = 'MOCK_CARD_URI'
@@ -665,3 +779,86 @@ class TestInvoiceViews(ViewTestCase):
         invoice = self.invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 0)
         self.assertFalse(charge_method.called)
+
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.refund')
+    def test_invoice_refund(self, refund_method):
+        refund_method.return_value = 'MOCK_REFUND_URI'
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=self.customer.guid,
+                amount=5566,
+                funding_instrument_uri='MOCK_CARD_URI',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        with freeze_time('2013-08-17'):
+            self.testapp.post(
+                '/v1/invoices/{}/refund'.format(res.json['guid']),
+                dict(
+                    amount=1234,
+                    appears_on_statement_as='hello baby!',
+                ),
+                extra_environ=dict(REMOTE_USER=self.api_key), 
+                status=200,
+            )
+        invoice = self.invoice_model.get(res.json['guid'])
+        self.assertEqual(invoice.status, self.invoice_model.STATUS_SETTLED)
+        self.assertEqual(len(invoice.transactions), 2)
+        transaction = invoice.transactions[-1]
+        refund_method.assert_called_once_with(transaction)
+        self.assertEqual(transaction.funding_instrument_uri, None)
+        self.assertEqual(transaction.amount, 1234)
+        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
+        self.assertEqual(transaction.transaction_type, 
+                         self.transaction_model.TYPE_REFUND)
+        self.assertEqual(transaction.appears_on_statement_as, 'hello baby!')
+        self.assertEqual(transaction.processor_uri, 'MOCK_REFUND_URI')
+
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.refund')
+    def test_invoice_mutiple_refund(self, refund_method):
+        refund_method.return_value = 'MOCK_REFUND_URI'
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=self.customer.guid,
+                amount=5566,
+                funding_instrument_uri='MOCK_CARD_URI',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+
+        def refund(when, amount):
+            with freeze_time(when):
+                self.testapp.post(
+                    '/v1/invoices/{}/refund'.format(res.json['guid']),
+                    dict(amount=amount),
+                    extra_environ=dict(REMOTE_USER=self.api_key), 
+                    status=200,
+                )
+
+            invoice = self.invoice_model.get(res.json['guid'])
+            self.assertEqual(invoice.status, self.invoice_model.STATUS_SETTLED)
+            transaction = invoice.transactions[-1]
+            refund_method.assert_called_with(transaction)
+            self.assertEqual(transaction.funding_instrument_uri, None)
+            self.assertEqual(transaction.amount, amount)
+            self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
+            self.assertEqual(transaction.transaction_type, 
+                             self.transaction_model.TYPE_REFUND)
+            self.assertEqual(transaction.appears_on_statement_as, None)
+            self.assertEqual(transaction.processor_uri, 'MOCK_REFUND_URI')
+
+        refund('2013-08-17', 1000)
+        refund('2013-08-18', 2000)
+        refund('2013-08-19', 2000)
+
+        # exceed the invoice amount
+        self.testapp.post(
+            '/v1/invoices/{}/refund'.format(res.json['guid']),
+            dict(amount=9999),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )

@@ -45,4 +45,15 @@ class InvoiceUpdateForm(Form):
         validators.Optional(),
         validators.Length(max=128),
     ])
-    # TODO: items
+
+
+class InvoiceRefundForm(Form):
+    amount = IntegerField('Amount', [
+        validators.InputRequired(),
+        validators.NumberRange(min=0)
+    ])
+    appears_on_statement_as = TextField('Appears on statement as', [
+        validators.Optional(),
+        validators.Regexp(STATEMENT_REXP),
+        validators.Length(max=18),
+    ])

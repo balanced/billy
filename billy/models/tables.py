@@ -264,17 +264,6 @@ class Invoice(DeclarativeBase):
     #  bank account or credit card)
     appears_on_statement_as = Column(Unicode(32))
 
-    #: the last charge/payout transaction of this invoice
-    last_transaction = relationship(
-        'Transaction', 
-        uselist=False,
-        primaryjoin=('''and_(
-            Transaction.invoice_guid == Invoice.guid,
-            Transaction.transaction_type in [0, 2],
-        )'''),
-        order_by='-Transaction.created_at',
-    )
-
     #: transactions of this invoice
     transactions = relationship(
         'Transaction', 

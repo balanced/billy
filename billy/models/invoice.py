@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+from sqlalchemy.sql.expression import func
+
 from billy.models import tables
 from billy.models.base import BaseTableModel
 from billy.models.base import decorate_offset_limit
@@ -305,6 +307,8 @@ class InvoiceModel(BaseTableModel):
 
         @return: a list of yielded transaction
         """
+        Transaction = tables.Transaction
+
         tx_model = self.factory.create_transaction_model()
         now = tables.now_func()
         invoice.updated_at = now
@@ -338,29 +342,29 @@ class InvoiceModel(BaseTableModel):
         # overlap between two transaction
         self.get(invoice.guid, with_lockmode='update')
 
-        last_transaction = (
-            self.session
-            .query(tables.Transaction)
-            .filter(tables.Transaction.invoice == invoice)
-            .order_by(tables.Transaction.created_at.desc())
-            .first()
-        )
-
         # the invoice is just created, simply create a transaction for it
         if invoice.status == self.STATUS_INIT:
             transaction = tx_model.create(invoice=invoice)
             transactions.append(transaction)
-        # we are already processing, abort current transaction and create
+        # we are already processing, cancel current transaction and create
         # a new one
-        # TODO: what about offline transaction? shound't we abort it in 
-        # processor?
         elif invoice.status == self.STATUS_PROCESSING:
-            assert last_transaction.status in [
-                tx_model.STATUS_INIT, 
-                tx_model.STATUS_RETRYING
-            ], 'The last transaction status should be either INIT or ' \
-               'RETRYING'
-            # cancel old one
+            # find the running transaction and cancel it 
+            last_transaction = (
+                self.session
+                .query(Transaction)
+                .filter(
+                    Transaction.invoice == invoice,
+                    Transaction.transaction_type.in_([
+                        TransactionModel.TYPE_CHARGE,
+                        TransactionModel.TYPE_PAYOUT,
+                    ]),
+                    Transaction.status.in_([
+                        TransactionModel.STATUS_INIT,
+                        TransactionModel.STATUS_RETRYING,
+                    ])
+                )
+            ).one()
             last_transaction.status = tx_model.STATUS_CANCELED
             last_transaction.canceled_at = now
             # create a new one
@@ -368,16 +372,74 @@ class InvoiceModel(BaseTableModel):
             transactions.append(transaction)
         # the previous transaction failed, just create a new one
         elif invoice.status == self.STATUS_PROCESS_FAILED:
-            assert last_transaction.status == tx_model.STATUS_FAILED, \
-                'The last transaction status should be FAILED'
             transaction = tx_model.create(invoice=invoice)
             transactions.append(transaction)
         else:
             raise InvalidOperationError(
-                'Invalid operation, you can only update funding_instrument_uri when '
-                'the status is one of INIT, PROCESSING and PROCESS_FAILED'
+                'Invalid operation, you can only update funding_instrument_uri '
+                'when the invoice status is one of INIT, PROCESSING and '
+                'PROCESS_FAILED'
             )
         invoice.status = self.STATUS_PROCESSING
 
         self.session.flush()
+        return transactions
+
+    def refund(self, invoice, amount, appears_on_statement_as=None):
+        """Refund the invoice
+
+        """
+        Transaction = tables.Transaction
+        tx_model = self.factory.create_transaction_model()
+        transactions = []
+
+        self.get(invoice.guid, with_lockmode='update')
+
+        if invoice.status != self.STATUS_SETTLED:
+            raise InvalidOperationError('You can only refund a settled invoice')
+
+        refunded_amount = (
+            self.session.query(
+                func.coalesce(func.sum(Transaction.amount), 0)
+            )
+            .filter(
+                Transaction.invoice == invoice,
+                Transaction.transaction_type == TransactionModel.TYPE_REFUND,
+                Transaction.status.in_([
+                    TransactionModel.STATUS_INIT,
+                    TransactionModel.STATUS_RETRYING,
+                    TransactionModel.STATUS_DONE,
+                ])
+            )
+        ).scalar()
+        # Make sure do not allow refund more than effective amount
+        if refunded_amount + amount > invoice.effective_amount:
+            raise InvalidOperationError(
+                'Refund total amount {} + {} will exceed invoice effective amount {}'
+                .format(
+                    refunded_amount,
+                    amount,
+                    invoice.effective_amount,
+                )
+            )
+
+        # the settled transaction
+        settled_transaction = (
+            self.session.query(Transaction)
+            .filter(
+                Transaction.invoice == invoice,
+                Transaction.transaction_type == TransactionModel.TYPE_CHARGE,
+                Transaction.status == TransactionModel.STATUS_DONE,
+            )
+        ).one()
+
+        # create the refund transaction
+        transaction = tx_model.create(
+            invoice=invoice,
+            transaction_type=TransactionModel.TYPE_REFUND,
+            amount=amount,
+            reference_to=settled_transaction,
+            appears_on_statement_as=appears_on_statement_as,
+        )
+        transactions.append(transaction)
         return transactions

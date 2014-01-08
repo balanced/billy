@@ -181,8 +181,6 @@ class TransactionModel(BaseTableModel):
             transaction_type = invoice.transaction_type
         if amount is None:
             amount = invoice.effective_amount
-        if funding_instrument_uri is None:
-            funding_instrument_uri = invoice.funding_instrument_uri
         if appears_on_statement_as is None:
             appears_on_statement_as = invoice.appears_on_statement_as
 
@@ -205,6 +203,9 @@ class TransactionModel(BaseTableModel):
                 raise ValueError(
                     'Only charge/payout transaction can be refunded/reversed'
                 )
+        else:
+            if funding_instrument_uri is None:
+                funding_instrument_uri = invoice.funding_instrument_uri
 
         now = tables.now_func()
         transaction = tables.Transaction(
@@ -280,7 +281,10 @@ class TransactionModel(BaseTableModel):
                 customer.processor_uri,
             )
             # prepare customer (add bank account or credit card)
-            self.processor.prepare_customer(customer, transaction.funding_instrument_uri)
+            self.processor.prepare_customer(
+                customer=customer, 
+                funding_instrument_uri=transaction.funding_instrument_uri,
+            )
             # do charge/payout/refund 
             transaction_id = method(transaction)
         except (SystemExit, KeyboardInterrupt):
@@ -314,6 +318,9 @@ class TransactionModel(BaseTableModel):
             self.session.flush()
             return
 
+        # TODO: ah... actually, some transactions cannot be really done
+        # oneline, in that case, we should use callback from processor
+        # to change the transaction status
         transaction.processor_uri = transaction_id
         transaction.status = self.STATUS_DONE
         transaction.updated_at = tables.now_func()

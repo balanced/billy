@@ -268,7 +268,8 @@ class Invoice(DeclarativeBase):
     transactions = relationship(
         'Transaction', 
         cascade='all, delete-orphan', 
-        backref='invoice'
+        backref='invoice',
+        order_by='-Transaction.created_at',
     )
 
     #: items of this invoice

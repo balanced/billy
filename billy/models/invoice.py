@@ -37,12 +37,6 @@ class InvoiceModel(BaseTableModel):
     STATUS_CANCELED = 3
     #: failed to process status
     STATUS_PROCESS_FAILED = 4
-    #: refunding status
-    STATUS_REFUNDING = 5
-    #: refunded status
-    STATUS_REFUNDED = 6
-    #: failed to refund status
-    STATUS_REFUND_FAILED = 7
 
     STATUS_ALL = [
         STATUS_INIT,
@@ -50,9 +44,6 @@ class InvoiceModel(BaseTableModel):
         STATUS_SETTLED,
         STATUS_CANCELED,
         STATUS_PROCESS_FAILED,
-        STATUS_REFUNDING,
-        STATUS_REFUNDED,
-        STATUS_REFUND_FAILED,
     ]
 
     #: subscription type invoice
@@ -236,11 +227,11 @@ class InvoiceModel(BaseTableModel):
                 record = tables.Item(
                     invoice=invoice,
                     name=item['name'],
-                    total=item['total'],
+                    amount=item['amount'],
                     type=item.get('type'),
                     quantity=item.get('quantity'),
                     unit=item.get('unit'),
-                    amount=item.get('amount'),
+                    volume=item.get('volume'),
                 )
                 self.session.add(record)
             self.session.flush()
@@ -252,7 +243,7 @@ class InvoiceModel(BaseTableModel):
             for adjustment in adjustments:
                 record = tables.Adjustment(
                     invoice=invoice,
-                    total=adjustment['total'],
+                    amount=adjustment['amount'],
                     reason=adjustment.get('reason'),
                 )
                 self.session.add(record)
@@ -297,11 +288,11 @@ class InvoiceModel(BaseTableModel):
                 item = tables.Item(
                     invoice_guid=invoice.guid,
                     name=item['name'],
-                    total=item['total'],
+                    amount=item['amount'],
                     type=item.get('type'),
                     quantity=item.get('quantity'),
                     unit=item.get('unit'),
-                    amount=item.get('amount'),
+                    volume=item.get('volume'),
                 )
                 new_items.append(item)
                 self.session.add(item)
@@ -389,14 +380,4 @@ class InvoiceModel(BaseTableModel):
         invoice.status = self.STATUS_PROCESSING
 
         self.session.flush()
-        return transactions
-
-    def refund(self, invoice, amount):
-        """Refund the invoice
-
-        """
-        self.get(invoice.guid, with_lockmode='update')
-
-        transactions = []
-
         return transactions

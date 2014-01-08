@@ -44,13 +44,13 @@ class TestRenderer(ViewTestCase):
                 external_id='external ID',
                 appears_on_statement_as='hello baby',
                 items=[
-                    dict(type='debit', name='foo', total=123, amount=5678),
-                    dict(name='bar', total=456, quantity=10, unit='hours', 
-                         amount=7788),
+                    dict(type='debit', name='foo', amount=123, volume=5678),
+                    dict(name='bar', amount=456, quantity=10, unit='hours', 
+                         volume=7788),
                 ],
                 adjustments=[
-                    dict(total=20, reason='A Lannister always pays his debts!'),
-                    dict(total=3),
+                    dict(amount=20, reason='A Lannister always pays his debts!'),
+                    dict(amount=3),
                 ],
             )
             self.subscription_invoice = self.invoice_model.create(
@@ -60,13 +60,13 @@ class TestRenderer(ViewTestCase):
                 external_id='external ID2',
                 appears_on_statement_as='hello baby',
                 items=[
-                    dict(type='debit', name='foo', total=123, amount=5678),
-                    dict(name='bar', total=456, quantity=10, unit='hours', 
-                         amount=7788),
+                    dict(type='debit', name='foo', amount=123, volume=5678),
+                    dict(name='bar', amount=456, quantity=10, unit='hours', 
+                         volume=7788),
                 ],
                 adjustments=[
-                    dict(total=20, reason='A Lannister always pays his debts!'),
-                    dict(total=3),
+                    dict(amount=20, reason='A Lannister always pays his debts!'),
+                    dict(amount=3),
                 ],
                 scheduled_at=datetime.datetime.utcnow(),
             )
@@ -127,20 +127,21 @@ class TestRenderer(ViewTestCase):
             updated_at=invoice.updated_at.isoformat(),
             customer_guid=invoice.customer_guid, 
             amount=invoice.amount, 
+            effective_amount=invoice.effective_amount, 
             total_adjustment_amount=invoice.total_adjustment_amount, 
             title=invoice.title, 
             external_id=invoice.external_id, 
             funding_instrument_uri=None, 
             appears_on_statement_as='hello baby', 
             items=[
-                dict(type='debit', name='foo', total=123, quantity=None, 
-                     amount=5678, unit=None),
-                dict(type=None, name='bar', total=456, quantity=10, 
-                     amount=7788, unit='hours'),
+                dict(type='debit', name='foo', amount=123, quantity=None, 
+                     volume=5678, unit=None),
+                dict(type=None, name='bar', amount=456, quantity=10, 
+                     volume=7788, unit='hours'),
             ],
             adjustments=[
-                dict(total=20, reason='A Lannister always pays his debts!'),
-                dict(total=3, reason=None),
+                dict(amount=20, reason='A Lannister always pays his debts!'),
+                dict(amount=3, reason=None),
             ],
         )
         self.assertEqual(json_data, expected)
@@ -155,9 +156,6 @@ class TestRenderer(ViewTestCase):
         assert_status(self.invoice_model.STATUS_SETTLED, 'settled')
         assert_status(self.invoice_model.STATUS_CANCELED, 'canceled')
         assert_status(self.invoice_model.STATUS_PROCESS_FAILED, 'process_failed')
-        assert_status(self.invoice_model.STATUS_REFUNDING, 'refunding')
-        assert_status(self.invoice_model.STATUS_REFUNDED, 'refunded')
-        assert_status(self.invoice_model.STATUS_REFUND_FAILED, 'refund_failed')
 
         invoice = self.subscription_invoice
         json_data = invoice_adapter(invoice, self.dummy_request)
@@ -171,19 +169,20 @@ class TestRenderer(ViewTestCase):
             scheduled_at=invoice.scheduled_at.isoformat(),
             subscription_guid=invoice.subscription_guid, 
             amount=invoice.amount, 
+            effective_amount=invoice.effective_amount, 
             total_adjustment_amount=invoice.total_adjustment_amount, 
             title=invoice.title, 
             funding_instrument_uri=None, 
             appears_on_statement_as='hello baby', 
             items=[
-                dict(type='debit', name='foo', total=123, quantity=None, 
-                     amount=5678, unit=None),
-                dict(type=None, name='bar', total=456, quantity=10, 
-                     amount=7788, unit='hours'),
+                dict(type='debit', name='foo', amount=123, quantity=None, 
+                     volume=5678, unit=None),
+                dict(type=None, name='bar', amount=456, quantity=10, 
+                     volume=7788, unit='hours'),
             ],
             adjustments=[
-                dict(total=20, reason='A Lannister always pays his debts!'),
-                dict(total=3, reason=None),
+                dict(amount=20, reason='A Lannister always pays his debts!'),
+                dict(amount=3, reason=None),
             ],
         )
         self.assertEqual(json_data, expected)

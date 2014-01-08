@@ -109,14 +109,14 @@ class InvoiceIndexView(IndexView):
         items = parse_items(
             request=request, 
             prefix='item_', 
-            keywords=('type', 'name', 'total', 'amount', 'unit', 'quantity'),
+            keywords=('type', 'name', 'volume', 'amount', 'unit', 'quantity'),
         )
         if not items:
             items = None
         adjustments = parse_items(
             request=request, 
             prefix='adjustment_', 
-            keywords=('total', 'reason'),
+            keywords=('amount', 'reason'),
         )
         if not adjustments:
             adjustments = None

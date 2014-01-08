@@ -180,7 +180,7 @@ class TransactionModel(BaseTableModel):
         if transaction_type is None:
             transaction_type = invoice.transaction_type
         if amount is None:
-            amount = invoice.amount
+            amount = invoice.effective_amount
         if funding_instrument_uri is None:
             funding_instrument_uri = invoice.funding_instrument_uri
         if appears_on_statement_as is None:
@@ -305,11 +305,11 @@ class TransactionModel(BaseTableModel):
                 transaction.status = self.STATUS_FAILED
 
                 # the transaction is failed, update invoice status
-                invoice_status = {
-                    self.TYPE_CHARGE: invoice_model.STATUS_PROCESS_FAILED,
-                    self.TYPE_REFUND: invoice_model.STATUS_REFUND_FAILED,
-                }[transaction.transaction_type]
-                transaction.invoice.status = invoice_status
+                if transaction.transaction_type in [
+                    self.TYPE_CHARGE,
+                    self.TYPE_PAYOUT,
+                ]:
+                    transaction.invoice.status = invoice_model.STATUS_PROCESS_FAILED
             transaction.updated_at = now
             self.session.flush()
             return
@@ -317,15 +317,13 @@ class TransactionModel(BaseTableModel):
         transaction.processor_uri = transaction_id
         transaction.status = self.STATUS_DONE
         transaction.updated_at = tables.now_func()
-        self.session.add(transaction)
 
         # the transaction is done, update invoice status
-        invoice_status = {
-            self.TYPE_CHARGE: invoice_model.STATUS_SETTLED,
-            self.TYPE_REFUND: invoice_model.STATUS_REFUNDED,
-        }[transaction.transaction_type]
-        transaction.invoice.status = invoice_status
-        self.session.add(transaction.invoice)
+        if transaction.transaction_type in [
+            self.TYPE_CHARGE,
+            self.TYPE_PAYOUT,
+        ]:
+            transaction.invoice.status = invoice_model.STATUS_SETTLED
         
         self.session.flush()
         self.logger.info('Processed transaction %s, status=%s, external_id=%s',

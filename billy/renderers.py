@@ -33,16 +33,16 @@ def invoice_adapter(invoice, request):
     for item in invoice.items:
         items.append(dict(
             name=item.name,
-            total=item.total,
+            amount=item.amount,
             type=item.type,
             quantity=item.quantity,
-            amount=item.amount,
+            volume=item.volume,
             unit=item.unit,
         ))
     adjustments = []
     for adjustment in invoice.adjustments:
         adjustments.append(dict(
-            total=adjustment.total,
+            amount=adjustment.amount,
             reason=adjustment.reason,
         ))
     status_map = {
@@ -51,9 +51,6 @@ def invoice_adapter(invoice, request):
         InvoiceModel.STATUS_SETTLED: 'settled',
         InvoiceModel.STATUS_CANCELED: 'canceled',
         InvoiceModel.STATUS_PROCESS_FAILED: 'process_failed',
-        InvoiceModel.STATUS_REFUNDING: 'refunding',
-        InvoiceModel.STATUS_REFUNDED: 'refunded',
-        InvoiceModel.STATUS_REFUND_FAILED: 'refund_failed',
     }
     status = status_map[invoice.status]
 
@@ -88,6 +85,7 @@ def invoice_adapter(invoice, request):
         created_at=invoice.created_at.isoformat(),
         updated_at=invoice.updated_at.isoformat(),
         amount=invoice.amount, 
+        effective_amount=invoice.effective_amount, 
         total_adjustment_amount=invoice.total_adjustment_amount, 
         title=invoice.title, 
         appears_on_statement_as=invoice.appears_on_statement_as, 

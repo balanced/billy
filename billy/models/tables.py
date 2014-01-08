@@ -253,9 +253,6 @@ class Invoice(DeclarativeBase):
     #   - 2=settled
     #   - 3=canceled
     #   - 4=process failed
-    #   - 5=refunding
-    #   - 6=refunded
-    #   - 7=refund failed
     status = Column(Integer, index=True, nullable=False)
     #: a short optional title of this invoice
     title = Column(Unicode(128))
@@ -267,10 +264,14 @@ class Invoice(DeclarativeBase):
     #  bank account or credit card)
     appears_on_statement_as = Column(Unicode(32))
 
-    #: the last transaction of this invoice
+    #: the last charge/payout transaction of this invoice
     last_transaction = relationship(
         'Transaction', 
         uselist=False,
+        primaryjoin=('''and_(
+            Transaction.invoice_guid == Invoice.guid,
+            Transaction.transaction_type in [0, 2],
+        )'''),
         order_by='-Transaction.created_at',
     )
 
@@ -305,14 +306,14 @@ class Invoice(DeclarativeBase):
         from sqlalchemy import func
         session = object_session(self)
         return (
-            session.query(func.coalesce(func.sum(Adjustment.total), 0))
+            session.query(func.coalesce(func.sum(Adjustment.amount), 0))
             .filter(Adjustment.invoice_guid == self.guid)
             .scalar()
         )
 
     @property
     def effective_amount(self):
-        """Effect amount of this invoice (amount + total_adjustment_amount)
+        """Effective amount of this invoice (amount + total_adjustment_amount)
 
         """
         return self.total_adjustment_amount + self.amount
@@ -411,10 +412,10 @@ class Item(DeclarativeBase):
     name = Column(Unicode(128), nullable=False)
     #: quantity of item
     quantity = Column(Integer)
-    #: total processed transaction amount
-    amount = Column(Integer)
+    #: total processed transaction volume
+    volume = Column(Integer)
     #: total fee to charge for this item
-    total = Column(Integer, nullable=False)
+    amount = Column(Integer, nullable=False)
     #: unit of item
     unit = Column(Unicode(64))
 
@@ -438,8 +439,8 @@ class Adjustment(DeclarativeBase):
     )
     #: reason of making this adjustment to invoice
     reason = Column(Unicode(128))
-    #: total adjustment applied to the invoice, could be negative
-    total = Column(Integer, nullable=False)
+    #: the adjustment amount to be applied to invoice, could be negative
+    amount = Column(Integer, nullable=False)
 
 
 class Transaction(DeclarativeBase):

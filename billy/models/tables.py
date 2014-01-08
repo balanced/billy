@@ -269,7 +269,7 @@ class Invoice(DeclarativeBase):
         'Transaction', 
         cascade='all, delete-orphan', 
         backref='invoice',
-        order_by='-Transaction.created_at',
+        order_by='Transaction.created_at',
     )
 
     #: items of this invoice

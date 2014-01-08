@@ -461,6 +461,23 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(subscription['canceled'], True)
         self.assertEqual(subscription['canceled_at'], canceled_at.isoformat())
 
+    def test_canceled_subscription_will_not_yield_invoices(self):
+        with db_transaction.manager:
+            subscription = self.subscription_model.create(
+                customer=self.customer,
+                plan=self.plan,
+            )
+        self.assertEqual(subscription.invoice_count, 1)
+        self.testapp.post(
+            '/v1/subscriptions/{}/cancel'.format(subscription.guid), 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        with freeze_time('2014-01-01'):
+            invoices = self.subscription_model.yield_invoices([subscription])
+        self.assertFalse(invoices)
+        self.assertEqual(subscription.invoice_count, 1)
+
     def test_cancel_a_canceled_subscription(self):
         with db_transaction.manager:
             subscription = self.subscription_model.create(

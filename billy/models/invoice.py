@@ -385,6 +385,44 @@ class InvoiceModel(BaseTableModel):
         self.session.flush()
         return transactions
 
+    def cancel(self, invoice):
+        """Cancel an invoice
+
+        """
+        Transaction = tables.Transaction
+        now = tables.now_func()
+
+        if invoice.status not in [
+            self.STATUS_INIT,
+            self.STATUS_PROCESSING,
+            self.STATUS_PROCESS_FAILED,
+        ]:
+            raise InvalidOperationError(
+                'An invoice can only be canceled when its status is one of '
+                'INIT, PROCESSING and PROCESS_FAILED'
+            )
+        self.get(invoice.guid, with_lockmode='update')
+        invoice.status = self.STATUS_CANCELED
+
+        # those transactions which are still running
+        running_transactions = (
+            self.session.query(Transaction)
+            .filter(
+                Transaction.transaction_type != TransactionModel.TYPE_REFUND,
+                Transaction.status.in_([
+                    TransactionModel.STATUS_INIT,
+                    TransactionModel.STATUS_RETRYING,
+                ])
+            )
+        )
+        # cancel them
+        running_transactions.update(dict(
+            status=TransactionModel.STATUS_CANCELED,
+            updated_at=now, 
+        ), synchronize_session='fetch')
+
+        self.session.flush()
+
     def refund(self, invoice, amount, appears_on_statement_as=None):
         """Refund the invoice
 

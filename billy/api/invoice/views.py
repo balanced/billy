@@ -237,6 +237,24 @@ class InvoiceView(EntityView):
                 tx_model.process_transactions(transactions)
         return invoice
 
+    @view_config(name='cancel', request_method='POST')
+    def cancel(self):
+        """Cancel the invoice
+
+        """
+        request = self.request
+        invoice = self.context.entity
+        invoice_model = request.model_factory.create_invoice_model()
+
+        try:
+            with db_transaction.manager:
+                invoice_model.cancel(invoice=invoice)
+        except InvalidOperationError, e:
+            # TODO: maybe we should handle these type of exception in a more
+            # common way
+            raise HTTPBadRequest('InvalidOperationError: {}'.format(e.args[0]))
+        return invoice
+
     @view_config(name='transactions')
     def transaction_index(self):
         """Get and return the list of transactions unrder current customer

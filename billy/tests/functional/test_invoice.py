@@ -830,6 +830,8 @@ class TestInvoiceViews(ViewTestCase):
             status=200,
         )
 
+        invoice = self.invoice_model.get(res.json['guid'])
+        
         def refund(when, amount):
             with freeze_time(when):
                 self.testapp.post(
@@ -839,7 +841,6 @@ class TestInvoiceViews(ViewTestCase):
                     status=200,
                 )
 
-            invoice = self.invoice_model.get(res.json['guid'])
             self.assertEqual(invoice.status, self.invoice_model.STATUS_SETTLED)
             transaction = invoice.transactions[-1]
             refund_method.assert_called_with(transaction)
@@ -859,6 +860,73 @@ class TestInvoiceViews(ViewTestCase):
         self.testapp.post(
             '/v1/invoices/{}/refund'.format(res.json['guid']),
             dict(amount=9999),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
+
+    def test_invoice_cancel(self):
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=self.customer.guid,
+                amount=5566,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        with freeze_time('2013-08-17'):
+            self.testapp.post(
+                '/v1/invoices/{}/cancel'.format(res.json['guid']),
+                extra_environ=dict(REMOTE_USER=self.api_key), 
+                status=200,
+            )
+        invoice = self.invoice_model.get(res.json['guid'])
+        self.assertEqual(invoice.status, self.invoice_model.STATUS_CANCELED)
+        self.assertEqual(len(invoice.transactions), 0)
+
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    def test_invoice_cancel_while_processing(self, charge_method):
+        charge_method.side_effect = RuntimeError('Shit!')
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=self.customer.guid,
+                amount=5566,
+                funding_instrument_uri='MOCK_CARD_URI',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        with freeze_time('2013-08-17'):
+            self.testapp.post(
+                '/v1/invoices/{}/cancel'.format(res.json['guid']),
+                extra_environ=dict(REMOTE_USER=self.api_key), 
+                status=200,
+            )
+        invoice = self.invoice_model.get(res.json['guid'])
+        self.assertEqual(invoice.status, self.invoice_model.STATUS_CANCELED)
+        self.assertEqual(len(invoice.transactions), 1)
+        transaction = invoice.transactions[0]
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_CANCELED)
+
+    def test_invoice_cancel_already_canceled_invoice(self):
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=self.customer.guid,
+                amount=5566,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.testapp.post(
+            '/v1/invoices/{}/cancel'.format(res.json['guid']),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.testapp.post(
+            '/v1/invoices/{}/cancel'.format(res.json['guid']),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=400,
         )

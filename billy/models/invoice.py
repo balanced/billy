@@ -1,8 +1,12 @@
 from __future__ import unicode_literals
 
+from sqlalchemy.sql.expression import func
+
 from billy.models import tables
 from billy.models.base import BaseTableModel
 from billy.models.base import decorate_offset_limit
+from billy.models.plan import PlanModel
+from billy.models.transaction import TransactionModel
 from billy.utils.generic import make_guid
 
 
@@ -35,12 +39,6 @@ class InvoiceModel(BaseTableModel):
     STATUS_CANCELED = 3
     #: failed to process status
     STATUS_PROCESS_FAILED = 4
-    #: refunding status
-    STATUS_REFUNDING = 5
-    #: refunded status
-    STATUS_REFUNDED = 6
-    #: failed to refund status
-    STATUS_REFUND_FAILED = 7
 
     STATUS_ALL = [
         STATUS_INIT,
@@ -48,9 +46,15 @@ class InvoiceModel(BaseTableModel):
         STATUS_SETTLED,
         STATUS_CANCELED,
         STATUS_PROCESS_FAILED,
-        STATUS_REFUNDING,
-        STATUS_REFUNDED,
-        STATUS_REFUND_FAILED,
+    ]
+
+    #: subscription type invoice
+    TYPE_SUBSCRIPTION = 0
+    #: customer type invoice
+    TYPE_CUSTOMER = 1
+    TYPE_ALL = [
+        TYPE_SUBSCRIPTION,
+        TYPE_CUSTOMER,
     ]
 
     # not set object
@@ -63,64 +67,179 @@ class InvoiceModel(BaseTableModel):
         """
         Company = tables.Company
         Customer = tables.Customer
+        Subscription = tables.Subscription
         Invoice = tables.Invoice
+        Plan = tables.Plan
+        SubscriptionInvoice = tables.SubscriptionInvoice
+        CustomerInvoice = tables.CustomerInvoice
 
-        query = self.session.query(Invoice)
+        basic_query = self.session.query(Invoice)
+        # joined subscription invoice query
+        subscription_invoice_query = (
+            basic_query
+            .join(
+                SubscriptionInvoice, 
+                SubscriptionInvoice.guid == Invoice.guid,
+            )
+        )
+        # joined customer invoice query
+        customer_invoice_query = (
+            basic_query
+            .join(
+                CustomerInvoice, 
+                CustomerInvoice.guid == Invoice.guid,
+            )
+        )
+        # joined customer query
+        customer_query = (
+            customer_invoice_query
+            .join(
+                Customer, 
+                Customer.guid == CustomerInvoice.customer_guid,
+            )
+        )
+        # joined subscription query
+        subscription_query = (
+            subscription_invoice_query
+            .join(
+                Subscription, 
+                Subscription.guid == SubscriptionInvoice.subscription_guid,
+            )
+        )
+        # joined plan query
+        plan_query = (
+            subscription_query
+            .join(
+                Plan,
+                Plan.guid == Subscription.plan_guid,
+            )
+        )
+
         if isinstance(context, Customer):
-            query = query.filter(Invoice.customer == context)
-        elif isinstance(context, Company):
             query = (
-                query
-                .join(
-                    Customer,
-                    Customer.guid == Invoice.customer_guid,
-                )
+                customer_invoice_query
+                .filter(CustomerInvoice.customer == context)
+            )
+        elif isinstance(context, Subscription):
+            query = (
+                subscription_invoice_query
+                .filter(SubscriptionInvoice.subscription == context)
+                .order_by(SubscriptionInvoice.scheduled_at.desc())
+            )
+        elif isinstance(context, Plan):
+            query = (
+                subscription_query
+                .filter(Subscription.plan == context)
+                .order_by(SubscriptionInvoice.scheduled_at.desc())
+            )
+        elif isinstance(context, Company):
+            q1 = (
+                plan_query
+                .filter(Plan.company == context)
+            )
+            q2 = (
+                customer_query
                 .filter(Customer.company == context)
             )
+            query = q1.union(q2)
         else:
             raise ValueError('Unsupported context {}'.format(context))
 
         if external_id is not self.NOT_SET:
-            query = query.filter(Invoice.external_id == external_id)
+            query = (
+                query
+                .join(
+                    CustomerInvoice,
+                    CustomerInvoice.guid == Invoice.guid,
+                )
+                .filter(CustomerInvoice.external_id == external_id)
+            )
 
         query = query.order_by(Invoice.created_at.desc())
         return query
 
+    def _create_transaction(self, invoice):
+        """Create a charge/payout transaction from the given invoice and return
+
+        """
+        tx_model = self.factory.create_transaction_model()
+        transaction = tx_model.create(
+            invoice=invoice,
+            amount=invoice.effective_amount,
+            transaction_type=invoice.transaction_type,
+            funding_instrument_uri=invoice.funding_instrument_uri,
+            appears_on_statement_as=invoice.appears_on_statement_as,
+        )
+        return transaction
+
     def create(
         self, 
-        customer, 
         amount,
         funding_instrument_uri=None, 
+        customer=None, 
+        subscription=None, 
         title=None,
         items=None,
         adjustments=None,
         external_id=None,
         appears_on_statement_as=None,
+        scheduled_at=None, 
     ):
         """Create a invoice and return its id
 
         """
         from sqlalchemy.exc import IntegrityError
 
+        if customer is not None and subscription is not None:
+            raise ValueError('You can only set either customer or subscription')
+
+        if customer is not None:
+            invoice_type = self.TYPE_CUSTOMER
+            invoice_cls = tables.CustomerInvoice
+            # we only support charge type for customer invoice now
+            transaction_type = TransactionModel.TYPE_CHARGE
+            extra_kwargs = dict(
+                customer=customer,
+                external_id=external_id,
+            )
+        elif subscription is not None:
+            if scheduled_at is None:
+                raise ValueError('scheduled_at cannot be None')
+            invoice_type = self.TYPE_SUBSCRIPTION
+            invoice_cls = tables.SubscriptionInvoice
+            plan_type = subscription.plan.plan_type
+            if plan_type == PlanModel.TYPE_CHARGE:
+                transaction_type = TransactionModel.TYPE_CHARGE
+            elif plan_type == PlanModel.TYPE_PAYOUT:
+                transaction_type = TransactionModel.TYPE_PAYOUT
+            extra_kwargs = dict(
+                subscription=subscription,
+                scheduled_at=scheduled_at,
+            )
+        else:
+            raise ValueError('You have to set either customer or subscription')
+
         if amount < 0:
             raise ValueError('Negative amount {} is not allowed'.format(amount))
 
         now = tables.now_func()
-        invoice = tables.Invoice(
+        invoice = invoice_cls(
             guid='IV' + make_guid(),
+            invoice_type=invoice_type,
+            transaction_type=transaction_type,
             status=self.STATUS_INIT,
-            customer=customer,
             amount=amount, 
             funding_instrument_uri=funding_instrument_uri, 
             title=title,
             created_at=now,
             updated_at=now,
-            external_id=external_id,
             appears_on_statement_as=appears_on_statement_as,
+            **extra_kwargs
         )
 
         self.session.add(invoice)
 
+        # ensure (customer_guid, external_id) is unique
         try:
             self.session.flush()
         except IntegrityError:
@@ -135,11 +254,11 @@ class InvoiceModel(BaseTableModel):
                 record = tables.Item(
                     invoice=invoice,
                     name=item['name'],
-                    total=item['total'],
+                    amount=item['amount'],
                     type=item.get('type'),
                     quantity=item.get('quantity'),
                     unit=item.get('unit'),
-                    amount=item.get('amount'),
+                    volume=item.get('volume'),
                 )
                 self.session.add(record)
             self.session.flush()
@@ -151,27 +270,18 @@ class InvoiceModel(BaseTableModel):
             for adjustment in adjustments:
                 record = tables.Adjustment(
                     invoice=invoice,
-                    total=adjustment['total'],
+                    amount=adjustment['amount'],
                     reason=adjustment.get('reason'),
                 )
                 self.session.add(record)
             self.session.flush()
 
-        tx_model = self.factory.create_transaction_model()
         # as if we set the funding_instrument_uri at very first, we want to charge it
         # immediately, so we create a transaction right away, also set the 
         # status to PROCESSING
         if funding_instrument_uri is not None and invoice.amount > 0:
             invoice.status = self.STATUS_PROCESSING
-            tx_model.create(
-                invoice=invoice, 
-                funding_instrument_uri=funding_instrument_uri, 
-                amount=invoice.amount, 
-                transaction_type=tx_model.TYPE_CHARGE, 
-                transaction_cls=tx_model.CLS_INVOICE, 
-                appears_on_statement_as=invoice.appears_on_statement_as,
-                scheduled_at=now, 
-            )
+            self._create_transaction(invoice)
         # it is zero amount, nothing to charge, just switch to
         # SETTLED status
         elif invoice.amount == 0:
@@ -183,7 +293,6 @@ class InvoiceModel(BaseTableModel):
     def update(
         self, 
         invoice, 
-        funding_instrument_uri=NOT_SET, 
         title=NOT_SET, 
         items=NOT_SET,
     ):
@@ -205,11 +314,11 @@ class InvoiceModel(BaseTableModel):
                 item = tables.Item(
                     invoice_guid=invoice.guid,
                     name=item['name'],
-                    total=item['total'],
+                    amount=item['amount'],
                     type=item.get('type'),
                     quantity=item.get('quantity'),
                     unit=item.get('unit'),
-                    amount=item.get('amount'),
+                    volume=item.get('volume'),
                 )
                 new_items.append(item)
                 self.session.add(item)
@@ -222,6 +331,8 @@ class InvoiceModel(BaseTableModel):
 
         @return: a list of yielded transaction
         """
+        Transaction = tables.Transaction
+
         tx_model = self.factory.create_transaction_model()
         now = tables.now_func()
         invoice.updated_at = now
@@ -253,74 +364,143 @@ class InvoiceModel(BaseTableModel):
         # to solve the problem mentioned above, we acquire a lock on the 
         # invoice at begin of transaction, in this way, there will be no
         # overlap between two transaction
-
-        last_transaction = (
-            self.session
-            .query(tables.InvoiceTransaction)
-            .filter(tables.InvoiceTransaction.invoice == invoice)
-            .order_by(tables.InvoiceTransaction.created_at.desc())
-            .first()
-        )
+        self.get(invoice.guid, with_lockmode='update')
 
         # the invoice is just created, simply create a transaction for it
         if invoice.status == self.STATUS_INIT:
-            transaction = tx_model.create(
-                invoice=invoice, 
-                funding_instrument_uri=funding_instrument_uri, 
-                amount=invoice.amount, 
-                transaction_type=tx_model.TYPE_CHARGE, 
-                transaction_cls=tx_model.CLS_INVOICE, 
-                appears_on_statement_as=invoice.appears_on_statement_as, 
-                scheduled_at=now, 
-            )
+            transaction = self._create_transaction(invoice)
             transactions.append(transaction)
-        # we are already processing, abort current transaction and create
+        # we are already processing, cancel current transaction and create
         # a new one
-        # TODO: what about offline transaction? shound't we abort it in 
-        # processor?
         elif invoice.status == self.STATUS_PROCESSING:
-            assert last_transaction.status in [
-                tx_model.STATUS_INIT, 
-                tx_model.STATUS_RETRYING
-            ], 'The last transaction status should be either INIT or ' \
-               'RETRYING'
-            # cancel old one
+            # find the running transaction and cancel it 
+            last_transaction = (
+                self.session
+                .query(Transaction)
+                .filter(
+                    Transaction.invoice == invoice,
+                    Transaction.transaction_type.in_([
+                        TransactionModel.TYPE_CHARGE,
+                        TransactionModel.TYPE_PAYOUT,
+                    ]),
+                    Transaction.status.in_([
+                        TransactionModel.STATUS_INIT,
+                        TransactionModel.STATUS_RETRYING,
+                    ])
+                )
+            ).one()
             last_transaction.status = tx_model.STATUS_CANCELED
             last_transaction.canceled_at = now
-            self.session.add(last_transaction)
             # create a new one
-            transaction = tx_model.create(
-                invoice=invoice, 
-                funding_instrument_uri=funding_instrument_uri, 
-                amount=invoice.amount, 
-                transaction_type=tx_model.TYPE_CHARGE, 
-                transaction_cls=tx_model.CLS_INVOICE, 
-                appears_on_statement_as=invoice.appears_on_statement_as, 
-                scheduled_at=now, 
-            )
+            transaction = self._create_transaction(invoice)
             transactions.append(transaction)
         # the previous transaction failed, just create a new one
         elif invoice.status == self.STATUS_PROCESS_FAILED:
-            assert last_transaction.status == tx_model.STATUS_FAILED, \
-                'The last transaction status should be FAILED'
-            transaction = tx_model.create(
-                invoice=invoice, 
-                funding_instrument_uri=funding_instrument_uri, 
-                amount=invoice.amount, 
-                transaction_type=tx_model.TYPE_CHARGE, 
-                transaction_cls=tx_model.CLS_INVOICE, 
-                appears_on_statement_as=invoice.appears_on_statement_as, 
-                scheduled_at=now, 
-            )
+            transaction = self._create_transaction(invoice)
             transactions.append(transaction)
         else:
             raise InvalidOperationError(
-                'Invalid operation, you can only update funding_instrument_uri when '
-                'the status is one of INIT, PROCESSING and PROCESS_FAILED'
+                'Invalid operation, you can only update funding_instrument_uri '
+                'when the invoice status is one of INIT, PROCESSING and '
+                'PROCESS_FAILED'
             )
         invoice.status = self.STATUS_PROCESSING
 
         self.session.flush()
         return transactions
 
-    # TODO: implement invoice refund here
+    def cancel(self, invoice):
+        """Cancel an invoice
+
+        """
+        Transaction = tables.Transaction
+        now = tables.now_func()
+
+        if invoice.status not in [
+            self.STATUS_INIT,
+            self.STATUS_PROCESSING,
+            self.STATUS_PROCESS_FAILED,
+        ]:
+            raise InvalidOperationError(
+                'An invoice can only be canceled when its status is one of '
+                'INIT, PROCESSING and PROCESS_FAILED'
+            )
+        self.get(invoice.guid, with_lockmode='update')
+        invoice.status = self.STATUS_CANCELED
+
+        # those transactions which are still running
+        running_transactions = (
+            self.session.query(Transaction)
+            .filter(
+                Transaction.transaction_type != TransactionModel.TYPE_REFUND,
+                Transaction.status.in_([
+                    TransactionModel.STATUS_INIT,
+                    TransactionModel.STATUS_RETRYING,
+                ])
+            )
+        )
+        # cancel them
+        running_transactions.update(dict(
+            status=TransactionModel.STATUS_CANCELED,
+            updated_at=now, 
+        ), synchronize_session='fetch')
+
+        self.session.flush()
+
+    def refund(self, invoice, amount):
+        """Refund the invoice
+
+        """
+        Transaction = tables.Transaction
+        tx_model = self.factory.create_transaction_model()
+        transactions = []
+
+        self.get(invoice.guid, with_lockmode='update')
+
+        if invoice.status != self.STATUS_SETTLED:
+            raise InvalidOperationError('You can only refund a settled invoice')
+
+        refunded_amount = (
+            self.session.query(
+                func.coalesce(func.sum(Transaction.amount), 0)
+            )
+            .filter(
+                Transaction.invoice == invoice,
+                Transaction.transaction_type == TransactionModel.TYPE_REFUND,
+                Transaction.status.in_([
+                    TransactionModel.STATUS_INIT,
+                    TransactionModel.STATUS_RETRYING,
+                    TransactionModel.STATUS_DONE,
+                ])
+            )
+        ).scalar()
+        # Make sure do not allow refund more than effective amount
+        if refunded_amount + amount > invoice.effective_amount:
+            raise InvalidOperationError(
+                'Refund total amount {} + {} will exceed invoice effective amount {}'
+                .format(
+                    refunded_amount,
+                    amount,
+                    invoice.effective_amount,
+                )
+            )
+
+        # the settled transaction
+        settled_transaction = (
+            self.session.query(Transaction)
+            .filter(
+                Transaction.invoice == invoice,
+                Transaction.transaction_type == TransactionModel.TYPE_CHARGE,
+                Transaction.status == TransactionModel.STATUS_DONE,
+            )
+        ).one()
+
+        # create the refund transaction
+        transaction = tx_model.create(
+            invoice=invoice,
+            transaction_type=TransactionModel.TYPE_REFUND,
+            amount=amount,
+            reference_to=settled_transaction,
+        )
+        transactions.append(transaction)
+        return transactions

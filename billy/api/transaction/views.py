@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from pyramid.view import view_config
 from pyramid.security import authenticated_userid
 
+from billy.models.invoice import InvoiceModel 
 from billy.models.transaction import TransactionModel 
 from billy.api.utils import list_by_context
 from billy.api.resources import IndexResource
@@ -16,8 +17,8 @@ class TransactionResource(EntityResource):
     @property
     def company(self):
         # make sure only the owner company can access the customer
-        if self.entity.transaction_cls == TransactionModel.CLS_SUBSCRIPTION:
-            company = self.entity.subscription.plan.company
+        if self.entity.invoice.invoice_type == InvoiceModel.TYPE_SUBSCRIPTION:
+            company = self.entity.invoice.subscription.plan.company
         else:
             company = self.entity.invoice.customer.company
         return company

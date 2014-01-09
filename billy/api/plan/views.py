@@ -9,6 +9,7 @@ from billy.models.plan import PlanModel
 from billy.models.customer import CustomerModel 
 from billy.models.subscription import SubscriptionModel 
 from billy.models.transaction import TransactionModel 
+from billy.models.invoice import InvoiceModel 
 from billy.api.utils import validate_form
 from billy.api.utils import list_by_context
 from billy.api.resources import IndexResource
@@ -110,6 +111,13 @@ class PlanView(EntityView):
 
         """
         return list_by_context(self.request, SubscriptionModel, self.context.entity)
+
+    @view_config(name='invoices')
+    def invoice_index(self):
+        """Get and return the list of invoices unrder current plan
+
+        """
+        return list_by_context(self.request, InvoiceModel, self.context.entity)
 
     @view_config(name='transactions')
     def transaction_index(self):

@@ -57,9 +57,13 @@ class TestCompanyViews(ViewTestCase):
         )
         created_company = res.json
         guid = created_company['guid']
-        res = self.testapp.get(
+        self.testapp.get(
             '/v1/companies/{}'.format(guid), 
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )
+        self.testapp.get(
+            '/v1/companies/{}'.format(guid), 
             status=403,
         )
 

@@ -37,30 +37,45 @@ class TestRenderer(ViewTestCase):
                 plan=self.plan,
                 appears_on_statement_as='hello baby',
             )
-            self.invoice = self.invoice_model.create(
+            self.customer_invoice = self.invoice_model.create(
                 customer=self.customer,
                 amount=7788,
                 title='foobar invoice',
                 external_id='external ID',
                 appears_on_statement_as='hello baby',
                 items=[
-                    dict(type='debit', name='foo', total=123, amount=5678),
-                    dict(name='bar', total=456, quantity=10, unit='hours', 
-                         amount=7788),
+                    dict(type='debit', name='foo', amount=123, volume=5678),
+                    dict(name='bar', amount=456, quantity=10, unit='hours', 
+                         volume=7788),
                 ],
                 adjustments=[
-                    dict(total=20, reason='A Lannister always pays his debts!'),
-                    dict(total=3),
+                    dict(amount=20, reason='A Lannister always pays his debts!'),
+                    dict(amount=3),
                 ],
             )
-            self.transaction = self.transaction_model.create(
+            self.subscription_invoice = self.invoice_model.create(
                 subscription=self.subscription,
-                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                amount=7788,
+                title='foobar invoice',
+                external_id='external ID2',
+                appears_on_statement_as='hello baby',
+                items=[
+                    dict(type='debit', name='foo', amount=123, volume=5678),
+                    dict(name='bar', amount=456, quantity=10, unit='hours', 
+                         volume=7788),
+                ],
+                adjustments=[
+                    dict(amount=20, reason='A Lannister always pays his debts!'),
+                    dict(amount=3),
+                ],
+                scheduled_at=datetime.datetime.utcnow(),
+            )
+            self.transaction = self.transaction_model.create(
+                invoice=self.customer_invoice,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=5678,
                 funding_instrument_uri='/v1/cards/tester',
                 appears_on_statement_as='hello baby',
-                scheduled_at=datetime.datetime.utcnow(),
             )
             self.transaction_failure1 = self.transaction_failure_model.create(
                 transaction=self.transaction,
@@ -101,29 +116,32 @@ class TestRenderer(ViewTestCase):
         self.assertEqual(json_data, expected)
 
     def test_invoice(self):
-        invoice = self.invoice
+        invoice = self.customer_invoice
         json_data = invoice_adapter(invoice, self.dummy_request)
         expected = dict(
             guid=invoice.guid,
+            invoice_type='customer',
+            transaction_type='charge',
             status='init',
             created_at=invoice.created_at.isoformat(),
             updated_at=invoice.updated_at.isoformat(),
             customer_guid=invoice.customer_guid, 
             amount=invoice.amount, 
+            effective_amount=invoice.effective_amount, 
             total_adjustment_amount=invoice.total_adjustment_amount, 
             title=invoice.title, 
             external_id=invoice.external_id, 
             funding_instrument_uri=None, 
             appears_on_statement_as='hello baby', 
             items=[
-                dict(type='debit', name='foo', total=123, quantity=None, 
-                     amount=5678, unit=None),
-                dict(type=None, name='bar', total=456, quantity=10, 
-                     amount=7788, unit='hours'),
+                dict(type='debit', name='foo', amount=123, quantity=None, 
+                     volume=5678, unit=None),
+                dict(type=None, name='bar', amount=456, quantity=10, 
+                     volume=7788, unit='hours'),
             ],
             adjustments=[
-                dict(total=20, reason='A Lannister always pays his debts!'),
-                dict(total=3, reason=None),
+                dict(amount=20, reason='A Lannister always pays his debts!'),
+                dict(amount=3, reason=None),
             ],
         )
         self.assertEqual(json_data, expected)
@@ -138,9 +156,36 @@ class TestRenderer(ViewTestCase):
         assert_status(self.invoice_model.STATUS_SETTLED, 'settled')
         assert_status(self.invoice_model.STATUS_CANCELED, 'canceled')
         assert_status(self.invoice_model.STATUS_PROCESS_FAILED, 'process_failed')
-        assert_status(self.invoice_model.STATUS_REFUNDING, 'refunding')
-        assert_status(self.invoice_model.STATUS_REFUNDED, 'refunded')
-        assert_status(self.invoice_model.STATUS_REFUND_FAILED, 'refund_failed')
+
+        invoice = self.subscription_invoice
+        json_data = invoice_adapter(invoice, self.dummy_request)
+        expected = dict(
+            guid=invoice.guid,
+            invoice_type='subscription',
+            transaction_type='charge',
+            status='init',
+            created_at=invoice.created_at.isoformat(),
+            updated_at=invoice.updated_at.isoformat(),
+            scheduled_at=invoice.scheduled_at.isoformat(),
+            subscription_guid=invoice.subscription_guid, 
+            amount=invoice.amount, 
+            effective_amount=invoice.effective_amount, 
+            total_adjustment_amount=invoice.total_adjustment_amount, 
+            title=invoice.title, 
+            funding_instrument_uri=None, 
+            appears_on_statement_as='hello baby', 
+            items=[
+                dict(type='debit', name='foo', amount=123, quantity=None, 
+                     volume=5678, unit=None),
+                dict(type=None, name='bar', amount=456, quantity=10, 
+                     volume=7788, unit='hours'),
+            ],
+            adjustments=[
+                dict(amount=20, reason='A Lannister always pays his debts!'),
+                dict(amount=3, reason=None),
+            ],
+        )
+        self.assertEqual(json_data, expected)
 
     def test_plan(self):
         plan = self.plan
@@ -185,9 +230,9 @@ class TestRenderer(ViewTestCase):
             effective_amount=subscription.plan.amount,
             funding_instrument_uri=subscription.funding_instrument_uri,
             appears_on_statement_as=subscription.appears_on_statement_as,
-            period=subscription.period,
+            invoice_count=subscription.invoice_count,
             canceled=subscription.canceled,
-            next_transaction_at=subscription.next_transaction_at.isoformat(),
+            next_invoice_at=subscription.next_invoice_at.isoformat(),
             created_at=subscription.created_at.isoformat(),
             updated_at=subscription.updated_at.isoformat(),
             started_at=subscription.started_at.isoformat(),
@@ -224,10 +269,10 @@ class TestRenderer(ViewTestCase):
         ]
 
         json_data = transaction_adapter(transaction, self.dummy_request)
+        self.maxDiff = None
         expected = dict(
             guid=transaction.guid, 
             transaction_type='charge',
-            transaction_cls='subscription',
             status='init',
             amount=transaction.amount,
             funding_instrument_uri=transaction.funding_instrument_uri,
@@ -236,8 +281,7 @@ class TestRenderer(ViewTestCase):
             failure_count=transaction.failure_count,
             created_at=transaction.created_at.isoformat(),
             updated_at=transaction.updated_at.isoformat(),
-            scheduled_at=transaction.scheduled_at.isoformat(),
-            subscription_guid=transaction.subscription_guid,
+            invoice_guid=transaction.invoice_guid,
             failures=serialized_failures,
         )
         self.assertEqual(json_data, expected)
@@ -261,35 +305,6 @@ class TestRenderer(ViewTestCase):
         assert_status(self.transaction_model.STATUS_FAILED, 'failed')
         assert_status(self.transaction_model.STATUS_DONE, 'done')
         assert_status(self.transaction_model.STATUS_CANCELED, 'canceled')
-
-        # test invoice transaction
-        transaction = self.transaction_model.create(
-            invoice=self.invoice,
-            transaction_cls=self.transaction_model.CLS_INVOICE,
-            transaction_type=self.transaction_model.TYPE_CHARGE,
-            amount=10,
-            funding_instrument_uri='/v1/cards/tester',
-            appears_on_statement_as='hello baby',
-            scheduled_at=datetime.datetime.utcnow(),
-        )
-        json_data = transaction_adapter(transaction, self.dummy_request)
-        expected = dict(
-            guid=transaction.guid, 
-            transaction_type='charge',
-            transaction_cls='invoice',
-            status='init',
-            amount=transaction.amount,
-            funding_instrument_uri=transaction.funding_instrument_uri,
-            processor_uri=transaction.processor_uri,
-            appears_on_statement_as=transaction.appears_on_statement_as,
-            failure_count=transaction.failure_count,
-            created_at=transaction.created_at.isoformat(),
-            updated_at=transaction.updated_at.isoformat(),
-            scheduled_at=transaction.scheduled_at.isoformat(),
-            invoice_guid=transaction.invoice_guid,
-            failures=[],
-        )
-        self.assertEqual(json_data, expected)
 
     def test_transaction_failure(self):
         transaction_failure = self.transaction_failure1

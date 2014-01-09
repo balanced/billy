@@ -5,7 +5,6 @@ import iso8601
 from wtforms import Form
 from wtforms import TextField
 from wtforms import IntegerField
-from wtforms import BooleanField
 from wtforms import Field
 from wtforms import validators
 
@@ -90,20 +89,4 @@ class SubscriptionCreateForm(Form):
     started_at = ISO8601Field('Started at datetime', [
         validators.Optional(),
         NoPastValidator(),
-    ])
-
-
-class SubscriptionCancelForm(Form):
-    prorated_refund = BooleanField('Prorated refund', [
-        validators.Optional(),
-    ], default=False)
-    refund_amount = IntegerField('Refund amount', [
-        validators.Optional(),
-        RefundAmountConflict(),
-        validators.NumberRange(min=MINIMUM_AMOUNT),
-    ])
-    appears_on_statement_as = TextField('Appears on statement as', [
-        validators.Optional(),
-        validators.Regexp(STATEMENT_REXP),
-        validators.Length(max=18),
     ])

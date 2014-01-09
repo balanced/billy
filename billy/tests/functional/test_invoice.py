@@ -33,13 +33,13 @@ class TestInvoiceViews(ViewTestCase):
         item_params = {}
         for i, item in enumerate(items):
             item_params['item_name{}'.format(i)] = item['name']
-            item_params['item_total{}'.format(i)] = item['total']
+            item_params['item_amount{}'.format(i)] = item['amount']
             if 'unit' in item:
                 item_params['item_unit{}'.format(i)] = item['unit'] 
             if 'quantity' in item:
                 item_params['item_quantity{}'.format(i)] = item['quantity'] 
-            if 'amount' in item:
-                item_params['item_amount{}'.format(i)] = item['amount'] 
+            if 'volume' in item:
+                item_params['item_volume{}'.format(i)] = item['volume'] 
             if 'type' in item:
                 item_params['item_type{}'.format(i)] = item['type'] 
         return item_params
@@ -50,7 +50,7 @@ class TestInvoiceViews(ViewTestCase):
         """
         adjustment_params = {}
         for i, item in enumerate(items):
-            adjustment_params['adjustment_total{}'.format(i)] = item['total']
+            adjustment_params['adjustment_amount{}'.format(i)] = item['amount']
             if 'reason' in item:
                 adjustment_params['adjustment_reason{}'.format(i)] = item['reason'] 
         return adjustment_params 
@@ -132,9 +132,9 @@ class TestInvoiceViews(ViewTestCase):
 
     def test_create_invoice_with_items(self):
         items = [
-            dict(name='foo', total=1234),
-            dict(name='bar', total=5678, unit='unit'),
-            dict(name='special service', total=9999, unit='hours'),
+            dict(name='foo', amount=1234),
+            dict(name='bar', amount=5678, unit='unit'),
+            dict(name='special service', amount=9999, unit='hours'),
         ]
         item_params = self._encode_item_params(items)
 
@@ -161,9 +161,9 @@ class TestInvoiceViews(ViewTestCase):
 
     def test_create_invoice_with_adjustments(self):
         adjustments = [
-            dict(total=-100, reason='A Lannister always pays his debts!'),
-            dict(total=20, reason='you owe me'),
-            dict(total=3, reason='foobar'),
+            dict(amount=-100, reason='A Lannister always pays his debts!'),
+            dict(amount=20, reason='you owe me'),
+            dict(amount=3, reason='foobar'),
         ]
         adjustment_params = self._encode_adjustment_params(adjustments)
 
@@ -180,6 +180,8 @@ class TestInvoiceViews(ViewTestCase):
         )
         self.failUnless('guid' in res.json)
         self.assertEqual(res.json['total_adjustment_amount'], -100 + 20 + 3)
+        self.assertEqual(res.json['effective_amount'], 
+                         200 + res.json['total_adjustment_amount'])
 
         adjustment_result = res.json['adjustments']
         for adjustment in adjustment_result:
@@ -194,6 +196,10 @@ class TestInvoiceViews(ViewTestCase):
         funding_instrument_uri = 'MOCK_CARD_URI'
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat()
+        adjustments = [
+            dict(amount=-100, reason='A Lannister always pays his debts!'),
+        ]
+        adjustment_params = self._encode_adjustment_params(adjustments)
 
         charge_method.return_value = 'MOCK_DEBIT_URI'
 
@@ -203,6 +209,7 @@ class TestInvoiceViews(ViewTestCase):
                 customer_guid=self.customer.guid,
                 amount=amount,
                 funding_instrument_uri=funding_instrument_uri,
+                **adjustment_params
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
@@ -211,6 +218,7 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(res.json['created_at'], now_iso)
         self.assertEqual(res.json['updated_at'], now_iso)
         self.assertEqual(res.json['amount'], amount)
+        self.assertEqual(res.json['effective_amount'], amount - 100)
         self.assertEqual(res.json['title'], None)
         self.assertEqual(res.json['customer_guid'], self.customer.guid)
         self.assertEqual(res.json['funding_instrument_uri'], 
@@ -219,6 +227,7 @@ class TestInvoiceViews(ViewTestCase):
         invoice = self.invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 1)
         transaction = invoice.transactions[0]
+        self.assertEqual(transaction.amount, invoice.effective_amount)
         self.assertEqual(transaction.processor_uri, 
                          'MOCK_DEBIT_URI')
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
@@ -429,11 +438,10 @@ class TestInvoiceViews(ViewTestCase):
             for i in range(4):
                 self.transaction_model.create(
                     invoice=other_invoice,
-                    transaction_cls=self.transaction_model.CLS_INVOICE,
-                    transaction_type=self.transaction_model.TYPE_CHARGE,
-                    amount=100,
-                    funding_instrument_uri='/v1/cards/tester',
-                    scheduled_at=datetime.datetime.utcnow(),
+                    amount=other_invoice.effective_amount,
+                    transaction_type=other_invoice.transaction_type,
+                    funding_instrument_uri=other_invoice.funding_instrument_uri,
+                    appears_on_statement_as=other_invoice.appears_on_statement_as,
                 )
 
         with db_transaction.manager:
@@ -447,11 +455,10 @@ class TestInvoiceViews(ViewTestCase):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
                     transaction = self.transaction_model.create(
                         invoice=invoice,
-                        transaction_cls=self.transaction_model.CLS_INVOICE,
-                        transaction_type=self.transaction_model.TYPE_CHARGE,
-                        amount=100,
-                        funding_instrument_uri='/v1/cards/tester',
-                        scheduled_at=datetime.datetime.utcnow(),
+                        amount=invoice.effective_amount,
+                        transaction_type=invoice.transaction_type,
+                        funding_instrument_uri=invoice.funding_instrument_uri,
+                        appears_on_statement_as=invoice.appears_on_statement_as,
                     )
                     guids.append(transaction.guid)
         guids = list(reversed(guids))
@@ -552,9 +559,9 @@ class TestInvoiceViews(ViewTestCase):
 
     def test_update_invoice_items(self):
         old_items = [
-            dict(name='foo', total=1234, quantity=10),
-            dict(name='bar', total=5678, unit='unit'),
-            dict(name='special service', total=9999, unit='hours'),
+            dict(name='foo', amount=1234, quantity=10),
+            dict(name='bar', amount=5678, unit='unit'),
+            dict(name='special service', amount=9999, unit='hours'),
         ]
         item_params = self._encode_item_params(old_items)
         res = self.testapp.post(
@@ -571,8 +578,8 @@ class TestInvoiceViews(ViewTestCase):
         guid = created_invoice['guid']
 
         new_items = [
-            dict(name='new foo', total=55),
-            dict(name='new bar', total=66, quantity=123, unit='unit'),
+            dict(name='new foo', amount=55),
+            dict(name='new bar', amount=66, quantity=123, unit='unit'),
         ]
         item_params = self._encode_item_params(new_items)
         res = self.testapp.put(
@@ -638,6 +645,120 @@ class TestInvoiceViews(ViewTestCase):
         charge_method.assert_called_once_with(transaction)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    def test_update_invoice_funding_instrument_uri_for_settled_invoice(
+        self, 
+        charge_method,
+    ):
+        charge_method.return_value = 'MOCK_DEBIT_URI'
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=self.customer.guid,
+                amount=5566,
+                funding_instrument_uri='MOCK_CARD_URI',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.testapp.put(
+            '/v1/invoices/{}'.format(res.json['guid']),
+            dict(
+                funding_instrument_uri='MOCK_CARD_URI2',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
+
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    def test_update_invoice_funding_instrument_uri_with_mutiple_failures(
+        self, 
+        charge_method
+    ):
+        # make it fail immediately
+        self.model_factory.settings['billy.transaction.maximum_retry'] = 0
+        charge_method.side_effect = RuntimeError('Ouch!')
+
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=self.customer.guid,
+                amount=5566,
+                funding_instrument_uri='instrument1',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        invoice = self.invoice_model.get(res.json['guid'])
+        self.assertEqual(invoice.status, 
+                         self.invoice_model.STATUS_PROCESS_FAILED)
+        self.assertEqual(len(invoice.transactions), 1)
+        transaction = invoice.transactions[0]
+        self.assertEqual(transaction.funding_instrument_uri, 'instrument1')
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_FAILED)
+
+        def update_instrument_uri(when, uri):
+            with freeze_time(when):
+                self.testapp.put(
+                    '/v1/invoices/{}'.format(invoice.guid),
+                    dict(
+                        funding_instrument_uri=uri,
+                    ),
+                    extra_environ=dict(REMOTE_USER=self.api_key), 
+                    status=200,
+                )
+
+        update_instrument_uri('2013-08-17', 'instrument2')
+        self.assertEqual(invoice.status, 
+                         self.invoice_model.STATUS_PROCESS_FAILED)
+        self.assertEqual(len(invoice.transactions), 2)
+        transaction = invoice.transactions[-1]
+        self.assertEqual(transaction.funding_instrument_uri, 'instrument2')
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_FAILED)
+
+        self.model_factory.settings['billy.transaction.maximum_retry'] = 1
+        update_instrument_uri('2013-08-18', 'instrument3')
+        self.assertEqual(invoice.status, 
+                         self.invoice_model.STATUS_PROCESSING)
+        self.assertEqual(len(invoice.transactions), 3)
+        transaction = invoice.transactions[-1]
+        self.assertEqual(transaction.funding_instrument_uri, 'instrument3')
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_RETRYING)
+
+        update_instrument_uri('2013-08-19', 'instrument4')
+        self.assertEqual(invoice.status, 
+                         self.invoice_model.STATUS_PROCESSING)
+        self.assertEqual(len(invoice.transactions), 4)
+        # make sure previous retrying transaction was canceled
+        transaction = invoice.transactions[-2]
+        self.assertEqual(transaction.funding_instrument_uri, 'instrument3')
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_CANCELED)
+        transaction = invoice.transactions[-1]
+        self.assertEqual(transaction.funding_instrument_uri, 'instrument4')
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_RETRYING)
+
+        charge_method.side_effect = None
+        charge_method.return_value = 'MOCK_DEBIT_URI'
+        update_instrument_uri('2013-08-20', 'instrument5')
+        self.assertEqual(invoice.status, 
+                         self.invoice_model.STATUS_SETTLED)
+        self.assertEqual(len(invoice.transactions), 5)
+        # make sure previous retrying transaction was canceled
+        transaction = invoice.transactions[-2]
+        self.assertEqual(transaction.funding_instrument_uri, 'instrument4')
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_CANCELED)
+        transaction = invoice.transactions[-1]
+        self.assertEqual(transaction.funding_instrument_uri, 'instrument5')
+        self.assertEqual(transaction.processor_uri, 'MOCK_DEBIT_URI')
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_DONE)
+
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
     def test_update_invoice_funding_instrument_uri_with_zero_amount(self, charge_method):
         amount = 0
         funding_instrument_uri = 'MOCK_CARD_URI'
@@ -670,3 +791,151 @@ class TestInvoiceViews(ViewTestCase):
         invoice = self.invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 0)
         self.assertFalse(charge_method.called)
+
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.refund')
+    def test_invoice_refund(self, refund_method):
+        refund_method.return_value = 'MOCK_REFUND_URI'
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=self.customer.guid,
+                amount=5566,
+                funding_instrument_uri='MOCK_CARD_URI',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        with freeze_time('2013-08-17'):
+            self.testapp.post(
+                '/v1/invoices/{}/refund'.format(res.json['guid']),
+                dict(amount=1234),
+                extra_environ=dict(REMOTE_USER=self.api_key), 
+                status=200,
+            )
+        invoice = self.invoice_model.get(res.json['guid'])
+        self.assertEqual(invoice.status, self.invoice_model.STATUS_SETTLED)
+        self.assertEqual(len(invoice.transactions), 2)
+        transaction = invoice.transactions[-1]
+        refund_method.assert_called_once_with(transaction)
+        self.assertEqual(transaction.funding_instrument_uri, None)
+        self.assertEqual(transaction.amount, 1234)
+        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
+        self.assertEqual(transaction.transaction_type, 
+                         self.transaction_model.TYPE_REFUND)
+        self.assertEqual(transaction.appears_on_statement_as, None)
+        self.assertEqual(transaction.processor_uri, 'MOCK_REFUND_URI')
+
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.refund')
+    def test_invoice_mutiple_refund(self, refund_method):
+        refund_method.return_value = 'MOCK_REFUND_URI'
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=self.customer.guid,
+                amount=5566,
+                funding_instrument_uri='MOCK_CARD_URI',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+
+        invoice = self.invoice_model.get(res.json['guid'])
+        
+        def refund(when, amount):
+            with freeze_time(when):
+                self.testapp.post(
+                    '/v1/invoices/{}/refund'.format(res.json['guid']),
+                    dict(amount=amount),
+                    extra_environ=dict(REMOTE_USER=self.api_key), 
+                    status=200,
+                )
+
+            self.assertEqual(invoice.status, self.invoice_model.STATUS_SETTLED)
+            transaction = invoice.transactions[-1]
+            refund_method.assert_called_with(transaction)
+            self.assertEqual(transaction.funding_instrument_uri, None)
+            self.assertEqual(transaction.amount, amount)
+            self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
+            self.assertEqual(transaction.transaction_type, 
+                             self.transaction_model.TYPE_REFUND)
+            self.assertEqual(transaction.appears_on_statement_as, None)
+            self.assertEqual(transaction.processor_uri, 'MOCK_REFUND_URI')
+
+        refund('2013-08-17', 1000)
+        refund('2013-08-18', 2000)
+        refund('2013-08-19', 2000)
+
+        # exceed the invoice amount
+        self.testapp.post(
+            '/v1/invoices/{}/refund'.format(res.json['guid']),
+            dict(amount=9999),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
+
+    def test_invoice_cancel(self):
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=self.customer.guid,
+                amount=5566,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        with freeze_time('2013-08-17'):
+            self.testapp.post(
+                '/v1/invoices/{}/cancel'.format(res.json['guid']),
+                extra_environ=dict(REMOTE_USER=self.api_key), 
+                status=200,
+            )
+        invoice = self.invoice_model.get(res.json['guid'])
+        self.assertEqual(invoice.status, self.invoice_model.STATUS_CANCELED)
+        self.assertEqual(len(invoice.transactions), 0)
+
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    def test_invoice_cancel_while_processing(self, charge_method):
+        charge_method.side_effect = RuntimeError('Shit!')
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=self.customer.guid,
+                amount=5566,
+                funding_instrument_uri='MOCK_CARD_URI',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        with freeze_time('2013-08-17'):
+            self.testapp.post(
+                '/v1/invoices/{}/cancel'.format(res.json['guid']),
+                extra_environ=dict(REMOTE_USER=self.api_key), 
+                status=200,
+            )
+        invoice = self.invoice_model.get(res.json['guid'])
+        self.assertEqual(invoice.status, self.invoice_model.STATUS_CANCELED)
+        self.assertEqual(len(invoice.transactions), 1)
+        transaction = invoice.transactions[0]
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.STATUS_CANCELED)
+
+    def test_invoice_cancel_already_canceled_invoice(self):
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=self.customer.guid,
+                amount=5566,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.testapp.post(
+            '/v1/invoices/{}/cancel'.format(res.json['guid']),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        self.testapp.post(
+            '/v1/invoices/{}/cancel'.format(res.json['guid']),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )

@@ -50,8 +50,8 @@ class TestSubscriptionViews(ViewTestCase):
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat()
         # next week
-        next_transaction_at = datetime.datetime(2013, 8, 23)
-        next_iso = next_transaction_at.isoformat()
+        next_invoice_at = datetime.datetime(2013, 8, 23)
+        next_iso = next_invoice_at.isoformat()
         charge_method.return_value = 'MOCK_DEBIT_URI'
 
         res = self.testapp.post(
@@ -71,9 +71,10 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(res.json['created_at'], now_iso)
         self.assertEqual(res.json['updated_at'], now_iso)
         self.assertEqual(res.json['canceled_at'], None)
-        self.assertEqual(res.json['next_transaction_at'], next_iso)
-        self.assertEqual(res.json['period'], 1)
+        self.assertEqual(res.json['next_invoice_at'], next_iso)
+        self.assertEqual(res.json['invoice_count'], 1)
         self.assertEqual(res.json['amount'], amount)
+        self.assertEqual(res.json['effective_amount'], amount)
         self.assertEqual(res.json['customer_guid'], self.customer.guid)
         self.assertEqual(res.json['plan_guid'], self.plan.guid)
         self.assertEqual(res.json['funding_instrument_uri'], funding_instrument_uri)
@@ -82,14 +83,29 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(res.json['canceled'], False)
 
         subscription = self.subscription_model.get(res.json['guid'])
-        self.assertEqual(len(subscription.transactions), 1)
-        transaction = subscription.transactions[0]
+        self.assertEqual(subscription.invoice_count, 1)
+
+        invoice = subscription.invoices[0]
+        self.assertEqual(len(invoice.transactions), 1)
+        self.assertEqual(invoice.amount, amount)
+        self.assertEqual(invoice.scheduled_at, now)
+        self.assertEqual(invoice.transaction_type, 
+                         self.transaction_model.TYPE_CHARGE)
+        self.assertEqual(invoice.invoice_type, 
+                         self.invoice_model.TYPE_SUBSCRIPTION)
+        self.assertEqual(invoice.appears_on_statement_as,
+                         appears_on_statement_as)
+
+        transaction = invoice.transactions[0]
         charge_method.assert_called_once_with(transaction)
         self.assertEqual(transaction.processor_uri, 
                          'MOCK_DEBIT_URI')
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
         self.assertEqual(transaction.appears_on_statement_as, 
                          subscription.appears_on_statement_as)
+        self.assertEqual(transaction.amount, amount)
+        self.assertEqual(transaction.transaction_type, 
+                         self.transaction_model.TYPE_CHARGE)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
     def test_create_subscription_with_charge_failure(self, charge_method):
@@ -101,17 +117,37 @@ class TestSubscriptionViews(ViewTestCase):
             dict(
                 customer_guid=self.customer.guid,
                 plan_guid=self.plan.guid,
+                funding_instrument_uri='/v1/cards/foobar',
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
         subscription = self.subscription_model.get(res.json['guid'])
-        self.assertEqual(len(subscription.transactions), 1)
-        transaction = subscription.transactions[0]
+        self.assertEqual(subscription.invoice_count, 1)
+
+        invoice = subscription.invoices[0]
+        self.assertEqual(len(invoice.transactions), 1)
+
+        transaction = invoice.transactions[0]
         self.assertEqual(transaction.failure_count, 1)
         self.assertEqual(transaction.failures[0].error_message, unicode(error))
         self.assertEqual(transaction.status, 
                          self.transaction_model.STATUS_RETRYING)
+
+    def test_create_subscription_without_funding_instrument(self):
+        res = self.testapp.post(
+            '/v1/subscriptions',
+            dict(
+                customer_guid=self.customer.guid,
+                plan_guid=self.plan.guid,
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        subscription = self.subscription_model.get(res.json['guid'])
+        self.assertEqual(subscription.invoice_count, 1)
+        invoice = subscription.invoices[0]
+        self.assertEqual(len(invoice.transactions), 0)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
     def test_create_subscription_with_charge_failure_exceed_limit(
@@ -127,12 +163,16 @@ class TestSubscriptionViews(ViewTestCase):
             dict(
                 customer_guid=self.customer.guid,
                 plan_guid=self.plan.guid,
+                funding_instrument_uri='/v1/cards/foobar',
             ),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
         subscription = self.subscription_model.get(res.json['guid'])
-        transaction = subscription.transactions[0]
+        self.assertEqual(subscription.invoice_count, 1)
+        invoice = subscription.invoices[0]
+        self.assertEqual(len(invoice.transactions), 1)
+        transaction = invoice.transactions[0]
 
         for i in range(2):
             self.transaction_model.process_one(transaction)
@@ -144,22 +184,6 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(transaction.failure_count, 4)
         self.assertEqual(transaction.status, 
                          self.transaction_model.STATUS_FAILED)
-
-    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.prepare_customer')
-    def test_create_subscription_with_default_funding_instrument_uri(self, prepare_customer):
-        amount = 5566
-
-        self.testapp.post(
-            '/v1/subscriptions',
-            dict(
-                customer_guid=self.customer.guid,
-                plan_guid=self.plan.guid,
-                amount=amount,
-            ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
-            status=200,
-        )
-        prepare_customer.assert_called_once_with(self.customer, None)
 
     def test_create_subscription_to_a_deleted_plan(self):
         with db_transaction.manager:
@@ -279,8 +303,8 @@ class TestSubscriptionViews(ViewTestCase):
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat()
         # next week
-        next_transaction_at = datetime.datetime(2013, 8, 17)
-        next_iso = next_transaction_at.isoformat()
+        next_invoice_at = datetime.datetime(2013, 8, 17)
+        next_iso = next_invoice_at.isoformat()
 
         res = self.testapp.post(
             '/v1/subscriptions',
@@ -296,8 +320,8 @@ class TestSubscriptionViews(ViewTestCase):
         self.failUnless('guid' in res.json)
         self.assertEqual(res.json['created_at'], now_iso)
         self.assertEqual(res.json['updated_at'], now_iso)
-        self.assertEqual(res.json['next_transaction_at'], next_iso)
-        self.assertEqual(res.json['period'], 0)
+        self.assertEqual(res.json['next_invoice_at'], next_iso)
+        self.assertEqual(res.json['invoice_count'], 0)
         self.assertEqual(res.json['amount'], amount)
         self.assertEqual(res.json['customer_guid'], self.customer.guid)
         self.assertEqual(res.json['plan_guid'], self.plan.guid)
@@ -305,8 +329,8 @@ class TestSubscriptionViews(ViewTestCase):
     def test_create_subscription_with_started_at_and_timezone(self):
         amount = 5566
         # next week
-        next_transaction_at = datetime.datetime(2013, 8, 17)
-        next_iso = next_transaction_at.isoformat()
+        next_invoice_at = datetime.datetime(2013, 8, 17)
+        next_iso = next_invoice_at.isoformat()
         res = self.testapp.post(
             '/v1/subscriptions',
             dict(
@@ -319,8 +343,8 @@ class TestSubscriptionViews(ViewTestCase):
             status=200,
         )
         self.failUnless('guid' in res.json)
-        self.assertEqual(res.json['next_transaction_at'], next_iso)
-        self.assertEqual(res.json['period'], 0)
+        self.assertEqual(res.json['next_invoice_at'], next_iso)
+        self.assertEqual(res.json['invoice_count'], 0)
 
     def test_create_subscription_with_bad_api(self):
         self.testapp.post(
@@ -419,19 +443,10 @@ class TestSubscriptionViews(ViewTestCase):
         )
 
     def test_cancel_subscription(self):
-        now = datetime.datetime.utcnow()
-
         with db_transaction.manager:
             subscription = self.subscription_model.create(
                 customer=self.customer,
                 plan=self.plan,
-            )
-            self.transaction_model.create(
-                subscription=subscription,
-                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
-                transaction_type=self.transaction_model.TYPE_CHARGE,
-                amount=100, 
-                scheduled_at=now,
             )
 
         with freeze_time('2013-08-16 07:00:00'):
@@ -446,20 +461,28 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(subscription['canceled'], True)
         self.assertEqual(subscription['canceled_at'], canceled_at.isoformat())
 
-    def test_cancel_a_canceled_subscription(self):
-        now = datetime.datetime.utcnow()
-
+    def test_canceled_subscription_will_not_yield_invoices(self):
         with db_transaction.manager:
             subscription = self.subscription_model.create(
                 customer=self.customer,
                 plan=self.plan,
             )
-            self.transaction_model.create(
-                subscription=subscription,
-                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
-                transaction_type=self.transaction_model.TYPE_CHARGE,
-                amount=100, 
-                scheduled_at=now,
+        self.assertEqual(subscription.invoice_count, 1)
+        self.testapp.post(
+            '/v1/subscriptions/{}/cancel'.format(subscription.guid), 
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        with freeze_time('2014-01-01'):
+            invoices = self.subscription_model.yield_invoices([subscription])
+        self.assertFalse(invoices)
+        self.assertEqual(subscription.invoice_count, 1)
+
+    def test_cancel_a_canceled_subscription(self):
+        with db_transaction.manager:
+            subscription = self.subscription_model.create(
+                customer=self.customer,
+                plan=self.plan,
             )
 
         self.testapp.post(
@@ -486,119 +509,58 @@ class TestSubscriptionViews(ViewTestCase):
             status=403,
         )
 
-    def _create_charge_transaction(self):
-        now = datetime.datetime.utcnow()
+    def test_subscription_invoice_list(self):
+        # create other stuff that shouldn't be included in the result
         with db_transaction.manager:
-            subscription = self.subscription_model.create(
+            self.subscription_model.create(
                 customer=self.customer,
                 plan=self.plan,
-                amount=10000,
             )
-            subscription.period = 1
-            subscription.next_transaction_at = datetime.datetime(2013, 8, 23)
-            charge_transaction = self.transaction_model.create(
-                subscription=subscription,
-                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
-                transaction_type=self.transaction_model.TYPE_CHARGE,
-                amount=10000, 
-                scheduled_at=now,
-            )
-            charge_transaction.status = self.transaction_model.STATUS_DONE
-            charge_transaction.processor_uri = 'MOCK_BALANCED_DEBIT_URI'
-        return charge_transaction
-
-    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.refund')
-    def test_cancel_subscription_with_prorated_refund(self, refund_method):
-        charge_transaction = self._create_charge_transaction()
-        refund_method.return_value = 'MOCK_REFUND_URI'
-
-        with freeze_time('2013-08-17'):
-            canceled_at = datetime.datetime.utcnow()
-            res = self.testapp.post(
-                '/v1/subscriptions/{}/cancel'.format(
-                    charge_transaction.subscription.guid
-                ), 
-                dict(prorated_refund=True),
-                extra_environ=dict(REMOTE_USER=self.api_key), 
-                status=200,
+            # other company
+            self.subscription_model.create(
+                customer=self.customer2,
+                plan=self.plan2,
             )
 
-        subscription = res.json
-        self.assertEqual(subscription['canceled'], True)
-        self.assertEqual(subscription['canceled_at'], canceled_at.isoformat())
+        with db_transaction.manager:
+            plan = self.plan_model.create(
+                company=self.company,
+                frequency=self.plan_model.FREQ_DAILY,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=1000,
+            )
+            subscription = self.subscription_model.create(
+                customer=self.customer,
+                plan=plan,
+            )
+            # 4 days passed, there should be 1 + 4 invoices
+            with freeze_time('2013-08-20'):
+                self.subscription_model.yield_invoices([subscription])
 
-        transaction = refund_method.call_args[0][0]
-        self.assertEqual(refund_method.call_count, 1)
-        self.assertEqual(transaction.refund_to, charge_transaction)
-        self.assertEqual(transaction.subscription.guid, subscription['guid'])
-        # only one day is elapsed, and it is a weekly plan, so
-        # it should be 10000 - (10000 / 7) and round to cent, 8571
-        self.assertEqual(transaction.amount, 8571)
-        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
+        invoices = subscription.invoices
+        self.assertEqual(invoices.count(), 5)
+        first_invoice = invoices[-1]
+        expected_scheduled_at = [
+            first_invoice.scheduled_at + datetime.timedelta(days=4),
+            first_invoice.scheduled_at + datetime.timedelta(days=3),
+            first_invoice.scheduled_at + datetime.timedelta(days=2),
+            first_invoice.scheduled_at + datetime.timedelta(days=1),
+            first_invoice.scheduled_at,
+        ]
+        invoice_scheduled_at = [invoice.scheduled_at for invoice in invoices]
+        self.assertEqual(invoice_scheduled_at, expected_scheduled_at)
 
+        expected_guids = [invoice.guid for invoice in invoices]
         res = self.testapp.get(
-            '/v1/transactions', 
+            '/v1/subscriptions/{}/invoices'.format(subscription.guid),
             extra_environ=dict(REMOTE_USER=self.api_key), 
             status=200,
         )
-        guids = [item['guid'] for item in res.json['items']]
-        self.assertEqual(
-            set(guids), 
-            set([charge_transaction.guid, transaction.guid]),
-        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, expected_guids)
 
-    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.refund')
-    def test_cancel_subscription_with_refund_amount(self, refund_method):
-        charge_transaction = self._create_charge_transaction()
-        refund_method.return_value = 'MOCK_REFUND_URI'
-
-        res = self.testapp.post(
-            '/v1/subscriptions/{}/cancel'.format(
-                charge_transaction.subscription.guid,
-            ), 
-            dict(
-                refund_amount=234,
-                appears_on_statement_as='good bye',
-            ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
-            status=200,
-        )
-        subscription = res.json
-
-        transaction = refund_method.call_args[0][0]
-        self.assertEqual(transaction.refund_to, charge_transaction)
-        self.assertEqual(transaction.subscription.guid, subscription['guid'])
-        self.assertEqual(transaction.amount, 234)
-        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
-        self.assertEqual(transaction.appears_on_statement_as, 'good bye')
-
-        res = self.testapp.get(
-            '/v1/transactions', 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
-            status=200,
-        )
-        guids = [item['guid'] for item in res.json['items']]
-        self.assertEqual(
-            set(guids), 
-            set([charge_transaction.guid, transaction.guid]),
-        )
-
-    def test_cancel_subscription_with_bad_arguments(self):
-        charge_transaction = self._create_charge_transaction()
-
-        def assert_bad_parameters(kwargs):
-            self.testapp.post(
-                '/v1/subscriptions/{}/cancel'.format(
-                    charge_transaction.subscription.guid,
-                ), 
-                kwargs,
-                extra_environ=dict(REMOTE_USER=self.api_key), 
-                status=400,
-            )
-        assert_bad_parameters(dict(prorated_refund=True, refund_amount=10))
-        assert_bad_parameters(dict(refund_amount=10001))
-
-    def test_transaction_list_by_subscription(self):
+    def test_subscription_transaction_list(self):
         with db_transaction.manager:
             subscription1 = self.subscription_model.create(
                 customer=self.customer,
@@ -610,17 +572,10 @@ class TestSubscriptionViews(ViewTestCase):
             )
             # make a transaction in other comapny, make sure it will not be
             # included in listing result
-            subscription3 = self.subscription_model.create(
+            self.subscription_model.create(
                 customer=self.customer2,
                 plan=self.plan2,
-            )
-            self.transaction_model.create(
-                subscription=subscription3,
-                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
-                transaction_type=self.transaction_model.TYPE_CHARGE,
-                amount=100,
-                funding_instrument_uri='/v1/cards/tester',
-                scheduled_at=datetime.datetime.utcnow(),
+                funding_instrument_uri='/v1/cards/mock',
             )
 
         guids1 = []
@@ -629,23 +584,19 @@ class TestSubscriptionViews(ViewTestCase):
             for i in range(10):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
                     transaction = self.transaction_model.create(
-                        subscription=subscription1,
-                        transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                        invoice=subscription1.invoices[0],
                         transaction_type=self.transaction_model.TYPE_CHARGE,
                         amount=10 * i,
                         funding_instrument_uri='/v1/cards/tester',
-                        scheduled_at=datetime.datetime.utcnow(),
                     )
                     guids1.append(transaction.guid)
             for i in range(20):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
                     transaction = self.transaction_model.create(
-                        subscription=subscription2,
-                        transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                        invoice=subscription2.invoices[0],
                         transaction_type=self.transaction_model.TYPE_CHARGE,
                         amount=10 * i,
                         funding_instrument_uri='/v1/cards/tester',
-                        scheduled_at=datetime.datetime.utcnow(),
                     )
                     guids2.append(transaction.guid)
         guids1 = list(reversed(guids1))
@@ -669,19 +620,6 @@ class TestSubscriptionViews(ViewTestCase):
         result_guids = [item['guid'] for item in items]
         self.assertEqual(result_guids, guids2)
 
-    def test_transaction_list_by_subscription_with_bad_api_key(self):
-        with db_transaction.manager:
-            subscription = self.subscription_model.create(
-                customer=self.customer,
-                plan=self.plan,
-            )
-
-        self.testapp.get(
-            '/v1/subscriptions/{}/transactions'.format(subscription.guid),
-            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
-            status=403,
-        )
-
     def test_subscription_list(self):
         with db_transaction.manager:
             guids = []
@@ -704,8 +642,23 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(result_guids, guids)
 
     def test_subscription_list_with_bad_api_key(self):
+        with db_transaction.manager:
+            subscription = self.subscription_model.create(
+                customer=self.customer,
+                plan=self.plan,
+            )
         self.testapp.get(
             '/v1/subscriptions',
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )
+        self.testapp.get(
+            '/v1/subscriptions/{}/transactions'.format(subscription.guid),
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )
+        self.testapp.get(
+            '/v1/subscriptions/{}/invoices'.format(subscription.guid),
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
             status=403,
         )

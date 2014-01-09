@@ -17,9 +17,13 @@ class ViewTestCase(unittest.TestCase):
     def setUp(self):
         self.dummy_processor = DummyProcessor()
 
+        def model_factory_func():
+            return self.model_factory
+
         if not hasattr(self, 'settings'):
             self.settings = {
-                'billy.processor_factory': lambda: self.dummy_processor
+                'billy.processor_factory': lambda: self.dummy_processor,
+                'model_factory_func': model_factory_func,
             }
 
         # init database

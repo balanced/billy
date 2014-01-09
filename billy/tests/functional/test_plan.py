@@ -354,6 +354,63 @@ class TestPlanViews(ViewTestCase):
         result_guids = [item['guid'] for item in items]
         self.assertEqual(result_guids, subscription_guids)
 
+    def test_plan_invoice_list(self):
+        # create some invoices in other to make sure they will not be included
+        # in the result
+        with db_transaction.manager:
+            other_customer = self.customer_model.create(self.company2)
+            other_plan = self.plan_model.create(
+                company=self.company2,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=7788,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+            other_subscription = self.subscription_model.create(
+                customer=other_customer,
+                plan=other_plan,
+            )
+            other_invoice = self.invoice_model.create(
+                customer=other_customer,
+                amount=9999,
+            )
+
+        with db_transaction.manager:
+            customer = self.customer_model.create(self.company)
+            plan = self.plan_model.create(
+                company=self.company,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=5566,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+            plan2 = self.plan_model.create(
+                company=self.company,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=5566,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+            subscription = self.subscription_model.create(
+                customer=customer,
+                plan=plan,
+            )
+            self.subscription_model.create(
+                customer=customer,
+                plan=plan2,
+            )
+            # 4 days passed, there should be 1 + 4 invoices
+            with freeze_time('2013-08-20'):
+                self.subscription_model.yield_invoices([subscription])
+
+        guids = [invoice.guid for invoice in subscription.invoices]
+
+        res = self.testapp.get(
+            '/v1/plans/{}/invoices'.format(plan.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, guids)
+
     def test_plan_transaction_list(self):
         # create some transactions in other to make sure they will not be included
         # in the result
@@ -376,20 +433,16 @@ class TestPlanViews(ViewTestCase):
             for i in range(4):
                 self.transaction_model.create(
                     invoice=other_invoice,
-                    transaction_cls=self.transaction_model.CLS_INVOICE,
                     transaction_type=self.transaction_model.TYPE_CHARGE,
                     amount=100,
                     funding_instrument_uri='/v1/cards/tester',
-                    scheduled_at=datetime.datetime.utcnow(),
                 )
             for i in range(4):
                 self.transaction_model.create(
-                    subscription=other_subscription,
-                    transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                    invoice=other_subscription.invoices[0],
                     transaction_type=self.transaction_model.TYPE_CHARGE,
                     amount=100,
                     funding_instrument_uri='/v1/cards/tester',
-                    scheduled_at=datetime.datetime.utcnow(),
                 )
 
         with db_transaction.manager:
@@ -421,32 +474,26 @@ class TestPlanViews(ViewTestCase):
             # make sure invoice transaction will not be included
             self.transaction_model.create(
                 invoice=invoice,
-                transaction_cls=self.transaction_model.CLS_INVOICE,
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 funding_instrument_uri='/v1/cards/tester',
-                scheduled_at=datetime.datetime.utcnow(),
             )
             # make sure transaction of other plan will not be included
             self.transaction_model.create(
-                subscription=subscription2,
-                transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                invoice=subscription2.invoices[0],
                 transaction_type=self.transaction_model.TYPE_CHARGE,
                 amount=100,
                 funding_instrument_uri='/v1/cards/tester',
-                scheduled_at=datetime.datetime.utcnow(),
             )
             
             guids = []
             for i in range(4):
                 with freeze_time('2013-08-16 02:00:{:02}'.format(i + 1)):
                     transaction = self.transaction_model.create(
-                        subscription=subscription,
-                        transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                        invoice=subscription.invoices[0],
                         transaction_type=self.transaction_model.TYPE_CHARGE,
                         amount=100,
                         funding_instrument_uri='/v1/cards/tester',
-                        scheduled_at=datetime.datetime.utcnow(),
                     )
                     guids.append(transaction.guid)
         guids = list(reversed(guids))

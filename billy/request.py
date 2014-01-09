@@ -23,6 +23,9 @@ class APIRequest(Request):
 
         """
         settings = self.registry.settings
+        model_factory_func = settings.get('model_factory_func')
+        if model_factory_func is not None:
+            return model_factory_func()
         processor_factory = get_processor_factory(settings)
         return ModelFactory(
             session=self.session, 

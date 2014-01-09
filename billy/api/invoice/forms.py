@@ -45,4 +45,10 @@ class InvoiceUpdateForm(Form):
         validators.Optional(),
         validators.Length(max=128),
     ])
-    # TODO: items
+
+
+class InvoiceRefundForm(Form):
+    amount = IntegerField('Amount', [
+        validators.InputRequired(),
+        validators.NumberRange(min=0)
+    ])

@@ -49,7 +49,7 @@ def main(argv=sys.argv, processor=None):
         # we won't double process them. 
         with db_transaction.manager:
             logger.info('Yielding transaction ...')
-            subscription_model.yield_transactions()
+            subscription_model.yield_invoices()
 
         with db_transaction.manager:
             logger.info('Processing transaction ...')

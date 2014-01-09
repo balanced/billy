@@ -9,6 +9,7 @@ from pyramid.httpexceptions import HTTPConflict
 
 from billy.models.invoice import InvoiceModel
 from billy.models.invoice import DuplicateExternalIDError
+from billy.models.invoice import InvalidOperationError
 from billy.models.transaction import TransactionModel
 from billy.api.utils import validate_form
 from billy.api.utils import list_by_context
@@ -19,6 +20,7 @@ from billy.api.views import EntityView
 from billy.api.views import api_view_defaults
 from .forms import InvoiceCreateForm
 from .forms import InvoiceUpdateForm
+from .forms import InvoiceRefundForm
 
 
 def parse_items(request, prefix, keywords):
@@ -109,14 +111,14 @@ class InvoiceIndexView(IndexView):
         items = parse_items(
             request=request, 
             prefix='item_', 
-            keywords=('type', 'name', 'total', 'amount', 'unit', 'quantity'),
+            keywords=('type', 'name', 'volume', 'amount', 'unit', 'quantity'),
         )
         if not items:
             items = None
         adjustments = parse_items(
             request=request, 
             prefix='adjustment_', 
-            keywords=('total', 'reason'),
+            keywords=('amount', 'reason'),
         )
         if not adjustments:
             adjustments = None
@@ -181,17 +183,73 @@ class InvoiceView(EntityView):
         if items:
             kwargs['items'] = items
 
-        with db_transaction.manager:
-            model.update(invoice, **kwargs)
-            if funding_instrument_uri:
-                transactions = model.update_funding_instrument_uri(invoice, funding_instrument_uri)
+        try:
+            with db_transaction.manager:
+                model.update(invoice, **kwargs)
+                if funding_instrument_uri:
+                    transactions = model.update_funding_instrument_uri(
+                        invoice=invoice, 
+                        funding_instrument_uri=funding_instrument_uri,
+                    )
+        except InvalidOperationError, e:
+            # TODO: maybe we should handle these type of exception in a more
+            # common way
+            raise HTTPBadRequest('InvalidOperationError: {}'.format(e.args[0]))
 
         # funding_instrument_uri is set, just process all transactions right away
         if funding_instrument_uri and transactions:
             with db_transaction.manager:
                 tx_model.process_transactions(transactions)
 
-        return invoice 
+        return invoice
+
+    @view_config(name='refund', request_method='POST')
+    def refund(self):
+        """Issue a refund to customer
+
+        """
+        request = self.request
+        invoice = self.context.entity
+        form = validate_form(InvoiceRefundForm, request)
+        invoice_model = request.model_factory.create_invoice_model()
+        tx_model = request.model_factory.create_transaction_model()
+
+        amount = form.data['amount']
+
+        try:
+            with db_transaction.manager:
+                transactions = invoice_model.refund(
+                    invoice=invoice, 
+                    amount=amount,
+                )
+        except InvalidOperationError, e:
+            # TODO: maybe we should handle these type of exception in a more
+            # common way
+            raise HTTPBadRequest('InvalidOperationError: {}'.format(e.args[0]))
+
+        # funding_instrument_uri is set, just process all transactions right away
+        if transactions:
+            with db_transaction.manager:
+                tx_model.process_transactions(transactions)
+        return invoice
+
+    @view_config(name='cancel', request_method='POST')
+    def cancel(self):
+        """Cancel the invoice
+
+        """
+        request = self.request
+        invoice = self.context.entity
+        invoice_model = request.model_factory.create_invoice_model()
+
+        try:
+            with db_transaction.manager:
+                invoice_model.cancel(invoice=invoice)
+        except InvalidOperationError, e:
+            # TODO: maybe we should handle these type of exception in a more
+            # common way
+            raise HTTPBadRequest('InvalidOperationError: {}'.format(e.args[0]))
+        return invoice
 
     @view_config(name='transactions')
     def transaction_index(self):

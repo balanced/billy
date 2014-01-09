@@ -75,6 +75,10 @@ class TestCustomerViews(ViewTestCase):
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
             status=403,
         )
+        self.testapp.post(
+            '/v1/customers',
+            status=403,
+        )
 
     def test_get_customer(self):
         res = self.testapp.post(
@@ -101,7 +105,7 @@ class TestCustomerViews(ViewTestCase):
         created_customer = res.json
 
         guid = created_customer['guid']
-        res = self.testapp.get(
+        self.testapp.get(
             '/v1/customers/{}'.format(guid), 
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
             status=403,
@@ -284,20 +288,16 @@ class TestCustomerViews(ViewTestCase):
             for i in range(4):
                 self.transaction_model.create(
                     invoice=other_invoice,
-                    transaction_cls=self.transaction_model.CLS_INVOICE,
                     transaction_type=self.transaction_model.TYPE_CHARGE,
                     amount=100,
                     funding_instrument_uri='/v1/cards/tester',
-                    scheduled_at=datetime.datetime.utcnow(),
                 )
             for i in range(4):
                 self.transaction_model.create(
-                    subscription=other_subscription,
-                    transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                    invoice=other_subscription.invoices[0],
                     transaction_type=self.transaction_model.TYPE_CHARGE,
                     amount=100,
                     funding_instrument_uri='/v1/cards/tester',
-                    scheduled_at=datetime.datetime.utcnow(),
                 )
 
         with db_transaction.manager:
@@ -321,24 +321,19 @@ class TestCustomerViews(ViewTestCase):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
                     transaction = self.transaction_model.create(
                         invoice=invoice,
-                        transaction_cls=self.transaction_model.CLS_INVOICE,
                         transaction_type=self.transaction_model.TYPE_CHARGE,
                         amount=100,
                         funding_instrument_uri='/v1/cards/tester',
-                        scheduled_at=datetime.datetime.utcnow(),
                     )
                     guids.append(transaction.guid)
             for i in range(4):
                 with freeze_time('2013-08-16 02:00:{:02}'.format(i + 1)):
                     transaction = self.transaction_model.create(
-                        subscription=subscription,
-                        transaction_cls=self.transaction_model.CLS_SUBSCRIPTION,
+                        invoice=subscription.invoices[0],
                         transaction_type=self.transaction_model.TYPE_CHARGE,
                         amount=100,
                         funding_instrument_uri='/v1/cards/tester',
-                        scheduled_at=datetime.datetime.utcnow(),
                     )
-                    guids.append(transaction.guid)
         guids = list(reversed(guids))
 
         res = self.testapp.get(

@@ -19,21 +19,14 @@ class TransactionModel(BaseTableModel):
     TYPE_REFUND = 1
     #: Paying out type transaction
     TYPE_PAYOUT = 2
+    #: Reverse type transaction
+    TYPE_REVERSE = 2
 
     TYPE_ALL = [
         TYPE_CHARGE,
         TYPE_REFUND,
         TYPE_PAYOUT, 
-    ]
-
-    #: subscription transaction
-    CLS_SUBSCRIPTION = 0
-    #: invoice transaction
-    CLS_INVOICE = 1
-
-    CLS_ALL = [
-        CLS_SUBSCRIPTION,
-        CLS_INVOICE,
+        TYPE_REVERSE, 
     ]
 
     #: initialized status
@@ -90,39 +83,41 @@ class TransactionModel(BaseTableModel):
         Plan = tables.Plan
         Subscription = tables.Subscription
         Transaction = tables.Transaction
-        SubscriptionTransaction = tables.SubscriptionTransaction
-        InvoiceTransaction = tables.InvoiceTransaction
+        SubscriptionInvoice = tables.SubscriptionInvoice
+        CustomerInvoice = tables.CustomerInvoice
 
         # joined subscription transaction query
-        subscription_tx_query = (
-            self.session.query(Transaction)
+        basic_query = self.session.query(Transaction)
+        # joined subscription invoice query
+        subscription_invoice_query = (
+            basic_query
             .join(
-                SubscriptionTransaction, 
-                Transaction.guid == SubscriptionTransaction.guid,
+                SubscriptionInvoice, 
+                SubscriptionInvoice.guid == Transaction.invoice_guid,
             )
         )
-        # joined invoice transaction query
-        invoice_tx_query = (
-            self.session.query(Transaction)
+        # joined customer invoice query
+        customer_invoice_query = (
+            basic_query
             .join(
-                InvoiceTransaction, 
-                Transaction.guid == InvoiceTransaction.guid,
+                CustomerInvoice, 
+                CustomerInvoice.guid == Transaction.invoice_guid,
             )
         )
         # joined subscription query
         subscription_query = (
-            subscription_tx_query
+            subscription_invoice_query
             .join(
                 Subscription, 
-                Subscription.guid == SubscriptionTransaction.subscription_guid
+                Subscription.guid == SubscriptionInvoice.subscription_guid,
             )
         )
-        # joined invoice query
-        invoice_query = (
-            invoice_tx_query
+        # joined customer query
+        customer_query = (
+            customer_invoice_query
             .join(
-                Invoice, 
-                Invoice.guid == InvoiceTransaction.invoice_guid
+                Customer, 
+                Customer.guid == CustomerInvoice.customer_guid,
             )
         )
         # joined plan query
@@ -134,26 +129,21 @@ class TransactionModel(BaseTableModel):
             )
         )
 
-        if isinstance(context, Subscription):
+        if isinstance(context, Invoice):
             query = (
-                subscription_tx_query
-                .filter(SubscriptionTransaction.subscription == context)
+                basic_query
+                .filter(Transaction.invoice == context)
             )
-        elif isinstance(context, Invoice):
+        elif isinstance(context, Subscription):
             query = (
-                invoice_tx_query
-                .filter(InvoiceTransaction.invoice == context)
+                subscription_invoice_query
+                .filter(SubscriptionInvoice.subscription == context)
             )
         elif isinstance(context, Customer):
-            q1 = (
-                subscription_query
-                .filter(Subscription.customer == context)
+            query = (
+                customer_invoice_query
+                .filter(CustomerInvoice.customer == context)
             )
-            q2 = (
-                invoice_query
-                .filter(Invoice.customer == context)
-            )
-            query = q1.union(q2)
         elif isinstance(context, Plan):
             query = (
                 subscription_query
@@ -165,11 +155,7 @@ class TransactionModel(BaseTableModel):
                 .filter(Plan.company == context)
             )
             q2 = (
-                invoice_query
-                .join(
-                    Customer,
-                    Customer.guid == Invoice.customer_guid,
-                )
+                customer_query
                 .filter(Customer.company == context)
             )
             query = q1.union(q2)
@@ -181,58 +167,51 @@ class TransactionModel(BaseTableModel):
 
     def create(
         self, 
-        transaction_type, 
-        transaction_cls, 
+        invoice, 
         amount,
-        scheduled_at,
-        subscription=None, 
-        invoice=None, 
+        transaction_type=None, 
         funding_instrument_uri=None,
-        refund_to=None,
+        reference_to=None,
         appears_on_statement_as=None,
     ):
-        """Create a transaction and return its ID
+        """Create a transaction and return
 
         """
+        if transaction_type is None:
+            transaction_type = invoice.transaction_type
+
         if transaction_type not in self.TYPE_ALL:
             raise ValueError('Invalid transaction_type {}'
                              .format(transaction_type))
-        if transaction_cls not in self.CLS_ALL:
-            raise ValueError('Invalid transaction_cls {}'
-                             .format(transaction_cls))
-        if refund_to is not None:
-            if transaction_type != self.TYPE_REFUND:
-                raise ValueError('refund_to can only be set to a refund '
+        if reference_to is not None:
+            if transaction_type not in [self.TYPE_REFUND, self.TYPE_REVERSE]:
+                raise ValueError('reference_to can only be set to a refund '
                                  'transaction')
             if funding_instrument_uri is not None:
-                raise ValueError('funding_instrument_uri cannot be set to a refund '
-                                 'transaction')
-            if refund_to.transaction_type != self.TYPE_CHARGE:
-                raise ValueError('Only charge transaction can be refunded')
+                raise ValueError(
+                    'funding_instrument_uri cannot be set to a refund/reverse '
+                    'transaction'
+                )
+            if (
+                reference_to.transaction_type not in 
+                [self.TYPE_CHARGE, self.TYPE_PAYOUT]
+            ):
+                raise ValueError(
+                    'Only charge/payout transaction can be refunded/reversed'
+                )
 
-        if transaction_cls == self.CLS_SUBSCRIPTION:
-            table_cls = tables.SubscriptionTransaction
-            if subscription is None:
-                raise ValueError('subscription cannot be None')
-            extra_args = dict(subscription=subscription)
-        elif transaction_cls == self.CLS_INVOICE:
-            table_cls = tables.InvoiceTransaction
-            if invoice is None:
-                raise ValueError('invoice cannot be None')
-            extra_args = dict(invoice=invoice)
         now = tables.now_func()
-        transaction = table_cls(
+        transaction = tables.Transaction(
             guid='TX' + make_guid(),
             transaction_type=transaction_type,
             amount=amount, 
             funding_instrument_uri=funding_instrument_uri, 
             appears_on_statement_as=appears_on_statement_as, 
             status=self.STATUS_INIT, 
-            scheduled_at=scheduled_at, 
-            refund_to=refund_to, 
+            reference_to=reference_to, 
             created_at=now, 
             updated_at=now, 
-            **extra_args
+            invoice=invoice,
         )
         self.session.add(transaction)
         self.session.flush()
@@ -277,12 +256,10 @@ class TransactionModel(BaseTableModel):
         self.logger.debug('Processing transaction %s', transaction.guid)
         now = tables.now_func()
 
-        if transaction.transaction_cls == self.CLS_SUBSCRIPTION:
-            customer = transaction.subscription.customer
+        if transaction.invoice.invoice_type == invoice_model.TYPE_SUBSCRIPTION:
+            customer = transaction.invoice.subscription.customer
         else:
             customer = transaction.invoice.customer
-            # acquire the lock on invoice row
-            invoice_model.get(transaction.invoice_guid, with_lockmode='update')
 
         method = {
             self.TYPE_CHARGE: self.processor.charge,
@@ -297,7 +274,10 @@ class TransactionModel(BaseTableModel):
                 customer.processor_uri,
             )
             # prepare customer (add bank account or credit card)
-            self.processor.prepare_customer(customer, transaction.funding_instrument_uri)
+            self.processor.prepare_customer(
+                customer=customer, 
+                funding_instrument_uri=transaction.funding_instrument_uri,
+            )
             # do charge/payout/refund 
             transaction_id = method(transaction)
         except (SystemExit, KeyboardInterrupt):
@@ -322,30 +302,28 @@ class TransactionModel(BaseTableModel):
                 transaction.status = self.STATUS_FAILED
 
                 # the transaction is failed, update invoice status
-                if transaction.transaction_cls == self.CLS_INVOICE:
-                    invoice_status = {
-                        self.TYPE_CHARGE: invoice_model.STATUS_PROCESS_FAILED,
-                        self.TYPE_REFUND: invoice_model.STATUS_REFUND_FAILED,
-                    }[transaction.transaction_type]
-                    transaction.invoice.status = invoice_status
-                    self.session.add(transaction.invoice)
+                if transaction.transaction_type in [
+                    self.TYPE_CHARGE,
+                    self.TYPE_PAYOUT,
+                ]:
+                    transaction.invoice.status = invoice_model.STATUS_PROCESS_FAILED
             transaction.updated_at = now
             self.session.flush()
             return
 
+        # TODO: ah... actually, some transactions cannot be really done
+        # oneline, in that case, we should use callback from processor
+        # to change the transaction status
         transaction.processor_uri = transaction_id
         transaction.status = self.STATUS_DONE
         transaction.updated_at = tables.now_func()
-        self.session.add(transaction)
 
         # the transaction is done, update invoice status
-        if transaction.transaction_cls == self.CLS_INVOICE:
-            invoice_status = {
-                self.TYPE_CHARGE: invoice_model.STATUS_SETTLED,
-                self.TYPE_REFUND: invoice_model.STATUS_REFUNDED,
-            }[transaction.transaction_type]
-            transaction.invoice.status = invoice_status
-            self.session.add(transaction.invoice)
+        if transaction.transaction_type in [
+            self.TYPE_CHARGE,
+            self.TYPE_PAYOUT,
+        ]:
+            transaction.invoice.status = invoice_model.STATUS_SETTLED
         
         self.session.flush()
         self.logger.info('Processed transaction %s, status=%s, external_id=%s',

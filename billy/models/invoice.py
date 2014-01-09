@@ -148,6 +148,20 @@ class InvoiceModel(BaseTableModel):
         query = query.order_by(Invoice.created_at.desc())
         return query
 
+    def _create_transaction(self, invoice):
+        """Create a charge/payout transaction from the given invoice and return
+
+        """
+        tx_model = self.factory.create_transaction_model()
+        transaction = tx_model.create(
+            invoice=invoice,
+            amount=invoice.effective_amount,
+            transaction_type=invoice.transaction_type,
+            funding_instrument_uri=invoice.funding_instrument_uri,
+            appears_on_statement_as=invoice.appears_on_statement_as,
+        )
+        return transaction
+
     def create(
         self, 
         amount,
@@ -252,13 +266,12 @@ class InvoiceModel(BaseTableModel):
                 self.session.add(record)
             self.session.flush()
 
-        tx_model = self.factory.create_transaction_model()
         # as if we set the funding_instrument_uri at very first, we want to charge it
         # immediately, so we create a transaction right away, also set the 
         # status to PROCESSING
         if funding_instrument_uri is not None and invoice.amount > 0:
             invoice.status = self.STATUS_PROCESSING
-            tx_model.create(invoice=invoice)
+            self._create_transaction(invoice)
         # it is zero amount, nothing to charge, just switch to
         # SETTLED status
         elif invoice.amount == 0:
@@ -345,7 +358,7 @@ class InvoiceModel(BaseTableModel):
 
         # the invoice is just created, simply create a transaction for it
         if invoice.status == self.STATUS_INIT:
-            transaction = tx_model.create(invoice=invoice)
+            transaction = self._create_transaction(invoice)
             transactions.append(transaction)
         # we are already processing, cancel current transaction and create
         # a new one
@@ -369,11 +382,11 @@ class InvoiceModel(BaseTableModel):
             last_transaction.status = tx_model.STATUS_CANCELED
             last_transaction.canceled_at = now
             # create a new one
-            transaction = tx_model.create(invoice=invoice)
+            transaction = self._create_transaction(invoice)
             transactions.append(transaction)
         # the previous transaction failed, just create a new one
         elif invoice.status == self.STATUS_PROCESS_FAILED:
-            transaction = tx_model.create(invoice=invoice)
+            transaction = self._create_transaction(invoice)
             transactions.append(transaction)
         else:
             raise InvalidOperationError(
@@ -424,7 +437,7 @@ class InvoiceModel(BaseTableModel):
 
         self.session.flush()
 
-    def refund(self, invoice, amount, appears_on_statement_as=None):
+    def refund(self, invoice, amount):
         """Refund the invoice
 
         """
@@ -478,7 +491,6 @@ class InvoiceModel(BaseTableModel):
             transaction_type=TransactionModel.TYPE_REFUND,
             amount=amount,
             reference_to=settled_transaction,
-            appears_on_statement_as=appears_on_statement_as,
         )
         transactions.append(transaction)
         return transactions

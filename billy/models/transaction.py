@@ -168,8 +168,8 @@ class TransactionModel(BaseTableModel):
     def create(
         self, 
         invoice, 
+        amount,
         transaction_type=None, 
-        amount=None,
         funding_instrument_uri=None,
         reference_to=None,
         appears_on_statement_as=None,
@@ -179,10 +179,6 @@ class TransactionModel(BaseTableModel):
         """
         if transaction_type is None:
             transaction_type = invoice.transaction_type
-        if amount is None:
-            amount = invoice.effective_amount
-        if appears_on_statement_as is None:
-            appears_on_statement_as = invoice.appears_on_statement_as
 
         if transaction_type not in self.TYPE_ALL:
             raise ValueError('Invalid transaction_type {}'
@@ -203,9 +199,6 @@ class TransactionModel(BaseTableModel):
                 raise ValueError(
                     'Only charge/payout transaction can be refunded/reversed'
                 )
-        else:
-            if funding_instrument_uri is None:
-                funding_instrument_uri = invoice.funding_instrument_uri
 
         now = tables.now_func()
         transaction = tables.Transaction(

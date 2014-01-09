@@ -436,7 +436,13 @@ class TestInvoiceViews(ViewTestCase):
             )
         with db_transaction.manager:
             for i in range(4):
-                self.transaction_model.create(invoice=other_invoice)
+                self.transaction_model.create(
+                    invoice=other_invoice,
+                    amount=other_invoice.effective_amount,
+                    transaction_type=other_invoice.transaction_type,
+                    funding_instrument_uri=other_invoice.funding_instrument_uri,
+                    appears_on_statement_as=other_invoice.appears_on_statement_as,
+                )
 
         with db_transaction.manager:
             invoice = self.invoice_model.create(
@@ -447,7 +453,13 @@ class TestInvoiceViews(ViewTestCase):
             guids = []
             for i in range(4):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
-                    transaction = self.transaction_model.create(invoice=invoice)
+                    transaction = self.transaction_model.create(
+                        invoice=invoice,
+                        amount=invoice.effective_amount,
+                        transaction_type=invoice.transaction_type,
+                        funding_instrument_uri=invoice.funding_instrument_uri,
+                        appears_on_statement_as=invoice.appears_on_statement_as,
+                    )
                     guids.append(transaction.guid)
         guids = list(reversed(guids))
 
@@ -796,10 +808,7 @@ class TestInvoiceViews(ViewTestCase):
         with freeze_time('2013-08-17'):
             self.testapp.post(
                 '/v1/invoices/{}/refund'.format(res.json['guid']),
-                dict(
-                    amount=1234,
-                    appears_on_statement_as='hello baby!',
-                ),
+                dict(amount=1234),
                 extra_environ=dict(REMOTE_USER=self.api_key), 
                 status=200,
             )
@@ -813,7 +822,7 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
         self.assertEqual(transaction.transaction_type, 
                          self.transaction_model.TYPE_REFUND)
-        self.assertEqual(transaction.appears_on_statement_as, 'hello baby!')
+        self.assertEqual(transaction.appears_on_statement_as, None)
         self.assertEqual(transaction.processor_uri, 'MOCK_REFUND_URI')
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.refund')

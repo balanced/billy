@@ -52,8 +52,3 @@ class InvoiceRefundForm(Form):
         validators.InputRequired(),
         validators.NumberRange(min=0)
     ])
-    appears_on_statement_as = TextField('Appears on statement as', [
-        validators.Optional(),
-        validators.Regexp(STATEMENT_REXP),
-        validators.Length(max=18),
-    ])

@@ -215,16 +215,12 @@ class InvoiceView(EntityView):
         tx_model = request.model_factory.create_transaction_model()
 
         amount = form.data['amount']
-        appears_on_statement_as = form.data.get('appears_on_statement_as')
-        if not appears_on_statement_as:
-            appears_on_statement_as = None
 
         try:
             with db_transaction.manager:
                 transactions = invoice_model.refund(
                     invoice=invoice, 
                     amount=amount,
-                    appears_on_statement_as=appears_on_statement_as,
                 )
         except InvalidOperationError, e:
             # TODO: maybe we should handle these type of exception in a more

@@ -682,7 +682,7 @@ Response:
                 "plan_guid": "PL97ZvyeA4wzM3WUyEG8xwps", 
                 "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
                 "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
-                "period": 1, 
+                "invoice_count": 1, 
                 "amount": null, 
                 "appears_on_statement_as": null,
                 "canceled": false, 
@@ -874,6 +874,74 @@ Response:
         "effective_amount": 900,
         "external_id": null,
         "funding_instrument_uri": null,
+        "guid": "IVS6Mo3mKLkUJKsJhtqkV7T7",
+        "invoice_type": "customer",
+        "items": [
+            {
+                "amount": 1000,
+                "name": "Hosting Service A",
+                "quantity": null,
+                "type": null,
+                "unit": null,
+                "volume": null
+            }
+        ],
+        "status": "init",
+        "title": null,
+        "total_adjustment_amount": -100,
+        "transaction_type": "charge",
+        "updated_at": "2013-08-16T00:00:00"
+    }
+
+Update
+~~~~~~
+
+An invoice can be created without a `funding_instrument_uri`. You can create
+an invoice first, send it to customer, and let them decide how to pay the
+bill. Once your customer decided to pay the bill, for example, with their 
+credit card, you can then update the `funding_instrument_uri` of invoice
+to the tokenlized credit card number. Billy will then try to settle the invoice 
+with given funding istrument. This could also be useful when previous 
+`funding_instrument_uri` is incorrect, or something goes wrong while 
+processing, such as there is no sufficient fund in the credit card. In that case, 
+invoice will become failed eventually, and you can ask your customer for 
+another method to pay the bill, and update the `funding_instrument_uri` 
+again with the new instrument URI.
+
+Method
+    PUT
+Endpoint
+    /v1/invoices/<Invoice GUID>
+Parameters
+    - **funding_instrument_uri** - The funding instrument URI to update
+
+Example:
+
+::
+
+    curl https://billing.balancedpayments.com/v1/invoices/IVS6Mo3mKLkUJKsJhtqkV7T7 \
+        -X PUT \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
+        -d "funding_instrument_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
+
+Response:
+
+::
+
+    {
+        "adjustments": [
+            {
+                "amount": -100,
+                "reason": "Coupon discount"
+            }
+        ],
+        "amount": 1000,
+        "appears_on_statement_as": "FooBar Hosting",
+        "created_at": "2013-08-16T00:00:00",
+        "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ",
+        "effective_amount": 900,
+        "external_id": null,
+        "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno",
         "guid": "IVS6Mo3mKLkUJKsJhtqkV7T7",
         "invoice_type": "customer",
         "items": [

@@ -299,7 +299,7 @@ In this case, to subscribe a new student to your course plan, you can give it a
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
         -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
         -d "plan_guid=PL97ZvyeA4wzM3WUyEG8xwps" \
-        -d "funding_instrument_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
+        -d "funding_instrument_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno" \
         -d "started_at=2013-10-01T00:00:00"
 
 Cancel a subscription
@@ -314,6 +314,96 @@ subscription `SUR6jKqqSyaFfGeeAsGaXFqZ`, then just call
     curl https://billing.balancedpayments.com/v1/subscriptions/SUR6jKqqSyaFfGeeAsGaXFqZ/cancel \
         -X POST \
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+
+Create an invoice for customer
+------------------------------
+
+Invoices can be generated from a subscription, however, it is not the only way
+to generate an invoice. You can also generate an invoice directly to your
+customer. For example, a customer purchased some goods from your online store,
+you can invoice them like this
+
+::
+
+    curl https://billing.balancedpayments.com/v1/invoices \
+        -X POST \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
+        -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
+        -d "amount=4497" \
+        -d "appears_on_statement_as=Cuty shop" \
+        -d "item_name1=Lovely hat" \
+        -d "item_amount1=999" \
+        -d "item_name2=Cute shoes" \
+        -d "item_amount2=1499" \
+        -d "item_name3=Adorable clothes" \
+        -d "item_amount3=1999" \
+        -d "adjustments_amount1=-1000" \
+        -d "adjustments_reason1=Coupon discount"
+
+and the response will be
+
+::
+
+    {
+        "adjustments": [
+            {
+                "amount": -1000,
+                "reason": "Coupon discount"
+            }
+        ],
+        "amount": 4497,
+        "appears_on_statement_as": "Cuty shop",
+        "created_at": "2013-08-16T00:00:00",
+        "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ",
+        "effective_amount": 3497,
+        "external_id": null,
+        "funding_instrument_uri": null,
+        "guid": "IVS6Mo3mKLkUJKsJhtqkV7T7",
+        "invoice_type": "customer",
+        "items": [
+            {
+                "amount": 999,
+                "name": "Lovely hat",
+                "quantity": null,
+                "type": null,
+                "unit": null,
+                "volume": null
+            },
+            {
+                "amount": 1499,
+                "name": "Cute shoes",
+                "quantity": null,
+                "type": null,
+                "unit": null,
+                "volume": null
+            },
+            {
+                "amount": 1999,
+                "name": "Adorable clothes",
+                "quantity": null,
+                "type": null,
+                "unit": null,
+                "volume": null
+            },
+        ],
+        "status": "init",
+        "title": null,
+        "total_adjustment_amount": -1000,
+        "transaction_type": "charge",
+        "updated_at": "2013-08-16T00:00:00"
+    }
+
+The parameter `funding_instrument_uri` is optional for creating an invoice.
+You can create an invoice first, and let customer decide how to settle
+the invoice later. To settle an invoice, you can use PUT method to update
+the invoice's `funding_instrument_uri` like this:
+
+::
+
+    curl https://billing.balancedpayments.com/v1/invoices/IVS6Mo3mKLkUJKsJhtqkV7T7 \
+        -X PUT \
+        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
+        -d "funding_instrument_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
 
 Refund an invoice
 -----------------

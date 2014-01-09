@@ -119,7 +119,8 @@ class InvoiceModel(BaseTableModel):
         elif isinstance(context, Subscription):
             query = (
                 subscription_invoice_query
-                .filter(SubscriptionInvoice.customer == context)
+                .filter(SubscriptionInvoice.subscription == context)
+                .order_by(SubscriptionInvoice.scheduled_at.desc())
             )
         elif isinstance(context, Company):
             q1 = (

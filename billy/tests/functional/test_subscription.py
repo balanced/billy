@@ -509,7 +509,58 @@ class TestSubscriptionViews(ViewTestCase):
             status=403,
         )
 
-    def test_transaction_list_by_subscription(self):
+    def test_subscription_invoice_list(self):
+        # create other stuff that shouldn't be included in the result
+        with db_transaction.manager:
+            self.subscription_model.create(
+                customer=self.customer,
+                plan=self.plan,
+            )
+            # other company
+            self.subscription_model.create(
+                customer=self.customer2,
+                plan=self.plan2,
+            )
+
+        with db_transaction.manager:
+            plan = self.plan_model.create(
+                company=self.company,
+                frequency=self.plan_model.FREQ_DAILY,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=1000,
+            )
+            subscription = self.subscription_model.create(
+                customer=self.customer,
+                plan=plan,
+            )
+            # 4 days passed, there should be 1 + 4 invoices
+            with freeze_time('2013-08-20'):
+                self.subscription_model.yield_invoices([subscription])
+
+        invoices = subscription.invoices
+        self.assertEqual(invoices.count(), 5)
+        first_invoice = invoices[-1]
+        expected_scheduled_at = [
+            first_invoice.scheduled_at + datetime.timedelta(days=4),
+            first_invoice.scheduled_at + datetime.timedelta(days=3),
+            first_invoice.scheduled_at + datetime.timedelta(days=2),
+            first_invoice.scheduled_at + datetime.timedelta(days=1),
+            first_invoice.scheduled_at,
+        ]
+        invoice_scheduled_at = [invoice.scheduled_at for invoice in invoices]
+        self.assertEqual(invoice_scheduled_at, expected_scheduled_at)
+
+        expected_guids = [invoice.guid for invoice in invoices]
+        res = self.testapp.get(
+            '/v1/subscriptions/{}/invoices'.format(subscription.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, expected_guids)
+
+    def test_subscription_transaction_list(self):
         with db_transaction.manager:
             subscription1 = self.subscription_model.create(
                 customer=self.customer,
@@ -603,6 +654,11 @@ class TestSubscriptionViews(ViewTestCase):
         )
         self.testapp.get(
             '/v1/subscriptions/{}/transactions'.format(subscription.guid),
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            status=403,
+        )
+        self.testapp.get(
+            '/v1/subscriptions/{}/invoices'.format(subscription.guid),
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
             status=403,
         )

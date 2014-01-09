@@ -7,6 +7,7 @@ from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPBadRequest
 
 from billy.models.subscription import SubscriptionModel
+from billy.models.invoice import InvoiceModel
 from billy.models.transaction import TransactionModel
 from billy.api.utils import validate_form
 from billy.api.utils import list_by_context
@@ -111,6 +112,13 @@ class SubscriptionView(EntityView):
         with db_transaction.manager:
             sub_model.cancel(subscription)
         return subscription 
+
+    @view_config(name='invoices')
+    def invoice_index(self):
+        """Get and return the list of invoices unrder current customer
+
+        """
+        return list_by_context(self.request, InvoiceModel, self.context.entity)
 
     @view_config(name='transactions')
     def transaction_index(self):

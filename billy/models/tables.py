@@ -208,6 +208,7 @@ class Subscription(DeclarativeBase):
         cascade='all, delete-orphan', 
         backref='subscription',
         lazy='dynamic',
+        order_by='SubscriptionInvoice.scheduled_at.desc()'
     )
 
     @property

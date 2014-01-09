@@ -44,7 +44,7 @@ and you should see the response
         "updated_at": "2013-10-02T05:29:43.953987"
     }
 
-Currently, there is no easy way to retrive or reset the API key, so please do
+Currently, there is no easy way to Retrieve or reset the API key, so please do
 not lost it. If you lost it, you can only contact the administrator to get it 
 back. 
 
@@ -182,6 +182,7 @@ Then, here comes the subscription response:
         "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
         "invoice_count": 1, 
         "amount": null, 
+        "appears_on_statement_as": null,
         "canceled": false, 
         "canceled_at": null, 
         "started_at": "2013-10-02T06:35:00.380234", 

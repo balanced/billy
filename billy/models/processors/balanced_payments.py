@@ -77,7 +77,7 @@ class BalancedProcessor(PaymentProcessor):
         if not processor_uri.startswith('/v1/'):
             raise InvalidURIFormat(
                 'The processor_uri of a Balanced customer should be something '
-                'like /v1/customers/CU53OU5AWeOVqpnDts7kbUXE, but we received '
+                'like /v1/customers/CUXXXXXXXXXXXXXXXXXXXXXX, but we received '
                 '{}. Remember, it is an URI rather than GUID.'
                 .format(repr(processor_uri))
             )

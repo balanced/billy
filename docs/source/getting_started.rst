@@ -166,6 +166,7 @@ With that funding source, to subscribe the customer to our plan, here we call
 ::
 
     curl https://billing.balancedpayments.com/v1/subscriptions \
+        -X POST \
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
         -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
         -d "plan_guid=PL97ZvyeA4wzM3WUyEG8xwps" \
@@ -250,6 +251,7 @@ the old customer, the original price is $5 USD, then discounted amount would be
 ::
 
     curl https://billing.balancedpayments.com/v1/subscriptions \
+        -X POST \
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
         -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
         -d "plan_guid=PL97ZvyeA4wzM3WUyEG8xwps" \
@@ -296,6 +298,7 @@ In this case, to subscribe a new student to your course plan, you can give it a
 ::
 
     curl https://billing.balancedpayments.com/v1/subscriptions \
+        -X POST \
         -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
         -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
         -d "plan_guid=PL97ZvyeA4wzM3WUyEG8xwps" \
@@ -384,7 +387,7 @@ and the response will be
                 "type": null,
                 "unit": null,
                 "volume": null
-            },
+            }
         ],
         "status": "init",
         "title": null,

@@ -98,13 +98,17 @@ class InvoiceModel(BaseTableModel):
                 Customer.guid == CustomerInvoice.customer_guid,
             )
         )
-        # joined plan query
-        plan_query = (
+        # joined subscription query
+        subscription_query = (
             subscription_invoice_query
             .join(
                 Subscription, 
                 Subscription.guid == SubscriptionInvoice.subscription_guid,
             )
+        )
+        # joined plan query
+        plan_query = (
+            subscription_query
             .join(
                 Plan,
                 Plan.guid == Subscription.plan_guid,
@@ -120,6 +124,12 @@ class InvoiceModel(BaseTableModel):
             query = (
                 subscription_invoice_query
                 .filter(SubscriptionInvoice.subscription == context)
+                .order_by(SubscriptionInvoice.scheduled_at.desc())
+            )
+        elif isinstance(context, Plan):
+            query = (
+                subscription_query
+                .filter(Subscription.plan == context)
                 .order_by(SubscriptionInvoice.scheduled_at.desc())
             )
         elif isinstance(context, Company):

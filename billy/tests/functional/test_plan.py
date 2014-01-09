@@ -11,13 +11,15 @@ from billy.tests.functional.helper import ViewTestCase
 class TestPlanViews(ViewTestCase):
 
     def setUp(self):
-        from billy.models.company import CompanyModel
         super(TestPlanViews, self).setUp()
-        model = CompanyModel(self.testapp.session)
         with db_transaction.manager:
-            self.company_guid = model.create(processor_key='MOCK_PROCESSOR_KEY')
-        company = model.get(self.company_guid)
-        self.api_key = str(company.api_key)
+            self.company = self.company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY',
+            )
+            self.company2 = self.company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY2',
+            )
+        self.api_key = str(self.company.api_key)
 
     def test_create_plan(self):
         plan_type = 'charge'
@@ -45,7 +47,7 @@ class TestPlanViews(ViewTestCase):
         self.assertEqual(res.json['amount'], amount)
         self.assertEqual(res.json['frequency'], frequency)
         self.assertEqual(res.json['interval'], interval)
-        self.assertEqual(res.json['company_guid'], self.company_guid)
+        self.assertEqual(res.json['company_guid'], self.company.guid)
         self.assertEqual(res.json['deleted'], False)
 
     def test_create_plan_with_bad_parameters(self):
@@ -116,6 +118,11 @@ class TestPlanViews(ViewTestCase):
             frequency='weekly',
             amount=5566,
             interval='-123',
+        ))
+        assert_bad_parameters(dict(
+            plan_type='charge',
+            frequency='weekly',
+            amount=49,
         ))
 
     def test_create_plan_with_empty_interval(self):
@@ -232,11 +239,10 @@ class TestPlanViews(ViewTestCase):
         )
 
     def test_get_plan_of_other_company(self):
-        from billy.models.company import CompanyModel
-        model = CompanyModel(self.testapp.session)
         with db_transaction.manager:
-            other_company_guid = model.create(processor_key='MOCK_PROCESSOR_KEY')
-        other_company = model.get(other_company_guid)
+            other_company = self.company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY',
+            )
         other_api_key = str(other_company.api_key)
         res = self.testapp.post(
             '/v1/plans', 
@@ -256,19 +262,28 @@ class TestPlanViews(ViewTestCase):
         )
 
     def test_plan_list(self):
-        from billy.models.plan import PlanModel 
-        plan_model = PlanModel(self.testapp.session)
         with db_transaction.manager:
+            # make some plans in other company, make sure they will not be 
+            # listed
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    self.plan_model.create(
+                        company=self.company2,
+                        plan_type=self.plan_model.TYPE_CHARGE,
+                        amount=7788,
+                        frequency=self.plan_model.FREQ_DAILY,
+                    )
+
             guids = []
             for i in range(4):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
-                    guid = plan_model.create(
-                        company_guid=self.company_guid,
-                        plan_type=plan_model.TYPE_CHARGE,
-                        amount=55.66,
-                        frequency=plan_model.FREQ_DAILY,
+                    plan = self.plan_model.create(
+                        company=self.company,
+                        plan_type=self.plan_model.TYPE_CHARGE,
+                        amount=5566,
+                        frequency=self.plan_model.FREQ_DAILY,
                     )
-                    guids.append(guid)
+                    guids.append(plan.guid)
         guids = list(reversed(guids))
 
         res = self.testapp.get(
@@ -280,12 +295,241 @@ class TestPlanViews(ViewTestCase):
         result_guids = [item['guid'] for item in items]
         self.assertEqual(result_guids, guids)
 
+    def test_plan_customer_and_subscription_list(self):
+        # make some records in other comapny to make sure they will not be 
+        # included
+        with db_transaction.manager:
+            other_plan = self.plan_model.create(
+                company=self.company2,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=5566,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+        with db_transaction.manager:
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    other_customer = self.customer_model.create(self.company2)
+                    subscription = self.subscription_model.create(
+                        plan=other_plan,
+                        customer=other_customer,
+                    )
+
+        with db_transaction.manager:
+            plan = self.plan_model.create(
+                company=self.company,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=5566,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+        with db_transaction.manager:
+            customer_guids = []
+            subscription_guids = []
+            for i in range(4):
+                with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
+                    customer = self.customer_model.create(company=self.company)
+                    subscription = self.subscription_model.create(
+                        plan=plan,
+                        customer=customer,
+                    )
+                    customer_guids.append(customer.guid)
+                    subscription_guids.append(subscription.guid)
+        customer_guids = list(reversed(customer_guids))
+        subscription_guids = list(reversed(subscription_guids))
+
+        res = self.testapp.get(
+            '/v1/plans/{}/customers'.format(plan.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, customer_guids)
+
+        res = self.testapp.get(
+            '/v1/plans/{}/subscriptions'.format(plan.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, subscription_guids)
+
+    def test_plan_invoice_list(self):
+        # create some invoices in other to make sure they will not be included
+        # in the result
+        with db_transaction.manager:
+            other_customer = self.customer_model.create(self.company2)
+            other_plan = self.plan_model.create(
+                company=self.company2,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=7788,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+            self.subscription_model.create(
+                customer=other_customer,
+                plan=other_plan,
+            )
+            self.invoice_model.create(
+                customer=other_customer,
+                amount=9999,
+            )
+
+        with db_transaction.manager:
+            customer = self.customer_model.create(self.company)
+            plan = self.plan_model.create(
+                company=self.company,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=5566,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+            plan2 = self.plan_model.create(
+                company=self.company,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=5566,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+            subscription = self.subscription_model.create(
+                customer=customer,
+                plan=plan,
+            )
+            self.subscription_model.create(
+                customer=customer,
+                plan=plan2,
+            )
+            # 4 days passed, there should be 1 + 4 invoices
+            with freeze_time('2013-08-20'):
+                self.subscription_model.yield_invoices([subscription])
+
+        guids = [invoice.guid for invoice in subscription.invoices]
+
+        res = self.testapp.get(
+            '/v1/plans/{}/invoices'.format(plan.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, guids)
+
+    def test_plan_transaction_list(self):
+        # create some transactions in other to make sure they will not be included
+        # in the result
+        with db_transaction.manager:
+            other_customer = self.customer_model.create(self.company2)
+            other_plan = self.plan_model.create(
+                company=self.company2,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=7788,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+            other_subscription = self.subscription_model.create(
+                customer=other_customer,
+                plan=other_plan,
+            )
+            other_invoice = self.invoice_model.create(
+                customer=other_customer,
+                amount=9999,
+            )
+            for i in range(4):
+                self.transaction_model.create(
+                    invoice=other_invoice,
+                    transaction_type=self.transaction_model.TYPE_CHARGE,
+                    amount=100,
+                    funding_instrument_uri='/v1/cards/tester',
+                )
+            for i in range(4):
+                self.transaction_model.create(
+                    invoice=other_subscription.invoices[0],
+                    transaction_type=self.transaction_model.TYPE_CHARGE,
+                    amount=100,
+                    funding_instrument_uri='/v1/cards/tester',
+                )
+
+        with db_transaction.manager:
+            customer = self.customer_model.create(self.company)
+            plan = self.plan_model.create(
+                company=self.company,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=5566,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+            plan2 = self.plan_model.create(
+                company=self.company,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=5566,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
+            subscription = self.subscription_model.create(
+                customer=customer,
+                plan=plan,
+            )
+            subscription2 = self.subscription_model.create(
+                customer=customer,
+                plan=plan2,
+            )
+            invoice = self.invoice_model.create(
+                customer=customer,
+                amount=7788,
+            )
+            # make sure invoice transaction will not be included
+            self.transaction_model.create(
+                invoice=invoice,
+                transaction_type=self.transaction_model.TYPE_CHARGE,
+                amount=100,
+                funding_instrument_uri='/v1/cards/tester',
+            )
+            # make sure transaction of other plan will not be included
+            self.transaction_model.create(
+                invoice=subscription2.invoices[0],
+                transaction_type=self.transaction_model.TYPE_CHARGE,
+                amount=100,
+                funding_instrument_uri='/v1/cards/tester',
+            )
+            
+            guids = []
+            for i in range(4):
+                with freeze_time('2013-08-16 02:00:{:02}'.format(i + 1)):
+                    transaction = self.transaction_model.create(
+                        invoice=subscription.invoices[0],
+                        transaction_type=self.transaction_model.TYPE_CHARGE,
+                        amount=100,
+                        funding_instrument_uri='/v1/cards/tester',
+                    )
+                    guids.append(transaction.guid)
+        guids = list(reversed(guids))
+
+        res = self.testapp.get(
+            '/v1/plans/{}/transactions'.format(plan.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        items = res.json['items']
+        result_guids = [item['guid'] for item in items]
+        self.assertEqual(result_guids, guids)
+
     def test_plan_list_with_bad_api_key(self):
+        with db_transaction.manager:
+            plan = self.plan_model.create(
+                company=self.company,
+                plan_type=self.plan_model.TYPE_CHARGE,
+                amount=5566,
+                frequency=self.plan_model.FREQ_DAILY,
+            )
         self.testapp.get(
             '/v1/plans',
             extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
             status=403,
         )
+        for list_name in [
+            'customers',
+            'subscriptions',
+            'transactions',
+        ]:
+            self.testapp.get(
+                '/v1/plans/{}/{}'.format(plan.guid, list_name),
+                extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+                status=403,
+            )
 
     def test_delete_plan(self):
         res = self.testapp.post(
@@ -351,11 +595,10 @@ class TestPlanViews(ViewTestCase):
         )
 
     def test_delete_plan_of_other_company(self):
-        from billy.models.company import CompanyModel
-        model = CompanyModel(self.testapp.session)
         with db_transaction.manager:
-            other_company_guid = model.create(processor_key='MOCK_PROCESSOR_KEY')
-        other_company = model.get(other_company_guid)
+            other_company = self.company_model.create(
+                processor_key='MOCK_PROCESSOR_KEY',
+            )
         other_api_key = str(other_company.api_key)
         res = self.testapp.post(
             '/v1/plans', 

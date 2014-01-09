@@ -2,39 +2,61 @@ from __future__ import unicode_literals
 import os
 import unittest
 
+from webtest import TestApp
+from pyramid.testing import DummyRequest
+
+from billy import main
+from billy.models import setup_database
+from billy.models.tables import DeclarativeBase
+from billy.models.model_factory import ModelFactory
+from billy.tests.fixtures.processor import DummyProcessor
+
 
 class ViewTestCase(unittest.TestCase):
     
     def setUp(self):
-        from webtest import TestApp
-        from billy import main
-        from billy.models import setup_database
-        from billy.models.tables import DeclarativeBase
+        self.dummy_processor = DummyProcessor()
 
-        if hasattr(self, 'settings'):
-            settings = self.settings
-        else:
-            settings = {}
+        def model_factory_func():
+            return self.model_factory
+
+        if not hasattr(self, 'settings'):
+            self.settings = {
+                'billy.processor_factory': lambda: self.dummy_processor,
+                'model_factory_func': model_factory_func,
+            }
 
         # init database
         db_url = os.environ.get('BILLY_FUNC_TEST_DB', 'sqlite://')
-        settings['sqlalchemy.url'] = db_url
-        if hasattr(ViewTestCase, '_engine'):
-            settings['engine'] = ViewTestCase._engine
-        settings = setup_database({}, **settings)
-        # we want to save and reuse the SQL connection if it is not SQLite,
-        # otherwise, somehow, it will create too many connections to server
-        # and make the testing results in failure
-        if settings['engine'].name != 'sqlite':
-            ViewTestCase._engine = settings['engine']
-        DeclarativeBase.metadata.bind = settings['engine']
+        self.settings['sqlalchemy.url'] = db_url
+        self.settings = setup_database({}, **self.settings)
+        DeclarativeBase.metadata.bind = self.settings['engine']
         DeclarativeBase.metadata.create_all()
 
-        app = main({}, **settings)
+        app = main({}, **self.settings)
         self.testapp = TestApp(app)
-        self.testapp.session = settings['session']
+        self.testapp.session = self.settings['session']
+
+        self.dummy_request = DummyRequest()
+
+        # create model factory
+        self.model_factory = ModelFactory(
+            session=self.testapp.session, 
+            processor_factory=lambda: self.dummy_processor, 
+            settings=self.settings,
+        )
+
+        # create all models
+        self.company_model = self.model_factory.create_company_model()
+        self.customer_model = self.model_factory.create_customer_model()
+        self.plan_model = self.model_factory.create_plan_model()
+        self.subscription_model = self.model_factory.create_subscription_model()
+        self.invoice_model = self.model_factory.create_invoice_model()
+        self.transaction_model = self.model_factory.create_transaction_model()
+        self.transaction_failure_model = self.model_factory.create_transaction_failure_model()
 
     def tearDown(self):
-        from billy.models.tables import DeclarativeBase
+        self.testapp.session.close()
         self.testapp.session.remove()
         DeclarativeBase.metadata.drop_all()
+        self.testapp.session.bind.dispose()

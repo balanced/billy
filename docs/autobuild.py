@@ -29,6 +29,7 @@ class Rebuilder(FileSystemEventHandler):
         self.logger.info('Building document ...')
         subprocess.check_call([
             'sphinx-build', 
+            '-W',
             '-b', 
             self.type, 
             self.src_dir, 

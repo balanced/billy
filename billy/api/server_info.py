@@ -1,19 +1,22 @@
 from __future__ import unicode_literals
 
 from pyramid.view import view_config
+from pyramid.security import NO_PERMISSION_REQUIRED
 
-from billy.models.transaction import TransactionModel
 from billy.utils.generic import get_git_rev
 
 
-@view_config(route_name='server_info', 
-             request_method='GET', 
-             renderer='json')
+@view_config(
+    route_name='server_info', 
+    request_method='GET', 
+    renderer='json',
+    permission=NO_PERMISSION_REQUIRED,
+)
 def server_info(request):
     """Get server information
 
     """
-    tx_model = TransactionModel(request.session)
+    tx_model = request.model_factory.create_transaction_model()
     last_transaction = tx_model.get_last_transaction()
     last_transaction_dt = None
     if last_transaction is not None:

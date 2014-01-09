@@ -4,12 +4,17 @@ import datetime
 
 from freezegun import freeze_time
 
+from billy.models.plan import PlanModel
+from billy.models.schedule import next_transaction_datetime
+
 
 @freeze_time('2013-08-16')
 class TestSchedule(unittest.TestCase):
 
+    def setUp(self):
+        self.plan_model = PlanModel
+
     def assert_schedule(self, started_at, frequency, interval, length, expected):
-        from billy.models.schedule import next_transaction_datetime
         result = []
         for period in range(length):
             dt = next_transaction_datetime(
@@ -22,7 +27,6 @@ class TestSchedule(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test_invalid_freq_type(self):
-        from billy.models.schedule import next_transaction_datetime
         with self.assertRaises(ValueError):
             next_transaction_datetime(
                 started_at=datetime.datetime.utcnow(), 
@@ -32,30 +36,27 @@ class TestSchedule(unittest.TestCase):
             )
 
     def test_invalid_interval(self):
-        from billy.models.plan import PlanModel
-        from billy.models.schedule import next_transaction_datetime
         with self.assertRaises(ValueError):
             next_transaction_datetime(
                 started_at=datetime.datetime.utcnow(), 
-                frequency=PlanModel.FREQ_DAILY, 
+                frequency=self.plan_model.FREQ_DAILY, 
                 period=0,
                 interval=0, 
             )
         with self.assertRaises(ValueError):
             next_transaction_datetime(
                 started_at=datetime.datetime.utcnow(), 
-                frequency=PlanModel.FREQ_DAILY, 
+                frequency=self.plan_model.FREQ_DAILY, 
                 period=0,
                 interval=-1, 
             )
 
     def test_daily_schedule(self):
-        from billy.models.plan import PlanModel
         with freeze_time('2013-07-28'):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now, 
-                frequency=PlanModel.FREQ_DAILY, 
+                frequency=self.plan_model.FREQ_DAILY, 
                 interval=1, 
                 length=10, 
                 expected=[
@@ -73,12 +74,11 @@ class TestSchedule(unittest.TestCase):
             )
 
     def test_daily_schedule_with_interval(self):
-        from billy.models.plan import PlanModel
         with freeze_time('2013-07-28'):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now, 
-                frequency=PlanModel.FREQ_DAILY, 
+                frequency=self.plan_model.FREQ_DAILY, 
                 interval=3, 
                 length=4, 
                 expected=[
@@ -90,15 +90,12 @@ class TestSchedule(unittest.TestCase):
             )
 
     def test_daily_schedule_with_end_of_month(self):
-        from billy.models.plan import PlanModel
-        from billy.models.schedule import next_transaction_datetime
-
         def assert_next_day(now_dt, expected):
             with freeze_time(now_dt):
                 now = datetime.datetime.utcnow()
                 next_dt = next_transaction_datetime(
                     started_at=now, 
-                    frequency=PlanModel.FREQ_DAILY,
+                    frequency=self.plan_model.FREQ_DAILY,
                     period=1, 
                 )
                 self.assertEqual(next_dt, expected)
@@ -117,12 +114,11 @@ class TestSchedule(unittest.TestCase):
         assert_next_day('2013-12-31', datetime.datetime(2014, 1, 1))
 
     def test_weekly_schedule(self):
-        from billy.models.plan import PlanModel
         with freeze_time('2013-08-18'):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now, 
-                frequency=PlanModel.FREQ_WEEKLY, 
+                frequency=self.plan_model.FREQ_WEEKLY, 
                 interval=1, 
                 length=5, 
                 expected=[
@@ -135,12 +131,11 @@ class TestSchedule(unittest.TestCase):
             )
 
     def test_weekly_schedule_with_interval(self):
-        from billy.models.plan import PlanModel
         with freeze_time('2013-08-18'):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now, 
-                frequency=PlanModel.FREQ_WEEKLY, 
+                frequency=self.plan_model.FREQ_WEEKLY, 
                 interval=2, 
                 length=3, 
                 expected=[
@@ -151,12 +146,11 @@ class TestSchedule(unittest.TestCase):
             )
 
     def test_monthly_schedule(self):
-        from billy.models.plan import PlanModel
         with freeze_time('2013-08-18'):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now, 
-                frequency=PlanModel.FREQ_MONTHLY, 
+                frequency=self.plan_model.FREQ_MONTHLY, 
                 interval=1, 
                 length=6, 
                 expected=[
@@ -170,12 +164,11 @@ class TestSchedule(unittest.TestCase):
             )
 
     def test_monthly_schedule_with_interval(self):
-        from billy.models.plan import PlanModel
         with freeze_time('2013-08-18'):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now, 
-                frequency=PlanModel.FREQ_MONTHLY, 
+                frequency=self.plan_model.FREQ_MONTHLY, 
                 interval=6, 
                 length=4, 
                 expected=[
@@ -187,12 +180,11 @@ class TestSchedule(unittest.TestCase):
             )
 
     def test_monthly_schedule_with_end_of_month(self):
-        from billy.models.plan import PlanModel
         with freeze_time('2013-08-31'):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now, 
-                frequency=PlanModel.FREQ_MONTHLY, 
+                frequency=self.plan_model.FREQ_MONTHLY, 
                 interval=1, 
                 length=7, 
                 expected=[
@@ -210,7 +202,7 @@ class TestSchedule(unittest.TestCase):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now, 
-                frequency=PlanModel.FREQ_MONTHLY, 
+                frequency=self.plan_model.FREQ_MONTHLY, 
                 interval=1,
                 length=6, 
                 expected=[
@@ -224,12 +216,11 @@ class TestSchedule(unittest.TestCase):
             )
 
     def test_yearly_schedule(self):
-        from billy.models.plan import PlanModel
         with freeze_time('2013-08-18'):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now, 
-                frequency=PlanModel.FREQ_YEARLY, 
+                frequency=self.plan_model.FREQ_YEARLY, 
                 interval=1,
                 length=5, 
                 expected=[
@@ -241,12 +232,11 @@ class TestSchedule(unittest.TestCase):
                 ])
 
     def test_yearly_schedule_with_interval(self):
-        from billy.models.plan import PlanModel
         with freeze_time('2013-08-18'):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now, 
-                frequency=PlanModel.FREQ_YEARLY, 
+                frequency=self.plan_model.FREQ_YEARLY, 
                 interval=2,
                 length=3, 
                 expected=[
@@ -256,12 +246,11 @@ class TestSchedule(unittest.TestCase):
                 ])
 
     def test_yearly_schedule_with_leap_year(self):
-        from billy.models.plan import PlanModel
         with freeze_time('2012-02-29'):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now, 
-                frequency=PlanModel.FREQ_YEARLY, 
+                frequency=self.plan_model.FREQ_YEARLY, 
                 interval=1,
                 length=5, 
                 expected=[

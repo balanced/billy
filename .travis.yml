@@ -3,7 +3,7 @@ python:
   - "2.7"
 env:
   - BILLY_UNIT_TEST_DB=sqlite:// BILLY_FUNC_TEST_DB=sqlite://
-  - BILLY_UNIT_TEST_DB=postgresql://postgres:@127.0.0.1/billy BILLY_FUNC_TEST_DB=postgresql://postgres:@127.0.0.1/billy
+  - BILLY_TEST_ALEMBIC=1 BILLY_UNIT_TEST_DB=postgresql://postgres:@127.0.0.1/billy BILLY_FUNC_TEST_DB=postgresql://postgres:@127.0.0.1/billy
 # command to install dependencies
 install: 
   - "pip install psycopg2 --use-mirrors"

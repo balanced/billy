@@ -27,46 +27,30 @@ def decorate_offset_limit(func):
     return callee
 
 
-class ListByCompanyMixin(object):
-
-    @decorate_offset_limit
-    def list_by_company_guid(self, company_guid):
-        """Get records of a company by given guid
-
-        :param company_guid: the given company GUID
-        :param offset: offset for listing, None indicates no offset
-        :param limit: limit for listing, None indicates no limit
-        """
-        assert self.TABLE is not None
-        query = (
-            self.session
-            .query(self.TABLE)
-            .filter(self.TABLE.company_guid == company_guid)
-            .order_by(self.TABLE.created_at.desc())
-        )
-        return query
-
-
 class BaseTableModel(object):
 
     #: the table for this model
     TABLE = None
 
-    def __init__(self, session, logger=None):
+    def __init__(self, factory, logger=None):
         self.logger = logger or logging.getLogger(__name__)
-        self.session = session
+        self.factory = factory
+        self.session = factory.session
         assert self.TABLE is not None
 
-    def get(self, guid, raise_error=False):
+    def get(self, guid, raise_error=False, with_lockmode=None):
         """Find a record by guid and return it
 
         :param guid: The guild of record to get
         :param raise_error: Raise KeyError when cannot find one
+        :param with_lockmode: The lock model to acquire on the row
         """
-        query = (
-            self.session.query(self.TABLE)
-            .get(guid)
-        )
+        query = self.session.query(self.TABLE)
+        if with_lockmode is not None:
+            query = query.with_lockmode(with_lockmode)
+        query = query.get(guid)
         if raise_error and query is None:
-            raise KeyError('No such subscription {}'.format(guid))
+            raise KeyError('No such {} {}'.format(
+                self.TABLE.__name__.lower(), guid
+            ))
         return query

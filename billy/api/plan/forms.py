@@ -5,6 +5,8 @@ from wtforms import RadioField
 from wtforms import IntegerField
 from wtforms import validators
 
+from billy.api.utils import MINIMUM_AMOUNT
+
 
 class PlanCreateForm(Form):
     plan_type = RadioField(
@@ -31,8 +33,7 @@ class PlanCreateForm(Form):
     )
     amount = IntegerField('Amount', [
         validators.Required(),
-        # TODO: what is the minimum amount limitation we have?
-        validators.NumberRange(min=1)
+        validators.NumberRange(min=MINIMUM_AMOUNT)
     ])
     interval = IntegerField(
         'Interval', 

@@ -3,7 +3,17 @@ import logging
 
 import balanced
 
+from billy.models.transaction import TransactionModel
 from billy.models.processors.base import PaymentProcessor
+from billy.errors import BillyError
+
+
+class InvalidURIFormat(BillyError):
+    """This error indicates the given customer URI is not in URI format.
+    There is a very common mistake, we saw many users of Billy tried to pass
+    GUID of a balanced customer entity instead of URI. 
+
+    """
 
 
 class BalancedProcessor(PaymentProcessor):
@@ -25,10 +35,12 @@ class BalancedProcessor(PaymentProcessor):
     def _to_cent(self, amount):
         return int(amount)
 
-    def create_customer(self, customer):
+    def _configure_api_key(self, customer):
         api_key = customer.company.processor_key
         balanced.configure(api_key)
 
+    def create_customer(self, customer):
+        self._configure_api_key(customer)
         self.logger.debug('Creating Balanced customer for %s', customer.guid)
         record = self.customer_cls(**{
             'meta.billy_customer_guid': customer.guid, 
@@ -36,34 +48,56 @@ class BalancedProcessor(PaymentProcessor):
         self.logger.info('Created Balanced customer for %s', customer.guid)
         return record.uri
 
-    def prepare_customer(self, customer, payment_uri=None):
-        api_key = customer.company.processor_key
-        balanced.configure(api_key)
-
-        self.logger.debug('Preparing customer %s with payment_uri=%s', 
-                          customer.guid, payment_uri)
-        # when payment_uri is None, it means we are going to use the 
+    def prepare_customer(self, customer, funding_instrument_uri=None):
+        self._configure_api_key(customer)
+        self.logger.debug('Preparing customer %s with funding_instrument_uri=%s', 
+                          customer.guid, funding_instrument_uri)
+        # when funding_instrument_uri is None, it means we are going to use the 
         # default funding instrument, just return
-        if payment_uri is None:
+        if funding_instrument_uri is None:
             return
         # get balanced customer record
-        external_id = customer.external_id
-        balanced_customer = self.customer_cls.find(external_id)
-        # TODO: use a better way to determine type of URI?
-        if '/bank_accounts/' in payment_uri:
+        balanced_customer = self.customer_cls.find(customer.processor_uri)
+        if '/bank_accounts/' in funding_instrument_uri:
             self.logger.debug('Adding bank account %s to %s', 
-                              payment_uri, customer.guid)
-            balanced_customer.add_bank_account(payment_uri)
+                              funding_instrument_uri, customer.guid)
+            balanced_customer.add_bank_account(funding_instrument_uri)
             self.logger.info('Added bank account %s to %s', 
-                             payment_uri, customer.guid)
-        elif '/cards/' in payment_uri:
+                             funding_instrument_uri, customer.guid)
+        elif '/cards/' in funding_instrument_uri:
             self.logger.debug('Adding credit card %s to %s', 
-                              payment_uri, customer.guid)
-            balanced_customer.add_card(payment_uri)
+                              funding_instrument_uri, customer.guid)
+            balanced_customer.add_card(funding_instrument_uri)
             self.logger.info('Added credit card %s to %s', 
-                             payment_uri, customer.guid)
+                             funding_instrument_uri, customer.guid)
         else:
-            raise ValueError('Invalid payment_uri {}'.format(payment_uri))
+            raise ValueError('Invalid funding_instrument_uri {}'.format(funding_instrument_uri))
+
+    def validate_customer(self, processor_uri):
+        if not processor_uri.startswith('/v1/'):
+            raise InvalidURIFormat(
+                'The processor_uri of a Balanced customer should be something '
+                'like /v1/customers/CUXXXXXXXXXXXXXXXXXXXXXX, but we received '
+                '{}. Remember, it is an URI rather than GUID.'
+                .format(repr(processor_uri))
+            )
+        self.customer_cls.find(processor_uri)
+        return True
+
+    def _get_resource_by_tx_guid(self, resource_cls, guid):
+        """Get Balanced resource object by Billy transaction GUID and return
+        it, if there is not such resource, None is returned
+
+        """
+        try:
+            resource = (
+                resource_cls.query
+                .filter(**{'meta.billy.transaction_guid': guid})
+                .one()
+            )
+        except balanced.exc.NoResultFound:
+            resource = None
+        return resource
 
     def _do_transaction(
         self, 
@@ -72,42 +106,44 @@ class BalancedProcessor(PaymentProcessor):
         method_name, 
         extra_kwargs
     ):
-        api_key = transaction.subscription.plan.company.processor_key
-        balanced.configure(api_key)
-        # make sure we won't duplicate the transaction
-        try:
-            record = (
-                resource_cls.query
-                .filter(**{'meta.billy.transaction_guid': transaction.guid})
-                .one()
-            )
-        except balanced.exc.NoResultFound:
-            record = None
+        customer = transaction.invoice.customer
+        self._configure_api_key(customer)
+
+        # do existing check before creation to make sure we won't duplicate 
+        # transaction in Balanced service
+        resource = self._get_resource_by_tx_guid(resource_cls, transaction.guid)
         # We already have a record there in Balanced, this means we once did
         # transaction, however, we failed to update database. No need to do
-        # it again, just return the id
-        if record is not None:
+        # it again, just return the URI
+        if resource is not None:
             self.logger.warn('Balanced transaction record for %s already '
                              'exist', transaction.guid)
-            return record.uri
+            return resource.uri
 
         # TODO: handle error here
         # get balanced customer record
-        external_id = transaction.subscription.customer.external_id
-        balanced_customer = self.customer_cls.find(external_id)
+        balanced_customer = self.customer_cls.find(customer.processor_uri)
 
         # prepare arguments
         kwargs = dict(
             amount=self._to_cent(transaction.amount),
             description=(
-                'Generated by Billy from subscription {}, scheduled_at={}'
-                .format(transaction.subscription.guid, transaction.scheduled_at)
+                'Generated by Billy from invoice {}'
+                .format(transaction.invoice.guid)
             ),
             meta={'billy.transaction_guid': transaction.guid},
         )
+        if transaction.appears_on_statement_as is not None:
+            kwargs['appears_on_statement_as'] = transaction.appears_on_statement_as
         kwargs.update(extra_kwargs)
 
-        method = getattr(balanced_customer, method_name)
+        if transaction.transaction_type == TransactionModel.TYPE_REFUND:
+            debit_transaction = transaction.reference_to
+            debit = self.debit_cls.find(debit_transaction.processor_uri)
+            method = getattr(debit, method_name)
+        else:
+            method = getattr(balanced_customer, method_name)
+
         self.logger.debug('Calling %s with args %s', method.__name__, kwargs)
         record = method(**kwargs)
         self.logger.info('Called %s with args %s', method.__name__, kwargs)
@@ -115,8 +151,8 @@ class BalancedProcessor(PaymentProcessor):
 
     def charge(self, transaction):
         extra_kwargs = {}
-        if transaction.payment_uri is not None:
-            extra_kwargs['source_uri'] = transaction.payment_uri
+        if transaction.funding_instrument_uri is not None:
+            extra_kwargs['source_uri'] = transaction.funding_instrument_uri
         return self._do_transaction(
             transaction=transaction, 
             resource_cls=self.debit_cls,
@@ -126,8 +162,8 @@ class BalancedProcessor(PaymentProcessor):
 
     def payout(self, transaction):
         extra_kwargs = {}
-        if transaction.payment_uri is not None:
-            extra_kwargs['destination_uri'] = transaction.payment_uri
+        if transaction.funding_instrument_uri is not None:
+            extra_kwargs['destination_uri'] = transaction.funding_instrument_uri
         return self._do_transaction(
             transaction=transaction, 
             resource_cls=self.credit_cls,
@@ -136,33 +172,9 @@ class BalancedProcessor(PaymentProcessor):
         )
 
     def refund(self, transaction):
-        api_key = transaction.subscription.plan.company.processor_key
-        balanced.configure(api_key)
-
-        # make sure we won't duplicate refund
-        try:
-            refund = (
-                self.refund_cls.query
-                .filter(**{'meta.billy.transaction_guid': transaction.guid})
-                .one()
-            )
-        except balanced.exc.NoResultFound:
-            refund = None
-        if refund is not None:
-            self.logger.warn('Balanced transaction refund for %s already '
-                             'exist', transaction.guid)
-            return refund.uri
-
-        charge_transaction = transaction.refund_to
-        debit = self.debit_cls.find(charge_transaction.external_id)
-        refund = debit.refund(
-            amount=self._to_cent(transaction.amount),
-            description=(
-                'Generated by Billy from subscription {}, scheduled_at={}'
-                .format(transaction.subscription.guid, transaction.scheduled_at)
-            ),
-            meta={'billy.transaction_guid': transaction.guid}, 
+        return self._do_transaction(
+            transaction=transaction, 
+            resource_cls=self.refund_cls,
+            method_name='refund',
+            extra_kwargs={},
         )
-        self.logger.info('Processed refund transaction %s, amount=%s', 
-                         transaction.guid, transaction.amount)
-        return refund.uri

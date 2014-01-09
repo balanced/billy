@@ -7,8 +7,15 @@ import shutil
 import textwrap
 import StringIO
 
+import mock
 import transaction as db_transaction
-from flexmock import flexmock
+from pyramid.paster import get_appsettings
+
+from billy.models import setup_database
+from billy.models.model_factory import ModelFactory
+from billy.scripts import initializedb
+from billy.scripts import process_transactions
+from billy.scripts.process_transactions import main
 
 
 class TestProcessTransactions(unittest.TestCase):
@@ -20,8 +27,6 @@ class TestProcessTransactions(unittest.TestCase):
         shutil.rmtree(self.temp_dir)
 
     def test_usage(self):
-        from billy.scripts.process_transactions import main
-
         filename = '/path/to/process_transactions'
 
         old_stdout = sys.stdout
@@ -38,23 +43,8 @@ class TestProcessTransactions(unittest.TestCase):
         """)
         self.assertMultiLineEqual(usage_out.getvalue(), expected)
 
-    def test_main(self):
-        from billy.models.transaction import TransactionModel
-        from billy.models.processors.balanced_payments import BalancedProcessor
-        from billy.scripts import initializedb
-        from billy.scripts import process_transactions
-
-        def mock_process_transactions(processor, maximum_retry):
-            self.assertIsInstance(processor, BalancedProcessor)
-            self.assertEqual(maximum_retry, 5566)
-
-        (
-            flexmock(TransactionModel)
-            .should_receive('process_transactions')
-            .replace_with(mock_process_transactions)
-            .once()
-        )
-
+    @mock.patch('billy.models.transaction.TransactionModel.process_transactions')
+    def test_main(self, process_transactions_method):
         cfg_path = os.path.join(self.temp_dir, 'config.ini')
         with open(cfg_path, 'wt') as f:
             f.write(textwrap.dedent("""\
@@ -67,17 +57,10 @@ class TestProcessTransactions(unittest.TestCase):
             """))
         initializedb.main([initializedb.__file__, cfg_path])
         process_transactions.main([process_transactions.__file__, cfg_path])
-        # TODO: do more check here?
+        # ensure process_transaction method is called correctly
+        process_transactions_method.assert_called_once()
 
     def test_main_with_crash(self):
-        from pyramid.paster import get_appsettings
-        from billy.models import setup_database
-        from billy.models.company import CompanyModel
-        from billy.models.customer import CustomerModel
-        from billy.models.plan import PlanModel
-        from billy.models.subscription import SubscriptionModel
-        from billy.scripts import initializedb
-        from billy.scripts import process_transactions
 
         class MockProcessor(object):
 
@@ -89,8 +72,14 @@ class TestProcessTransactions(unittest.TestCase):
             def create_customer(self, customer):
                 return 'MOCK_PROCESSOR_CUSTOMER_ID'
 
-            def prepare_customer(self, customer, payment_uri=None):
+            def prepare_customer(self, customer, funding_instrument_uri=None):
                 pass
+
+            def payout(self):
+                assert False
+
+            def refund(self):
+                assert False
 
             def charge(self, transaction):
                 self.called_times += 1
@@ -117,31 +106,36 @@ class TestProcessTransactions(unittest.TestCase):
         settings = get_appsettings(cfg_path)
         settings = setup_database({}, **settings)
         session = settings['session']
-        company_model = CompanyModel(session)
-        customer_model = CustomerModel(session)
-        plan_model = PlanModel(session)
-        subscription_model = SubscriptionModel(session)
+        factory = ModelFactory(
+            session=session,
+            processor_factory=lambda: mock_processor,
+            settings=settings,
+        )
+        company_model = factory.create_company_model()
+        customer_model = factory.create_customer_model()
+        plan_model = factory.create_plan_model()
+        subscription_model = factory.create_subscription_model()
 
         with db_transaction.manager:
-            company_guid = company_model.create('my_secret_key')
-            plan_guid = plan_model.create(
-                company_guid=company_guid,
+            company = company_model.create('my_secret_key')
+            plan = plan_model.create(
+                company=company,
                 plan_type=plan_model.TYPE_CHARGE,
                 amount=10,
                 frequency=plan_model.FREQ_MONTHLY,
             )
-            customer_guid = customer_model.create(
-                company_guid=company_guid,
+            customer = customer_model.create(
+                company=company,
             )
             subscription_model.create(
-                customer_guid=customer_guid,
-                plan_guid=plan_guid,
-                payment_uri='/v1/cards/tester',
+                customer=customer,
+                plan=plan,
+                funding_instrument_uri='/v1/cards/tester',
             )
             subscription_model.create(
-                customer_guid=customer_guid,
-                plan_guid=plan_guid,
-                payment_uri='/v1/cards/tester',
+                customer=customer,
+                plan=plan,
+                funding_instrument_uri='/v1/cards/tester',
             )
 
         with self.assertRaises(KeyboardInterrupt):

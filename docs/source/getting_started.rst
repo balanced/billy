@@ -29,7 +29,8 @@ To register a company, here you call
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/companies/ -X POST \
+    curl https://billing.balancedpayments.com/v1/companies \
+        -X POST \
         -d "processor_key=ef13dce2093b11e388de026ba7d31e6f"
 
 

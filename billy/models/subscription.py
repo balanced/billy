@@ -7,10 +7,11 @@ from billy.models.base import BaseTableModel
 from billy.models.base import decorate_offset_limit
 from billy.models.plan import PlanModel
 from billy.models.schedule import next_transaction_datetime
+from billy.errors import BillyError
 from billy.utils.generic import make_guid
 
 
-class SubscriptionCanceledError(RuntimeError):
+class SubscriptionCanceledError(BillyError):
     """This error indicates that the subscription is already canceled,
     you cannot cancel a canceled subscription
 

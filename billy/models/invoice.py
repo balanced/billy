@@ -7,17 +7,18 @@ from billy.models.base import BaseTableModel
 from billy.models.base import decorate_offset_limit
 from billy.models.plan import PlanModel
 from billy.models.transaction import TransactionModel
+from billy.errors import BillyError
 from billy.utils.generic import make_guid
 
 
-class InvalidOperationError(RuntimeError):
+class InvalidOperationError(BillyError):
     """This error indicates an invalid operation to invoice model, such as 
     updating an invoice's funding_instrument_uri in wrong status
 
     """
 
 
-class DuplicateExternalIDError(RuntimeError):
+class DuplicateExternalIDError(BillyError):
     """This error indicates you have duplicate (Customer GUID, External ID)
     pair in database. The field `external_id` was designed to avoid duplicate
     invoicing. 

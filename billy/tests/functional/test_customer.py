@@ -6,6 +6,7 @@ import transaction as db_transaction
 from freezegun import freeze_time
 
 from billy.tests.functional.helper import ViewTestCase
+from billy.errors import BillyError
 
 
 @freeze_time('2013-08-16')
@@ -68,6 +69,21 @@ class TestCustomerViews(ViewTestCase):
         self.assertEqual(res.json['processor_uri'], 'MOCK_CUSTOMER_URI')
         self.assertFalse(validate_customer_method.called)
         create_customer_method.assert_called_once_with(customer)
+
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.validate_customer')
+    def test_create_customer_with_bad_processor_uri(
+        self, 
+        validate_customer_method,
+    ):
+        validate_customer_method.side_effect = BillyError('Boom!')
+        res = self.testapp.post(
+            '/v1/customers',
+            dict(processor_uri='BAD_PROCESSOR'),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=400,
+        )
+        self.assertEqual(res.json['error_class'], 'BillyError')
+        self.assertEqual(res.json['error_message'], 'Boom!')
 
     def test_create_customer_with_bad_api_key(self):
         self.testapp.post(

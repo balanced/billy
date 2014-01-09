@@ -5,6 +5,15 @@ import balanced
 
 from billy.models.transaction import TransactionModel
 from billy.models.processors.base import PaymentProcessor
+from billy.errors import BillyError
+
+
+class InvalidURIFormat(BillyError):
+    """This error indicates the given customer URI is not in URI format.
+    There is a very common mistake, we saw many users of Billy tried to pass
+    GUID of a balanced customer entity instead of URI. 
+
+    """
 
 
 class BalancedProcessor(PaymentProcessor):
@@ -65,6 +74,13 @@ class BalancedProcessor(PaymentProcessor):
             raise ValueError('Invalid funding_instrument_uri {}'.format(funding_instrument_uri))
 
     def validate_customer(self, processor_uri):
+        if not processor_uri.startswith('/v1/'):
+            raise InvalidURIFormat(
+                'The processor_uri of a Balanced customer should be something '
+                'like /v1/customers/CU53OU5AWeOVqpnDts7kbUXE, but we received '
+                '{}. Remember, it is an URI rather than GUID.'
+                .format(repr(processor_uri))
+            )
         self.customer_cls.find(processor_uri)
         return True
 

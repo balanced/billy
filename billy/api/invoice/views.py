@@ -5,11 +5,8 @@ from pyramid.view import view_config
 from pyramid.security import authenticated_userid
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPBadRequest
-from pyramid.httpexceptions import HTTPConflict
 
 from billy.models.invoice import InvoiceModel
-from billy.models.invoice import DuplicateExternalIDError
-from billy.models.invoice import InvalidOperationError
 from billy.models.transaction import TransactionModel
 from billy.api.utils import validate_form
 from billy.api.utils import list_by_context
@@ -130,20 +127,17 @@ class InvoiceIndexView(IndexView):
         if customer.deleted:
             return HTTPBadRequest('Cannot create an invoice for a deleted customer')
         
-        try:
-            with db_transaction.manager:
-                invoice = model.create(
-                    customer=customer,
-                    amount=amount,
-                    funding_instrument_uri=funding_instrument_uri,
-                    title=title,
-                    items=items,
-                    adjustments=adjustments,
-                    external_id=external_id,
-                    appears_on_statement_as=appears_on_statement_as,
-                )
-        except DuplicateExternalIDError, e:
-            return HTTPConflict(e.args[0])
+        with db_transaction.manager:
+            invoice = model.create(
+                customer=customer,
+                amount=amount,
+                funding_instrument_uri=funding_instrument_uri,
+                title=title,
+                items=items,
+                adjustments=adjustments,
+                external_id=external_id,
+                appears_on_statement_as=appears_on_statement_as,
+            )
         # funding_instrument_uri is set, just process all transactions right away
         if funding_instrument_uri is not None:
             transactions = list(invoice.transactions)
@@ -183,18 +177,13 @@ class InvoiceView(EntityView):
         if items:
             kwargs['items'] = items
 
-        try:
-            with db_transaction.manager:
-                model.update(invoice, **kwargs)
-                if funding_instrument_uri:
-                    transactions = model.update_funding_instrument_uri(
-                        invoice=invoice, 
-                        funding_instrument_uri=funding_instrument_uri,
-                    )
-        except InvalidOperationError, e:
-            # TODO: maybe we should handle these type of exception in a more
-            # common way
-            raise HTTPBadRequest('InvalidOperationError: {}'.format(e.args[0]))
+        with db_transaction.manager:
+            model.update(invoice, **kwargs)
+            if funding_instrument_uri:
+                transactions = model.update_funding_instrument_uri(
+                    invoice=invoice, 
+                    funding_instrument_uri=funding_instrument_uri,
+                )
 
         # funding_instrument_uri is set, just process all transactions right away
         if funding_instrument_uri and transactions:
@@ -216,16 +205,11 @@ class InvoiceView(EntityView):
 
         amount = form.data['amount']
 
-        try:
-            with db_transaction.manager:
-                transactions = invoice_model.refund(
-                    invoice=invoice, 
-                    amount=amount,
-                )
-        except InvalidOperationError, e:
-            # TODO: maybe we should handle these type of exception in a more
-            # common way
-            raise HTTPBadRequest('InvalidOperationError: {}'.format(e.args[0]))
+        with db_transaction.manager:
+            transactions = invoice_model.refund(
+                invoice=invoice, 
+                amount=amount,
+            )
 
         # funding_instrument_uri is set, just process all transactions right away
         if transactions:
@@ -242,13 +226,8 @@ class InvoiceView(EntityView):
         invoice = self.context.entity
         invoice_model = request.model_factory.create_invoice_model()
 
-        try:
-            with db_transaction.manager:
-                invoice_model.cancel(invoice=invoice)
-        except InvalidOperationError, e:
-            # TODO: maybe we should handle these type of exception in a more
-            # common way
-            raise HTTPBadRequest('InvalidOperationError: {}'.format(e.args[0]))
+        with db_transaction.manager:
+            invoice_model.cancel(invoice=invoice)
         return invoice
 
     @view_config(name='transactions')

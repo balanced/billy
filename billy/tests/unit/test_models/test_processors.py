@@ -7,6 +7,7 @@ import transaction as db_transaction
 from freezegun import freeze_time
 
 from billy.models.processors.base import PaymentProcessor
+from billy.models.processors.balanced_payments import InvalidURIFormat
 from billy.tests.unit.helper import ModelTestCase
 
 
@@ -66,10 +67,15 @@ class TestBalancedProcessorModel(ModelTestCase):
         BalancedCustomer.find.return_value = mock.Mock(uri='MOCK_CUSTOMER_URI')
 
         processor = self.make_one(customer_cls=BalancedCustomer)
-        result = processor.validate_customer('MOCK_CUSTOMER_URI')
+        result = processor.validate_customer('/v1/customers/xxx')
         self.assertTrue(result)
 
-        BalancedCustomer.find.assert_called_once_with('MOCK_CUSTOMER_URI')
+        BalancedCustomer.find.assert_called_once_with('/v1/customers/xxx')
+
+    def test_validate_customer_with_invalid_uri(self):
+        processor = self.make_one()
+        with self.assertRaises(InvalidURIFormat):
+            processor.validate_customer('CUXXXXXXXX')
 
     @mock.patch('balanced.configure')
     def test_create_customer(self, configure_method):

@@ -365,11 +365,11 @@ class TestPlanViews(ViewTestCase):
                 amount=7788,
                 frequency=self.plan_model.FREQ_DAILY,
             )
-            other_subscription = self.subscription_model.create(
+            self.subscription_model.create(
                 customer=other_customer,
                 plan=other_plan,
             )
-            other_invoice = self.invoice_model.create(
+            self.invoice_model.create(
                 customer=other_customer,
                 amount=9999,
             )

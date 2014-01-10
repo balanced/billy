@@ -139,7 +139,7 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(transaction['status'], 'done')
         self.assertEqual(transaction['transaction_type'], 'refund')
 
-        refund = balanced.Debit.find(transaction['processor_uri'])
+        refund = balanced.Refund.find(transaction['processor_uri'])
         self.assertEqual(refund.meta['billy.transaction_guid'], 
                          transaction['guid'])
         self.assertEqual(refund.amount, 1234)

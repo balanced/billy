@@ -1,5 +1,5 @@
 SQLAlchemy==0.8.4
-git+https://github.com/victorlin/zope.sqlalchemy.git@bugfix-keep-session-with-flush
+zope.sqlalchemy==0.7.4
 python-dateutil==2.2
 balanced==0.11.15
 pyramid==1.4.3

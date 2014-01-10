@@ -9,9 +9,6 @@ here = os.path.abspath(os.path.dirname(__file__))
 readme = open(os.path.join(here, 'README.md')).read()
 requires = open(os.path.join(here, 'requirements.txt')).read()
 requires = map(lambda r: r.strip(), requires.splitlines())
-# TODO: this filters out packages like git+http://github.com/xxxx
-# maybe we should find a better way to deal with it
-requires = filter(lambda r: not r.startswith('git+'), requires)
 test_requires = open(os.path.join(here, 'test_requirements.txt')).read()
 test_requires = map(lambda r: r.strip(), test_requires.splitlines())
 

@@ -1,5 +1,13 @@
 from __future__ import unicode_literals
+import os
 import unittest
+import tempfile
+from decimal import Decimal
+
+from billy.utils.generic import make_guid
+from billy.utils.generic import make_api_key
+from billy.utils.generic import round_down_cent
+from billy.utils.generic import get_git_rev
 
 
 class TestGenericUtils(unittest.TestCase):
@@ -15,23 +23,16 @@ class TestGenericUtils(unittest.TestCase):
         assert_encode('hello world', 'StV1DL6CwTryKyV')
 
     def test_make_guid(self):
-        from billy.utils.generic import make_guid
-
         # just make sure it is random
         guids = [make_guid() for _ in range(100)]
         self.assertEqual(len(set(guids)), 100)
 
     def test_make_api_key(self):
-        from billy.utils.generic import make_api_key
-
         # just make sure it is random
         api_keys = [make_api_key() for _ in range(1000)]
         self.assertEqual(len(set(api_keys)), 1000)
 
     def test_round_down_cent(self):
-        from decimal import Decimal
-        from billy.utils.generic import round_down_cent
-
         def assert_round_down(amount, expected):
             self.assertEqual(
                 round_down_cent(Decimal(amount)), 
@@ -48,9 +49,6 @@ class TestGenericUtils(unittest.TestCase):
         assert_round_down('1.23456789', 1)
 
     def test_get_git_rev(self):
-        import os
-        import tempfile
-        from billy.utils.generic import get_git_rev
         temp_dir = tempfile.mkdtemp()
 
         git_dir = os.path.join(temp_dir, '.git')
@@ -81,3 +79,7 @@ class TestGenericUtils(unittest.TestCase):
             f.write('DUMMY_HASH_REV')
 
         self.assertEqual(get_git_rev(temp_dir), 'DUMMY_HASH_REV')
+
+    def test_get_git_rev_without_file_existing(self):
+        temp_dir = tempfile.mkdtemp()
+        self.assertEqual(get_git_rev(temp_dir), None)

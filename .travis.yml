@@ -4,6 +4,7 @@ python:
 env:
   - BILLY_UNIT_TEST_DB=sqlite:// BILLY_FUNC_TEST_DB=sqlite://
   - BILLY_TEST_ALEMBIC=1 BILLY_UNIT_TEST_DB=postgresql://postgres:@127.0.0.1/billy BILLY_FUNC_TEST_DB=postgresql://postgres:@127.0.0.1/billy
+  - BILLY_TEST_INTEGRATION=1
 # command to install dependencies
 install: 
   - "pip install psycopg2 --use-mirrors"
@@ -15,4 +16,11 @@ before_script:
   - "psql -c 'create database billy;' -U postgres"
   - "flake8 billy --ignore=E501,W291,W293"
 # command to run tests
-script: "python setup.py nosetests"
+script: 
+  - 'if [ -z "$BILLY_TEST_INTEGRATION" ]; then'
+  - '    python setup.py nosetests'
+  - 'else'
+  - '    initialize_billy_db test.ini'
+  - '    pserve test.ini --daemon'
+  - '    nosetests billy/tests/integration --verbosity=2'
+  - 'fi'

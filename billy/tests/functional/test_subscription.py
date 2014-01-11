@@ -42,6 +42,38 @@ class TestSubscriptionViews(ViewTestCase):
         self.api_key = str(self.company.api_key)
         self.api_key2 = str(self.company2.api_key)
 
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.configure_api_key')
+    def test_processor_configure_api_key(self, configure_api_key_method):
+        self.testapp.post(
+            '/v1/subscriptions',
+            dict(
+                customer_guid=self.customer.guid,
+                plan_guid=self.plan.guid,
+                amount=999,
+                funding_instrument_uri='MOCK_CARD_URI',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key), 
+            status=200,
+        )
+        configure_api_key_method.assert_called_once_with(
+            self.company.processor_key,
+        )
+
+        self.testapp.post(
+            '/v1/subscriptions',
+            dict(
+                customer_guid=self.customer2.guid,
+                plan_guid=self.plan2.guid,
+                amount=999,
+                funding_instrument_uri='MOCK_CARD_URI',
+            ),
+            extra_environ=dict(REMOTE_USER=self.api_key2), 
+            status=200,
+        )
+        configure_api_key_method.assert_called_with(
+            self.company2.processor_key,
+        )
+
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
     def test_create_subscription(self, charge_method):
         amount = 5566

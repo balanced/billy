@@ -8,6 +8,7 @@ from freezegun import freeze_time
 
 from billy.models.processors.base import PaymentProcessor
 from billy.models.processors.balanced_payments import InvalidURIFormat
+from billy.models.processors.balanced_payments import BalancedProcessor
 from billy.tests.unit.helper import ModelTestCase
 
 
@@ -15,6 +16,8 @@ class TestPaymentProcessorModel(unittest.TestCase):
 
     def test_base_processor(self):
         processor = PaymentProcessor()
+        with self.assertRaises(NotImplementedError):
+            processor.configure_api_key(None)
         with self.assertRaises(NotImplementedError):
             processor.validate_customer(None)
         with self.assertRaises(NotImplementedError):
@@ -57,9 +60,11 @@ class TestBalancedProcessorModel(ModelTestCase):
                 amount=100,
             )
 
-    def make_one(self, *args, **kwargs):
-        from billy.models.processors.balanced_payments import BalancedProcessor
-        return BalancedProcessor(*args, **kwargs)
+    def make_one(self, configure_api_key=True, *args, **kwargs):
+        processor = BalancedProcessor(*args, **kwargs)
+        if configure_api_key:
+            processor.configure_api_key('MOCK_API_KEY')
+        return processor
 
     def test_validate_customer(self):
         # mock class
@@ -77,8 +82,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         with self.assertRaises(InvalidURIFormat):
             processor.validate_customer('CUXXXXXXXX')
 
-    @mock.patch('balanced.configure')
-    def test_create_customer(self, configure_method):
+    def test_create_customer(self):
         self.customer.processor_uri = None
 
         # mock instance
@@ -92,16 +96,13 @@ class TestBalancedProcessorModel(ModelTestCase):
         customer_id = processor.create_customer(self.customer)
         self.assertEqual(customer_id, 'MOCK_CUSTOMER_URI')
 
-        # make sure API key is set correctly
-        configure_method.assert_called_once_with('my_secret_key')
         # make sure the customer is created correctly
         BalancedCustomer.assert_called_once_with(**{
             'meta.billy_customer_guid': self.customer.guid,
         })
         balanced_customer.save.assert_called_once_with()
 
-    @mock.patch('balanced.configure')
-    def test_prepare_customer_with_card(self, configure_method):
+    def test_prepare_customer_with_card(self):
         # mock instance
         balanced_customer = mock.Mock()
         # mock class
@@ -110,15 +111,12 @@ class TestBalancedProcessorModel(ModelTestCase):
 
         processor = self.make_one(customer_cls=BalancedCustomer)
         processor.prepare_customer(self.customer, '/v1/cards/my_card')
-        # make sure API key is set correctly
-        configure_method.assert_called_once_with('my_secret_key')
         # make sure the customer find method is called
         BalancedCustomer.find.assert_called_once_with(self.customer.processor_uri)
         # make sure card is added correctly
         balanced_customer.add_card.assert_called_once_with('/v1/cards/my_card')
 
-    @mock.patch('balanced.configure')
-    def test_prepare_customer_with_bank_account(self, configure_method):
+    def test_prepare_customer_with_bank_account(self):
         # mock instance
         balanced_customer = mock.Mock()
         # mock class
@@ -130,8 +128,6 @@ class TestBalancedProcessorModel(ModelTestCase):
             self.customer, 
             '/v1/bank_accounts/my_account'
         )
-        # make sure API key is set correctly
-        configure_method.assert_called_once_with('my_secret_key')
         # make sure the customer find method is called
         BalancedCustomer.find.assert_called_once_with(self.customer.processor_uri)
         # make sure card is added correctly
@@ -164,10 +160,8 @@ class TestBalancedProcessorModel(ModelTestCase):
         with self.assertRaises(ValueError):
             processor.prepare_customer(self.customer, '/v1/bitcoin/12345')
 
-    @mock.patch('balanced.configure')
     def _test_operation(
         self, 
-        configure_method,
         cls_name, 
         processor_method_name, 
         api_method_name,
@@ -213,8 +207,6 @@ class TestBalancedProcessorModel(ModelTestCase):
         self.assertEqual(balanced_tx_id, 'MOCK_BALANCED_RESOURCE_URI')
         # make sure the customer find method is called
         BalancedCustomer.find.assert_called_once_with(self.customer.processor_uri)
-        # make sure API key is set correctly
-        configure_method.assert_called_once_with('my_secret_key')
         # make sure query is made correctly
         expected_kwargs = {'meta.billy.transaction_guid': transaction.guid}
         Resource.query.filter.assert_called_once_with(**expected_kwargs)
@@ -406,3 +398,18 @@ class TestBalancedProcessorModel(ModelTestCase):
         # make sure query is made correctly
         expected_kwargs = {'meta.billy.transaction_guid': transaction.guid}
         Refund.query.filter.assert_called_once_with(**expected_kwargs)
+
+    def test_api_key_is_ensured(self):
+        processor = self.make_one(configure_api_key=False)
+        for method_name in [
+            'validate_customer',
+            'create_customer',
+            'prepare_customer',
+            'validate_customer',
+            'charge',
+            'payout',
+            'refund',
+        ]:
+            with self.assertRaises(AssertionError):
+                method = getattr(processor, method_name)
+                method(None)

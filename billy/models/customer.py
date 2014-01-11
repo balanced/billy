@@ -63,6 +63,7 @@ class CustomerModel(BaseTableModel):
         self.session.flush()
 
         processor = self.factory.create_processor()
+        processor.configure_api_key(customer.company.processor_key)
         # create customer
         if customer.processor_uri is None:
             customer.processor_uri = processor.create_customer(customer)

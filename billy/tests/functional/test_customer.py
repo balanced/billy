@@ -25,12 +25,14 @@ class TestCustomerViews(ViewTestCase):
         self.api_key = str(self.company.api_key)
         self.api_key2 = str(self.company2.api_key)
 
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.configure_api_key')
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.validate_customer')
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.create_customer')
     def test_create_customer(
         self, 
         create_customer_method, 
         validate_customer_method,
+        configure_api_key_method,
     ):
         now = datetime.datetime.utcnow()
         now_iso = now.isoformat()
@@ -50,6 +52,7 @@ class TestCustomerViews(ViewTestCase):
         self.assertEqual(res.json['deleted'], False)
         self.assertFalse(create_customer_method.called)
         validate_customer_method.assert_called_once_with('MOCK_CUSTOMER_URI')
+        configure_api_key_method.assert_called_once_with('MOCK_PROCESSOR_KEY')
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.validate_customer')
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.create_customer')

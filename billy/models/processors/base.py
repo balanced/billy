@@ -3,6 +3,14 @@ from __future__ import unicode_literals
 
 class PaymentProcessor(object):
 
+    def configure_api_key(self, api_key):
+        """Configure API key for the processor, you need to call this method
+        before you call any other methods
+
+        :param api_key: the API key to set
+        """
+        raise NotImplementedError
+
     def create_customer(self, customer):
         """Create the customer record in payment processor
 

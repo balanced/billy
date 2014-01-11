@@ -56,11 +56,6 @@ class TransactionModel(BaseTableModel):
         ))
         return maximum_retry
 
-    @property
-    def processor(self):
-        processor = self.factory.create_processor()
-        return processor
-
     def get_last_transaction(self):
         """Get last transaction
 
@@ -261,20 +256,23 @@ class TransactionModel(BaseTableModel):
         else:
             customer = transaction.invoice.customer
 
+        processor = self.factory.create_processor()
+
         method = {
-            self.TYPE_CHARGE: self.processor.charge,
-            self.TYPE_PAYOUT: self.processor.payout,
-            self.TYPE_REFUND: self.processor.refund,
+            self.TYPE_CHARGE: processor.charge,
+            self.TYPE_PAYOUT: processor.payout,
+            self.TYPE_REFUND: processor.refund,
         }[transaction.transaction_type]
 
         try:
+            processor.configure_api_key(customer.company.processor_key)
             self.logger.info(
                 'Preparing customer %s (processor_uri=%s)', 
                 customer.guid,
                 customer.processor_uri,
             )
             # prepare customer (add bank account or credit card)
-            self.processor.prepare_customer(
+            processor.prepare_customer(
                 customer=customer, 
                 funding_instrument_uri=transaction.funding_instrument_uri,
             )

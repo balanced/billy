@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import logging
+import functools
 
 import balanced
 
@@ -14,6 +15,20 @@ class InvalidURIFormat(BillyError):
     GUID of a balanced customer entity instead of URI. 
 
     """
+
+
+def ensure_api_key_configured(func):
+    """This decorator ensure the Balanced API key was configured before calling
+    into the decorated function
+
+    """
+    @functools.wraps(func)
+    def callee(self, *args, **kwargs):
+        assert self._configured_api_key and balanced.is_configured(), (
+            'API key need to be configured before calling any other methods'
+        )
+        return func(self, *args, **kwargs)
+    return callee
 
 
 class BalancedProcessor(PaymentProcessor):
@@ -31,16 +46,17 @@ class BalancedProcessor(PaymentProcessor):
         self.debit_cls = debit_cls
         self.credit_cls = credit_cls
         self.refund_cls = refund_cls
+        self._configured_api_key = False
 
     def _to_cent(self, amount):
         return int(amount)
 
-    def _configure_api_key(self, customer):
-        api_key = customer.company.processor_key
+    def configure_api_key(self, api_key):
         balanced.configure(api_key)
+        self._configured_api_key = True
 
+    @ensure_api_key_configured
     def create_customer(self, customer):
-        self._configure_api_key(customer)
         self.logger.debug('Creating Balanced customer for %s', customer.guid)
         record = self.customer_cls(**{
             'meta.billy_customer_guid': customer.guid, 
@@ -48,8 +64,8 @@ class BalancedProcessor(PaymentProcessor):
         self.logger.info('Created Balanced customer for %s', customer.guid)
         return record.uri
 
+    @ensure_api_key_configured
     def prepare_customer(self, customer, funding_instrument_uri=None):
-        self._configure_api_key(customer)
         self.logger.debug('Preparing customer %s with funding_instrument_uri=%s', 
                           customer.guid, funding_instrument_uri)
         # when funding_instrument_uri is None, it means we are going to use the 
@@ -73,6 +89,7 @@ class BalancedProcessor(PaymentProcessor):
         else:
             raise ValueError('Invalid funding_instrument_uri {}'.format(funding_instrument_uri))
 
+    @ensure_api_key_configured
     def validate_customer(self, processor_uri):
         if not processor_uri.startswith('/v1/'):
             raise InvalidURIFormat(
@@ -107,7 +124,6 @@ class BalancedProcessor(PaymentProcessor):
         extra_kwargs
     ):
         customer = transaction.invoice.customer
-        self._configure_api_key(customer)
 
         # do existing check before creation to make sure we won't duplicate 
         # transaction in Balanced service
@@ -149,6 +165,7 @@ class BalancedProcessor(PaymentProcessor):
         self.logger.info('Called %s with args %s', method.__name__, kwargs)
         return record.uri
 
+    @ensure_api_key_configured
     def charge(self, transaction):
         extra_kwargs = {}
         if transaction.funding_instrument_uri is not None:
@@ -160,6 +177,7 @@ class BalancedProcessor(PaymentProcessor):
             extra_kwargs=extra_kwargs,
         )
 
+    @ensure_api_key_configured
     def payout(self, transaction):
         extra_kwargs = {}
         if transaction.funding_instrument_uri is not None:
@@ -171,6 +189,7 @@ class BalancedProcessor(PaymentProcessor):
             extra_kwargs=extra_kwargs,
         )
 
+    @ensure_api_key_configured
     def refund(self, transaction):
         return self._do_transaction(
             transaction=transaction, 

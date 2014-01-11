@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 
 from pyramid.request import Request
 from pyramid.decorator import reify
+from pyramid.events import NewResponse
+from pyramid.events import subscriber
 
 from billy.models.model_factory import ModelFactory
 from billy.api.utils import get_processor_factory
@@ -32,3 +34,14 @@ class APIRequest(Request):
             processor_factory=processor_factory, 
             settings=settings,
         )
+
+
+@subscriber(NewResponse)
+def clean_balanced_processor_key(event):
+    """This ensures we won't leave the API key of balanced to the same thread
+    (as there is a thread local object in Balanced API), in case of using it 
+    later by accident, or for security reason.
+
+    """
+    import balanced
+    balanced.configure(None)

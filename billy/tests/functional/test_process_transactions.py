@@ -16,6 +16,7 @@ from billy.models.model_factory import ModelFactory
 from billy.scripts import initializedb
 from billy.scripts import process_transactions
 from billy.scripts.process_transactions import main
+from billy.tests.fixtures.processor import DummyProcessor
 
 
 class TestProcessTransactions(unittest.TestCase):
@@ -61,38 +62,23 @@ class TestProcessTransactions(unittest.TestCase):
         process_transactions_method.assert_called_once()
 
     def test_main_with_crash(self):
+        dummy_processor = DummyProcessor()
+        dummy_processor.charge = mock.Mock()
+        tx_guids = set()
+        debits = []
 
-        class MockProcessor(object):
+        def mock_charge(transaction):
+            if dummy_processor.charge.call_count == 2:
+                raise KeyboardInterrupt
+            uri = 'MOCK_DEBIT_URI_FOR_{}'.format(transaction.guid)
+            if transaction.guid in tx_guids:
+                return uri
+            tx_guids.add(transaction.guid)
+            debits.append(uri)
+            return uri
 
-            def __init__(self):
-                self.charges = {}
-                self.tx_sn = 0
-                self.called_times = 0
+        dummy_processor.charge.side_effect = mock_charge
 
-            def create_customer(self, customer):
-                return 'MOCK_PROCESSOR_CUSTOMER_ID'
-
-            def prepare_customer(self, customer, funding_instrument_uri=None):
-                pass
-
-            def payout(self):
-                assert False
-
-            def refund(self):
-                assert False
-
-            def charge(self, transaction):
-                self.called_times += 1
-                if self.called_times == 2:
-                    raise KeyboardInterrupt
-                guid = transaction.guid
-                if guid in self.charges:
-                    return self.charges[guid]
-                self.charges[guid] = self.tx_sn
-                self.tx_sn += 1
-
-        mock_processor = MockProcessor()
-        
         cfg_path = os.path.join(self.temp_dir, 'config.ini')
         with open(cfg_path, 'wt') as f:
             f.write(textwrap.dedent("""\
@@ -108,7 +94,7 @@ class TestProcessTransactions(unittest.TestCase):
         session = settings['session']
         factory = ModelFactory(
             session=session,
-            processor_factory=lambda: mock_processor,
+            processor_factory=lambda: dummy_processor,
             settings=settings,
         )
         company_model = factory.create_company_model()
@@ -140,10 +126,10 @@ class TestProcessTransactions(unittest.TestCase):
 
         with self.assertRaises(KeyboardInterrupt):
             process_transactions.main([process_transactions.__file__, cfg_path], 
-                                      processor=mock_processor)
+                                      processor=dummy_processor)
 
         process_transactions.main([process_transactions.__file__, cfg_path], 
-                                  processor=mock_processor)
+                                  processor=dummy_processor)
 
         # here is the story, we have two subscriptions here
         #   
@@ -165,4 +151,4 @@ class TestProcessTransactions(unittest.TestCase):
         #
         # So, there would only be two charges in processor. This is mainly
         # for making sure we won't duplicate charges/payouts
-        self.assertEqual(len(mock_processor.charges), 2)
+        self.assertEqual(len(debits), 2)

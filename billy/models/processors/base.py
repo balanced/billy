@@ -35,6 +35,14 @@ class PaymentProcessor(object):
         """
         raise NotImplementedError
 
+    def validate_funding_instrument(self, funding_instrument_uri):
+        """Validate a given fundint instrument URI in processor
+
+        :param funding_instrument_uri: The funding instrument URI in processor 
+            to validate
+        """
+        raise NotImplementedError
+
     def charge(self, transaction):
         """Charge from a bank acount or credit card
 

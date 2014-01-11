@@ -74,6 +74,11 @@ class SubscriptionIndexView(IndexView):
         if plan.deleted:
             return HTTPBadRequest('Cannot subscript to a deleted plan')
 
+        if funding_instrument_uri is not None:
+            processor = request.model_factory.create_processor()
+            processor.configure_api_key(customer.company.processor_key) 
+            processor.validate_funding_instrument(funding_instrument_uri)
+
         # create subscription and yield transactions
         with db_transaction.manager:
             subscription = sub_model.create(

@@ -127,6 +127,17 @@ class InvoiceIndexView(IndexView):
         if customer.deleted:
             return HTTPBadRequest('Cannot create an invoice for a deleted customer')
         
+        # Notice: I think it is better to validate the funding instrument URI
+        # even before the record is created. Otherwse, the user can only knows
+        # what's wrong after we try to submit it to the underlying processor.
+        # (he can read the transaction failure log and eventually realize 
+        # the processing was failed)
+        # The idea here is to advance error as early as possible.
+        if funding_instrument_uri is not None:
+            processor = request.model_factory.create_processor()
+            processor.configure_api_key(customer.company.processor_key) 
+            processor.validate_funding_instrument(funding_instrument_uri)
+
         with db_transaction.manager:
             invoice = model.create(
                 customer=customer,

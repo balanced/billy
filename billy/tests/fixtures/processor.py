@@ -21,6 +21,10 @@ class DummyProcessor(object):
         self._check_api_key()
         return True
 
+    def validate_funding_instrument(self, funding_instrument_uri):
+        self._check_api_key()
+        return True
+
     def prepare_customer(self, customer, funding_instrument_uri=None):
         self._check_api_key()
 

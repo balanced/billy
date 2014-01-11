@@ -8,6 +8,7 @@ from freezegun import freeze_time
 
 from billy.models.processors.base import PaymentProcessor
 from billy.models.processors.balanced_payments import InvalidURIFormat
+from billy.models.processors.balanced_payments import InvalidFundingInstrument
 from billy.models.processors.balanced_payments import BalancedProcessor
 from billy.tests.unit.helper import ModelTestCase
 
@@ -16,20 +17,19 @@ class TestPaymentProcessorModel(unittest.TestCase):
 
     def test_base_processor(self):
         processor = PaymentProcessor()
-        with self.assertRaises(NotImplementedError):
-            processor.configure_api_key(None)
-        with self.assertRaises(NotImplementedError):
-            processor.validate_customer(None)
-        with self.assertRaises(NotImplementedError):
-            processor.create_customer(None)
-        with self.assertRaises(NotImplementedError):
-            processor.prepare_customer(None)
-        with self.assertRaises(NotImplementedError):
-            processor.charge(None)
-        with self.assertRaises(NotImplementedError):
-            processor.payout(None)
-        with self.assertRaises(NotImplementedError):
-            processor.refund(None)
+        for method_name in [
+            'configure_api_key',
+            'validate_customer',
+            'validate_funding_instrument',
+            'create_customer',
+            'prepare_customer',
+            'charge',
+            'payout',
+            'refund',
+        ]:
+            with self.assertRaises(NotImplementedError):
+                method = getattr(processor, method_name)
+                method(None)
 
 
 @freeze_time('2013-08-16')
@@ -81,6 +81,43 @@ class TestBalancedProcessorModel(ModelTestCase):
         processor = self.make_one()
         with self.assertRaises(InvalidURIFormat):
             processor.validate_customer('CUXXXXXXXX')
+
+    def test_validate_funding_instrument(self):
+        # mock class
+        Card = mock.Mock()
+        Card.find.return_value = mock.Mock(
+            uri='MOCK_FUNDING_INSTRUMENT_URI',
+        )
+
+        processor = self.make_one(card_cls=Card)
+        result = processor.validate_funding_instrument('/v1/cards/xxx')
+        self.assertTrue(result)
+
+        Card.find.assert_called_once_with('/v1/cards/xxx')
+
+        BankAccount = mock.Mock()
+        BankAccount.find.return_value = mock.Mock(
+            uri='MOCK_FUNDING_INSTRUMENT_URI',
+        )
+
+        processor = self.make_one(bank_account_cls=BankAccount)
+        result = processor.validate_funding_instrument('/v1/bank_accounts/xxx')
+        self.assertTrue(result)
+
+        BankAccount.find.assert_called_once_with('/v1/bank_accounts/xxx')
+
+    def test_validate_funding_instrument_with_invalid_card(self):
+        # mock class
+        Card = mock.Mock()
+        Card.find.side_effect = balanced.exc.BalancedError('Boom')
+        processor = self.make_one(card_cls=Card)
+        with self.assertRaises(InvalidFundingInstrument):
+            processor.validate_funding_instrument('/v1/cards/invalid_card')
+
+    def test_validate_funding_instrument_with_invalid_uri(self):
+        processor = self.make_one()
+        with self.assertRaises(InvalidURIFormat):
+            processor.validate_funding_instrument('CCXXXXXXXXX')
 
     def test_create_customer(self):
         self.customer.processor_uri = None

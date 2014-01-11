@@ -17,6 +17,18 @@ class InvalidURIFormat(BillyError):
     """
 
 
+class InvalidCustomer(BillyError):
+    """This error indicates the given customer is not valid
+
+    """
+
+
+class InvalidFundingInstrument(BillyError):
+    """This error indicates the given funding instrument is not valid
+
+    """
+
+
 def ensure_api_key_configured(func):
     """This decorator ensure the Balanced API key was configured before calling
     into the decorated function
@@ -39,6 +51,8 @@ class BalancedProcessor(PaymentProcessor):
         debit_cls=balanced.Debit,
         credit_cls=balanced.Credit,
         refund_cls=balanced.Refund,
+        bank_account_cls=balanced.BankAccount,
+        card_cls=balanced.Card,
         logger=None,
     ):
         self.logger = logger or logging.getLogger(__name__)
@@ -46,6 +60,8 @@ class BalancedProcessor(PaymentProcessor):
         self.debit_cls = debit_cls
         self.credit_cls = credit_cls
         self.refund_cls = refund_cls
+        self.bank_account_cls = bank_account_cls
+        self.card_cls = card_cls
         self._configured_api_key = False
 
     def _to_cent(self, amount):
@@ -91,14 +107,48 @@ class BalancedProcessor(PaymentProcessor):
 
     @ensure_api_key_configured
     def validate_customer(self, processor_uri):
-        if not processor_uri.startswith('/v1/'):
+        if not processor_uri.startswith('/'):
             raise InvalidURIFormat(
                 'The processor_uri of a Balanced customer should be something '
                 'like /v1/customers/CUXXXXXXXXXXXXXXXXXXXXXX, but we received '
-                '{}. Remember, it is an URI rather than GUID.'
+                '{}. Remember, it should be an URI rather than a GUID.'
                 .format(repr(processor_uri))
             )
-        self.customer_cls.find(processor_uri)
+        try:
+            self.customer_cls.find(processor_uri)
+        except balanced.exc.BalancedError, e:
+            raise InvalidCustomer(
+                'Failed to validate customer {}. '
+                'BalancedError: {}'.format(processor_uri, e)
+            )
+        return True
+
+    @ensure_api_key_configured
+    def validate_funding_instrument(self, funding_instrument_uri):
+        if not funding_instrument_uri.startswith('/'):
+            raise InvalidURIFormat(
+                'The funding_instrument_uri of Balanced should be something '
+                'like /v1/marketplaces/MPXXXXXXXXXXXXXXXXXXXXXX/cards/'
+                'CCXXXXXXXXXXXXXXXXXXXXXX, but we received {}. '
+                'Remember, it should be an URI rather than a GUID.'
+                .format(repr(funding_instrument_uri))
+            )
+        if '/bank_accounts/' in funding_instrument_uri:
+            resource_cls = self.bank_account_cls
+        elif '/cards/' in funding_instrument_uri:
+            resource_cls = self.card_cls
+        else:
+            raise InvalidFundingInstrument(
+                'Uknown type of funding instrument {}. Should be a bank '
+                'account or credit card'.format(funding_instrument_uri)
+            )
+        try:
+            resource_cls.find(funding_instrument_uri)
+        except balanced.exc.BalancedError, e:
+            raise InvalidFundingInstrument(
+                'Failed to validate funding instrument {}. '
+                'BalancedError: {}'.format(funding_instrument_uri, e)
+            )
         return True
 
     def _get_resource_by_tx_guid(self, resource_cls, guid):

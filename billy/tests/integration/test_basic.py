@@ -237,3 +237,49 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(debit.amount, 5566 + 123)
         self.assertEqual(debit.status, 'succeeded')
         self.assertEqual(debit.appears_on_statement_as, 'hello baby')
+
+    def test_invalid_funding_instrument(self):
+        balanced.configure(self.processor_key)
+        marketplace = balanced.Marketplace.find(self.marketplace_uri)
+        # create a card
+        card = marketplace.create_card(
+            name='BILLY_INTERGRATION_TESTER',
+            card_number='5105105105105100',
+            expiration_month='12',
+            expiration_year='2020',
+            security_code='123',
+        )
+        card_uri = card.uri
+        card.is_valid = False
+        card.save()
+
+        # create a company
+        res = self.testapp.post(
+            '/v1/companies', 
+            dict(processor_key=self.processor_key), 
+            status=200
+        )
+        company = res.json
+        api_key = str(company['api_key'])
+
+        # create a customer
+        res = self.testapp.post(
+            '/v1/customers', 
+            headers=[self.make_auth(api_key)],
+            status=200
+        )
+        customer = res.json
+        self.assertEqual(customer['company_guid'], company['guid'])
+
+        # create an invoice
+        res = self.testapp.post(
+            '/v1/invoices', 
+            dict(
+                customer_guid=customer['guid'],
+                amount=5566,
+                funding_instrument_uri=card_uri,
+            ),
+            headers=[self.make_auth(api_key)],
+            status=400
+        )
+        self.assertEqual(res.json['error_class'], 'InvalidFundingInstrument')

@@ -17,4 +17,4 @@ before_script:
   - "flake8 billy --ignore=E501,W291,W293"
 # command to run tests
 script: 
-  - './test.sh'
+  - "chmod +x test.sh && ./test.sh"

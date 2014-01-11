@@ -14,7 +14,7 @@ before_install :
   - "wget https://s3-us-west-1.amazonaws.com/billy.pip.cache/pip_wheels.tar.gz"
   - "tar -xvf pip_wheels.tar.gz"
   - "pip install wheel"
-  - "find .pip_wheels/ -exec pip install {} \;"
+  - "find .pip_wheels/ -exec pip install {} \\;"
 # command to install dependencies
 install: 
   - "pip install psycopg2 --use-mirrors"

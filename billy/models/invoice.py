@@ -291,41 +291,6 @@ class InvoiceModel(BaseTableModel):
         self.session.flush()
         return invoice
 
-    def update(
-        self, 
-        invoice, 
-        title=NOT_SET, 
-        items=NOT_SET,
-    ):
-        """Update an invoice
-
-        """
-        now = tables.now_func()
-        invoice.updated_at = now
-
-        if title is not self.NOT_SET:
-            invoice.title = title
-        if items is not self.NOT_SET:
-            # delete all old items
-            old_items = invoice.items
-            for item in old_items:
-                self.session.delete(item)
-            new_items = []
-            for item in items:
-                item = tables.Item(
-                    invoice_guid=invoice.guid,
-                    name=item['name'],
-                    amount=item['amount'],
-                    type=item.get('type'),
-                    quantity=item.get('quantity'),
-                    unit=item.get('unit'),
-                    volume=item.get('volume'),
-                )
-                new_items.append(item)
-                self.session.add(item)
-            invoice.items = new_items
-        self.session.flush()
-
     def update_funding_instrument_uri(self, invoice, funding_instrument_uri):
         """Update the funding_instrument_uri of an invoice, as it may yield 
         transactions, we don't want to put this in `update` method

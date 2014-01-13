@@ -39,11 +39,7 @@ class InvoiceCreateForm(Form):
 
 class InvoiceUpdateForm(Form):
     funding_instrument_uri = TextField('Funding instrument URI', [
-        validators.Optional(),
-    ])
-    title = TextField('Title', [
-        validators.Optional(),
-        validators.Length(max=128),
+        validators.Required(),
     ])
 
 

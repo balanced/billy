@@ -175,26 +175,12 @@ class InvoiceView(EntityView):
         tx_model = request.model_factory.create_transaction_model()
 
         funding_instrument_uri = form.data.get('funding_instrument_uri')
-        title = form.data.get('title')
-        items = parse_items(
-            request=request, 
-            prefix='item_', 
-            keywords=('type', 'name', 'total', 'amount', 'unit', 'quantity'),
-        )
-
-        kwargs = {}
-        if title:
-            kwargs['title'] = title
-        if items:
-            kwargs['items'] = items
-
+        
         with db_transaction.manager:
-            model.update(invoice, **kwargs)
-            if funding_instrument_uri:
-                transactions = model.update_funding_instrument_uri(
-                    invoice=invoice, 
-                    funding_instrument_uri=funding_instrument_uri,
-                )
+            transactions = model.update_funding_instrument_uri(
+                invoice=invoice, 
+                funding_instrument_uri=funding_instrument_uri,
+            )
 
         # funding_instrument_uri is set, just process all transactions right away
         if funding_instrument_uri and transactions:

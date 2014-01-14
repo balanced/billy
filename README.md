@@ -66,7 +66,7 @@ To run tests, after installing billy project and all dependencies, you need
 to install dependencies for testing, here you type:
 
 ```
-pip install -r test_requirements.txt
+pip install -r test-requirements.txt
 ```
 
 And to run the tests, here you type

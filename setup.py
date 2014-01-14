@@ -9,7 +9,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 readme = open(os.path.join(here, 'README.md')).read()
 requires = open(os.path.join(here, 'requirements.txt')).read()
 requires = map(lambda r: r.strip(), requires.splitlines())
-test_requires = open(os.path.join(here, 'test_requirements.txt')).read()
+test_requires = open(os.path.join(here, 'test-requirements.txt')).read()
 test_requires = map(lambda r: r.strip(), test_requires.splitlines())
 
 setup(

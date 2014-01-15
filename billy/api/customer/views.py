@@ -45,7 +45,7 @@ class CustomerIndexView(IndexView):
         request = self.request
         company = authenticated_userid(request)
         form = validate_form(CustomerCreateForm, request)
-        
+       
         processor_uri = form.data.get('processor_uri')
 
         # TODO: make sure user cannot create a customer to a deleted company
@@ -54,7 +54,7 @@ class CustomerIndexView(IndexView):
         with db_transaction.manager:
             customer = model.create(
                 processor_uri=processor_uri,
-                company=company, 
+                company=company,
             )
         return customer
 

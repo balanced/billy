@@ -10,10 +10,10 @@ class TransactionFailureModel(BaseTableModel):
     TABLE = tables.TransactionFailure
 
     def create(
-        self, 
-        transaction, 
-        error_message, 
-        error_code=None, 
+        self,
+        transaction,
+        error_message,
+        error_code=None,
         error_number=None,
     ):
         """Create a failure for and return

@@ -12,12 +12,12 @@ from billy.models import tables
 from billy.models.customer import CustomerModel
 from billy.models.plan import PlanModel
 from billy.api.utils import RecordExistValidator
-from billy.api.utils import STATEMENT_REXP 
+from billy.api.utils import STATEMENT_REXP
 from billy.api.utils import MINIMUM_AMOUNT
 
 
 class ISO8601Field(Field):
-    """This filed validates and converts input ISO8601 into UTC naive 
+    """This filed validates and converts input ISO8601 into UTC naive
     datetime
 
     """

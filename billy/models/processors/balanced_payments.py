@@ -12,7 +12,7 @@ from billy.errors import BillyError
 class InvalidURIFormat(BillyError):
     """This error indicates the given customer URI is not in URI format.
     There is a very common mistake, we saw many users of Billy tried to pass
-    GUID of a balanced customer entity instead of URI. 
+    GUID of a balanced customer entity instead of URI.
 
     """
 
@@ -46,8 +46,8 @@ def ensure_api_key_configured(func):
 class BalancedProcessor(PaymentProcessor):
 
     def __init__(
-        self, 
-        customer_cls=balanced.Customer, 
+        self,
+        customer_cls=balanced.Customer,
         debit_cls=balanced.Debit,
         credit_cls=balanced.Credit,
         refund_cls=balanced.Refund,
@@ -75,32 +75,32 @@ class BalancedProcessor(PaymentProcessor):
     def create_customer(self, customer):
         self.logger.debug('Creating Balanced customer for %s', customer.guid)
         record = self.customer_cls(**{
-            'meta.billy_customer_guid': customer.guid, 
+            'meta.billy_customer_guid': customer.guid,
         }).save()
         self.logger.info('Created Balanced customer for %s', customer.guid)
         return record.uri
 
     @ensure_api_key_configured
     def prepare_customer(self, customer, funding_instrument_uri=None):
-        self.logger.debug('Preparing customer %s with funding_instrument_uri=%s', 
+        self.logger.debug('Preparing customer %s with funding_instrument_uri=%s',
                           customer.guid, funding_instrument_uri)
-        # when funding_instrument_uri is None, it means we are going to use the 
+        # when funding_instrument_uri is None, it means we are going to use the
         # default funding instrument, just return
         if funding_instrument_uri is None:
             return
         # get balanced customer record
         balanced_customer = self.customer_cls.find(customer.processor_uri)
         if '/bank_accounts/' in funding_instrument_uri:
-            self.logger.debug('Adding bank account %s to %s', 
+            self.logger.debug('Adding bank account %s to %s',
                               funding_instrument_uri, customer.guid)
             balanced_customer.add_bank_account(funding_instrument_uri)
-            self.logger.info('Added bank account %s to %s', 
+            self.logger.info('Added bank account %s to %s',
                              funding_instrument_uri, customer.guid)
         elif '/cards/' in funding_instrument_uri:
-            self.logger.debug('Adding credit card %s to %s', 
+            self.logger.debug('Adding credit card %s to %s',
                               funding_instrument_uri, customer.guid)
             balanced_customer.add_card(funding_instrument_uri)
-            self.logger.info('Added credit card %s to %s', 
+            self.logger.info('Added credit card %s to %s',
                              funding_instrument_uri, customer.guid)
         else:
             raise ValueError('Invalid funding_instrument_uri {}'.format(funding_instrument_uri))
@@ -167,15 +167,15 @@ class BalancedProcessor(PaymentProcessor):
         return resource
 
     def _do_transaction(
-        self, 
-        transaction, 
-        resource_cls, 
-        method_name, 
+        self,
+        transaction,
+        resource_cls,
+        method_name,
         extra_kwargs
     ):
         customer = transaction.invoice.customer
 
-        # do existing check before creation to make sure we won't duplicate 
+        # do existing check before creation to make sure we won't duplicate
         # transaction in Balanced service
         resource = self._get_resource_by_tx_guid(resource_cls, transaction.guid)
         # We already have a record there in Balanced, this means we once did
@@ -221,7 +221,7 @@ class BalancedProcessor(PaymentProcessor):
         if transaction.funding_instrument_uri is not None:
             extra_kwargs['source_uri'] = transaction.funding_instrument_uri
         return self._do_transaction(
-            transaction=transaction, 
+            transaction=transaction,
             resource_cls=self.debit_cls,
             method_name='debit',
             extra_kwargs=extra_kwargs,
@@ -233,7 +233,7 @@ class BalancedProcessor(PaymentProcessor):
         if transaction.funding_instrument_uri is not None:
             extra_kwargs['destination_uri'] = transaction.funding_instrument_uri
         return self._do_transaction(
-            transaction=transaction, 
+            transaction=transaction,
             resource_cls=self.credit_cls,
             method_name='credit',
             extra_kwargs=extra_kwargs,
@@ -242,7 +242,7 @@ class BalancedProcessor(PaymentProcessor):
     @ensure_api_key_configured
     def refund(self, transaction):
         return self._do_transaction(
-            transaction=transaction, 
+            transaction=transaction,
             resource_cls=self.refund_cls,
             method_name='refund',
             extra_kwargs={},

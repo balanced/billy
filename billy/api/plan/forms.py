@@ -10,24 +10,24 @@ from billy.api.utils import MINIMUM_AMOUNT
 
 class PlanCreateForm(Form):
     plan_type = RadioField(
-        'Plan type', 
+        'Plan type',
         [
             validators.Required(),
-        ], 
+        ],
         choices=[
-            ('charge', 'Charge'), 
+            ('charge', 'Charge'),
             ('payout', 'Payout'),
         ]
     )
     frequency = RadioField(
-        'Frequency', 
+        'Frequency',
         [
             validators.Required(),
-        ], 
+        ],
         choices=[
-            ('daily', 'Daily'), 
-            ('weekly', 'Weekly'), 
-            ('monthly', 'Monthly'), 
+            ('daily', 'Daily'),
+            ('weekly', 'Weekly'),
+            ('monthly', 'Monthly'),
             ('yearly', 'Yearly'),
         ]
     )
@@ -36,10 +36,10 @@ class PlanCreateForm(Form):
         validators.NumberRange(min=MINIMUM_AMOUNT)
     ])
     interval = IntegerField(
-        'Interval', 
+        'Interval',
         [
             validators.Optional(),
             validators.NumberRange(min=1),
-        ], 
+        ],
         default=1
     )

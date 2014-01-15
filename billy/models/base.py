@@ -4,7 +4,7 @@ from functools import wraps
 
 
 def decorate_offset_limit(func):
-    """Make a querying function accept extra optional offset and limit 
+    """Make a querying function accept extra optional offset and limit
     parameter and set to the querying result
 
     """

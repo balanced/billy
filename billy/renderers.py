@@ -20,11 +20,11 @@ def company_adapter(company, request):
 def customer_adapter(customer, request):
     return dict(
         guid=customer.guid,
-        processor_uri=customer.processor_uri, 
+        processor_uri=customer.processor_uri,
         created_at=customer.created_at.isoformat(),
         updated_at=customer.updated_at.isoformat(),
-        company_guid=customer.company_guid, 
-        deleted=customer.deleted, 
+        company_guid=customer.company_guid,
+        deleted=customer.deleted,
     )
 
 
@@ -84,12 +84,12 @@ def invoice_adapter(invoice, request):
         status=status,
         created_at=invoice.created_at.isoformat(),
         updated_at=invoice.updated_at.isoformat(),
-        amount=invoice.amount, 
-        effective_amount=invoice.effective_amount, 
-        total_adjustment_amount=invoice.total_adjustment_amount, 
-        title=invoice.title, 
-        appears_on_statement_as=invoice.appears_on_statement_as, 
-        funding_instrument_uri=invoice.funding_instrument_uri, 
+        amount=invoice.amount,
+        effective_amount=invoice.effective_amount,
+        total_adjustment_amount=invoice.total_adjustment_amount,
+        title=invoice.title,
+        appears_on_statement_as=invoice.appears_on_statement_as,
+        funding_instrument_uri=invoice.funding_instrument_uri,
         items=items,
         adjustments=adjustments,
         **extra_args
@@ -111,7 +111,7 @@ def plan_adapter(plan, request):
     }
     frequency = freq_map[plan.frequency]
     return dict(
-        guid=plan.guid, 
+        guid=plan.guid,
         plan_type=plan_type,
         frequency=frequency,
         amount=plan.amount,
@@ -128,7 +128,7 @@ def subscription_adapter(subscription, request):
     if subscription.canceled_at is not None:
         canceled_at = subscription.canceled_at.isoformat()
     return dict(
-        guid=subscription.guid, 
+        guid=subscription.guid,
         amount=subscription.amount,
         effective_amount=subscription.effective_amount,
         funding_instrument_uri=subscription.funding_instrument_uri,
@@ -163,11 +163,11 @@ def transaction_adapter(transaction, request):
     status = status_map[transaction.status]
 
     serialized_failures = [
-        transaction_failure_adapter(f, request) 
+        transaction_failure_adapter(f, request)
         for f in transaction.failures
     ]
     return dict(
-        guid=transaction.guid, 
+        guid=transaction.guid,
         invoice_guid=transaction.invoice_guid,
         transaction_type=transaction_type,
         status=status,
@@ -196,7 +196,7 @@ def includeme(config):
     settings = config.registry.settings
     kwargs = {}
     cfg_key = 'api.json.pretty_print'
-    pretty_print = settings.get(cfg_key, True)    
+    pretty_print = settings.get(cfg_key, True)
     if pretty_print:
         kwargs = dict(sort_keys=True, indent=4, separators=(',', ': '))
 
@@ -207,6 +207,6 @@ def includeme(config):
     json_renderer.add_adapter(tables.Plan, plan_adapter)
     json_renderer.add_adapter(tables.Subscription, subscription_adapter)
     json_renderer.add_adapter(tables.Transaction, transaction_adapter)
-    json_renderer.add_adapter(tables.TransactionFailure, 
+    json_renderer.add_adapter(tables.TransactionFailure,
                               transaction_failure_adapter)
     config.add_renderer('json', json_renderer)

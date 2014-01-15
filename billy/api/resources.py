@@ -55,7 +55,7 @@ class EntityResource(object):
             # Notice: denying Everyone principal makes sure we won't
             # allow user to access resource of other company via parent's
             # ACL
-            (Deny, Everyone, ALL_PERMISSIONS), 
+            (Deny, Everyone, ALL_PERMISSIONS),
         ]
 
     @property

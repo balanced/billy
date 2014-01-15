@@ -162,7 +162,7 @@ class TestBalancedProcessorModel(ModelTestCase):
 
         processor = self.make_one(customer_cls=BalancedCustomer)
         processor.prepare_customer(
-            self.customer, 
+            self.customer,
             '/v1/bank_accounts/my_account'
         )
         # make sure the customer find method is called
@@ -198,9 +198,9 @@ class TestBalancedProcessorModel(ModelTestCase):
             processor.prepare_customer(self.customer, '/v1/bitcoin/12345')
 
     def _test_operation(
-        self, 
-        cls_name, 
-        processor_method_name, 
+        self,
+        cls_name,
+        processor_method_name,
         api_method_name,
         extra_api_kwargs,
     ):
@@ -236,7 +236,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         Resource.query.filter.return_value = page
 
         processor = self.make_one(
-            customer_cls=BalancedCustomer, 
+            customer_cls=BalancedCustomer,
             **{cls_name: Resource}
         )
         method = getattr(processor, processor_method_name)
@@ -261,8 +261,8 @@ class TestBalancedProcessorModel(ModelTestCase):
         api_method.assert_called_once_with(**expected_kwargs)
 
     def _test_operation_with_created_record(
-        self, 
-        cls_name, 
+        self,
+        cls_name,
         processor_method_name,
         api_method_name,
     ):
@@ -287,13 +287,13 @@ class TestBalancedProcessorModel(ModelTestCase):
         api_method.__name__ = api_method_name
         # mock customer class
         Customer = mock.Mock()
-        Customer.find.return_value = customer 
+        Customer.find.return_value = customer
         # mock resource class
         Resource = mock.Mock()
         Resource.query.filter.return_value = page
 
         processor = self.make_one(
-            customer_cls=Customer, 
+            customer_cls=Customer,
             **{cls_name: Resource}
         )
         method = getattr(processor, processor_method_name)
@@ -309,7 +309,7 @@ class TestBalancedProcessorModel(ModelTestCase):
 
     def test_charge(self):
         self._test_operation(
-            cls_name='debit_cls', 
+            cls_name='debit_cls',
             processor_method_name='charge',
             api_method_name='debit',
             extra_api_kwargs=dict(source_uri='/v1/credit_card/tester'),
@@ -324,7 +324,7 @@ class TestBalancedProcessorModel(ModelTestCase):
 
     def test_payout(self):
         self._test_operation(
-            cls_name='credit_cls', 
+            cls_name='credit_cls',
             processor_method_name='payout',
             api_method_name='credit',
             extra_api_kwargs=dict(destination_uri='/v1/credit_card/tester'),

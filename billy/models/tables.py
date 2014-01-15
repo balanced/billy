@@ -22,7 +22,7 @@ _now_func = [func.utc_timestamp]
 
 def set_now_func(func):
     """Replace now function and return the old function
-    
+   
     """
     old = _now_func[0]
     _now_func[0] = func
@@ -31,14 +31,14 @@ def set_now_func(func):
 
 def get_now_func():
     """Return current now func
-    
+   
     """
     return _now_func[0]
 
 
 def now_func():
     """Return current datetime
-    
+   
     """
     func = get_now_func()
     return func()
@@ -65,10 +65,10 @@ class Company(DeclarativeBase):
     updated_at = Column(DateTime, default=now_func)
 
     #: plans of this company
-    plans = relationship('Plan', cascade='all, delete-orphan', 
+    plans = relationship('Plan', cascade='all, delete-orphan',
                          backref='company')
     #: customers of this company
-    customers = relationship('Customer', cascade='all, delete-orphan', 
+    customers = relationship('Customer', cascade='all, delete-orphan',
                              backref='company')
 
 
@@ -81,11 +81,11 @@ class Customer(DeclarativeBase):
     guid = Column(Unicode(64), primary_key=True)
     #: the guid of company which owns this customer
     company_guid = Column(
-        Unicode(64), 
+        Unicode(64),
         ForeignKey(
-            'company.guid', 
+            'company.guid',
             ondelete='CASCADE', onupdate='CASCADE'
-        ), 
+        ),
         index=True,
         nullable=False,
     )
@@ -99,10 +99,10 @@ class Customer(DeclarativeBase):
     updated_at = Column(DateTime, default=now_func)
 
     #: subscriptions of this customer
-    subscriptions = relationship('Subscription', cascade='all, delete-orphan', 
+    subscriptions = relationship('Subscription', cascade='all, delete-orphan',
                                  backref='customer')
     #: invoices of this customer
-    invoices = relationship('CustomerInvoice', cascade='all, delete-orphan', 
+    invoices = relationship('CustomerInvoice', cascade='all, delete-orphan',
                             backref='customer')
 
 
@@ -115,11 +115,11 @@ class Plan(DeclarativeBase):
     guid = Column(Unicode(64), primary_key=True)
     #: the guid of company which owns this plan
     company_guid = Column(
-        Unicode(64), 
+        Unicode(64),
         ForeignKey(
-            'company.guid', 
+            'company.guid',
             ondelete='CASCADE', onupdate='CASCADE'
-        ), 
+        ),
         index=True,
         nullable=False,
     )
@@ -148,7 +148,7 @@ class Plan(DeclarativeBase):
     updated_at = Column(DateTime, default=now_func)
 
     #: subscriptions of this plan
-    subscriptions = relationship('Subscription', cascade='all, delete-orphan', 
+    subscriptions = relationship('Subscription', cascade='all, delete-orphan',
                                  backref='plan')
 
 
@@ -161,32 +161,32 @@ class Subscription(DeclarativeBase):
     guid = Column(Unicode(64), primary_key=True)
     #: the guid of customer who subscribes
     customer_guid = Column(
-        Unicode(64), 
+        Unicode(64),
         ForeignKey(
-            'customer.guid', 
+            'customer.guid',
             ondelete='CASCADE', onupdate='CASCADE'
-        ), 
+        ),
         index=True,
         nullable=False,
     )
     #: the guid of plan customer subscribes to
     plan_guid = Column(
-        Unicode(64), 
+        Unicode(64),
         ForeignKey(
-            'plan.guid', 
+            'plan.guid',
             ondelete='CASCADE', onupdate='CASCADE'
-        ), 
+        ),
         index=True,
         nullable=False,
     )
-    #: the funding instrument URI to charge/payout, such as bank account or 
+    #: the funding instrument URI to charge/payout, such as bank account or
     #  credit card
     funding_instrument_uri = Column(Unicode(128), index=True)
     #: if this amount is not null, the amount of plan will be overwritten
     amount = Column(Integer)
     #: the external ID given by user
     external_id = Column(Unicode(128), index=True)
-    #: the statement to appear on customer's transaction record (either 
+    #: the statement to appear on customer's transaction record (either
     #  bank account or credit card)
     appears_on_statement_as = Column(Unicode(32))
     #: is this subscription canceled?
@@ -195,17 +195,17 @@ class Subscription(DeclarativeBase):
     next_invoice_at = Column(DateTime, nullable=False)
     #: the started datetime of this subscription
     started_at = Column(DateTime, nullable=False)
-    #: the canceled datetime of this subscription 
+    #: the canceled datetime of this subscription
     canceled_at = Column(DateTime, default=None)
-    #: the created datetime of this subscription 
+    #: the created datetime of this subscription
     created_at = Column(DateTime, default=now_func)
-    #: the updated datetime of this subscription 
+    #: the updated datetime of this subscription
     updated_at = Column(DateTime, default=now_func)
 
     #: invoices of this subscription
     invoices = relationship(
-        'SubscriptionInvoice', 
-        cascade='all, delete-orphan', 
+        'SubscriptionInvoice',
+        cascade='all, delete-orphan',
         backref='subscription',
         lazy='dynamic',
         order_by='SubscriptionInvoice.scheduled_at.desc()'
@@ -236,20 +236,20 @@ class Invoice(DeclarativeBase):
     __tablename__ = 'invoice'
     __mapper_args__ = {
         'polymorphic_on': 'invoice_type',
-    } 
+    }
 
     guid = Column(Unicode(64), primary_key=True)
     # type of invoice, could be 0=subscription, 1=customer
     invoice_type = Column(Integer, index=True, nullable=False)
     #: what kind of transaction it is, 0=charge, 2=payout
     transaction_type = Column(Integer, nullable=False, index=True)
-    #: the funding instrument URI to charge to, such as bank account or credit 
+    #: the funding instrument URI to charge to, such as bank account or credit
     #  card
     funding_instrument_uri = Column(Unicode(128), index=True)
     #: the total amount of this invoice
     amount = Column(Integer, nullable=False)
     #: current status of this invoice, could be
-    #   - 0=init 
+    #   - 0=init
     #   - 1=processing
     #   - 2=settled
     #   - 3=canceled
@@ -257,34 +257,34 @@ class Invoice(DeclarativeBase):
     status = Column(Integer, index=True, nullable=False)
     #: a short optional title of this invoice
     title = Column(Unicode(128))
-    #: the created datetime of this invoice 
+    #: the created datetime of this invoice
     created_at = Column(DateTime, default=now_func)
-    #: the updated datetime of this invoice 
+    #: the updated datetime of this invoice
     updated_at = Column(DateTime, default=now_func)
-    #: the statement to appear on customer's transaction record (either 
+    #: the statement to appear on customer's transaction record (either
     #  bank account or credit card)
     appears_on_statement_as = Column(Unicode(32))
 
     #: transactions of this invoice
     transactions = relationship(
-        'Transaction', 
-        cascade='all, delete-orphan', 
+        'Transaction',
+        cascade='all, delete-orphan',
         backref='invoice',
         order_by='Transaction.created_at',
     )
 
     #: items of this invoice
     items = relationship(
-        'Item', 
-        cascade='all, delete-orphan', 
+        'Item',
+        cascade='all, delete-orphan',
         backref='invoice',
         order_by='Item.item_id',
     )
 
     #: adjustments of this invoice
     adjustments = relationship(
-        'Adjustment', 
-        cascade='all, delete-orphan', 
+        'Adjustment',
+        cascade='all, delete-orphan',
         backref='invoice',
         order_by='Adjustment.adjustment_id',
     )
@@ -317,24 +317,24 @@ class SubscriptionInvoice(Invoice):
     __tablename__ = 'subscription_invoice'
     __mapper_args__ = {
         'polymorphic_identity': 0,
-    } 
+    }
 
     guid = Column(
-        Unicode(64), 
+        Unicode(64),
         ForeignKey(
-            'invoice.guid', 
-            ondelete='CASCADE', 
+            'invoice.guid',
+            ondelete='CASCADE',
             onupdate='CASCADE'
-        ), 
+        ),
         primary_key=True,
     )
     #: the guid of subscription which generated this invoice
     subscription_guid = Column(
-        Unicode(64), 
+        Unicode(64),
         ForeignKey(
-            'subscription.guid', 
+            'subscription.guid',
             ondelete='CASCADE', onupdate='CASCADE'
-        ), 
+        ),
         index=True,
         nullable=False,
     )
@@ -354,28 +354,28 @@ class CustomerInvoice(Invoice):
     __table_args__ = (UniqueConstraint('customer_guid', 'external_id'), )
     __mapper_args__ = {
         'polymorphic_identity': 1,
-    } 
+    }
 
     guid = Column(
-        Unicode(64), 
+        Unicode(64),
         ForeignKey(
-            'invoice.guid', 
-            ondelete='CASCADE', 
+            'invoice.guid',
+            ondelete='CASCADE',
             onupdate='CASCADE'
-        ), 
+        ),
         primary_key=True,
     )
     #: the guid of customer who owns this invoice
     customer_guid = Column(
-        Unicode(64), 
+        Unicode(64),
         ForeignKey(
-            'customer.guid', 
+            'customer.guid',
             ondelete='CASCADE', onupdate='CASCADE'
-        ), 
+        ),
         index=True,
         nullable=False,
     )
-    #: the external_id for storing external resource ID in order to avoid 
+    #: the external_id for storing external resource ID in order to avoid
     #  duplication
     external_id = Column(Unicode(128), index=True)
 
@@ -389,11 +389,11 @@ class Item(DeclarativeBase):
     item_id = Column(Integer, autoincrement=True, primary_key=True)
     #: the guid of invoice which owns this item
     invoice_guid = Column(
-        Unicode(64), 
+        Unicode(64),
         ForeignKey(
-            'invoice.guid', 
+            'invoice.guid',
             ondelete='CASCADE', onupdate='CASCADE'
-        ), 
+        ),
         index=True,
         nullable=False,
     )
@@ -420,11 +420,11 @@ class Adjustment(DeclarativeBase):
     adjustment_id = Column(Integer, autoincrement=True, primary_key=True)
     #: the guid of invoice which owns this adjustment
     invoice_guid = Column(
-        Unicode(64), 
+        Unicode(64),
         ForeignKey(
-            'invoice.guid', 
+            'invoice.guid',
             ondelete='CASCADE', onupdate='CASCADE'
-        ), 
+        ),
         index=True,
         nullable=False,
     )
@@ -435,7 +435,7 @@ class Adjustment(DeclarativeBase):
 
 
 class Transaction(DeclarativeBase):
-    """A transaction 
+    """A transaction
 
     """
     __tablename__ = 'transaction'
@@ -443,30 +443,30 @@ class Transaction(DeclarativeBase):
     guid = Column(Unicode(64), primary_key=True)
     #: the guid of invoice which owns this transaction
     invoice_guid = Column(
-        Unicode(64), 
+        Unicode(64),
         ForeignKey(
-            'invoice.guid', 
+            'invoice.guid',
             ondelete='CASCADE', onupdate='CASCADE'
-        ), 
+        ),
         index=True,
         nullable=False,
     )
     #: the guid of target transaction to refund/reverse to
     reference_to_guid = Column(
-        Unicode(64), 
+        Unicode(64),
         ForeignKey(
-            'transaction.guid', 
+            'transaction.guid',
             ondelete='CASCADE', onupdate='CASCADE'
-        ), 
+        ),
         index=True,
     )
     #: what type of transaction it is, 0=charge, 1=refund, 2=payout, 3=reversal
     transaction_type = Column(Integer, index=True, nullable=False)
     #: the URI of transaction record in payment processing system
     processor_uri = Column(Unicode(128), index=True)
-    #: the statement to appear on customer's transaction record (either 
+    #: the statement to appear on customer's transaction record (either
     #  bank account or credit card)
-    appears_on_statement_as = Column(Unicode(32))    
+    appears_on_statement_as = Column(Unicode(32))
     #: current status of this transaction, could be
     #  0=init, 1=retrying, 2=done, 3=failed, 4=canceled
     status = Column(Integer, index=True, nullable=False)
@@ -474,25 +474,25 @@ class Transaction(DeclarativeBase):
     amount = Column(Integer, nullable=False)
     #: the funding instrument URI
     funding_instrument_uri = Column(Unicode(128), index=True)
-    #: the created datetime of this subscription 
+    #: the created datetime of this subscription
     created_at = Column(DateTime, default=now_func)
-    #: the updated datetime of this subscription 
+    #: the updated datetime of this subscription
     updated_at = Column(DateTime, default=now_func)
 
     #: target transaction of refund/reverse transaction
     reference_to = relationship(
-        'Transaction', 
-        cascade='all, delete-orphan', 
-        backref=backref('reference_from', uselist=False), 
-        remote_side=[guid], 
-        uselist=False, 
+        'Transaction',
+        cascade='all, delete-orphan',
+        backref=backref('reference_from', uselist=False),
+        remote_side=[guid],
+        uselist=False,
         single_parent=True,
     )
 
     #: transaction failures
     failures = relationship(
-        'TransactionFailure', 
-        cascade='all, delete-orphan', 
+        'TransactionFailure',
+        cascade='all, delete-orphan',
         backref='transaction',
         order_by='TransactionFailure.created_at',
         lazy='dynamic',  # so that we can query count on it
@@ -507,7 +507,7 @@ class Transaction(DeclarativeBase):
 
 
 class TransactionFailure(DeclarativeBase):
-    """A failure of transaction 
+    """A failure of transaction
 
     """
     __tablename__ = 'transaction_failure'
@@ -516,11 +516,11 @@ class TransactionFailure(DeclarativeBase):
 
     #: the guid of transaction which owns this failure
     transaction_guid = Column(
-        Unicode(64), 
+        Unicode(64),
         ForeignKey(
-            'transaction.guid', 
+            'transaction.guid',
             ondelete='CASCADE', onupdate='CASCADE'
-        ), 
+        ),
         index=True,
         nullable=False,
     )

@@ -125,28 +125,28 @@ class TestProcessTransactions(unittest.TestCase):
             )
 
         with self.assertRaises(KeyboardInterrupt):
-            process_transactions.main([process_transactions.__file__, cfg_path], 
+            process_transactions.main([process_transactions.__file__, cfg_path],
                                       processor=dummy_processor)
 
-        process_transactions.main([process_transactions.__file__, cfg_path], 
+        process_transactions.main([process_transactions.__file__, cfg_path],
                                   processor=dummy_processor)
 
         # here is the story, we have two subscriptions here
-        #   
+        #
         #   Subscription1
         #   Subscription2
         #
         # And the time is not advanced, so we should only have two transactions
         # to be yielded and processed. However, we assume bad thing happens
-        # durring the process. We let the second call to charge of processor 
+        # durring the process. We let the second call to charge of processor
         # raises a KeyboardInterrupt error. So, it would look like this
         #
         #   charge for transaction from Subscription1
         #   charge for transaction from Subscription2 (Crash)
         #
-        # Then, we perform the process_transactions again, if it works 
-        # correctly, the first transaction is already yield and processed. 
-        # 
+        # Then, we perform the process_transactions again, if it works
+        # correctly, the first transaction is already yield and processed.
+        #
         #   charge for transaction from Subscription2
         #
         # So, there would only be two charges in processor. This is mainly

@@ -13,7 +13,7 @@ from billy.tests.fixtures.processor import DummyProcessor
 
 
 class ViewTestCase(unittest.TestCase):
-    
+  
     def setUp(self):
         self.dummy_processor = DummyProcessor()
 
@@ -41,8 +41,8 @@ class ViewTestCase(unittest.TestCase):
 
         # create model factory
         self.model_factory = ModelFactory(
-            session=self.testapp.session, 
-            processor_factory=lambda: self.dummy_processor, 
+            session=self.testapp.session,
+            processor_factory=lambda: self.dummy_processor,
             settings=self.settings,
         )
 

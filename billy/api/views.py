@@ -16,7 +16,7 @@ class BaseView(object):
 
 class IndexView(BaseView):
     pass
-    
+   
 
 class EntityView(BaseView):
     pass

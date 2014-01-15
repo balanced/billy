@@ -8,7 +8,7 @@ from pyramid.path import DottedNameResolver
 MINIMUM_AMOUNT = 50
 
 # regular expression for appears_on_statement_as field
-# this basically accepts 
+# this basically accepts
 #    ASCII letters (a-z and A-Z)
 #    Digits (0-9)
 #    Special characters (.<>(){}[]+&!$;-%_?:#@~='" ^\`|)
@@ -67,7 +67,7 @@ class RecordExistValidator(object):
         model = self.model_cls(form.model_factory)
         if model.get(field.data) is None:
             msg = field.gettext('No such {} record {}'
-                                .format(self.model_cls.TABLE.__name__, 
+                                .format(self.model_cls.TABLE.__name__,
                                         field.data))
             raise ValueError(msg)
 

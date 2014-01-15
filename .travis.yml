@@ -21,7 +21,7 @@ install:
   - "python setup.py develop"
 before_script: 
   - "psql -c 'create database billy;' -U postgres"
-  - "flake8 billy --ignore=E501,W291,W293"
+  - "flake8 billy --ignore=E501,W293"
 # command to run tests
 script: 
   - "chmod +x test.sh && ./test.sh"

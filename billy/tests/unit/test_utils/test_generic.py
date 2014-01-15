@@ -35,7 +35,7 @@ class TestGenericUtils(unittest.TestCase):
     def test_round_down_cent(self):
         def assert_round_down(amount, expected):
             self.assertEqual(
-                round_down_cent(Decimal(amount)), 
+                round_down_cent(Decimal(amount)),
                 Decimal(expected)
             )
 

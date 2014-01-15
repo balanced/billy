@@ -15,8 +15,8 @@ def main(global_config, **settings):
     # setup database
     settings = setup_database(global_config, **settings)
     config = Configurator(
-        settings=settings, 
-        request_factory=APIRequest, 
+        settings=settings,
+        request_factory=APIRequest,
         authentication_policy=AuthenticationPolicy(),
         authorization_policy=ACLAuthorizationPolicy(),
         default_permission='view',

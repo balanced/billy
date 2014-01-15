@@ -5,11 +5,11 @@ from pyramid.view import view_config
 from pyramid.security import authenticated_userid
 from pyramid.httpexceptions import HTTPBadRequest
 
-from billy.models.plan import PlanModel 
-from billy.models.customer import CustomerModel 
-from billy.models.subscription import SubscriptionModel 
-from billy.models.transaction import TransactionModel 
-from billy.models.invoice import InvoiceModel 
+from billy.models.plan import PlanModel
+from billy.models.customer import CustomerModel
+from billy.models.subscription import SubscriptionModel
+from billy.models.transaction import TransactionModel
+from billy.models.invoice import InvoiceModel
 from billy.api.utils import validate_form
 from billy.api.utils import list_by_context
 from billy.api.resources import IndexResource
@@ -46,7 +46,7 @@ class PlanIndexView(IndexView):
         request = self.request
         company = authenticated_userid(request)
         form = validate_form(PlanCreateForm, request)
-        
+       
         plan_type = form.data['plan_type']
         amount = form.data['amount']
         frequency = form.data['frequency']
@@ -72,13 +72,13 @@ class PlanIndexView(IndexView):
 
         with db_transaction.manager:
             plan = model.create(
-                company=company, 
+                company=company,
                 plan_type=plan_type,
-                amount=amount, 
-                frequency=frequency, 
-                interval=interval, 
+                amount=amount,
+                frequency=frequency,
+                interval=interval,
             )
-        return plan 
+        return plan
 
 
 @api_view_defaults(context=PlanResource)
@@ -96,7 +96,7 @@ class PlanView(EntityView):
             return HTTPBadRequest('Plan {} was already deleted'.format(plan.guid))
         with db_transaction.manager:
             model.delete(plan)
-        return plan 
+        return plan
 
     @view_config(name='customers')
     def customer_index(self):

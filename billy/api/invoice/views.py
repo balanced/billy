@@ -38,7 +38,7 @@ def parse_items(request, prefix, keywords):
     ]
 
     """
-    # TODO: humm.. maybe it is not the best method to deals with multiple 
+    # TODO: humm.. maybe it is not the best method to deals with multiple
     # value parameters, but here we just make it works and make it better
     # later
     # TODO: what about format checking? length limitation? is amount integer?
@@ -90,7 +90,7 @@ class InvoiceIndexView(IndexView):
         customer_model = request.model_factory.create_customer_model()
         tx_model = request.model_factory.create_transaction_model()
         company = authenticated_userid(request)
-        
+       
         customer_guid = form.data['customer_guid']
         amount = form.data['amount']
         funding_instrument_uri = form.data.get('funding_instrument_uri')
@@ -106,15 +106,15 @@ class InvoiceIndexView(IndexView):
         if not appears_on_statement_as:
             appears_on_statement_as = None
         items = parse_items(
-            request=request, 
-            prefix='item_', 
+            request=request,
+            prefix='item_',
             keywords=('type', 'name', 'volume', 'amount', 'unit', 'quantity'),
         )
         if not items:
             items = None
         adjustments = parse_items(
-            request=request, 
-            prefix='adjustment_', 
+            request=request,
+            prefix='adjustment_',
             keywords=('amount', 'reason'),
         )
         if not adjustments:
@@ -126,16 +126,16 @@ class InvoiceIndexView(IndexView):
             return HTTPForbidden('Can only create an invoice for your own customer')
         if customer.deleted:
             return HTTPBadRequest('Cannot create an invoice for a deleted customer')
-        
+       
         # Notice: I think it is better to validate the funding instrument URI
         # even before the record is created. Otherwse, the user can only knows
         # what's wrong after we try to submit it to the underlying processor.
-        # (he can read the transaction failure log and eventually realize 
+        # (he can read the transaction failure log and eventually realize
         # the processing was failed)
         # The idea here is to advance error as early as possible.
         if funding_instrument_uri is not None:
             processor = request.model_factory.create_processor()
-            processor.configure_api_key(customer.company.processor_key) 
+            processor.configure_api_key(customer.company.processor_key)
             processor.validate_funding_instrument(funding_instrument_uri)
 
         with db_transaction.manager:
@@ -155,7 +155,7 @@ class InvoiceIndexView(IndexView):
             if transactions:
                 with db_transaction.manager:
                     tx_model.process_transactions(transactions)
-        return invoice 
+        return invoice
 
 
 @api_view_defaults(context=InvoiceResource)
@@ -175,10 +175,10 @@ class InvoiceView(EntityView):
         tx_model = request.model_factory.create_transaction_model()
 
         funding_instrument_uri = form.data.get('funding_instrument_uri')
-        
+       
         with db_transaction.manager:
             transactions = model.update_funding_instrument_uri(
-                invoice=invoice, 
+                invoice=invoice,
                 funding_instrument_uri=funding_instrument_uri,
             )
 
@@ -204,7 +204,7 @@ class InvoiceView(EntityView):
 
         with db_transaction.manager:
             transactions = invoice_model.refund(
-                invoice=invoice, 
+                invoice=invoice,
                 amount=amount,
             )
 
@@ -233,7 +233,7 @@ class InvoiceView(EntityView):
 
         """
         return list_by_context(
-            self.request, 
-            TransactionModel, 
+            self.request,
+            TransactionModel,
             self.context.entity,
         )

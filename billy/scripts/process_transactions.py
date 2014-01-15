@@ -38,15 +38,15 @@ def main(argv=sys.argv, processor=None):
         else:
             processor_factory = lambda: processor
         factory = ModelFactory(
-            session=session, 
-            processor_factory=processor_factory, 
+            session=session,
+            processor_factory=processor_factory,
             settings=settings,
         )
         subscription_model = factory.create_subscription_model()
         tx_model = factory.create_transaction_model()
 
         # yield all transactions and commit before we process them, so that
-        # we won't double process them. 
+        # we won't double process them.
         with db_transaction.manager:
             logger.info('Yielding transaction ...')
             subscription_model.yield_invoices()

@@ -15,12 +15,12 @@ from billy.tests.fixtures.processor import DummyProcessor
 
 def create_session(echo=False):
     """Create engine and session for testing, return session then
-    
+   
     """
     # NOTICE: we do all imports here because we don't want to
     # expose too many third party imports to testing modules.
     # As we want to do imports mainly in test cases.
-    # In that way, import error can be captured and it won't 
+    # In that way, import error can be captured and it won't
     # break the whole test module
 
     db_url = os.environ.get('BILLY_UNIT_TEST_DB', 'sqlite:///')
@@ -40,15 +40,15 @@ def create_session(echo=False):
 class ModelTestCase(unittest.TestCase):
 
     def setUp(self):
-        
+       
         self.session = create_session()
         self._old_now_func = tables.set_now_func(datetime.datetime.utcnow)
 
         self.dummy_processor = DummyProcessor()
 
         self.model_factory = ModelFactory(
-            session=self.session, 
-            processor_factory=lambda: self.dummy_processor, 
+            session=self.session,
+            processor_factory=lambda: self.dummy_processor,
             settings={},
         )
         self.company_model = self.model_factory.create_company_model()

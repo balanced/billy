@@ -12,7 +12,7 @@ from billy.utils.generic import make_guid
 
 
 class InvalidOperationError(BillyError):
-    """This error indicates an invalid operation to invoice model, such as 
+    """This error indicates an invalid operation to invoice model, such as
     updating an invoice's funding_instrument_uri in wrong status
 
     """
@@ -21,7 +21,7 @@ class InvalidOperationError(BillyError):
 class DuplicateExternalIDError(BillyError):
     """This error indicates you have duplicate (Customer GUID, External ID)
     pair in database. The field `external_id` was designed to avoid duplicate
-    invoicing. 
+    invoicing.
 
     """
 
@@ -79,7 +79,7 @@ class InvoiceModel(BaseTableModel):
         subscription_invoice_query = (
             basic_query
             .join(
-                SubscriptionInvoice, 
+                SubscriptionInvoice,
                 SubscriptionInvoice.guid == Invoice.guid,
             )
         )
@@ -87,7 +87,7 @@ class InvoiceModel(BaseTableModel):
         customer_invoice_query = (
             basic_query
             .join(
-                CustomerInvoice, 
+                CustomerInvoice,
                 CustomerInvoice.guid == Invoice.guid,
             )
         )
@@ -95,7 +95,7 @@ class InvoiceModel(BaseTableModel):
         customer_query = (
             customer_invoice_query
             .join(
-                Customer, 
+                Customer,
                 Customer.guid == CustomerInvoice.customer_guid,
             )
         )
@@ -103,7 +103,7 @@ class InvoiceModel(BaseTableModel):
         subscription_query = (
             subscription_invoice_query
             .join(
-                Subscription, 
+                Subscription,
                 Subscription.guid == SubscriptionInvoice.subscription_guid,
             )
         )
@@ -174,17 +174,17 @@ class InvoiceModel(BaseTableModel):
         return transaction
 
     def create(
-        self, 
+        self,
         amount,
-        funding_instrument_uri=None, 
-        customer=None, 
-        subscription=None, 
+        funding_instrument_uri=None,
+        customer=None,
+        subscription=None,
         title=None,
         items=None,
         adjustments=None,
         external_id=None,
         appears_on_statement_as=None,
-        scheduled_at=None, 
+        scheduled_at=None,
     ):
         """Create a invoice and return its id
 
@@ -229,8 +229,8 @@ class InvoiceModel(BaseTableModel):
             invoice_type=invoice_type,
             transaction_type=transaction_type,
             status=self.STATUS_INIT,
-            amount=amount, 
-            funding_instrument_uri=funding_instrument_uri, 
+            amount=amount,
+            funding_instrument_uri=funding_instrument_uri,
             title=title,
             created_at=now,
             updated_at=now,
@@ -265,7 +265,7 @@ class InvoiceModel(BaseTableModel):
             self.session.flush()
 
         # TODO: what about an invalid adjust? say, it makes the total of invoice
-        # a negative value? I think we should not allow user to create such 
+        # a negative value? I think we should not allow user to create such
         # invalid invoice
         if adjustments:
             for adjustment in adjustments:
@@ -278,7 +278,7 @@ class InvoiceModel(BaseTableModel):
             self.session.flush()
 
         # as if we set the funding_instrument_uri at very first, we want to charge it
-        # immediately, so we create a transaction right away, also set the 
+        # immediately, so we create a transaction right away, also set the
         # status to PROCESSING
         if funding_instrument_uri is not None and invoice.amount > 0:
             invoice.status = self.STATUS_PROCESSING
@@ -292,7 +292,7 @@ class InvoiceModel(BaseTableModel):
         return invoice
 
     def update_funding_instrument_uri(self, invoice, funding_instrument_uri):
-        """Update the funding_instrument_uri of an invoice, as it may yield 
+        """Update the funding_instrument_uri of an invoice, as it may yield
         transactions, we don't want to put this in `update` method
 
         @return: a list of yielded transaction
@@ -307,27 +307,27 @@ class InvoiceModel(BaseTableModel):
 
         # We have nothing to do if the amount is zero, just return
         if invoice.amount == 0:
-            return transactions 
+            return transactions
 
-        # think about race condition issue, what if we update the 
+        # think about race condition issue, what if we update the
         # funding_instrument_uri during processing previous transaction? say
-        # 
+        #
         #     DB Transaction A begin
         #     Call to Balanced API
         #                                   DB Transaction B begin
         #                                   Update invoice payment URI
-        #                                   Update last transaction to CANCELED 
+        #                                   Update last transaction to CANCELED
         #                                   Create a new transaction
         #                                   DB Transaction B commit
         #     Update transaction to DONE
         #     DB Transaction A commit
         #     DB Transaction conflicts
         #     DB Transaction rollback
-        # 
+        #
         # call to balanced API is made, but we had confliction between two
         # database transactions
         #
-        # to solve the problem mentioned above, we acquire a lock on the 
+        # to solve the problem mentioned above, we acquire a lock on the
         # invoice at begin of transaction, in this way, there will be no
         # overlap between two transaction
         self.get(invoice.guid, with_lockmode='update')
@@ -339,7 +339,7 @@ class InvoiceModel(BaseTableModel):
         # we are already processing, cancel current transaction and create
         # a new one
         elif invoice.status == self.STATUS_PROCESSING:
-            # find the running transaction and cancel it 
+            # find the running transaction and cancel it
             last_transaction = (
                 self.session
                 .query(Transaction)
@@ -408,7 +408,7 @@ class InvoiceModel(BaseTableModel):
         # cancel them
         running_transactions.update(dict(
             status=TransactionModel.STATUS_CANCELED,
-            updated_at=now, 
+            updated_at=now,
         ), synchronize_session='fetch')
 
         self.session.flush()

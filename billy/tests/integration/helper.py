@@ -6,17 +6,17 @@ import unittest
 
 
 class IntegrationTestCase(unittest.TestCase):
-    
+   
     def setUp(self):
         from webtest import TestApp
         self.target_url = os.environ.get(
-            'BILLY_TEST_URL', 
+            'BILLY_TEST_URL',
             'http://127.0.0.1:6543#requests')
         self.processor_key = os.environ.get(
-            'BILLY_TEST_PROCESSOR_KEY', 
+            'BILLY_TEST_PROCESSOR_KEY',
             'ef13dce2093b11e388de026ba7d31e6f')
         self.marketplace_uri = os.environ.get(
-            'BILLY_TEST_MARKETPLACE_URI', 
+            'BILLY_TEST_MARKETPLACE_URI',
             '/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg')
         self.testapp = TestApp(self.target_url)
 

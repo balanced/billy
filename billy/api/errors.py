@@ -26,7 +26,7 @@ def error_response(request, error, status):
 
     """
     response = render_to_response(
-        renderer_name='json', 
+        renderer_name='json',
         value=dict(
             error_class=error.__class__.__name__,
             error_message=error.msg,

@@ -3,8 +3,8 @@ from __future__ import unicode_literals
 from pyramid.view import view_config
 from pyramid.security import authenticated_userid
 
-from billy.models.invoice import InvoiceModel 
-from billy.models.transaction import TransactionModel 
+from billy.models.invoice import InvoiceModel
+from billy.models.transaction import TransactionModel
 from billy.api.utils import list_by_context
 from billy.api.resources import IndexResource
 from billy.api.resources import EntityResource

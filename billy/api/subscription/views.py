@@ -76,18 +76,18 @@ class SubscriptionIndexView(IndexView):
 
         if funding_instrument_uri is not None:
             processor = request.model_factory.create_processor()
-            processor.configure_api_key(customer.company.processor_key) 
+            processor.configure_api_key(customer.company.processor_key)
             processor.validate_funding_instrument(funding_instrument_uri)
 
         # create subscription and yield transactions
         with db_transaction.manager:
             subscription = sub_model.create(
-                customer=customer, 
-                plan=plan, 
-                amount=amount, 
+                customer=customer,
+                plan=plan,
+                amount=amount,
                 funding_instrument_uri=funding_instrument_uri,
                 appears_on_statement_as=appears_on_statement_as,
-                started_at=started_at, 
+                started_at=started_at,
             )
             invoices = subscription.invoices
         # this is not a deferred subscription, just process transactions right away
@@ -116,7 +116,7 @@ class SubscriptionView(EntityView):
 
         with db_transaction.manager:
             sub_model.cancel(subscription)
-        return subscription 
+        return subscription
 
     @view_config(name='invoices')
     def invoice_index(self):

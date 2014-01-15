@@ -22,8 +22,8 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # create a company
         res = self.testapp.post(
-            '/v1/companies', 
-            dict(processor_key=self.processor_key), 
+            '/v1/companies',
+            dict(processor_key=self.processor_key),
             status=200
         )
         company = res.json
@@ -31,7 +31,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # create a customer
         res = self.testapp.post(
-            '/v1/customers', 
+            '/v1/customers',
             headers=[self.make_auth(api_key)],
             status=200
         )
@@ -40,7 +40,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # create a plan
         res = self.testapp.post(
-            '/v1/plans', 
+            '/v1/plans',
             dict(
                 plan_type='charge',
                 amount=1234,
@@ -57,7 +57,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # create a subscription
         res = self.testapp.post(
-            '/v1/subscriptions', 
+            '/v1/subscriptions',
             dict(
                 customer_guid=customer['guid'],
                 plan_guid=plan['guid'],
@@ -74,7 +74,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # get invoice
         res = self.testapp.get(
-            '/v1/subscriptions/{}/invoices'.format(subscription['guid']), 
+            '/v1/subscriptions/{}/invoices'.format(subscription['guid']),
             headers=[self.make_auth(api_key)],
             status=200
         )
@@ -86,7 +86,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # transactions
         res = self.testapp.get(
-            '/v1/transactions', 
+            '/v1/transactions',
             headers=[self.make_auth(api_key)],
             status=200
         )
@@ -106,7 +106,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # cancel the subscription
         res = self.testapp.post(
-            '/v1/subscriptions/{}/cancel'.format(subscription['guid']), 
+            '/v1/subscriptions/{}/cancel'.format(subscription['guid']),
             dict(
                 refund_amount=1234,
             ),
@@ -118,7 +118,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # refund the invoice
         self.testapp.post(
-            '/v1/invoices/{}/refund'.format(invoice['guid']), 
+            '/v1/invoices/{}/refund'.format(invoice['guid']),
             dict(
                 amount=1234,
             ),
@@ -128,7 +128,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # get transactions
         res = self.testapp.get(
-            '/v1/transactions', 
+            '/v1/transactions',
             headers=[self.make_auth(api_key)],
             status=200
         )
@@ -140,14 +140,14 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(transaction['transaction_type'], 'refund')
 
         refund = balanced.Refund.find(transaction['processor_uri'])
-        self.assertEqual(refund.meta['billy.transaction_guid'], 
+        self.assertEqual(refund.meta['billy.transaction_guid'],
                          transaction['guid'])
         self.assertEqual(refund.amount, 1234)
         self.assertEqual(refund.status, 'succeeded')
 
         # delete the plan
         res = self.testapp.delete(
-            '/v1/plans/{}'.format(plan['guid']), 
+            '/v1/plans/{}'.format(plan['guid']),
             headers=[self.make_auth(api_key)],
             status=200
         )
@@ -156,7 +156,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # delete the customer
         res = self.testapp.delete(
-            '/v1/customers/{}'.format(customer['guid']), 
+            '/v1/customers/{}'.format(customer['guid']),
             headers=[self.make_auth(api_key)],
             status=200
         )
@@ -178,8 +178,8 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # create a company
         res = self.testapp.post(
-            '/v1/companies', 
-            dict(processor_key=self.processor_key), 
+            '/v1/companies',
+            dict(processor_key=self.processor_key),
             status=200
         )
         company = res.json
@@ -187,7 +187,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # create a customer
         res = self.testapp.post(
-            '/v1/customers', 
+            '/v1/customers',
             headers=[self.make_auth(api_key)],
             status=200
         )
@@ -196,7 +196,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # create an invoice
         res = self.testapp.post(
-            '/v1/invoices', 
+            '/v1/invoices',
             dict(
                 customer_guid=customer['guid'],
                 amount=5566,
@@ -220,7 +220,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # transactions
         res = self.testapp.get(
-            '/v1/transactions', 
+            '/v1/transactions',
             headers=[self.make_auth(api_key)],
             status=200
         )
@@ -255,8 +255,8 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # create a company
         res = self.testapp.post(
-            '/v1/companies', 
-            dict(processor_key=self.processor_key), 
+            '/v1/companies',
+            dict(processor_key=self.processor_key),
             status=200
         )
         company = res.json
@@ -264,7 +264,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # create a customer
         res = self.testapp.post(
-            '/v1/customers', 
+            '/v1/customers',
             headers=[self.make_auth(api_key)],
             status=200
         )
@@ -273,7 +273,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
         # create an invoice
         res = self.testapp.post(
-            '/v1/invoices', 
+            '/v1/invoices',
             dict(
                 customer_guid=customer['guid'],
                 amount=5566,

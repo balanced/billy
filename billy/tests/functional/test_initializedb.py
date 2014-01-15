@@ -58,10 +58,10 @@ class TestInitializedb(unittest.TestCase):
             keys = root
 
             [handlers]
-            keys = 
+            keys =
 
             [formatters]
-            keys = 
+            keys =
 
             [logger_root]
             level = WARN

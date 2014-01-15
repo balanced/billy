@@ -29,8 +29,8 @@ class TestCustomerViews(ViewTestCase):
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.validate_customer')
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.create_customer')
     def test_create_customer(
-        self, 
-        create_customer_method, 
+        self,
+        create_customer_method,
         validate_customer_method,
         configure_api_key_method,
     ):
@@ -41,7 +41,7 @@ class TestCustomerViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/customers',
             dict(processor_uri='MOCK_CUSTOMER_URI'),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         self.failUnless('guid' in res.json)
@@ -57,14 +57,14 @@ class TestCustomerViews(ViewTestCase):
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.validate_customer')
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.create_customer')
     def test_create_customer_without_processor_uri(
-        self, 
-        create_customer_method, 
+        self,
+        create_customer_method,
         validate_customer_method,
     ):
         create_customer_method.return_value = 'MOCK_CUSTOMER_URI'
         res = self.testapp.post(
             '/v1/customers',
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         self.failUnless('guid' in res.json)
@@ -75,14 +75,14 @@ class TestCustomerViews(ViewTestCase):
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.validate_customer')
     def test_create_customer_with_bad_processor_uri(
-        self, 
+        self,
         validate_customer_method,
     ):
         validate_customer_method.side_effect = BillyError('Boom!')
         res = self.testapp.post(
             '/v1/customers',
             dict(processor_uri='BAD_PROCESSOR'),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=400,
         )
         self.assertEqual(res.json['error_class'], 'BillyError')
@@ -91,7 +91,7 @@ class TestCustomerViews(ViewTestCase):
     def test_create_customer_with_bad_api_key(self):
         self.testapp.post(
             '/v1/customers',
-            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
             status=403,
         )
         self.testapp.post(
@@ -101,52 +101,52 @@ class TestCustomerViews(ViewTestCase):
 
     def test_get_customer(self):
         res = self.testapp.post(
-            '/v1/customers', 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/customers',
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         created_customer = res.json
 
         guid = created_customer['guid']
         res = self.testapp.get(
-            '/v1/customers/{}'.format(guid), 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/customers/{}'.format(guid),
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         self.assertEqual(res.json, created_customer)
 
     def test_get_customer_with_bad_api_key(self):
         res = self.testapp.post(
-            '/v1/customers', 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/customers',
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         created_customer = res.json
 
         guid = created_customer['guid']
         self.testapp.get(
-            '/v1/customers/{}'.format(guid), 
-            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            '/v1/customers/{}'.format(guid),
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
             status=403,
         )
 
     def test_get_non_existing_customer(self):
         self.testapp.get(
-            '/v1/customers/NON_EXIST', 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/customers/NON_EXIST',
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=404
         )
 
     def test_get_customer_of_other_company(self):
         res = self.testapp.post(
-            '/v1/customers', 
-            extra_environ=dict(REMOTE_USER=self.api_key2), 
+            '/v1/customers',
+            extra_environ=dict(REMOTE_USER=self.api_key2),
             status=200,
         )
         guid = res.json['guid']
         res = self.testapp.get(
-            '/v1/customers/{}'.format(guid), 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/customers/{}'.format(guid),
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=403,
         )
 
@@ -167,7 +167,7 @@ class TestCustomerViews(ViewTestCase):
 
         res = self.testapp.get(
             '/v1/customers',
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         items = res.json['items']
@@ -192,7 +192,7 @@ class TestCustomerViews(ViewTestCase):
         res = self.testapp.get(
             '/v1/customers',
             dict(processor_uri=0),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         items = res.json['items']
@@ -202,7 +202,7 @@ class TestCustomerViews(ViewTestCase):
         res = self.testapp.get(
             '/v1/customers',
             dict(processor_uri=1),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         items = res.json['items']
@@ -234,7 +234,7 @@ class TestCustomerViews(ViewTestCase):
 
         res = self.testapp.get(
             '/v1/customers/{}/invoices'.format(customer.guid),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         items = res.json['items']
@@ -278,7 +278,7 @@ class TestCustomerViews(ViewTestCase):
 
         res = self.testapp.get(
             '/v1/customers/{}/subscriptions'.format(customer.guid),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         items = res.json['items']
@@ -357,7 +357,7 @@ class TestCustomerViews(ViewTestCase):
 
         res = self.testapp.get(
             '/v1/customers/{}/transactions'.format(customer.guid),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         items = res.json['items']
@@ -369,7 +369,7 @@ class TestCustomerViews(ViewTestCase):
             customer = self.customer_model.create(self.company)
         self.testapp.get(
             '/v1/customers',
-            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
             status=403,
         )
         for list_name in [
@@ -379,20 +379,20 @@ class TestCustomerViews(ViewTestCase):
         ]:
             self.testapp.get(
                 '/v1/customers/{}/{}'.format(customer.guid, list_name),
-                extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+                extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
                 status=403,
             )
 
     def test_delete_customer(self):
         res = self.testapp.post(
             '/v1/customers',
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         created_customer = res.json
         res = self.testapp.delete(
             '/v1/customers/{}'.format(created_customer['guid']),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         deleted_customer = res.json
@@ -401,31 +401,31 @@ class TestCustomerViews(ViewTestCase):
     def test_delete_a_deleted_customer(self):
         res = self.testapp.post(
             '/v1/customers',
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         created_customer = res.json
         self.testapp.delete(
             '/v1/customers/{}'.format(created_customer['guid']),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         self.testapp.delete(
             '/v1/customers/{}'.format(created_customer['guid']),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=400,
         )
 
     def test_delete_customer_with_bad_api_key(self):
         res = self.testapp.post(
             '/v1/customers',
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         created_customer = res.json
         self.testapp.delete(
             '/v1/customers/{}'.format(created_customer['guid']),
-            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
             status=403,
         )
 
@@ -436,13 +436,13 @@ class TestCustomerViews(ViewTestCase):
             )
         other_api_key = str(other_company.api_key)
         res = self.testapp.post(
-            '/v1/customers', 
-            extra_environ=dict(REMOTE_USER=other_api_key), 
+            '/v1/customers',
+            extra_environ=dict(REMOTE_USER=other_api_key),
             status=200,
         )
         guid = res.json['guid']
         self.testapp.delete(
-            '/v1/customers/{}'.format(guid), 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/customers/{}'.format(guid),
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=403,
         )

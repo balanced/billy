@@ -65,7 +65,7 @@ def get_remote_user(request):
 
 
 def basic_auth_tween_factory(handler, registry):
-    """Do basic authentication, parse HTTP_AUTHORIZATION and set remote_user 
+    """Do basic authentication, parse HTTP_AUTHORIZATION and set remote_user
     variable to request
 
     """

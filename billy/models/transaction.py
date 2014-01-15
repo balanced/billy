@@ -25,8 +25,8 @@ class TransactionModel(BaseTableModel):
     TYPE_ALL = [
         TYPE_CHARGE,
         TYPE_REFUND,
-        TYPE_PAYOUT, 
-        TYPE_REVERSE, 
+        TYPE_PAYOUT,
+        TYPE_REVERSE,
     ]
 
     #: initialized status
@@ -51,7 +51,7 @@ class TransactionModel(BaseTableModel):
     @property
     def maximum_retry(self):
         maximum_retry = int(self.factory.settings.get(
-            'billy.transaction.maximum_retry', 
+            'billy.transaction.maximum_retry',
             self.DEFAULT_MAXIMUM_RETRY,
         ))
         return maximum_retry
@@ -87,7 +87,7 @@ class TransactionModel(BaseTableModel):
         subscription_invoice_query = (
             basic_query
             .join(
-                SubscriptionInvoice, 
+                SubscriptionInvoice,
                 SubscriptionInvoice.guid == Transaction.invoice_guid,
             )
         )
@@ -95,7 +95,7 @@ class TransactionModel(BaseTableModel):
         customer_invoice_query = (
             basic_query
             .join(
-                CustomerInvoice, 
+                CustomerInvoice,
                 CustomerInvoice.guid == Transaction.invoice_guid,
             )
         )
@@ -103,7 +103,7 @@ class TransactionModel(BaseTableModel):
         subscription_query = (
             subscription_invoice_query
             .join(
-                Subscription, 
+                Subscription,
                 Subscription.guid == SubscriptionInvoice.subscription_guid,
             )
         )
@@ -111,7 +111,7 @@ class TransactionModel(BaseTableModel):
         customer_query = (
             customer_invoice_query
             .join(
-                Customer, 
+                Customer,
                 Customer.guid == CustomerInvoice.customer_guid,
             )
         )
@@ -161,10 +161,10 @@ class TransactionModel(BaseTableModel):
         return query
 
     def create(
-        self, 
-        invoice, 
+        self,
+        invoice,
         amount,
-        transaction_type=None, 
+        transaction_type=None,
         funding_instrument_uri=None,
         reference_to=None,
         appears_on_statement_as=None,
@@ -188,7 +188,7 @@ class TransactionModel(BaseTableModel):
                     'transaction'
                 )
             if (
-                reference_to.transaction_type not in 
+                reference_to.transaction_type not in
                 [self.TYPE_CHARGE, self.TYPE_PAYOUT]
             ):
                 raise ValueError(
@@ -199,13 +199,13 @@ class TransactionModel(BaseTableModel):
         transaction = tables.Transaction(
             guid='TX' + make_guid(),
             transaction_type=transaction_type,
-            amount=amount, 
-            funding_instrument_uri=funding_instrument_uri, 
-            appears_on_statement_as=appears_on_statement_as, 
-            status=self.STATUS_INIT, 
-            reference_to=reference_to, 
-            created_at=now, 
-            updated_at=now, 
+            amount=amount,
+            funding_instrument_uri=funding_instrument_uri,
+            appears_on_statement_as=appears_on_statement_as,
+            status=self.STATUS_INIT,
+            reference_to=reference_to,
+            created_at=now,
+            updated_at=now,
             invoice=invoice,
         )
         self.session.add(transaction)
@@ -213,7 +213,7 @@ class TransactionModel(BaseTableModel):
         return transaction
 
     def update(self, transaction, **kwargs):
-        """Update a transaction 
+        """Update a transaction
 
         """
         now = tables.now_func()
@@ -234,14 +234,14 @@ class TransactionModel(BaseTableModel):
         invoice_model = self.factory.create_invoice_model()
 
         # there is still chance we duplicate transaction, for example
-        # 
+        #
         #     (Thread 1)                    (Thread 2)
         #     Check existing transaction
         #                                   Check existing transaction
         #                                   Called to balanced
         #     Call to balanced
-        #                           
-        # we need to lock transaction before we process it to avoid 
+        #
+        # we need to lock transaction before we process it to avoid
         # situations like that
         self.get(transaction.guid, with_lockmode='update')
 
@@ -267,16 +267,16 @@ class TransactionModel(BaseTableModel):
         try:
             processor.configure_api_key(customer.company.processor_key)
             self.logger.info(
-                'Preparing customer %s (processor_uri=%s)', 
+                'Preparing customer %s (processor_uri=%s)',
                 customer.guid,
                 customer.processor_uri,
             )
             # prepare customer (add bank account or credit card)
             processor.prepare_customer(
-                customer=customer, 
+                customer=customer,
                 funding_instrument_uri=transaction.funding_instrument_uri,
             )
-            # do charge/payout/refund 
+            # do charge/payout/refund
             transaction_id = method(transaction)
         except (SystemExit, KeyboardInterrupt):
             raise
@@ -289,13 +289,13 @@ class TransactionModel(BaseTableModel):
                 # TODO: error number and code?
             )
             self.logger.error('Failed to process transaction %s, '
-                              'failure_count=%s', 
-                              transaction.guid, transaction.failure_count, 
+                              'failure_count=%s',
+                              transaction.guid, transaction.failure_count,
                               exc_info=True)
             # the failure times exceed the limitation
             if transaction.failure_count > self.maximum_retry:
                 self.logger.error('Exceed maximum retry limitation %s, '
-                                  'transaction %s failed', self.maximum_retry, 
+                                  'transaction %s failed', self.maximum_retry,
                                   transaction.guid)
                 transaction.status = self.STATUS_FAILED
 
@@ -322,21 +322,21 @@ class TransactionModel(BaseTableModel):
             self.TYPE_PAYOUT,
         ]:
             transaction.invoice.status = invoice_model.STATUS_SETTLED
-        
+       
         self.session.flush()
         self.logger.info('Processed transaction %s, status=%s, external_id=%s',
-                         transaction.guid, transaction.status, 
+                         transaction.guid, transaction.status,
                          transaction.processor_uri)
 
     def process_transactions(self, transactions=None):
-        """Process all transactions 
+        """Process all transactions
 
         """
         Transaction = tables.Transaction
         query = (
             self.session.query(Transaction)
             .filter(Transaction.status.in_([
-                self.STATUS_INIT, 
+                self.STATUS_INIT,
                 self.STATUS_RETRYING]
             ))
         )

@@ -53,7 +53,7 @@ class TestSubscriptionViews(ViewTestCase):
                 amount=999,
                 funding_instrument_uri='MOCK_CARD_URI',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         configure_api_key_method.assert_called_with(
@@ -68,7 +68,7 @@ class TestSubscriptionViews(ViewTestCase):
                 amount=999,
                 funding_instrument_uri='MOCK_CARD_URI',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key2), 
+            extra_environ=dict(REMOTE_USER=self.api_key2),
             status=200,
         )
         configure_api_key_method.assert_called_with(
@@ -77,7 +77,7 @@ class TestSubscriptionViews(ViewTestCase):
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.validate_funding_instrument')
     def test_create_subscription_with_invalid_funding_instrument(
-        self, 
+        self,
         validate_funding_instrument_method,
     ):
         validate_funding_instrument_method.side_effect = BillyError('Invalid card!')
@@ -89,7 +89,7 @@ class TestSubscriptionViews(ViewTestCase):
                 amount=999,
                 funding_instrument_uri='BAD_INSTRUMENT_URI',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=400,
         )
         validate_funding_instrument_method.assert_called_once_with('BAD_INSTRUMENT_URI')
@@ -115,10 +115,10 @@ class TestSubscriptionViews(ViewTestCase):
                 funding_instrument_uri=funding_instrument_uri,
                 appears_on_statement_as=appears_on_statement_as,
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
-        
+       
         self.failUnless('guid' in res.json)
         self.assertEqual(res.json['created_at'], now_iso)
         self.assertEqual(res.json['updated_at'], now_iso)
@@ -130,7 +130,7 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(res.json['customer_guid'], self.customer.guid)
         self.assertEqual(res.json['plan_guid'], self.plan.guid)
         self.assertEqual(res.json['funding_instrument_uri'], funding_instrument_uri)
-        self.assertEqual(res.json['appears_on_statement_as'], 
+        self.assertEqual(res.json['appears_on_statement_as'],
                          appears_on_statement_as)
         self.assertEqual(res.json['canceled'], False)
 
@@ -141,22 +141,22 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(len(invoice.transactions), 1)
         self.assertEqual(invoice.amount, amount)
         self.assertEqual(invoice.scheduled_at, now)
-        self.assertEqual(invoice.transaction_type, 
+        self.assertEqual(invoice.transaction_type,
                          self.transaction_model.TYPE_CHARGE)
-        self.assertEqual(invoice.invoice_type, 
+        self.assertEqual(invoice.invoice_type,
                          self.invoice_model.TYPE_SUBSCRIPTION)
         self.assertEqual(invoice.appears_on_statement_as,
                          appears_on_statement_as)
 
         transaction = invoice.transactions[0]
         charge_method.assert_called_once_with(transaction)
-        self.assertEqual(transaction.processor_uri, 
+        self.assertEqual(transaction.processor_uri,
                          'MOCK_DEBIT_URI')
         self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
-        self.assertEqual(transaction.appears_on_statement_as, 
+        self.assertEqual(transaction.appears_on_statement_as,
                          subscription.appears_on_statement_as)
         self.assertEqual(transaction.amount, amount)
-        self.assertEqual(transaction.transaction_type, 
+        self.assertEqual(transaction.transaction_type,
                          self.transaction_model.TYPE_CHARGE)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
@@ -171,7 +171,7 @@ class TestSubscriptionViews(ViewTestCase):
                 plan_guid=self.plan.guid,
                 funding_instrument_uri='/v1/cards/foobar',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         subscription = self.subscription_model.get(res.json['guid'])
@@ -183,7 +183,7 @@ class TestSubscriptionViews(ViewTestCase):
         transaction = invoice.transactions[0]
         self.assertEqual(transaction.failure_count, 1)
         self.assertEqual(transaction.failures[0].error_message, unicode(error))
-        self.assertEqual(transaction.status, 
+        self.assertEqual(transaction.status,
                          self.transaction_model.STATUS_RETRYING)
 
     def test_create_subscription_without_funding_instrument(self):
@@ -193,7 +193,7 @@ class TestSubscriptionViews(ViewTestCase):
                 customer_guid=self.customer.guid,
                 plan_guid=self.plan.guid,
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         subscription = self.subscription_model.get(res.json['guid'])
@@ -203,7 +203,7 @@ class TestSubscriptionViews(ViewTestCase):
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
     def test_create_subscription_with_charge_failure_exceed_limit(
-        self, 
+        self,
         charge_method,
     ):
         self.model_factory.settings['billy.transaction.maximum_retry'] = 3
@@ -217,7 +217,7 @@ class TestSubscriptionViews(ViewTestCase):
                 plan_guid=self.plan.guid,
                 funding_instrument_uri='/v1/cards/foobar',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         subscription = self.subscription_model.get(res.json['guid'])
@@ -229,12 +229,12 @@ class TestSubscriptionViews(ViewTestCase):
         for i in range(2):
             self.transaction_model.process_one(transaction)
             self.assertEqual(transaction.failure_count, 2 + i)
-            self.assertEqual(transaction.status, 
+            self.assertEqual(transaction.status,
                              self.transaction_model.STATUS_RETRYING)
 
         self.transaction_model.process_one(transaction)
         self.assertEqual(transaction.failure_count, 4)
-        self.assertEqual(transaction.status, 
+        self.assertEqual(transaction.status,
                          self.transaction_model.STATUS_FAILED)
 
     def test_create_subscription_to_a_deleted_plan(self):
@@ -249,7 +249,7 @@ class TestSubscriptionViews(ViewTestCase):
                 amount='123',
                 funding_instrument_uri='MOCK_CARD_URI',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=400,
         )
 
@@ -265,7 +265,7 @@ class TestSubscriptionViews(ViewTestCase):
                 amount='123',
                 funding_instrument_uri='MOCK_CARD_URI',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=400,
         )
 
@@ -277,7 +277,7 @@ class TestSubscriptionViews(ViewTestCase):
                 plan_guid=self.plan.guid,
                 funding_instrument_uri='MOCK_CARD_URI',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         self.assertEqual(res.json['amount'], None)
@@ -290,7 +290,7 @@ class TestSubscriptionViews(ViewTestCase):
                 plan_guid=self.plan.guid,
                 started_at='2013-08-15T23:59:59Z',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=400,
         )
 
@@ -298,8 +298,8 @@ class TestSubscriptionViews(ViewTestCase):
         def assert_bad_parameters(params):
             self.testapp.post(
                 '/v1/subscriptions',
-                params, 
-                extra_environ=dict(REMOTE_USER=self.api_key), 
+                params,
+                extra_environ=dict(REMOTE_USER=self.api_key),
                 status=400,
             )
         assert_bad_parameters({})
@@ -366,7 +366,7 @@ class TestSubscriptionViews(ViewTestCase):
                 amount=amount,
                 started_at='2013-08-17T00:00:00Z',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         self.failUnless('guid' in res.json)
@@ -391,7 +391,7 @@ class TestSubscriptionViews(ViewTestCase):
                 amount=amount,
                 started_at='2013-08-17T08:00:00+08:00',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         self.failUnless('guid' in res.json)
@@ -405,92 +405,92 @@ class TestSubscriptionViews(ViewTestCase):
                 customer_guid=self.customer.guid,
                 plan_guid=self.plan.guid,
             ),
-            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
             status=403,
         )
 
     def test_get_subscription(self):
         res = self.testapp.post(
-            '/v1/subscriptions', 
+            '/v1/subscriptions',
             dict(
                 customer_guid=self.customer.guid,
                 plan_guid=self.plan.guid,
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         created_subscription = res.json
 
         guid = created_subscription['guid']
         res = self.testapp.get(
-            '/v1/subscriptions/{}'.format(guid), 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/subscriptions/{}'.format(guid),
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         self.assertEqual(res.json, created_subscription)
 
     def test_get_non_existing_subscription(self):
         self.testapp.get(
-            '/v1/subscriptions/NON_EXIST', 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/subscriptions/NON_EXIST',
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=404
         )
 
     def test_get_subscription_with_bad_api_key(self):
         res = self.testapp.post(
-            '/v1/subscriptions', 
+            '/v1/subscriptions',
             dict(
                 customer_guid=self.customer.guid,
                 plan_guid=self.plan.guid,
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
 
         guid = res.json['guid']
         res = self.testapp.get(
-            '/v1/subscriptions/{}'.format(guid), 
-            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            '/v1/subscriptions/{}'.format(guid),
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
             status=403,
         )
 
     def test_get_subscription_of_other_company(self):
         res = self.testapp.post(
-            '/v1/subscriptions', 
+            '/v1/subscriptions',
             dict(
                 customer_guid=self.customer2.guid,
                 plan_guid=self.plan2.guid,
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key2), 
+            extra_environ=dict(REMOTE_USER=self.api_key2),
             status=200,
         )
         other_guid = res.json['guid']
 
         self.testapp.get(
-            '/v1/subscriptions/{}'.format(other_guid), 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/subscriptions/{}'.format(other_guid),
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=403,
         )
 
     def test_create_subscription_to_other_company_customer(self):
         self.testapp.post(
-            '/v1/subscriptions', 
+            '/v1/subscriptions',
             dict(
                 customer_guid=self.customer2.guid,
                 plan_guid=self.plan.guid,
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=403,
         )
 
     def test_create_subscription_to_other_company_plan(self):
         self.testapp.post(
-            '/v1/subscriptions', 
+            '/v1/subscriptions',
             dict(
                 customer_guid=self.customer.guid,
                 plan_guid=self.plan2.guid,
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=403,
         )
 
@@ -504,8 +504,8 @@ class TestSubscriptionViews(ViewTestCase):
         with freeze_time('2013-08-16 07:00:00'):
             canceled_at = datetime.datetime.utcnow()
             res = self.testapp.post(
-                '/v1/subscriptions/{}/cancel'.format(subscription.guid), 
-                extra_environ=dict(REMOTE_USER=self.api_key), 
+                '/v1/subscriptions/{}/cancel'.format(subscription.guid),
+                extra_environ=dict(REMOTE_USER=self.api_key),
                 status=200,
             )
 
@@ -521,8 +521,8 @@ class TestSubscriptionViews(ViewTestCase):
             )
         self.assertEqual(subscription.invoice_count, 1)
         self.testapp.post(
-            '/v1/subscriptions/{}/cancel'.format(subscription.guid), 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/subscriptions/{}/cancel'.format(subscription.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         with freeze_time('2014-01-01'):
@@ -538,13 +538,13 @@ class TestSubscriptionViews(ViewTestCase):
             )
 
         self.testapp.post(
-            '/v1/subscriptions/{}/cancel'.format(subscription.guid), 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/subscriptions/{}/cancel'.format(subscription.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         self.testapp.post(
-            '/v1/subscriptions/{}/cancel'.format(subscription.guid), 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/subscriptions/{}/cancel'.format(subscription.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=400,
         )
 
@@ -556,8 +556,8 @@ class TestSubscriptionViews(ViewTestCase):
             )
 
         self.testapp.post(
-            '/v1/subscriptions/{}/cancel'.format(subscription.guid), 
-            extra_environ=dict(REMOTE_USER=self.api_key2), 
+            '/v1/subscriptions/{}/cancel'.format(subscription.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key2),
             status=403,
         )
 
@@ -605,7 +605,7 @@ class TestSubscriptionViews(ViewTestCase):
         expected_guids = [invoice.guid for invoice in invoices]
         res = self.testapp.get(
             '/v1/subscriptions/{}/invoices'.format(subscription.guid),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         items = res.json['items']
@@ -656,7 +656,7 @@ class TestSubscriptionViews(ViewTestCase):
 
         res = self.testapp.get(
             '/v1/subscriptions/{}/transactions'.format(subscription1.guid),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         items = res.json['items']
@@ -665,7 +665,7 @@ class TestSubscriptionViews(ViewTestCase):
 
         res = self.testapp.get(
             '/v1/subscriptions/{}/transactions'.format(subscription2.guid),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         items = res.json['items']
@@ -686,7 +686,7 @@ class TestSubscriptionViews(ViewTestCase):
 
         res = self.testapp.get(
             '/v1/subscriptions',
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         items = res.json['items']
@@ -701,16 +701,16 @@ class TestSubscriptionViews(ViewTestCase):
             )
         self.testapp.get(
             '/v1/subscriptions',
-            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
             status=403,
         )
         self.testapp.get(
             '/v1/subscriptions/{}/transactions'.format(subscription.guid),
-            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
             status=403,
         )
         self.testapp.get(
             '/v1/subscriptions/{}/invoices'.format(subscription.guid),
-            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
             status=403,
         )

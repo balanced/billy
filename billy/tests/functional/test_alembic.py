@@ -18,7 +18,7 @@ class TestAlembic(unittest.TestCase):
         # init database
         default_sqlite_url = 'sqlite:///{}/billy.sqlite'.format(self.temp_dir)
         self.db_url = os.environ.get(
-            'BILLY_FUNC_TEST_DB', 
+            'BILLY_FUNC_TEST_DB',
             default_sqlite_url,
         )
         # as these tests cannot work with in-memory sqlite, so, when it is
@@ -31,16 +31,16 @@ class TestAlembic(unittest.TestCase):
             f.write(textwrap.dedent("""\
             [alembic]
             script_location = alembic
-            sqlalchemy.url = {} 
+            sqlalchemy.url = {}
 
             [loggers]
             keys = root
 
             [handlers]
-            keys = 
+            keys =
 
             [formatters]
-            keys = 
+            keys =
 
             [logger_root]
             level = WARN
@@ -56,14 +56,14 @@ class TestAlembic(unittest.TestCase):
             [app:main]
             use = egg:billy
 
-            sqlalchemy.url = {} 
+            sqlalchemy.url = {}
             """.format(self.db_url)))
 
     def tearDown(self):
         shutil.rmtree(self.temp_dir)
 
     @unittest.skipUnless(
-        os.environ.get('BILLY_TEST_ALEMBIC'), 
+        os.environ.get('BILLY_TEST_ALEMBIC'),
         'Skip alembic database migration',
     )
     def test_downgrade_and_upgrade(self):

@@ -33,7 +33,7 @@ class PlanModel(BaseTableModel):
 
     TYPE_ALL = [
         TYPE_CHARGE,
-        TYPE_PAYOUT, 
+        TYPE_PAYOUT,
     ]
 
     @decorate_offset_limit
@@ -54,14 +54,14 @@ class PlanModel(BaseTableModel):
         return query
 
     def create(
-        self, 
-        company, 
-        plan_type, 
-        amount, 
-        frequency, 
+        self,
+        company,
+        plan_type,
+        amount,
+        frequency,
         interval=1,
-        external_id=None, 
-        name=None, 
+        external_id=None,
+        name=None,
         description=None,
     ):
         """Create a plan and return its ID
@@ -78,11 +78,11 @@ class PlanModel(BaseTableModel):
             guid='PL' + make_guid(),
             company=company,
             plan_type=plan_type,
-            amount=amount, 
-            frequency=frequency, 
-            interval=interval, 
-            external_id=external_id, 
-            name=name, 
+            amount=amount,
+            frequency=frequency,
+            interval=interval,
+            external_id=external_id,
+            name=name,
             description=description,
             updated_at=now,
             created_at=now,

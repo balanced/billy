@@ -39,15 +39,15 @@ class TestTransactionViews(ViewTestCase):
 
     def test_get_transaction(self):
         res = self.testapp.get(
-            '/v1/transactions/{}'.format(self.transaction.guid), 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/transactions/{}'.format(self.transaction.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         transaction = self.transaction_model.get(self.transaction.guid)
         self.assertEqual(res.json['guid'], transaction.guid)
-        self.assertEqual(res.json['created_at'], 
+        self.assertEqual(res.json['created_at'],
                          transaction.created_at.isoformat())
-        self.assertEqual(res.json['updated_at'], 
+        self.assertEqual(res.json['updated_at'],
                          transaction.updated_at.isoformat())
         self.assertEqual(res.json['amount'], transaction.amount)
         self.assertEqual(res.json['funding_instrument_uri'], transaction.funding_instrument_uri)
@@ -73,7 +73,7 @@ class TestTransactionViews(ViewTestCase):
         guids = list(reversed(guids))
         res = self.testapp.get(
             '/v1/transactions?offset=5&limit=3',
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         self.assertEqual(res.json['offset'], 5)
@@ -85,7 +85,7 @@ class TestTransactionViews(ViewTestCase):
     def test_transaction_list_by_company_with_bad_api_key(self):
         self.testapp.get(
             '/v1/transactions',
-            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
             status=403,
         )
 
@@ -95,8 +95,8 @@ class TestTransactionViews(ViewTestCase):
                 self.transaction.transaction_type = tx_type
 
             res = self.testapp.get(
-                '/v1/transactions/{}'.format(self.transaction.guid), 
-                extra_environ=dict(REMOTE_USER=self.api_key), 
+                '/v1/transactions/{}'.format(self.transaction.guid),
+                extra_environ=dict(REMOTE_USER=self.api_key),
                 status=200,
             )
             self.assertEqual(res.json['transaction_type'], expected)
@@ -111,8 +111,8 @@ class TestTransactionViews(ViewTestCase):
                 self.transaction.status = status
 
             res = self.testapp.get(
-                '/v1/transactions/{}'.format(self.transaction.guid), 
-                extra_environ=dict(REMOTE_USER=self.api_key), 
+                '/v1/transactions/{}'.format(self.transaction.guid),
+                extra_environ=dict(REMOTE_USER=self.api_key),
                 status=200,
             )
             self.assertEqual(res.json['status'], expected)
@@ -124,15 +124,15 @@ class TestTransactionViews(ViewTestCase):
 
     def test_get_non_existing_transaction(self):
         self.testapp.get(
-            '/v1/transactions/NON_EXIST', 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/transactions/NON_EXIST',
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=404
         )
 
     def test_get_transaction_with_bad_api_key(self):
         self.testapp.get(
-            '/v1/transactions/{}'.format(self.transaction.guid), 
-            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            '/v1/transactions/{}'.format(self.transaction.guid),
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
             status=403,
         )
 
@@ -161,7 +161,7 @@ class TestTransactionViews(ViewTestCase):
                 funding_instrument_uri='/v1/cards/tester',
             )
         self.testapp.get(
-            '/v1/transactions/{}'.format(other_transaction.guid), 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/transactions/{}'.format(other_transaction.guid),
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=403,
         )

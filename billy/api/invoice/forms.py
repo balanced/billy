@@ -7,7 +7,7 @@ from wtforms import validators
 
 from billy.models.customer import CustomerModel
 from billy.api.utils import RecordExistValidator
-from billy.api.utils import STATEMENT_REXP 
+from billy.api.utils import STATEMENT_REXP
 
 
 class InvoiceCreateForm(Form):

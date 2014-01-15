@@ -45,7 +45,7 @@ class TestRenderer(ViewTestCase):
                 appears_on_statement_as='hello baby',
                 items=[
                     dict(type='debit', name='foo', amount=123, volume=5678),
-                    dict(name='bar', amount=456, quantity=10, unit='hours', 
+                    dict(name='bar', amount=456, quantity=10, unit='hours',
                          volume=7788),
                 ],
                 adjustments=[
@@ -61,7 +61,7 @@ class TestRenderer(ViewTestCase):
                 appears_on_statement_as='hello baby',
                 items=[
                     dict(type='debit', name='foo', amount=123, volume=5678),
-                    dict(name='bar', amount=456, quantity=10, unit='hours', 
+                    dict(name='bar', amount=456, quantity=10, unit='hours',
                          volume=7788),
                 ],
                 adjustments=[
@@ -107,11 +107,11 @@ class TestRenderer(ViewTestCase):
         json_data = customer_adapter(customer, self.dummy_request)
         expected = dict(
             guid=customer.guid,
-            processor_uri=customer.processor_uri, 
+            processor_uri=customer.processor_uri,
             created_at=customer.created_at.isoformat(),
             updated_at=customer.updated_at.isoformat(),
-            company_guid=customer.company_guid, 
-            deleted=customer.deleted, 
+            company_guid=customer.company_guid,
+            deleted=customer.deleted,
         )
         self.assertEqual(json_data, expected)
 
@@ -125,18 +125,18 @@ class TestRenderer(ViewTestCase):
             status='init',
             created_at=invoice.created_at.isoformat(),
             updated_at=invoice.updated_at.isoformat(),
-            customer_guid=invoice.customer_guid, 
-            amount=invoice.amount, 
-            effective_amount=invoice.effective_amount, 
-            total_adjustment_amount=invoice.total_adjustment_amount, 
-            title=invoice.title, 
-            external_id=invoice.external_id, 
-            funding_instrument_uri=None, 
-            appears_on_statement_as='hello baby', 
+            customer_guid=invoice.customer_guid,
+            amount=invoice.amount,
+            effective_amount=invoice.effective_amount,
+            total_adjustment_amount=invoice.total_adjustment_amount,
+            title=invoice.title,
+            external_id=invoice.external_id,
+            funding_instrument_uri=None,
+            appears_on_statement_as='hello baby',
             items=[
-                dict(type='debit', name='foo', amount=123, quantity=None, 
+                dict(type='debit', name='foo', amount=123, quantity=None,
                      volume=5678, unit=None),
-                dict(type=None, name='bar', amount=456, quantity=10, 
+                dict(type=None, name='bar', amount=456, quantity=10,
                      volume=7788, unit='hours'),
             ],
             adjustments=[
@@ -167,17 +167,17 @@ class TestRenderer(ViewTestCase):
             created_at=invoice.created_at.isoformat(),
             updated_at=invoice.updated_at.isoformat(),
             scheduled_at=invoice.scheduled_at.isoformat(),
-            subscription_guid=invoice.subscription_guid, 
-            amount=invoice.amount, 
-            effective_amount=invoice.effective_amount, 
-            total_adjustment_amount=invoice.total_adjustment_amount, 
-            title=invoice.title, 
-            funding_instrument_uri=None, 
-            appears_on_statement_as='hello baby', 
+            subscription_guid=invoice.subscription_guid,
+            amount=invoice.amount,
+            effective_amount=invoice.effective_amount,
+            total_adjustment_amount=invoice.total_adjustment_amount,
+            title=invoice.title,
+            funding_instrument_uri=None,
+            appears_on_statement_as='hello baby',
             items=[
-                dict(type='debit', name='foo', amount=123, quantity=None, 
+                dict(type='debit', name='foo', amount=123, quantity=None,
                      volume=5678, unit=None),
-                dict(type=None, name='bar', amount=456, quantity=10, 
+                dict(type=None, name='bar', amount=456, quantity=10,
                      volume=7788, unit='hours'),
             ],
             adjustments=[
@@ -191,7 +191,7 @@ class TestRenderer(ViewTestCase):
         plan = self.plan
         json_data = plan_adapter(plan, self.dummy_request)
         expected = dict(
-            guid=plan.guid, 
+            guid=plan.guid,
             plan_type='charge',
             frequency='weekly',
             amount=plan.amount,
@@ -204,7 +204,7 @@ class TestRenderer(ViewTestCase):
         self.assertEqual(json_data, expected)
 
         def assert_type(plan_type, expected_type):
-            plan.plan_type = plan_type 
+            plan.plan_type = plan_type
             json_data = plan_adapter(plan, self.dummy_request)
             self.assertEqual(json_data['plan_type'], expected_type)
 
@@ -212,7 +212,7 @@ class TestRenderer(ViewTestCase):
         assert_type(self.plan_model.TYPE_PAYOUT, 'payout')
 
         def assert_frequency(frequency, expected_frequency):
-            plan.frequency = frequency 
+            plan.frequency = frequency
             json_data = plan_adapter(plan, self.dummy_request)
             self.assertEqual(json_data['frequency'], expected_frequency)
 
@@ -225,7 +225,7 @@ class TestRenderer(ViewTestCase):
         subscription = self.subscription
         json_data = subscription_adapter(subscription, self.dummy_request)
         expected = dict(
-            guid=subscription.guid, 
+            guid=subscription.guid,
             amount=None,
             effective_amount=subscription.plan.amount,
             funding_instrument_uri=subscription.funding_instrument_uri,
@@ -243,17 +243,17 @@ class TestRenderer(ViewTestCase):
         self.assertEqual(json_data, expected)
 
         def assert_amount(amount, expected_amount, expected_effective_amount):
-            subscription.amount = amount 
+            subscription.amount = amount
             json_data = subscription_adapter(subscription, self.dummy_request)
             self.assertEqual(json_data['amount'], expected_amount)
-            self.assertEqual(json_data['effective_amount'], 
+            self.assertEqual(json_data['effective_amount'],
                              expected_effective_amount)
 
         assert_amount(None, None, subscription.plan.amount)
         assert_amount(1234, 1234, 1234)
 
         def assert_canceled_at(canceled_at, expected_canceled_at):
-            subscription.canceled_at = canceled_at 
+            subscription.canceled_at = canceled_at
             json_data = subscription_adapter(subscription, self.dummy_request)
             self.assertEqual(json_data['canceled_at'], expected_canceled_at)
 
@@ -264,14 +264,14 @@ class TestRenderer(ViewTestCase):
     def test_transaction(self):
         transaction = self.transaction
         serialized_failures = [
-            transaction_failure_adapter(f, self.dummy_request) 
+            transaction_failure_adapter(f, self.dummy_request)
             for f in transaction.failures
         ]
 
         json_data = transaction_adapter(transaction, self.dummy_request)
         self.maxDiff = None
         expected = dict(
-            guid=transaction.guid, 
+            guid=transaction.guid,
             transaction_type='charge',
             status='init',
             amount=transaction.amount,

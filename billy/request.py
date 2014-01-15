@@ -10,11 +10,11 @@ from billy.api.utils import get_processor_factory
 
 
 class APIRequest(Request):
-    
+   
     @reify
     def session(self):
         """Session object for database operations
-        
+       
         """
         settings = self.registry.settings
         return settings['session']
@@ -30,8 +30,8 @@ class APIRequest(Request):
             return model_factory_func()
         processor_factory = get_processor_factory(settings)
         return ModelFactory(
-            session=self.session, 
-            processor_factory=processor_factory, 
+            session=self.session,
+            processor_factory=processor_factory,
             settings=settings,
         )
 
@@ -39,7 +39,7 @@ class APIRequest(Request):
 @subscriber(NewResponse)
 def clean_balanced_processor_key(event):
     """This ensures we won't leave the API key of balanced to the same thread
-    (as there is a thread local object in Balanced API), in case of using it 
+    (as there is a thread local object in Balanced API), in case of using it
     later by accident, or for security reason.
 
     """

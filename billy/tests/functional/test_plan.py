@@ -37,7 +37,7 @@ class TestPlanViews(ViewTestCase):
                 frequency=frequency,
                 interval=interval,
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         self.failUnless('guid' in res.json)
@@ -55,7 +55,7 @@ class TestPlanViews(ViewTestCase):
             self.testapp.post(
                 '/v1/plans',
                 params,
-                extra_environ=dict(REMOTE_USER=self.api_key), 
+                extra_environ=dict(REMOTE_USER=self.api_key),
                 status=400,
             )
         assert_bad_parameters(dict())
@@ -138,7 +138,7 @@ class TestPlanViews(ViewTestCase):
                 frequency='weekly',
                 interval='',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         self.assertEqual(res.json['interval'], 1)
@@ -152,7 +152,7 @@ class TestPlanViews(ViewTestCase):
                     amount=5566,
                     frequency='weekly',
                 ),
-                extra_environ=dict(REMOTE_USER=self.api_key), 
+                extra_environ=dict(REMOTE_USER=self.api_key),
                 status=200,
             )
             self.assertEqual(res.json['plan_type'], plan_type)
@@ -169,7 +169,7 @@ class TestPlanViews(ViewTestCase):
                     amount=5566,
                     frequency=frequency,
                 ),
-                extra_environ=dict(REMOTE_USER=self.api_key), 
+                extra_environ=dict(REMOTE_USER=self.api_key),
                 status=200,
             )
             self.assertEqual(res.json['frequency'], frequency)
@@ -187,54 +187,54 @@ class TestPlanViews(ViewTestCase):
                 amount=5566,
                 frequency='weekly',
             ),
-            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
             status=403,
         )
 
     def test_get_plan(self):
         res = self.testapp.post(
-            '/v1/plans', 
+            '/v1/plans',
             dict(
                 plan_type='charge',
                 amount=5566,
                 frequency='weekly',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         created_plan = res.json
 
         guid = created_plan['guid']
         res = self.testapp.get(
-            '/v1/plans/{}'.format(guid), 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/plans/{}'.format(guid),
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         self.assertEqual(res.json, created_plan)
 
     def test_get_non_existing_plan(self):
         self.testapp.get(
-            '/v1/plans/NON_EXIST', 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/plans/NON_EXIST',
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=404
         )
 
     def test_get_plan_with_bad_api_key(self):
         res = self.testapp.post(
-            '/v1/plans', 
+            '/v1/plans',
             dict(
                 plan_type='charge',
                 amount=5566,
                 frequency='weekly',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
 
         guid = res.json['guid']
         res = self.testapp.get(
-            '/v1/plans/{}'.format(guid), 
-            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            '/v1/plans/{}'.format(guid),
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
             status=403,
         )
 
@@ -245,25 +245,25 @@ class TestPlanViews(ViewTestCase):
             )
         other_api_key = str(other_company.api_key)
         res = self.testapp.post(
-            '/v1/plans', 
+            '/v1/plans',
             dict(
                 plan_type='charge',
                 amount=5566,
                 frequency='weekly',
             ),
-            extra_environ=dict(REMOTE_USER=other_api_key), 
+            extra_environ=dict(REMOTE_USER=other_api_key),
             status=200,
         )
         guid = res.json['guid']
         res = self.testapp.get(
-            '/v1/plans/{}'.format(guid), 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/plans/{}'.format(guid),
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=403,
         )
 
     def test_plan_list(self):
         with db_transaction.manager:
-            # make some plans in other company, make sure they will not be 
+            # make some plans in other company, make sure they will not be
             # listed
             for i in range(4):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
@@ -288,7 +288,7 @@ class TestPlanViews(ViewTestCase):
 
         res = self.testapp.get(
             '/v1/plans',
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         items = res.json['items']
@@ -296,7 +296,7 @@ class TestPlanViews(ViewTestCase):
         self.assertEqual(result_guids, guids)
 
     def test_plan_customer_and_subscription_list(self):
-        # make some records in other comapny to make sure they will not be 
+        # make some records in other comapny to make sure they will not be
         # included
         with db_transaction.manager:
             other_plan = self.plan_model.create(
@@ -338,7 +338,7 @@ class TestPlanViews(ViewTestCase):
 
         res = self.testapp.get(
             '/v1/plans/{}/customers'.format(plan.guid),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         items = res.json['items']
@@ -347,7 +347,7 @@ class TestPlanViews(ViewTestCase):
 
         res = self.testapp.get(
             '/v1/plans/{}/subscriptions'.format(plan.guid),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         items = res.json['items']
@@ -404,7 +404,7 @@ class TestPlanViews(ViewTestCase):
 
         res = self.testapp.get(
             '/v1/plans/{}/invoices'.format(plan.guid),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         items = res.json['items']
@@ -485,7 +485,7 @@ class TestPlanViews(ViewTestCase):
                 amount=100,
                 funding_instrument_uri='/v1/cards/tester',
             )
-            
+           
             guids = []
             for i in range(4):
                 with freeze_time('2013-08-16 02:00:{:02}'.format(i + 1)):
@@ -500,7 +500,7 @@ class TestPlanViews(ViewTestCase):
 
         res = self.testapp.get(
             '/v1/plans/{}/transactions'.format(plan.guid),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         items = res.json['items']
@@ -517,7 +517,7 @@ class TestPlanViews(ViewTestCase):
             )
         self.testapp.get(
             '/v1/plans',
-            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
             status=403,
         )
         for list_name in [
@@ -527,25 +527,25 @@ class TestPlanViews(ViewTestCase):
         ]:
             self.testapp.get(
                 '/v1/plans/{}/{}'.format(plan.guid, list_name),
-                extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+                extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
                 status=403,
             )
 
     def test_delete_plan(self):
         res = self.testapp.post(
-            '/v1/plans', 
+            '/v1/plans',
             dict(
                 plan_type='charge',
                 amount=5566,
                 frequency='weekly',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         created_plan = res.json
         res = self.testapp.delete(
-            '/v1/plans/{}'.format(created_plan['guid']), 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/plans/{}'.format(created_plan['guid']),
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         deleted_plan = res.json
@@ -553,44 +553,44 @@ class TestPlanViews(ViewTestCase):
 
     def test_delete_a_deleted_plan(self):
         res = self.testapp.post(
-            '/v1/plans', 
+            '/v1/plans',
             dict(
                 plan_type='charge',
                 amount=5566,
                 frequency='weekly',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         created_plan = res.json
         self.testapp.delete(
-            '/v1/plans/{}'.format(created_plan['guid']), 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/plans/{}'.format(created_plan['guid']),
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         # TODO: should we use conflict or other code rather than
         # 400 here?
         self.testapp.delete(
-            '/v1/plans/{}'.format(created_plan['guid']), 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/plans/{}'.format(created_plan['guid']),
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=400,
         )
 
     def test_delete_plan_with_bad_api_key(self):
         res = self.testapp.post(
-            '/v1/plans', 
+            '/v1/plans',
             dict(
                 plan_type='charge',
                 amount=5566,
                 frequency='weekly',
             ),
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=200,
         )
         created_plan = res.json
         self.testapp.delete(
-            '/v1/plans/{}'.format(created_plan['guid']), 
-            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'), 
+            '/v1/plans/{}'.format(created_plan['guid']),
+            extra_environ=dict(REMOTE_USER=b'BAD_API_KEY'),
             status=403,
         )
 
@@ -601,18 +601,18 @@ class TestPlanViews(ViewTestCase):
             )
         other_api_key = str(other_company.api_key)
         res = self.testapp.post(
-            '/v1/plans', 
+            '/v1/plans',
             dict(
                 plan_type='charge',
                 amount=5566,
                 frequency='weekly',
             ),
-            extra_environ=dict(REMOTE_USER=other_api_key), 
+            extra_environ=dict(REMOTE_USER=other_api_key),
             status=200,
         )
         guid = res.json['guid']
         self.testapp.delete(
-            '/v1/plans/{}'.format(guid), 
-            extra_environ=dict(REMOTE_USER=self.api_key), 
+            '/v1/plans/{}'.format(guid),
+            extra_environ=dict(REMOTE_USER=self.api_key),
             status=403,
         )

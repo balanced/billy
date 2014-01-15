@@ -41,5 +41,5 @@ class TestServerInfo(ViewTestCase):
             )
 
         res = self.testapp.get('/', status=200)
-        self.assertEqual(res.json['last_transaction_created_at'], 
+        self.assertEqual(res.json['last_transaction_created_at'],
                          transaction.created_at.isoformat())

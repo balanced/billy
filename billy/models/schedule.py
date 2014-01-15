@@ -11,9 +11,9 @@ def next_transaction_datetime(started_at, frequency, period, interval=1):
 
     :param started_at: the started datetime of the first transaction
     :param frequency: the plan frequency
-    :param period: how many periods has been passed, 0 indicates this is the 
+    :param period: how many periods has been passed, 0 indicates this is the
         first transaction
-    :param interval: the interval of period, interval 3 with monthly 
+    :param interval: the interval of period, interval 3 with monthly
         frequency menas every 3 months
     """
     if frequency not in PlanModel.FREQ_ALL:

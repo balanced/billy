@@ -7,8 +7,8 @@ from billy.utils.generic import get_git_rev
 
 
 @view_config(
-    route_name='server_info', 
-    request_method='GET', 
+    route_name='server_info',
+    request_method='GET',
     renderer='json',
     permission=NO_PERMISSION_REQUIRED,
 )

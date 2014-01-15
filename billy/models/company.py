@@ -33,7 +33,7 @@ class CompanyModel(BaseTableModel):
             guid='CP' + make_guid(),
             processor_key=processor_key,
             api_key=make_api_key(),
-            name=name, 
+            name=name,
             created_at=now,
             updated_at=now,
         )

@@ -44,8 +44,8 @@ class CustomerModel(BaseTableModel):
         return query
 
     def create(
-        self, 
-        company, 
+        self,
+        company,
         processor_uri=None,
     ):
         """Create a customer and return its id
@@ -55,7 +55,7 @@ class CustomerModel(BaseTableModel):
         customer = tables.Customer(
             guid='CU' + make_guid(),
             company=company,
-            processor_uri=processor_uri, 
+            processor_uri=processor_uri,
             created_at=now,
             updated_at=now,
         )
@@ -75,7 +75,7 @@ class CustomerModel(BaseTableModel):
         return customer
 
     def update(self, customer, **kwargs):
-        """Update a customer 
+        """Update a customer
 
         """
         now = tables.now_func()
@@ -90,7 +90,7 @@ class CustomerModel(BaseTableModel):
         self.session.flush()
 
     def delete(self, customer):
-        """Delete a customer 
+        """Delete a customer
 
         """
         customer.deleted = True

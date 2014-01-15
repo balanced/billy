@@ -42,7 +42,7 @@ def make_api_key(size=32):
     (not predictable)
 
     :param size: the size in byte to generate
-        note that it will be encoded in base58 manner, 
+        note that it will be encoded in base58 manner,
         the length will be longer than the aksed size
     """
     # TODO: os.urandom collect entropy from devices in linux,
@@ -65,7 +65,7 @@ def round_down_cent(amount):
 
 
 def get_git_rev(project_dir=None):
-    """Get current GIT reversion if it is available, otherwise, None is 
+    """Get current GIT reversion if it is available, otherwise, None is
     returned
 
     """

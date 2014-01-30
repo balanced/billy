@@ -17,7 +17,7 @@ class IntegrationTestCase(unittest.TestCase):
             'ef13dce2093b11e388de026ba7d31e6f')
         self.marketplace_uri = os.environ.get(
             'BILLY_TEST_MARKETPLACE_URI',
-            '/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg')
+            '/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA')
         self.testapp = TestApp(self.target_url)
 
     def make_auth(self, api_key):

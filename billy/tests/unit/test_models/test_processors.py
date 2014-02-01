@@ -473,3 +473,21 @@ class TestBalancedProcessorModel(ModelTestCase):
             with self.assertRaises(AssertionError):
                 method = getattr(processor, method_name)
                 method(None)
+
+    def test_status_mapping(self):
+        processor = self.make_one(configure_api_key=False)
+
+        def assert_status(api_status, expected_status):
+            res = mock.Mock(uri='MOCK_URI', status=api_status)
+            result = processor._resource_to_result(res)
+            self.assertEqual(result['status'], expected_status)
+
+        assert_status('pending', self.transaction_model.statuses.PENDING)
+        assert_status('succeeded', self.transaction_model.statuses.SUCCEEDED)
+        assert_status('paid', self.transaction_model.statuses.SUCCEEDED)
+        assert_status('failed', self.transaction_model.statuses.FAILED)
+        assert_status('reversed', self.transaction_model.statuses.FAILED)
+
+        # default to pending when encounter unknown status
+        assert_status('unexpected', self.transaction_model.statuses.PENDING)
+        assert_status('xxx', self.transaction_model.statuses.PENDING)

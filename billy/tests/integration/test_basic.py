@@ -94,7 +94,7 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(len(transactions['items']), 1)
         transaction = res.json['items'][0]
         self.assertEqual(transaction['invoice_guid'], invoice['guid'])
-        self.assertEqual(transaction['status'], 'done')
+        self.assertEqual(transaction['submit_status'], 'done')
         self.assertEqual(transaction['transaction_type'], 'debit')
         self.assertEqual(transaction['appears_on_statement_as'], 'hello baby')
 
@@ -136,7 +136,7 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(len(transactions['items']), 2)
         transaction = res.json['items'][0]
         self.assertEqual(transaction['invoice_guid'], invoice['guid'])
-        self.assertEqual(transaction['status'], 'done')
+        self.assertEqual(transaction['submit_status'], 'done')
         self.assertEqual(transaction['transaction_type'], 'refund')
 
         refund = balanced.Refund.find(transaction['processor_uri'])
@@ -228,7 +228,7 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(len(transactions['items']), 1)
         transaction = res.json['items'][0]
         self.assertEqual(transaction['invoice_guid'], invoice['guid'])
-        self.assertEqual(transaction['status'], 'done')
+        self.assertEqual(transaction['submit_status'], 'done')
         self.assertEqual(transaction['transaction_type'], 'debit')
         self.assertEqual(transaction['appears_on_statement_as'], 'hello baby')
 

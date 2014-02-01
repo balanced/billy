@@ -53,7 +53,7 @@ class TestTransactionViews(ViewTestCase):
         self.assertEqual(res.json['funding_instrument_uri'], 
                          transaction.funding_instrument_uri)
         self.assertEqual(res.json['transaction_type'], 'debit')
-        self.assertEqual(res.json['status'], 'staged')
+        self.assertEqual(res.json['submit_status'], 'staged')
         self.assertEqual(res.json['failure_count'], 0)
         self.assertEqual(res.json['failures'], [])
         self.assertEqual(res.json['processor_uri'], None)
@@ -109,19 +109,19 @@ class TestTransactionViews(ViewTestCase):
     def test_get_transaction_with_different_status(self):
         def assert_status(status, expected):
             with db_transaction.manager:
-                self.transaction.status = status
+                self.transaction.submit_status = status
 
             res = self.testapp.get(
                 '/v1/transactions/{}'.format(self.transaction.guid),
                 extra_environ=dict(REMOTE_USER=self.api_key),
                 status=200,
             )
-            self.assertEqual(res.json['status'], expected)
+            self.assertEqual(res.json['submit_status'], expected)
 
-        assert_status(self.transaction_model.statuses.STAGED, 'staged')
-        assert_status(self.transaction_model.statuses.RETRYING, 'retrying')
-        assert_status(self.transaction_model.statuses.FAILED, 'failed')
-        assert_status(self.transaction_model.statuses.DONE, 'done')
+        assert_status(self.transaction_model.submit_statuses.STAGED, 'staged')
+        assert_status(self.transaction_model.submit_statuses.RETRYING, 'retrying')
+        assert_status(self.transaction_model.submit_statuses.FAILED, 'failed')
+        assert_status(self.transaction_model.submit_statuses.DONE, 'done')
 
     def test_get_non_existing_transaction(self):
         self.testapp.get(

@@ -22,7 +22,7 @@ class TransactionType(DeclEnum):
     REVERSE = 'REVERSE', 'Reverse'
 
 
-class TransactionStatus(DeclEnum):
+class TransactionSubmitStatus(DeclEnum):
 
     STAGED = 'STAGED', 'Staged'
     RETRYING = 'RETRYING', 'Retrying'
@@ -64,9 +64,9 @@ class Transaction(DeclarativeBase):
     #: the statement to appear on customer's transaction record (either
     #  bank account or credit card)
     appears_on_statement_as = Column(Unicode(32))
-    #: current status of this transaction, could be
-    #  0=init, 1=retrying, 2=done, 3=failed, 4=canceled
-    status = Column(TransactionStatus.db_type(), index=True, nullable=False)
+    #: current submition status of this transaction
+    submit_status = Column(TransactionSubmitStatus.db_type(), index=True, 
+                           nullable=False)
     #: the amount to do transaction (charge, payout or refund)
     amount = Column(Integer, nullable=False)
     #: the funding instrument URI
@@ -133,7 +133,7 @@ class TransactionFailure(DeclarativeBase):
 
 __all__ = [
     TransactionType.__name__,
-    TransactionStatus.__name__,
+    TransactionSubmitStatus.__name__,
     Transaction.__name__,
     TransactionFailure.__name__,
 ]

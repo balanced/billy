@@ -119,7 +119,7 @@ def transaction_adapter(transaction, request):
         guid=transaction.guid,
         invoice_guid=transaction.invoice_guid,
         transaction_type=enum_symbol(transaction.transaction_type),
-        status=enum_symbol(transaction.status),
+        submit_status=enum_symbol(transaction.submit_status),
         amount=transaction.amount,
         funding_instrument_uri=transaction.funding_instrument_uri,
         processor_uri=transaction.processor_uri,

@@ -15,7 +15,7 @@ class TransactionModel(BaseTableModel):
 
     types = tables.TransactionType
 
-    statuses = tables.TransactionStatus
+    submit_statuses = tables.TransactionSubmitStatus
 
     @property
     def maximum_retry(self):
@@ -168,7 +168,7 @@ class TransactionModel(BaseTableModel):
             amount=amount,
             funding_instrument_uri=funding_instrument_uri,
             appears_on_statement_as=appears_on_statement_as,
-            status=self.statuses.STAGED,
+            submit_status=self.submit_statuses.STAGED,
             reference_to=reference_to,
             created_at=now,
             updated_at=now,
@@ -206,7 +206,7 @@ class TransactionModel(BaseTableModel):
         # situations like that
         self.get(transaction.guid, with_lockmode='update')
 
-        if transaction.status == self.statuses.DONE:
+        if transaction.submit_status == self.submit_statuses.DONE:
             raise ValueError('Cannot process a finished transaction {}'
                              .format(transaction.guid))
         self.logger.debug('Processing transaction %s', transaction.guid)
@@ -242,7 +242,7 @@ class TransactionModel(BaseTableModel):
         except (SystemExit, KeyboardInterrupt):
             raise
         except Exception, e:
-            transaction.status = self.statuses.RETRYING
+            transaction.submit_status = self.submit_statuses.RETRYING
             failure_model = self.factory.create_transaction_failure_model()
             failure_model.create(
                 transaction=transaction,
@@ -258,7 +258,7 @@ class TransactionModel(BaseTableModel):
                 self.logger.error('Exceed maximum retry limitation %s, '
                                   'transaction %s failed', self.maximum_retry,
                                   transaction.guid)
-                transaction.status = self.statuses.FAILED
+                transaction.submit_status = self.submit_statuses.FAILED
 
                 # the transaction is failed, update invoice status
                 if transaction.transaction_type in [
@@ -274,7 +274,7 @@ class TransactionModel(BaseTableModel):
         # oneline, in that case, we should use callback from processor
         # to change the transaction status
         transaction.processor_uri = transaction_id
-        transaction.status = self.statuses.DONE
+        transaction.submit_status = self.submit_statuses.DONE
         transaction.updated_at = tables.now_func()
 
         # the transaction is done, update invoice status
@@ -285,8 +285,8 @@ class TransactionModel(BaseTableModel):
             transaction.invoice.status = invoice_model.statuses.SETTLED
        
         self.session.flush()
-        self.logger.info('Processed transaction %s, status=%s, external_id=%s',
-                         transaction.guid, transaction.status,
+        self.logger.info('Processed transaction %s, submit_status=%s, external_id=%s',
+                         transaction.guid, transaction.submit_status,
                          transaction.processor_uri)
 
     def process_transactions(self, transactions=None):
@@ -296,9 +296,9 @@ class TransactionModel(BaseTableModel):
         Transaction = tables.Transaction
         query = (
             self.session.query(Transaction)
-            .filter(Transaction.status.in_([
-                self.statuses.STAGED,
-                self.statuses.RETRYING]
+            .filter(Transaction.submit_status.in_([
+                self.submit_statuses.STAGED,
+                self.submit_statuses.RETRYING]
             ))
         )
         if transactions is not None:

@@ -273,7 +273,7 @@ class TestRenderer(ViewTestCase):
         expected = dict(
             guid=transaction.guid,
             transaction_type='debit',
-            status='staged',
+            submit_status='staged',
             amount=transaction.amount,
             funding_instrument_uri=transaction.funding_instrument_uri,
             processor_uri=transaction.processor_uri,
@@ -295,16 +295,16 @@ class TestRenderer(ViewTestCase):
         assert_type(self.transaction_model.types.CREDIT, 'credit')
         assert_type(self.transaction_model.types.REFUND, 'refund')
 
-        def assert_status(transaction_status, expected_status):
-            transaction.status = transaction_status
+        def assert_submit_status(status, expected_status):
+            transaction.submit_status = status
             json_data = transaction_adapter(transaction, self.dummy_request)
-            self.assertEqual(json_data['status'], expected_status)
+            self.assertEqual(json_data['submit_status'], expected_status)
 
-        assert_status(self.transaction_model.statuses.STAGED, 'staged')
-        assert_status(self.transaction_model.statuses.RETRYING, 'retrying')
-        assert_status(self.transaction_model.statuses.FAILED, 'failed')
-        assert_status(self.transaction_model.statuses.DONE, 'done')
-        assert_status(self.transaction_model.statuses.CANCELED, 'canceled')
+        assert_submit_status(self.transaction_model.submit_statuses.STAGED, 'staged')
+        assert_submit_status(self.transaction_model.submit_statuses.RETRYING, 'retrying')
+        assert_submit_status(self.transaction_model.submit_statuses.FAILED, 'failed')
+        assert_submit_status(self.transaction_model.submit_statuses.DONE, 'done')
+        assert_submit_status(self.transaction_model.submit_statuses.CANCELED, 'canceled')
 
     def test_transaction_failure(self):
         transaction_failure = self.transaction_failure1

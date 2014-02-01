@@ -346,7 +346,7 @@ class TestBalancedProcessorModel(ModelTestCase):
                 amount=100,
                 funding_instrument_uri='/v1/credit_card/tester',
             )
-            charge_transaction.status = tx_model.statuses.DONE
+            charge_transaction.submit_status = tx_model.submit_statuses.DONE
             charge_transaction.processor_uri = 'MOCK_BALANCED_DEBIT_URI'
             self.session.flush()
 

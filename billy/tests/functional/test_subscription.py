@@ -152,7 +152,7 @@ class TestSubscriptionViews(ViewTestCase):
         charge_method.assert_called_once_with(transaction)
         self.assertEqual(transaction.processor_uri,
                          'MOCK_DEBIT_URI')
-        self.assertEqual(transaction.status, self.transaction_model.statuses.DONE)
+        self.assertEqual(transaction.submit_status, self.transaction_model.submit_statuses.DONE)
         self.assertEqual(transaction.appears_on_statement_as,
                          subscription.appears_on_statement_as)
         self.assertEqual(transaction.amount, amount)
@@ -183,8 +183,8 @@ class TestSubscriptionViews(ViewTestCase):
         transaction = invoice.transactions[0]
         self.assertEqual(transaction.failure_count, 1)
         self.assertEqual(transaction.failures[0].error_message, unicode(error))
-        self.assertEqual(transaction.status,
-                         self.transaction_model.statuses.RETRYING)
+        self.assertEqual(transaction.submit_status,
+                         self.transaction_model.submit_statuses.RETRYING)
 
     def test_create_subscription_without_funding_instrument(self):
         res = self.testapp.post(
@@ -229,13 +229,13 @@ class TestSubscriptionViews(ViewTestCase):
         for i in range(2):
             self.transaction_model.process_one(transaction)
             self.assertEqual(transaction.failure_count, 2 + i)
-            self.assertEqual(transaction.status,
-                             self.transaction_model.statuses.RETRYING)
+            self.assertEqual(transaction.submit_status,
+                             self.transaction_model.submit_statuses.RETRYING)
 
         self.transaction_model.process_one(transaction)
         self.assertEqual(transaction.failure_count, 4)
-        self.assertEqual(transaction.status,
-                         self.transaction_model.statuses.FAILED)
+        self.assertEqual(transaction.submit_status,
+                         self.transaction_model.submit_statuses.FAILED)
 
     def test_create_subscription_to_a_deleted_plan(self):
         with db_transaction.manager:

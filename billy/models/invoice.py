@@ -325,13 +325,13 @@ class InvoiceModel(BaseTableModel):
                         TransactionModel.types.DEBIT,
                         TransactionModel.types.CREDIT,
                     ]),
-                    Transaction.status.in_([
-                        TransactionModel.statuses.STAGED,
-                        TransactionModel.statuses.RETRYING,
+                    Transaction.submit_status.in_([
+                        TransactionModel.submit_statuses.STAGED,
+                        TransactionModel.submit_statuses.RETRYING,
                     ])
                 )
             ).one()
-            last_transaction.status = tx_model.statuses.CANCELED
+            last_transaction.submit_status = tx_model.submit_statuses.CANCELED
             last_transaction.canceled_at = now
             # create a new one
             transaction = self._create_transaction(invoice)
@@ -375,15 +375,15 @@ class InvoiceModel(BaseTableModel):
             self.session.query(Transaction)
             .filter(
                 Transaction.transaction_type != TransactionModel.types.REFUND,
-                Transaction.status.in_([
-                    TransactionModel.statuses.STAGED,
-                    TransactionModel.statuses.RETRYING,
+                Transaction.submit_status.in_([
+                    TransactionModel.submit_statuses.STAGED,
+                    TransactionModel.submit_statuses.RETRYING,
                 ])
             )
         )
         # cancel them
         running_transactions.update(dict(
-            status=TransactionModel.statuses.CANCELED,
+            submit_status=TransactionModel.submit_statuses.CANCELED,
             updated_at=now,
         ), synchronize_session='fetch')
 
@@ -409,10 +409,10 @@ class InvoiceModel(BaseTableModel):
             .filter(
                 Transaction.invoice == invoice,
                 Transaction.transaction_type == TransactionModel.types.REFUND,
-                Transaction.status.in_([
-                    TransactionModel.statuses.STAGED,
-                    TransactionModel.statuses.RETRYING,
-                    TransactionModel.statuses.DONE,
+                Transaction.submit_status.in_([
+                    TransactionModel.submit_statuses.STAGED,
+                    TransactionModel.submit_statuses.RETRYING,
+                    TransactionModel.submit_statuses.DONE,
                 ])
             )
         ).scalar()
@@ -433,7 +433,7 @@ class InvoiceModel(BaseTableModel):
             .filter(
                 Transaction.invoice == invoice,
                 Transaction.transaction_type == TransactionModel.types.DEBIT,
-                Transaction.status == TransactionModel.statuses.DONE,
+                Transaction.submit_status == TransactionModel.submit_statuses.DONE,
             )
         ).one()
 

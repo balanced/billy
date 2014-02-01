@@ -640,7 +640,7 @@ class TestInvoiceViews(ViewTestCase):
         )
         invoice = self.invoice_model.get(res.json['guid'])
         self.assertEqual(invoice.status,
-                         self.invoice_model.statuses.PROCESS_FAILED)
+                         self.invoice_model.statuses.FAILED)
         self.assertEqual(len(invoice.transactions), 1)
         transaction = invoice.transactions[0]
         self.assertEqual(transaction.funding_instrument_uri, 'instrument1')
@@ -660,7 +660,7 @@ class TestInvoiceViews(ViewTestCase):
 
         update_instrument_uri('2013-08-17', 'instrument2')
         self.assertEqual(invoice.status,
-                         self.invoice_model.statuses.PROCESS_FAILED)
+                         self.invoice_model.statuses.FAILED)
         self.assertEqual(len(invoice.transactions), 2)
         transaction = invoice.transactions[-1]
         self.assertEqual(transaction.funding_instrument_uri, 'instrument2')
@@ -901,3 +901,36 @@ class TestInvoiceViews(ViewTestCase):
             extra_environ=dict(REMOTE_USER=self.api_key),
             status=400,
         )
+
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
+    def test_invoice_create_status(self, debit_method):
+        amount = 123
+        funding_instrument_uri = 'MOCK_CARD_URI'
+
+        def assert_status(tx_status, expected_status):
+            debit_method.return_value = dict(
+                processor_uri='MOCK_DEBIT_URI',
+                status=tx_status,
+            )
+
+            res = self.testapp.post(
+                '/v1/invoices',
+                dict(
+                    customer_guid=self.customer.guid,
+                    amount=amount,
+                    funding_instrument_uri=funding_instrument_uri,
+                ),
+                extra_environ=dict(REMOTE_USER=self.api_key),
+                status=200,
+            )
+            self.failUnless('guid' in res.json)
+
+            invoice = self.invoice_model.get(res.json['guid'])
+            self.assertEqual(invoice.status, expected_status)
+
+        ts = self.transaction_model.statuses
+        ivs = self.invoice_model.statuses
+
+        assert_status(ts.PENDING, ivs.PROCESSING)
+        assert_status(ts.SUCCEEDED, ivs.SETTLED)
+        assert_status(ts.FAILED, ivs.FAILED)

@@ -45,6 +45,15 @@ def ensure_api_key_configured(func):
 
 class BalancedProcessor(PaymentProcessor):
 
+    #: map balanced API statuses to transaction status
+    STATUS_MAP = dict(
+        pending=TransactionModel.statuses.PENDING,
+        succeeded=TransactionModel.statuses.SUCCEEDED,
+        paid=TransactionModel.statuses.SUCCEEDED,
+        failed=TransactionModel.statuses.FAILED,
+        reversed=TransactionModel.statuses.FAILED,
+    )
+
     def __init__(
         self,
         customer_cls=balanced.Customer,
@@ -167,7 +176,14 @@ class BalancedProcessor(PaymentProcessor):
         return resource
 
     def _resource_to_result(self, res):
-        status = TransactionModel.statuses.from_string(res.state.upper())
+        try:
+            status = self.STATUS_MAP[res.status]
+        except KeyError:
+            self.logger.warn(
+                'Unknown status %s, default to pending',
+                res.status,
+            )
+            status = TransactionModel.statuses.PENDING
         return dict(
             processor_uri=res.uri,
             status=status,

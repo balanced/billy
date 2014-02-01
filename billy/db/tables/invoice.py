@@ -32,7 +32,7 @@ class InvoiceStatus(DeclEnum):
     PROCESSING = 'PROCESSING', 'Processing'
     SETTLED = 'SETTLED', 'Settled'
     CANCELED = 'CANCELED', 'Canceled'
-    PROCESS_FAILED = 'PROCESS_FAILED', 'Process failed'
+    FAILED = 'FAILED', 'Failed'
 
 
 class Invoice(DeclarativeBase):
@@ -60,7 +60,7 @@ class Invoice(DeclarativeBase):
     #   - PROCESSING
     #   - SETTLED
     #   - CANCELED
-    #   - PROCESS_FAILED
+    #   - FAILED
     status = Column(InvoiceStatus.db_type(), index=True, nullable=False)
     #: a short optional title of this invoice
     title = Column(Unicode(128))

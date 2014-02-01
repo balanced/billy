@@ -155,7 +155,7 @@ class TestRenderer(ViewTestCase):
         assert_status(self.invoice_model.statuses.PROCESSING, 'processing')
         assert_status(self.invoice_model.statuses.SETTLED, 'settled')
         assert_status(self.invoice_model.statuses.CANCELED, 'canceled')
-        assert_status(self.invoice_model.statuses.PROCESS_FAILED, 'process_failed')
+        assert_status(self.invoice_model.statuses.FAILED, 'failed')
 
         invoice = self.subscription_invoice
         json_data = invoice_adapter(invoice, self.dummy_request)

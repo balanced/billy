@@ -337,14 +337,14 @@ class InvoiceModel(BaseTableModel):
             transaction = self._create_transaction(invoice)
             transactions.append(transaction)
         # the previous transaction failed, just create a new one
-        elif invoice.status == self.statuses.PROCESS_FAILED:
+        elif invoice.status == self.statuses.FAILED:
             transaction = self._create_transaction(invoice)
             transactions.append(transaction)
         else:
             raise InvalidOperationError(
                 'Invalid operation, you can only update funding_instrument_uri '
-                'when the invoice status is one of INIT, PROCESSING and '
-                'PROCESS_FAILED'
+                'when the invoice status is one of STAGED, PROCESSING and '
+                'FAILED'
             )
         invoice.status = self.statuses.PROCESSING
 
@@ -361,11 +361,11 @@ class InvoiceModel(BaseTableModel):
         if invoice.status not in [
             self.statuses.STAGED,
             self.statuses.PROCESSING,
-            self.statuses.PROCESS_FAILED,
+            self.statuses.FAILED,
         ]:
             raise InvalidOperationError(
                 'An invoice can only be canceled when its status is one of '
-                'INIT, PROCESSING and PROCESS_FAILED'
+                'STAGED, PROCESSING and FAILED'
             )
         self.get(invoice.guid, with_lockmode='update')
         invoice.status = self.statuses.CANCELED
@@ -446,3 +446,37 @@ class InvoiceModel(BaseTableModel):
         )
         transactions.append(transaction)
         return transactions
+
+    def transaction_status_update(self, invoice, transaction, original_status):
+        """Called to handle transaction status update
+
+        """
+        # we don't have to deal with refund/reversal status change
+        if transaction.transaction_type not in [
+            TransactionModel.types.DEBIT,
+            TransactionModel.types.CREDIT,
+        ]:
+            return
+
+        def succeeded():
+            invoice.status = self.statuses.SETTLED
+
+        def processing():
+            invoice.status = self.statuses.PROCESSING
+
+        def failed():
+            invoice.status = self.statuses.FAILED
+
+        status_handlers = {
+            # succeeded status
+            TransactionModel.statuses.SUCCEEDED: succeeded,
+            # processing
+            TransactionModel.statuses.PENDING: processing,
+            # failed
+            TransactionModel.statuses.FAILED: failed,
+        }
+        new_status = transaction.status
+        status_handlers[new_status]()
+
+        invoice.updated_at = tables.now_func()
+        self.session.flush()

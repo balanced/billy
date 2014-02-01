@@ -33,14 +33,9 @@ class TransactionSubmitStatus(DeclEnum):
 
 class TransactionStatus(DeclEnum):
 
-    STAGED = 'STAGED', 'Staged'
-    SUBMITTING = 'SUBMITTING', 'Submitting'
-    REVERTED = 'REVERTED', 'Reverted'
     PENDING = 'PENDING', 'Pending'
-    SUBMITTED = 'SUBMITTED', 'Submitted'
     SUCCEEDED = 'SUCCEEDED', 'Succeeded'
     FAILED = 'FAILED', 'Failed'
-    CANCELED = 'CANCELED', 'Canceled'
 
 
 class Transaction(DeclarativeBase):

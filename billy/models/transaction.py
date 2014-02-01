@@ -267,22 +267,21 @@ class TransactionModel(BaseTableModel):
                     self.types.DEBIT,
                     self.types.CREDIT,
                 ]:
-                    transaction.invoice.status = invoice_model.statuses.PROCESS_FAILED
+                    transaction.invoice.status = invoice_model.statuses.FAILED
             transaction.updated_at = now
             self.session.flush()
             return
 
+        old_status = transaction.invoice.status
         transaction.processor_uri = result['processor_uri']
         transaction.status = result['status']
         transaction.submit_status = self.submit_statuses.DONE
         transaction.updated_at = tables.now_func()
-
-        # the transaction is done, update invoice status
-        if transaction.transaction_type in [
-            self.types.DEBIT,
-            self.types.CREDIT,
-        ]:
-            transaction.invoice.status = invoice_model.statuses.SETTLED
+        invoice_model.transaction_status_update(
+            invoice=transaction.invoice,
+            transaction=transaction,
+            original_status=old_status,
+        )
        
         self.session.flush()
         self.logger.info('Processed transaction %s, submit_status=%s, '

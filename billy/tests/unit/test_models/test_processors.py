@@ -224,7 +224,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         # mock resource
         resource = mock.Mock(
             uri='MOCK_BALANCED_RESOURCE_URI',
-            state='succeeded',
+            status='succeeded',
         )
         # mock customer instance
         balanced_customer = mock.Mock()
@@ -283,7 +283,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         # mock resource
         resource = mock.Mock(
             uri='MOCK_BALANCED_RESOURCE_URI',
-            state='succeeded',
+            status='succeeded',
         )
         # mock page
         page = mock.Mock()
@@ -379,7 +379,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         debit = mock.Mock()
         debit.refund.return_value = mock.Mock(
             uri='MOCK_REFUND_URI',
-            state='succeeded',
+            status='succeeded',
         )
         debit.refund.__name__ = 'refund'
         # mock customer class
@@ -421,7 +421,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         # mock resource
         resource = mock.Mock(
             uri='MOCK_BALANCED_REFUND_URI',
-            state='succeeded',
+            status='succeeded',
         )
         # mock page
         page = mock.Mock()
@@ -430,7 +430,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         debit = mock.Mock()
         debit.refund.return_value = mock.Mock(
             uri='MOCK_REFUND_URI',
-            state='succeeded',
+            status='succeeded',
         )
         debit.refund.__name__ = 'refund'
         # mock customer class

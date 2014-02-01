@@ -252,9 +252,9 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(transaction.amount, invoice.effective_amount)
         self.assertEqual(transaction.processor_uri,
                          'MOCK_DEBIT_URI')
-        self.assertEqual(transaction.submit_status, 
+        self.assertEqual(transaction.submit_status,
                          self.transaction_model.submit_statuses.DONE)
-        self.assertEqual(transaction.status, 
+        self.assertEqual(transaction.status,
                          self.transaction_model.statuses.SUCCEEDED)
         debit_method.assert_called_once_with(transaction)
 
@@ -717,7 +717,7 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(transaction.processor_uri, 'MOCK_DEBIT_URI')
         self.assertEqual(transaction.submit_status,
                          self.transaction_model.submit_statuses.DONE)
-        self.assertEqual(transaction.status, 
+        self.assertEqual(transaction.status,
                          self.transaction_model.statuses.SUCCEEDED)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
@@ -787,7 +787,7 @@ class TestInvoiceViews(ViewTestCase):
         refund_method.assert_called_once_with(transaction)
         self.assertEqual(transaction.funding_instrument_uri, None)
         self.assertEqual(transaction.amount, 1234)
-        self.assertEqual(transaction.status, 
+        self.assertEqual(transaction.status,
                          self.transaction_model.statuses.SUCCEEDED)
         self.assertEqual(transaction.submit_status, self.transaction_model.submit_statuses.DONE)
         self.assertEqual(transaction.transaction_type,
@@ -813,7 +813,7 @@ class TestInvoiceViews(ViewTestCase):
         )
 
         invoice = self.invoice_model.get(res.json['guid'])
-       
+
         def refund(when, amount):
             with freeze_time(when):
                 self.testapp.post(
@@ -828,9 +828,9 @@ class TestInvoiceViews(ViewTestCase):
             refund_method.assert_called_with(transaction)
             self.assertEqual(transaction.funding_instrument_uri, None)
             self.assertEqual(transaction.amount, amount)
-            self.assertEqual(transaction.status, 
+            self.assertEqual(transaction.status,
                              self.transaction_model.statuses.SUCCEEDED)
-            self.assertEqual(transaction.submit_status, 
+            self.assertEqual(transaction.submit_status,
                              self.transaction_model.submit_statuses.DONE)
             self.assertEqual(transaction.transaction_type,
                              self.transaction_model.types.REFUND)

@@ -16,19 +16,17 @@ def next_transaction_datetime(started_at, frequency, period, interval=1):
     :param interval: the interval of period, interval 3 with monthly
         frequency menas every 3 months
     """
-    if frequency not in PlanModel.FREQ_ALL:
-        raise ValueError('Invalid frequency {}'.format(frequency))
     if interval < 1:
         raise ValueError('Interval can only be >= 1')
     if period == 0:
         return started_at
     delta = None
-    if frequency == PlanModel.FREQ_DAILY:
+    if frequency == PlanModel.frequencies.DAILY:
         delta = relativedelta(days=period * interval)
-    elif frequency == PlanModel.FREQ_WEEKLY:
+    elif frequency == PlanModel.frequencies.WEEKLY:
         delta = relativedelta(weeks=period * interval)
-    elif frequency == PlanModel.FREQ_MONTHLY:
+    elif frequency == PlanModel.frequencies.MONTHLY:
         delta = relativedelta(months=period * interval)
-    elif frequency == PlanModel.FREQ_YEARLY:
+    elif frequency == PlanModel.frequencies.YEARLY:
         delta = relativedelta(years=period * interval)
     return started_at + delta

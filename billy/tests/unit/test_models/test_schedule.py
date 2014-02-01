@@ -26,27 +26,18 @@ class TestSchedule(unittest.TestCase):
             result.append(dt)
         self.assertEqual(result, expected)
 
-    def test_invalid_freq_type(self):
-        with self.assertRaises(ValueError):
-            next_transaction_datetime(
-                started_at=datetime.datetime.utcnow(),
-                frequency=999,
-                period=0,
-                interval=1,
-            )
-
     def test_invalid_interval(self):
         with self.assertRaises(ValueError):
             next_transaction_datetime(
                 started_at=datetime.datetime.utcnow(),
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
                 period=0,
                 interval=0,
             )
         with self.assertRaises(ValueError):
             next_transaction_datetime(
                 started_at=datetime.datetime.utcnow(),
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
                 period=0,
                 interval=-1,
             )
@@ -56,7 +47,7 @@ class TestSchedule(unittest.TestCase):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now,
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
                 interval=1,
                 length=10,
                 expected=[
@@ -78,7 +69,7 @@ class TestSchedule(unittest.TestCase):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now,
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
                 interval=3,
                 length=4,
                 expected=[
@@ -95,7 +86,7 @@ class TestSchedule(unittest.TestCase):
                 now = datetime.datetime.utcnow()
                 next_dt = next_transaction_datetime(
                     started_at=now,
-                    frequency=self.plan_model.FREQ_DAILY,
+                    frequency=self.plan_model.frequencies.DAILY,
                     period=1,
                 )
                 self.assertEqual(next_dt, expected)
@@ -118,7 +109,7 @@ class TestSchedule(unittest.TestCase):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now,
-                frequency=self.plan_model.FREQ_WEEKLY,
+                frequency=self.plan_model.frequencies.WEEKLY,
                 interval=1,
                 length=5,
                 expected=[
@@ -135,7 +126,7 @@ class TestSchedule(unittest.TestCase):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now,
-                frequency=self.plan_model.FREQ_WEEKLY,
+                frequency=self.plan_model.frequencies.WEEKLY,
                 interval=2,
                 length=3,
                 expected=[
@@ -150,7 +141,7 @@ class TestSchedule(unittest.TestCase):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now,
-                frequency=self.plan_model.FREQ_MONTHLY,
+                frequency=self.plan_model.frequencies.MONTHLY,
                 interval=1,
                 length=6,
                 expected=[
@@ -168,7 +159,7 @@ class TestSchedule(unittest.TestCase):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now,
-                frequency=self.plan_model.FREQ_MONTHLY,
+                frequency=self.plan_model.frequencies.MONTHLY,
                 interval=6,
                 length=4,
                 expected=[
@@ -184,7 +175,7 @@ class TestSchedule(unittest.TestCase):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now,
-                frequency=self.plan_model.FREQ_MONTHLY,
+                frequency=self.plan_model.frequencies.MONTHLY,
                 interval=1,
                 length=7,
                 expected=[
@@ -202,7 +193,7 @@ class TestSchedule(unittest.TestCase):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now,
-                frequency=self.plan_model.FREQ_MONTHLY,
+                frequency=self.plan_model.frequencies.MONTHLY,
                 interval=1,
                 length=6,
                 expected=[
@@ -220,7 +211,7 @@ class TestSchedule(unittest.TestCase):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now,
-                frequency=self.plan_model.FREQ_YEARLY,
+                frequency=self.plan_model.frequencies.YEARLY,
                 interval=1,
                 length=5,
                 expected=[
@@ -236,7 +227,7 @@ class TestSchedule(unittest.TestCase):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now,
-                frequency=self.plan_model.FREQ_YEARLY,
+                frequency=self.plan_model.frequencies.YEARLY,
                 interval=2,
                 length=3,
                 expected=[
@@ -250,7 +241,7 @@ class TestSchedule(unittest.TestCase):
             now = datetime.datetime.utcnow()
             self.assert_schedule(
                 started_at=now,
-                frequency=self.plan_model.FREQ_YEARLY,
+                frequency=self.plan_model.frequencies.YEARLY,
                 interval=1,
                 length=5,
                 expected=[

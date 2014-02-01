@@ -63,12 +63,12 @@ class TestProcessTransactions(unittest.TestCase):
 
     def test_main_with_crash(self):
         dummy_processor = DummyProcessor()
-        dummy_processor.charge = mock.Mock()
+        dummy_processor.debit = mock.Mock()
         tx_guids = set()
         debits = []
 
         def mock_charge(transaction):
-            if dummy_processor.charge.call_count == 2:
+            if dummy_processor.debit.call_count == 2:
                 raise KeyboardInterrupt
             uri = 'MOCK_DEBIT_URI_FOR_{}'.format(transaction.guid)
             if transaction.guid in tx_guids:
@@ -77,7 +77,7 @@ class TestProcessTransactions(unittest.TestCase):
             debits.append(uri)
             return uri
 
-        dummy_processor.charge.side_effect = mock_charge
+        dummy_processor.debit.side_effect = mock_charge
 
         cfg_path = os.path.join(self.temp_dir, 'config.ini')
         with open(cfg_path, 'wt') as f:
@@ -106,9 +106,9 @@ class TestProcessTransactions(unittest.TestCase):
             company = company_model.create('my_secret_key')
             plan = plan_model.create(
                 company=company,
-                plan_type=plan_model.TYPE_CHARGE,
+                plan_type=plan_model.types.DEBIT,
                 amount=10,
-                frequency=plan_model.FREQ_MONTHLY,
+                frequency=plan_model.frequencies.MONTHLY,
             )
             customer = customer_model.create(
                 company=company,

@@ -203,7 +203,7 @@ class BalancedProcessor(PaymentProcessor):
             kwargs['appears_on_statement_as'] = transaction.appears_on_statement_as
         kwargs.update(extra_kwargs)
 
-        if transaction.transaction_type == TransactionModel.TYPE_REFUND:
+        if transaction.transaction_type == TransactionModel.types.REFUND:
             debit_transaction = transaction.reference_to
             debit = self.debit_cls.find(debit_transaction.processor_uri)
             method = getattr(debit, method_name)
@@ -216,7 +216,7 @@ class BalancedProcessor(PaymentProcessor):
         return record.uri
 
     @ensure_api_key_configured
-    def charge(self, transaction):
+    def debit(self, transaction):
         extra_kwargs = {}
         if transaction.funding_instrument_uri is not None:
             extra_kwargs['source_uri'] = transaction.funding_instrument_uri
@@ -228,7 +228,7 @@ class BalancedProcessor(PaymentProcessor):
         )
 
     @ensure_api_key_configured
-    def payout(self, transaction):
+    def credit(self, transaction):
         extra_kwargs = {}
         if transaction.funding_instrument_uri is not None:
             extra_kwargs['destination_uri'] = transaction.funding_instrument_uri

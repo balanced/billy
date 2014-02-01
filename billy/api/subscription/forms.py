@@ -8,7 +8,7 @@ from wtforms import IntegerField
 from wtforms import Field
 from wtforms import validators
 
-from billy.models import tables
+from billy.db import tables
 from billy.models.customer import CustomerModel
 from billy.models.plan import PlanModel
 from billy.api.utils import RecordExistValidator

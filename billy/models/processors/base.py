@@ -43,13 +43,13 @@ class PaymentProcessor(object):
         """
         raise NotImplementedError
 
-    def charge(self, transaction):
+    def debit(self, transaction):
         """Charge from a bank acount or credit card
 
         """
         raise NotImplementedError
 
-    def payout(self, transaction):
+    def credit(self, transaction):
         """Payout to a account
 
         """

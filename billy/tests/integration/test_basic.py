@@ -42,7 +42,7 @@ class TestBasicScenarios(IntegrationTestCase):
         res = self.testapp.post(
             '/v1/plans',
             dict(
-                plan_type='charge',
+                plan_type='debit',
                 amount=1234,
                 frequency='daily',
             ),
@@ -50,7 +50,7 @@ class TestBasicScenarios(IntegrationTestCase):
             status=200
         )
         plan = res.json
-        self.assertEqual(plan['plan_type'], 'charge')
+        self.assertEqual(plan['plan_type'], 'debit')
         self.assertEqual(plan['amount'], 1234)
         self.assertEqual(plan['frequency'], 'daily')
         self.assertEqual(plan['company_guid'], company['guid'])
@@ -95,7 +95,7 @@ class TestBasicScenarios(IntegrationTestCase):
         transaction = res.json['items'][0]
         self.assertEqual(transaction['invoice_guid'], invoice['guid'])
         self.assertEqual(transaction['status'], 'done')
-        self.assertEqual(transaction['transaction_type'], 'charge')
+        self.assertEqual(transaction['transaction_type'], 'debit')
         self.assertEqual(transaction['appears_on_statement_as'], 'hello baby')
 
         debit = balanced.Debit.find(transaction['processor_uri'])
@@ -229,7 +229,7 @@ class TestBasicScenarios(IntegrationTestCase):
         transaction = res.json['items'][0]
         self.assertEqual(transaction['invoice_guid'], invoice['guid'])
         self.assertEqual(transaction['status'], 'done')
-        self.assertEqual(transaction['transaction_type'], 'charge')
+        self.assertEqual(transaction['transaction_type'], 'debit')
         self.assertEqual(transaction['appears_on_statement_as'], 'hello baby')
 
         debit = balanced.Debit.find(transaction['processor_uri'])

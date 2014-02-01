@@ -248,9 +248,9 @@ class TestCustomerViews(ViewTestCase):
             other_customer = self.customer_model.create(self.company2)
             other_plan = self.plan_model.create(
                 company=self.company2,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=7788,
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
             )
             for i in range(4):
                 self.subscription_model.create(
@@ -262,9 +262,9 @@ class TestCustomerViews(ViewTestCase):
             customer = self.customer_model.create(self.company)
             plan = self.plan_model.create(
                 company=self.company,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=5566,
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
             )
             guids = []
             for i in range(4):
@@ -292,9 +292,9 @@ class TestCustomerViews(ViewTestCase):
             other_customer = self.customer_model.create(self.company2)
             other_plan = self.plan_model.create(
                 company=self.company2,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=7788,
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
             )
             other_subscription = self.subscription_model.create(
                 customer=other_customer,
@@ -307,14 +307,14 @@ class TestCustomerViews(ViewTestCase):
             for i in range(4):
                 self.transaction_model.create(
                     invoice=other_invoice,
-                    transaction_type=self.transaction_model.TYPE_CHARGE,
+                    transaction_type=self.transaction_model.types.DEBIT,
                     amount=100,
                     funding_instrument_uri='/v1/cards/tester',
                 )
             for i in range(4):
                 self.transaction_model.create(
                     invoice=other_subscription.invoices[0],
-                    transaction_type=self.transaction_model.TYPE_CHARGE,
+                    transaction_type=self.transaction_model.types.DEBIT,
                     amount=100,
                     funding_instrument_uri='/v1/cards/tester',
                 )
@@ -323,9 +323,9 @@ class TestCustomerViews(ViewTestCase):
             customer = self.customer_model.create(self.company)
             plan = self.plan_model.create(
                 company=self.company,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=5566,
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
             )
             subscription = self.subscription_model.create(
                 customer=customer,
@@ -340,7 +340,7 @@ class TestCustomerViews(ViewTestCase):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
                     transaction = self.transaction_model.create(
                         invoice=invoice,
-                        transaction_type=self.transaction_model.TYPE_CHARGE,
+                        transaction_type=self.transaction_model.types.DEBIT,
                         amount=100,
                         funding_instrument_uri='/v1/cards/tester',
                     )
@@ -349,7 +349,7 @@ class TestCustomerViews(ViewTestCase):
                 with freeze_time('2013-08-16 02:00:{:02}'.format(i + 1)):
                     transaction = self.transaction_model.create(
                         invoice=subscription.invoices[0],
-                        transaction_type=self.transaction_model.TYPE_CHARGE,
+                        transaction_type=self.transaction_model.types.DEBIT,
                         amount=100,
                         funding_instrument_uri='/v1/cards/tester',
                     )

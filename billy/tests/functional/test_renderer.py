@@ -28,8 +28,8 @@ class TestRenderer(ViewTestCase):
             )
             self.plan = self.plan_model.create(
                 company=self.company,
-                frequency=self.plan_model.FREQ_WEEKLY,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                frequency=self.plan_model.frequencies.WEEKLY,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=1234,
             )
             self.subscription = self.subscription_model.create(
@@ -72,7 +72,7 @@ class TestRenderer(ViewTestCase):
             )
             self.transaction = self.transaction_model.create(
                 invoice=self.customer_invoice,
-                transaction_type=self.transaction_model.TYPE_CHARGE,
+                transaction_type=self.transaction_model.types.DEBIT,
                 amount=5678,
                 funding_instrument_uri='/v1/cards/tester',
                 appears_on_statement_as='hello baby',
@@ -121,8 +121,8 @@ class TestRenderer(ViewTestCase):
         expected = dict(
             guid=invoice.guid,
             invoice_type='customer',
-            transaction_type='charge',
-            status='init',
+            transaction_type='debit',
+            status='staged',
             created_at=invoice.created_at.isoformat(),
             updated_at=invoice.updated_at.isoformat(),
             customer_guid=invoice.customer_guid,
@@ -151,19 +151,19 @@ class TestRenderer(ViewTestCase):
             json_data = invoice_adapter(invoice, self.dummy_request)
             self.assertEqual(json_data['status'], expected_status)
 
-        assert_status(self.invoice_model.STATUS_INIT, 'init')
-        assert_status(self.invoice_model.STATUS_PROCESSING, 'processing')
-        assert_status(self.invoice_model.STATUS_SETTLED, 'settled')
-        assert_status(self.invoice_model.STATUS_CANCELED, 'canceled')
-        assert_status(self.invoice_model.STATUS_PROCESS_FAILED, 'process_failed')
+        assert_status(self.invoice_model.statuses.STAGED, 'staged')
+        assert_status(self.invoice_model.statuses.PROCESSING, 'processing')
+        assert_status(self.invoice_model.statuses.SETTLED, 'settled')
+        assert_status(self.invoice_model.statuses.CANCELED, 'canceled')
+        assert_status(self.invoice_model.statuses.PROCESS_FAILED, 'process_failed')
 
         invoice = self.subscription_invoice
         json_data = invoice_adapter(invoice, self.dummy_request)
         expected = dict(
             guid=invoice.guid,
             invoice_type='subscription',
-            transaction_type='charge',
-            status='init',
+            transaction_type='debit',
+            status='staged',
             created_at=invoice.created_at.isoformat(),
             updated_at=invoice.updated_at.isoformat(),
             scheduled_at=invoice.scheduled_at.isoformat(),
@@ -192,7 +192,7 @@ class TestRenderer(ViewTestCase):
         json_data = plan_adapter(plan, self.dummy_request)
         expected = dict(
             guid=plan.guid,
-            plan_type='charge',
+            plan_type='debit',
             frequency='weekly',
             amount=plan.amount,
             interval=plan.interval,
@@ -208,18 +208,18 @@ class TestRenderer(ViewTestCase):
             json_data = plan_adapter(plan, self.dummy_request)
             self.assertEqual(json_data['plan_type'], expected_type)
 
-        assert_type(self.plan_model.TYPE_CHARGE, 'charge')
-        assert_type(self.plan_model.TYPE_PAYOUT, 'payout')
+        assert_type(self.plan_model.types.DEBIT, 'debit')
+        assert_type(self.plan_model.types.CREDIT, 'credit')
 
         def assert_frequency(frequency, expected_frequency):
             plan.frequency = frequency
             json_data = plan_adapter(plan, self.dummy_request)
             self.assertEqual(json_data['frequency'], expected_frequency)
 
-        assert_frequency(self.plan_model.FREQ_DAILY, 'daily')
-        assert_frequency(self.plan_model.FREQ_WEEKLY, 'weekly')
-        assert_frequency(self.plan_model.FREQ_MONTHLY, 'monthly')
-        assert_frequency(self.plan_model.FREQ_YEARLY, 'yearly')
+        assert_frequency(self.plan_model.frequencies.DAILY, 'daily')
+        assert_frequency(self.plan_model.frequencies.WEEKLY, 'weekly')
+        assert_frequency(self.plan_model.frequencies.MONTHLY, 'monthly')
+        assert_frequency(self.plan_model.frequencies.YEARLY, 'yearly')
 
     def test_subscription(self):
         subscription = self.subscription
@@ -272,8 +272,8 @@ class TestRenderer(ViewTestCase):
         self.maxDiff = None
         expected = dict(
             guid=transaction.guid,
-            transaction_type='charge',
-            status='init',
+            transaction_type='debit',
+            status='staged',
             amount=transaction.amount,
             funding_instrument_uri=transaction.funding_instrument_uri,
             processor_uri=transaction.processor_uri,
@@ -291,20 +291,20 @@ class TestRenderer(ViewTestCase):
             json_data = transaction_adapter(transaction, self.dummy_request)
             self.assertEqual(json_data['transaction_type'], expected_type)
 
-        assert_type(self.transaction_model.TYPE_CHARGE, 'charge')
-        assert_type(self.transaction_model.TYPE_PAYOUT, 'payout')
-        assert_type(self.transaction_model.TYPE_REFUND, 'refund')
+        assert_type(self.transaction_model.types.DEBIT, 'debit')
+        assert_type(self.transaction_model.types.CREDIT, 'credit')
+        assert_type(self.transaction_model.types.REFUND, 'refund')
 
         def assert_status(transaction_status, expected_status):
             transaction.status = transaction_status
             json_data = transaction_adapter(transaction, self.dummy_request)
             self.assertEqual(json_data['status'], expected_status)
 
-        assert_status(self.transaction_model.STATUS_INIT, 'init')
-        assert_status(self.transaction_model.STATUS_RETRYING, 'retrying')
-        assert_status(self.transaction_model.STATUS_FAILED, 'failed')
-        assert_status(self.transaction_model.STATUS_DONE, 'done')
-        assert_status(self.transaction_model.STATUS_CANCELED, 'canceled')
+        assert_status(self.transaction_model.statuses.STAGED, 'staged')
+        assert_status(self.transaction_model.statuses.RETRYING, 'retrying')
+        assert_status(self.transaction_model.statuses.FAILED, 'failed')
+        assert_status(self.transaction_model.statuses.DONE, 'done')
+        assert_status(self.transaction_model.statuses.CANCELED, 'canceled')
 
     def test_transaction_failure(self):
         transaction_failure = self.transaction_failure1

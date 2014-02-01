@@ -209,7 +209,7 @@ class TestInvoiceViews(ViewTestCase):
                     del adjustment[key]
         self.assertEqual(adjustment_result, adjustments)
 
-    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
     def test_create_invoice_with_funding_instrument_uri(self, charge_method):
         amount = 5566
         funding_instrument_uri = 'MOCK_CARD_URI'
@@ -249,10 +249,10 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(transaction.amount, invoice.effective_amount)
         self.assertEqual(transaction.processor_uri,
                          'MOCK_DEBIT_URI')
-        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
+        self.assertEqual(transaction.status, self.transaction_model.statuses.DONE)
         charge_method.assert_called_once_with(transaction)
 
-    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
     def test_create_invoice_with_funding_instrument_uri_with_zero_amount(self, charge_method):
         amount = 0
         funding_instrument_uri = 'MOCK_CARD_URI'
@@ -545,7 +545,7 @@ class TestInvoiceViews(ViewTestCase):
             status=403,
         )
 
-    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
     def test_update_invoice_funding_instrument_uri(self, charge_method):
         amount = 5566
         funding_instrument_uri = 'MOCK_CARD_URI'
@@ -579,10 +579,10 @@ class TestInvoiceViews(ViewTestCase):
         transaction = invoice.transactions[0]
         self.assertEqual(transaction.processor_uri,
                          'MOCK_DEBIT_URI')
-        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
+        self.assertEqual(transaction.status, self.transaction_model.statuses.DONE)
         charge_method.assert_called_once_with(transaction)
 
-    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
     def test_update_invoice_funding_instrument_uri_for_settled_invoice(
         self,
         charge_method,
@@ -607,7 +607,7 @@ class TestInvoiceViews(ViewTestCase):
             status=400,
         )
 
-    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
     def test_update_invoice_funding_instrument_uri_with_mutiple_failures(
         self,
         charge_method
@@ -628,12 +628,12 @@ class TestInvoiceViews(ViewTestCase):
         )
         invoice = self.invoice_model.get(res.json['guid'])
         self.assertEqual(invoice.status,
-                         self.invoice_model.STATUS_PROCESS_FAILED)
+                         self.invoice_model.statuses.PROCESS_FAILED)
         self.assertEqual(len(invoice.transactions), 1)
         transaction = invoice.transactions[0]
         self.assertEqual(transaction.funding_instrument_uri, 'instrument1')
         self.assertEqual(transaction.status,
-                         self.transaction_model.STATUS_FAILED)
+                         self.transaction_model.statuses.FAILED)
 
         def update_instrument_uri(when, uri):
             with freeze_time(when):
@@ -648,55 +648,55 @@ class TestInvoiceViews(ViewTestCase):
 
         update_instrument_uri('2013-08-17', 'instrument2')
         self.assertEqual(invoice.status,
-                         self.invoice_model.STATUS_PROCESS_FAILED)
+                         self.invoice_model.statuses.PROCESS_FAILED)
         self.assertEqual(len(invoice.transactions), 2)
         transaction = invoice.transactions[-1]
         self.assertEqual(transaction.funding_instrument_uri, 'instrument2')
         self.assertEqual(transaction.status,
-                         self.transaction_model.STATUS_FAILED)
+                         self.transaction_model.statuses.FAILED)
 
         self.model_factory.settings['billy.transaction.maximum_retry'] = 1
         update_instrument_uri('2013-08-18', 'instrument3')
         self.assertEqual(invoice.status,
-                         self.invoice_model.STATUS_PROCESSING)
+                         self.invoice_model.statuses.PROCESSING)
         self.assertEqual(len(invoice.transactions), 3)
         transaction = invoice.transactions[-1]
         self.assertEqual(transaction.funding_instrument_uri, 'instrument3')
         self.assertEqual(transaction.status,
-                         self.transaction_model.STATUS_RETRYING)
+                         self.transaction_model.statuses.RETRYING)
 
         update_instrument_uri('2013-08-19', 'instrument4')
         self.assertEqual(invoice.status,
-                         self.invoice_model.STATUS_PROCESSING)
+                         self.invoice_model.statuses.PROCESSING)
         self.assertEqual(len(invoice.transactions), 4)
         # make sure previous retrying transaction was canceled
         transaction = invoice.transactions[-2]
         self.assertEqual(transaction.funding_instrument_uri, 'instrument3')
         self.assertEqual(transaction.status,
-                         self.transaction_model.STATUS_CANCELED)
+                         self.transaction_model.statuses.CANCELED)
         transaction = invoice.transactions[-1]
         self.assertEqual(transaction.funding_instrument_uri, 'instrument4')
         self.assertEqual(transaction.status,
-                         self.transaction_model.STATUS_RETRYING)
+                         self.transaction_model.statuses.RETRYING)
 
         charge_method.side_effect = None
         charge_method.return_value = 'MOCK_DEBIT_URI'
         update_instrument_uri('2013-08-20', 'instrument5')
         self.assertEqual(invoice.status,
-                         self.invoice_model.STATUS_SETTLED)
+                         self.invoice_model.statuses.SETTLED)
         self.assertEqual(len(invoice.transactions), 5)
         # make sure previous retrying transaction was canceled
         transaction = invoice.transactions[-2]
         self.assertEqual(transaction.funding_instrument_uri, 'instrument4')
         self.assertEqual(transaction.status,
-                         self.transaction_model.STATUS_CANCELED)
+                         self.transaction_model.statuses.CANCELED)
         transaction = invoice.transactions[-1]
         self.assertEqual(transaction.funding_instrument_uri, 'instrument5')
         self.assertEqual(transaction.processor_uri, 'MOCK_DEBIT_URI')
         self.assertEqual(transaction.status,
-                         self.transaction_model.STATUS_DONE)
+                         self.transaction_model.statuses.DONE)
 
-    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
     def test_update_invoice_funding_instrument_uri_with_zero_amount(self, charge_method):
         amount = 0
         funding_instrument_uri = 'MOCK_CARD_URI'
@@ -751,15 +751,15 @@ class TestInvoiceViews(ViewTestCase):
                 status=200,
             )
         invoice = self.invoice_model.get(res.json['guid'])
-        self.assertEqual(invoice.status, self.invoice_model.STATUS_SETTLED)
+        self.assertEqual(invoice.status, self.invoice_model.statuses.SETTLED)
         self.assertEqual(len(invoice.transactions), 2)
         transaction = invoice.transactions[-1]
         refund_method.assert_called_once_with(transaction)
         self.assertEqual(transaction.funding_instrument_uri, None)
         self.assertEqual(transaction.amount, 1234)
-        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
+        self.assertEqual(transaction.status, self.transaction_model.statuses.DONE)
         self.assertEqual(transaction.transaction_type,
-                         self.transaction_model.TYPE_REFUND)
+                         self.transaction_model.types.REFUND)
         self.assertEqual(transaction.appears_on_statement_as, None)
         self.assertEqual(transaction.processor_uri, 'MOCK_REFUND_URI')
 
@@ -788,14 +788,14 @@ class TestInvoiceViews(ViewTestCase):
                     status=200,
                 )
 
-            self.assertEqual(invoice.status, self.invoice_model.STATUS_SETTLED)
+            self.assertEqual(invoice.status, self.invoice_model.statuses.SETTLED)
             transaction = invoice.transactions[-1]
             refund_method.assert_called_with(transaction)
             self.assertEqual(transaction.funding_instrument_uri, None)
             self.assertEqual(transaction.amount, amount)
-            self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
+            self.assertEqual(transaction.status, self.transaction_model.statuses.DONE)
             self.assertEqual(transaction.transaction_type,
-                             self.transaction_model.TYPE_REFUND)
+                             self.transaction_model.types.REFUND)
             self.assertEqual(transaction.appears_on_statement_as, None)
             self.assertEqual(transaction.processor_uri, 'MOCK_REFUND_URI')
 
@@ -828,10 +828,10 @@ class TestInvoiceViews(ViewTestCase):
                 status=200,
             )
         invoice = self.invoice_model.get(res.json['guid'])
-        self.assertEqual(invoice.status, self.invoice_model.STATUS_CANCELED)
+        self.assertEqual(invoice.status, self.invoice_model.statuses.CANCELED)
         self.assertEqual(len(invoice.transactions), 0)
 
-    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
     def test_invoice_cancel_while_processing(self, charge_method):
         charge_method.side_effect = RuntimeError('Shit!')
         res = self.testapp.post(
@@ -851,11 +851,11 @@ class TestInvoiceViews(ViewTestCase):
                 status=200,
             )
         invoice = self.invoice_model.get(res.json['guid'])
-        self.assertEqual(invoice.status, self.invoice_model.STATUS_CANCELED)
+        self.assertEqual(invoice.status, self.invoice_model.statuses.CANCELED)
         self.assertEqual(len(invoice.transactions), 1)
         transaction = invoice.transactions[0]
         self.assertEqual(transaction.status,
-                         self.transaction_model.STATUS_CANCELED)
+                         self.transaction_model.statuses.CANCELED)
 
     def test_invoice_cancel_already_canceled_invoice(self):
         res = self.testapp.post(

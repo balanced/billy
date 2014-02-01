@@ -20,8 +20,8 @@ class TestTransactionViews(ViewTestCase):
             )
             self.plan = self.plan_model.create(
                 company=self.company,
-                frequency=self.plan_model.FREQ_WEEKLY,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                frequency=self.plan_model.frequencies.WEEKLY,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=10,
             )
             self.subscription = self.subscription_model.create(
@@ -31,7 +31,7 @@ class TestTransactionViews(ViewTestCase):
             self.invoice = self.subscription.invoices[0]
             self.transaction = self.transaction_model.create(
                 invoice=self.invoice,
-                transaction_type=self.transaction_model.TYPE_CHARGE,
+                transaction_type=self.transaction_model.types.DEBIT,
                 amount=10,
                 funding_instrument_uri='/v1/cards/tester',
             )
@@ -50,9 +50,10 @@ class TestTransactionViews(ViewTestCase):
         self.assertEqual(res.json['updated_at'],
                          transaction.updated_at.isoformat())
         self.assertEqual(res.json['amount'], transaction.amount)
-        self.assertEqual(res.json['funding_instrument_uri'], transaction.funding_instrument_uri)
-        self.assertEqual(res.json['transaction_type'], 'charge')
-        self.assertEqual(res.json['status'], 'init')
+        self.assertEqual(res.json['funding_instrument_uri'], 
+                         transaction.funding_instrument_uri)
+        self.assertEqual(res.json['transaction_type'], 'debit')
+        self.assertEqual(res.json['status'], 'staged')
         self.assertEqual(res.json['failure_count'], 0)
         self.assertEqual(res.json['failures'], [])
         self.assertEqual(res.json['processor_uri'], None)
@@ -65,7 +66,7 @@ class TestTransactionViews(ViewTestCase):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
                     transaction = self.transaction_model.create(
                         invoice=self.invoice,
-                        transaction_type=self.transaction_model.TYPE_CHARGE,
+                        transaction_type=self.transaction_model.types.DEBIT,
                         amount=10 * i,
                         funding_instrument_uri='/v1/cards/tester',
                     )
@@ -101,9 +102,9 @@ class TestTransactionViews(ViewTestCase):
             )
             self.assertEqual(res.json['transaction_type'], expected)
 
-        assert_type(self.transaction_model.TYPE_CHARGE, 'charge')
-        assert_type(self.transaction_model.TYPE_PAYOUT, 'payout')
-        assert_type(self.transaction_model.TYPE_REFUND, 'refund')
+        assert_type(self.transaction_model.types.DEBIT, 'debit')
+        assert_type(self.transaction_model.types.CREDIT, 'credit')
+        assert_type(self.transaction_model.types.REFUND, 'refund')
 
     def test_get_transaction_with_different_status(self):
         def assert_status(status, expected):
@@ -117,10 +118,10 @@ class TestTransactionViews(ViewTestCase):
             )
             self.assertEqual(res.json['status'], expected)
 
-        assert_status(self.transaction_model.STATUS_INIT, 'init')
-        assert_status(self.transaction_model.STATUS_RETRYING, 'retrying')
-        assert_status(self.transaction_model.STATUS_FAILED, 'failed')
-        assert_status(self.transaction_model.STATUS_DONE, 'done')
+        assert_status(self.transaction_model.statuses.STAGED, 'staged')
+        assert_status(self.transaction_model.statuses.RETRYING, 'retrying')
+        assert_status(self.transaction_model.statuses.FAILED, 'failed')
+        assert_status(self.transaction_model.statuses.DONE, 'done')
 
     def test_get_non_existing_transaction(self):
         self.testapp.get(
@@ -146,8 +147,8 @@ class TestTransactionViews(ViewTestCase):
             )
             other_plan = self.plan_model.create(
                 company=other_company,
-                frequency=self.plan_model.FREQ_WEEKLY,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                frequency=self.plan_model.frequencies.WEEKLY,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=10,
             )
             other_subscription = self.subscription_model.create(
@@ -156,7 +157,7 @@ class TestTransactionViews(ViewTestCase):
             )
             other_transaction = self.transaction_model.create(
                 invoice=other_subscription.invoices[0],
-                transaction_type=self.transaction_model.TYPE_CHARGE,
+                transaction_type=self.transaction_model.types.DEBIT,
                 amount=10,
                 funding_instrument_uri='/v1/cards/tester',
             )

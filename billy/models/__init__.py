@@ -6,7 +6,7 @@ from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from zope.sqlalchemy import ZopeTransactionExtension
   
-from . import tables
+from billy.db import tables
 
 
 def setup_database(global_config, **settings):

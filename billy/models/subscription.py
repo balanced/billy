@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from sqlalchemy.sql.expression import not_
 
-from billy.models import tables
+from billy.db import tables
 from billy.models.base import BaseTableModel
 from billy.models.base import decorate_offset_limit
 from billy.models.plan import PlanModel
@@ -163,14 +163,6 @@ class SubscriptionModel(BaseTableModel):
                 break
 
             for subscription in query:
-                if subscription.plan.plan_type == PlanModel.TYPE_CHARGE:
-                    transaction_type = 'charge'
-                elif subscription.plan.plan_type == PlanModel.TYPE_PAYOUT:
-                    transaction_type = 'payout'
-                else:
-                    raise ValueError('Unknown plan type {} to process'
-                                     .format(subscription.plan.plan_type))
-
                 amount = subscription.effective_amount
                 # create the new transaction for this subscription
                 invoice = invoice_model.create(
@@ -182,11 +174,11 @@ class SubscriptionModel(BaseTableModel):
                 )
                 self.logger.info(
                     'Created subscription invoice for %s, guid=%s, '
-                    'transaction_type=%s, funding_instrument_uri=%s, '
+                    'plan_type=%s, funding_instrument_uri=%s, '
                     'amount=%s, scheduled_at=%s, period=%s',
                     subscription.guid,
                     invoice.guid,
-                    transaction_type,
+                    subscription.plan.plan_type,
                     invoice.funding_instrument_uri,
                     invoice.amount,
                     invoice.scheduled_at,

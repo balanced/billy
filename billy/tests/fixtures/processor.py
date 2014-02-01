@@ -28,13 +28,13 @@ class DummyProcessor(object):
     def prepare_customer(self, customer, funding_instrument_uri=None):
         self._check_api_key()
 
-    def charge(self, transaction):
+    def debit(self, transaction):
         self._check_api_key()
-        return 'MOCK_CHARGE_TX_ID'
+        return 'MOCK_DEBIT_TX_ID'
 
-    def payout(self, transaction):
+    def credit(self, transaction):
         self._check_api_key()
-        return 'MOCK_PAYOUT_TX_ID'
+        return 'MOCK_CREDIT_TX_ID'
 
     def refund(self, transaction):
         self._check_api_key()

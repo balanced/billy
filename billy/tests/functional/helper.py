@@ -6,8 +6,8 @@ from webtest import TestApp
 from pyramid.testing import DummyRequest
 
 from billy import main
+from billy.db.tables import DeclarativeBase
 from billy.models import setup_database
-from billy.models.tables import DeclarativeBase
 from billy.models.model_factory import ModelFactory
 from billy.tests.fixtures.processor import DummyProcessor
 

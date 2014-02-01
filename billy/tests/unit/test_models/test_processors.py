@@ -23,8 +23,8 @@ class TestPaymentProcessorModel(unittest.TestCase):
             'validate_funding_instrument',
             'create_customer',
             'prepare_customer',
-            'charge',
-            'payout',
+            'debit',
+            'credit',
             'refund',
         ]:
             with self.assertRaises(NotImplementedError):
@@ -42,9 +42,9 @@ class TestBalancedProcessorModel(ModelTestCase):
             self.company = self.company_model.create('my_secret_key')
             self.plan = self.plan_model.create(
                 company=self.company,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=10,
-                frequency=self.plan_model.FREQ_MONTHLY,
+                frequency=self.plan_model.frequencies.MONTHLY,
             )
             self.customer = self.customer_model.create(
                 company=self.company,
@@ -208,7 +208,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         with db_transaction.manager:
             transaction = tx_model.create(
                 invoice=self.invoice,
-                transaction_type=tx_model.TYPE_CHARGE,
+                transaction_type=tx_model.types.DEBIT,
                 amount=10,
                 funding_instrument_uri='/v1/credit_card/tester',
                 appears_on_statement_as='hello baby',
@@ -270,7 +270,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         with db_transaction.manager:
             transaction = tx_model.create(
                 invoice=self.invoice,
-                transaction_type=tx_model.TYPE_CHARGE,
+                transaction_type=tx_model.types.DEBIT,
                 amount=10,
                 funding_instrument_uri='/v1/credit_card/tester',
             )
@@ -307,33 +307,33 @@ class TestBalancedProcessorModel(ModelTestCase):
         expected_kwargs = {'meta.billy.transaction_guid': transaction.guid}
         Resource.query.filter.assert_called_once_with(**expected_kwargs)
 
-    def test_charge(self):
+    def test_debit(self):
         self._test_operation(
             cls_name='debit_cls',
-            processor_method_name='charge',
+            processor_method_name='debit',
             api_method_name='debit',
             extra_api_kwargs=dict(source_uri='/v1/credit_card/tester'),
         )
 
-    def test_charge_with_created_record(self):
+    def test_debit_with_created_record(self):
         self._test_operation_with_created_record(
             cls_name='debit_cls',
-            processor_method_name='charge',
+            processor_method_name='debit',
             api_method_name='debit',
         )
 
-    def test_payout(self):
+    def test_credit(self):
         self._test_operation(
             cls_name='credit_cls',
-            processor_method_name='payout',
+            processor_method_name='credit',
             api_method_name='credit',
             extra_api_kwargs=dict(destination_uri='/v1/credit_card/tester'),
         )
 
-    def test_payout_with_created_record(self):
+    def test_credit_with_created_record(self):
         self._test_operation_with_created_record(
             cls_name='credit_cls',
-            processor_method_name='payout',
+            processor_method_name='credit',
             api_method_name='credit',
         )
 
@@ -342,17 +342,17 @@ class TestBalancedProcessorModel(ModelTestCase):
         with db_transaction.manager:
             charge_transaction = tx_model.create(
                 invoice=self.invoice,
-                transaction_type=tx_model.TYPE_CHARGE,
+                transaction_type=tx_model.types.DEBIT,
                 amount=100,
                 funding_instrument_uri='/v1/credit_card/tester',
             )
-            charge_transaction.status = tx_model.STATUS_DONE
+            charge_transaction.status = tx_model.statuses.DONE
             charge_transaction.processor_uri = 'MOCK_BALANCED_DEBIT_URI'
             self.session.flush()
 
             transaction = tx_model.create(
                 invoice=self.invoice,
-                transaction_type=tx_model.TYPE_REFUND,
+                transaction_type=tx_model.types.REFUND,
                 reference_to=charge_transaction,
                 amount=56,
                 appears_on_statement_as='hello baby',
@@ -443,8 +443,8 @@ class TestBalancedProcessorModel(ModelTestCase):
             'create_customer',
             'prepare_customer',
             'validate_customer',
-            'charge',
-            'payout',
+            'debit',
+            'credit',
             'refund',
         ]:
             with self.assertRaises(AssertionError):

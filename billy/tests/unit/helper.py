@@ -8,7 +8,7 @@ from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from zope.sqlalchemy import ZopeTransactionExtension
 
-from billy.models import tables
+from billy.db import tables
 from billy.models.model_factory import ModelFactory
 from billy.tests.fixtures.processor import DummyProcessor
 

@@ -1,4 +1,4 @@
-SQLAlchemy==0.8.4
+SQLAlchemy==0.9.1
 zope.sqlalchemy==0.7.4
 python-dateutil==2.2
 balanced==0.11.15

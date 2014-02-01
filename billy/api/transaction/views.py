@@ -17,7 +17,7 @@ class TransactionResource(EntityResource):
     @property
     def company(self):
         # make sure only the owner company can access the customer
-        if self.entity.invoice.invoice_type == InvoiceModel.TYPE_SUBSCRIPTION:
+        if self.entity.invoice.invoice_type == InvoiceModel.types.SUBSCRIPTION:
             company = self.entity.invoice.subscription.plan.company
         else:
             company = self.entity.invoice.customer.company

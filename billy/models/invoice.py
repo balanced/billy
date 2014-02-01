@@ -55,23 +55,10 @@ class InvoiceModel(BaseTableModel):
         SubscriptionInvoice = tables.SubscriptionInvoice
         CustomerInvoice = tables.CustomerInvoice
 
-        basic_query = self.session.query(Invoice)
         # joined subscription invoice query
-        subscription_invoice_query = (
-            basic_query
-            .join(
-                SubscriptionInvoice,
-                SubscriptionInvoice.guid == Invoice.guid,
-            )
-        )
+        subscription_invoice_query = self.session.query(SubscriptionInvoice)
         # joined customer invoice query
-        customer_invoice_query = (
-            basic_query
-            .join(
-                CustomerInvoice,
-                CustomerInvoice.guid == Invoice.guid,
-            )
-        )
+        customer_invoice_query = self.session.query(CustomerInvoice)
         # joined customer query
         customer_query = (
             customer_invoice_query
@@ -118,12 +105,18 @@ class InvoiceModel(BaseTableModel):
             q1 = (
                 plan_query
                 .filter(Plan.company == context)
+                .from_self(Invoice.guid)
             )
             q2 = (
                 customer_query
                 .filter(Customer.company == context)
+                .from_self(Invoice.guid)
             )
-            query = q1.union(q2)
+            guid_query = q1.union(q2)
+            query = (
+                self.session.query(Invoice)
+                .filter(Invoice.guid.in_(guid_query))
+            )
         else:
             raise ValueError('Unsupported context {}'.format(context))
 

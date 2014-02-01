@@ -48,7 +48,7 @@ class Invoice(DeclarativeBase):
     # type of invoice, could be 0=subscription, 1=customer
     invoice_type = Column(InvoiceType.db_type(), index=True, nullable=False)
     #: what kind of transaction it is, could be DEBIT or CREDIT
-    transaction_type = Column(InvoiceTransactionType.db_type(), nullable=False, 
+    transaction_type = Column(InvoiceTransactionType.db_type(), nullable=False,
                               index=True)
     #: the funding instrument URI to charge to, such as bank account or credit
     #  card

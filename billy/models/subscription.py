@@ -5,7 +5,6 @@ from sqlalchemy.sql.expression import not_
 from billy.db import tables
 from billy.models.base import BaseTableModel
 from billy.models.base import decorate_offset_limit
-from billy.models.plan import PlanModel
 from billy.models.schedule import next_transaction_datetime
 from billy.errors import BillyError
 from billy.utils.generic import make_guid

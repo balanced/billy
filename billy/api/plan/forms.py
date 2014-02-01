@@ -13,7 +13,7 @@ class EnumRadioField(RadioField):
 
     def __init__(self, enum_type, **kwargs):
         super(EnumRadioField, self).__init__(
-            coerce=self._value_to_enum, 
+            coerce=self._value_to_enum,
             **kwargs
         )
         self.enum_type = enum_type
@@ -34,7 +34,7 @@ class EnumRadioField(RadioField):
             raise ValueError(
                 self.gettext('Enum of {} should be one of {}')
                 .format(
-                    self.enum_type.__name__, 
+                    self.enum_type.__name__,
                     list(self.enum_type.values()),
                 )
             )

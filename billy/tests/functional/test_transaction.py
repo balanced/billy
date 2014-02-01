@@ -50,7 +50,7 @@ class TestTransactionViews(ViewTestCase):
         self.assertEqual(res.json['updated_at'],
                          transaction.updated_at.isoformat())
         self.assertEqual(res.json['amount'], transaction.amount)
-        self.assertEqual(res.json['funding_instrument_uri'], 
+        self.assertEqual(res.json['funding_instrument_uri'],
                          transaction.funding_instrument_uri)
         self.assertEqual(res.json['transaction_type'], 'debit')
         self.assertEqual(res.json['submit_status'], 'staged')

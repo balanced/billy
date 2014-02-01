@@ -65,7 +65,7 @@ class Transaction(DeclarativeBase):
     #  bank account or credit card)
     appears_on_statement_as = Column(Unicode(32))
     #: current submition status of this transaction
-    submit_status = Column(TransactionSubmitStatus.db_type(), index=True, 
+    submit_status = Column(TransactionSubmitStatus.db_type(), index=True,
                            nullable=False)
     #: the amount to do transaction (charge, payout or refund)
     amount = Column(Integer, nullable=False)

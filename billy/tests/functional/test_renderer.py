@@ -274,6 +274,7 @@ class TestRenderer(ViewTestCase):
             guid=transaction.guid,
             transaction_type='debit',
             submit_status='staged',
+            status=None,
             amount=transaction.amount,
             funding_instrument_uri=transaction.funding_instrument_uri,
             processor_uri=transaction.processor_uri,
@@ -305,6 +306,15 @@ class TestRenderer(ViewTestCase):
         assert_submit_status(self.transaction_model.submit_statuses.FAILED, 'failed')
         assert_submit_status(self.transaction_model.submit_statuses.DONE, 'done')
         assert_submit_status(self.transaction_model.submit_statuses.CANCELED, 'canceled')
+
+        def assert_status(status, expected_status):
+            transaction.status = status
+            json_data = transaction_adapter(transaction, self.dummy_request)
+            self.assertEqual(json_data['status'], expected_status)
+
+        assert_status(self.transaction_model.statuses.PENDING, 'pending')
+        assert_status(self.transaction_model.statuses.SUCCEEDED, 'succeeded')
+        assert_status(self.transaction_model.statuses.FAILED, 'failed')
 
     def test_transaction_failure(self):
         transaction_failure = self.transaction_failure1

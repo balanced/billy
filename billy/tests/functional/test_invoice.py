@@ -252,7 +252,10 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(transaction.amount, invoice.effective_amount)
         self.assertEqual(transaction.processor_uri,
                          'MOCK_DEBIT_URI')
-        self.assertEqual(transaction.submit_status, self.transaction_model.submit_statuses.DONE)
+        self.assertEqual(transaction.submit_status, 
+                         self.transaction_model.submit_statuses.DONE)
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.statuses.SUCCEEDED)
         debit_method.assert_called_once_with(transaction)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
@@ -646,6 +649,7 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(transaction.funding_instrument_uri, 'instrument1')
         self.assertEqual(transaction.submit_status,
                          self.transaction_model.submit_statuses.FAILED)
+        self.assertEqual(transaction.status, None)
 
         def update_instrument_uri(when, uri):
             with freeze_time(when):
@@ -666,6 +670,7 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(transaction.funding_instrument_uri, 'instrument2')
         self.assertEqual(transaction.submit_status,
                          self.transaction_model.submit_statuses.FAILED)
+        self.assertEqual(transaction.status, None)
 
         self.model_factory.settings['billy.transaction.maximum_retry'] = 1
         update_instrument_uri('2013-08-18', 'instrument3')
@@ -676,6 +681,7 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(transaction.funding_instrument_uri, 'instrument3')
         self.assertEqual(transaction.submit_status,
                          self.transaction_model.submit_statuses.RETRYING)
+        self.assertEqual(transaction.status, None)
 
         update_instrument_uri('2013-08-19', 'instrument4')
         self.assertEqual(invoice.status,
@@ -690,6 +696,7 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(transaction.funding_instrument_uri, 'instrument4')
         self.assertEqual(transaction.submit_status,
                          self.transaction_model.submit_statuses.RETRYING)
+        self.assertEqual(transaction.status, None)
 
         debit_method.side_effect = None
         debit_method.return_value = dict(
@@ -710,6 +717,8 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(transaction.processor_uri, 'MOCK_DEBIT_URI')
         self.assertEqual(transaction.submit_status,
                          self.transaction_model.submit_statuses.DONE)
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.statuses.SUCCEEDED)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
     def test_update_invoice_funding_instrument_uri_with_zero_amount(self, debit_method):
@@ -778,6 +787,8 @@ class TestInvoiceViews(ViewTestCase):
         refund_method.assert_called_once_with(transaction)
         self.assertEqual(transaction.funding_instrument_uri, None)
         self.assertEqual(transaction.amount, 1234)
+        self.assertEqual(transaction.status, 
+                         self.transaction_model.statuses.SUCCEEDED)
         self.assertEqual(transaction.submit_status, self.transaction_model.submit_statuses.DONE)
         self.assertEqual(transaction.transaction_type,
                          self.transaction_model.types.REFUND)
@@ -817,7 +828,10 @@ class TestInvoiceViews(ViewTestCase):
             refund_method.assert_called_with(transaction)
             self.assertEqual(transaction.funding_instrument_uri, None)
             self.assertEqual(transaction.amount, amount)
-            self.assertEqual(transaction.submit_status, self.transaction_model.submit_statuses.DONE)
+            self.assertEqual(transaction.status, 
+                             self.transaction_model.statuses.SUCCEEDED)
+            self.assertEqual(transaction.submit_status, 
+                             self.transaction_model.submit_statuses.DONE)
             self.assertEqual(transaction.transaction_type,
                              self.transaction_model.types.REFUND)
             self.assertEqual(transaction.appears_on_statement_as, None)

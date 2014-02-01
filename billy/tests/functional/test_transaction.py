@@ -54,6 +54,7 @@ class TestTransactionViews(ViewTestCase):
                          transaction.funding_instrument_uri)
         self.assertEqual(res.json['transaction_type'], 'debit')
         self.assertEqual(res.json['submit_status'], 'staged')
+        self.assertEqual(res.json['status'], None)
         self.assertEqual(res.json['failure_count'], 0)
         self.assertEqual(res.json['failures'], [])
         self.assertEqual(res.json['processor_uri'], None)

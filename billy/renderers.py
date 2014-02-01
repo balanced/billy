@@ -120,6 +120,7 @@ def transaction_adapter(transaction, request):
         invoice_guid=transaction.invoice_guid,
         transaction_type=enum_symbol(transaction.transaction_type),
         submit_status=enum_symbol(transaction.submit_status),
+        status=enum_symbol(transaction.status),
         amount=transaction.amount,
         funding_instrument_uri=transaction.funding_instrument_uri,
         processor_uri=transaction.processor_uri,
@@ -142,6 +143,8 @@ def transaction_failure_adapter(transaction_failure, request):
 
 
 def enum_symbol(enum_value):
+    if enum_value is None:
+        return enum_value
     return str(enum_value).lower()
 
 

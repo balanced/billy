@@ -166,6 +166,13 @@ class BalancedProcessor(PaymentProcessor):
             resource = None
         return resource
 
+    def _resource_to_result(self, res):
+        status = TransactionModel.statuses.from_string(res.state.upper())
+        return dict(
+            processor_uri=res.uri,
+            status=status,
+        )
+
     def _do_transaction(
         self,
         transaction,
@@ -177,14 +184,14 @@ class BalancedProcessor(PaymentProcessor):
 
         # do existing check before creation to make sure we won't duplicate
         # transaction in Balanced service
-        resource = self._get_resource_by_tx_guid(resource_cls, transaction.guid)
+        record = self._get_resource_by_tx_guid(resource_cls, transaction.guid)
         # We already have a record there in Balanced, this means we once did
         # transaction, however, we failed to update database. No need to do
         # it again, just return the URI
-        if resource is not None:
+        if record is not None:
             self.logger.warn('Balanced transaction record for %s already '
                              'exist', transaction.guid)
-            return resource.uri
+            return self._resource_to_result(record)
 
         # TODO: handle error here
         # get balanced customer record
@@ -213,7 +220,7 @@ class BalancedProcessor(PaymentProcessor):
         self.logger.debug('Calling %s with args %s', method.__name__, kwargs)
         record = method(**kwargs)
         self.logger.info('Called %s with args %s', method.__name__, kwargs)
-        return record.uri
+        return self._resource_to_result(record)
 
     @ensure_api_key_configured
     def debit(self, transaction):

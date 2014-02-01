@@ -210,7 +210,7 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(adjustment_result, adjustments)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
-    def test_create_invoice_with_funding_instrument_uri(self, charge_method):
+    def test_create_invoice_with_funding_instrument_uri(self, debit_method):
         amount = 5566
         funding_instrument_uri = 'MOCK_CARD_URI'
         now = datetime.datetime.utcnow()
@@ -220,7 +220,10 @@ class TestInvoiceViews(ViewTestCase):
         ]
         adjustment_params = self._encode_adjustment_params(adjustments)
 
-        charge_method.return_value = 'MOCK_DEBIT_URI'
+        debit_method.return_value = dict(
+            processor_uri='MOCK_DEBIT_URI',
+            status=self.transaction_model.statuses.SUCCEEDED,
+        )
 
         res = self.testapp.post(
             '/v1/invoices',
@@ -250,13 +253,16 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(transaction.processor_uri,
                          'MOCK_DEBIT_URI')
         self.assertEqual(transaction.submit_status, self.transaction_model.submit_statuses.DONE)
-        charge_method.assert_called_once_with(transaction)
+        debit_method.assert_called_once_with(transaction)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
-    def test_create_invoice_with_funding_instrument_uri_with_zero_amount(self, charge_method):
+    def test_create_invoice_with_funding_instrument_uri_with_zero_amount(self, debit_method):
         amount = 0
         funding_instrument_uri = 'MOCK_CARD_URI'
-        charge_method.return_value = 'MOCK_DEBIT_URI'
+        debit_method.return_value = dict(
+            processor_uri='MOCK_DEBIT_URI',
+            status=self.transaction_model.statuses.SUCCEEDED,
+        )
 
         res = self.testapp.post(
             '/v1/invoices',
@@ -272,7 +278,7 @@ class TestInvoiceViews(ViewTestCase):
 
         invoice = self.invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 0)
-        self.assertFalse(charge_method.called)
+        self.assertFalse(debit_method.called)
 
     def test_create_invoice_with_bad_parameters(self):
         def assert_bad_parameters(params):
@@ -546,10 +552,13 @@ class TestInvoiceViews(ViewTestCase):
         )
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
-    def test_update_invoice_funding_instrument_uri(self, charge_method):
+    def test_update_invoice_funding_instrument_uri(self, debit_method):
         amount = 5566
         funding_instrument_uri = 'MOCK_CARD_URI'
-        charge_method.return_value = 'MOCK_DEBIT_URI'
+        debit_method.return_value = dict(
+            processor_uri='MOCK_DEBIT_URI',
+            status=self.transaction_model.statuses.SUCCEEDED,
+        )
 
         res = self.testapp.post(
             '/v1/invoices',
@@ -580,14 +589,17 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(transaction.processor_uri,
                          'MOCK_DEBIT_URI')
         self.assertEqual(transaction.submit_status, self.transaction_model.submit_statuses.DONE)
-        charge_method.assert_called_once_with(transaction)
+        debit_method.assert_called_once_with(transaction)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
     def test_update_invoice_funding_instrument_uri_for_settled_invoice(
         self,
-        charge_method,
+        debit_method,
     ):
-        charge_method.return_value = 'MOCK_DEBIT_URI'
+        debit_method.return_value = dict(
+            processor_uri='MOCK_DEBIT_URI',
+            status=self.transaction_model.statuses.SUCCEEDED,
+        )
         res = self.testapp.post(
             '/v1/invoices',
             dict(
@@ -610,11 +622,11 @@ class TestInvoiceViews(ViewTestCase):
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
     def test_update_invoice_funding_instrument_uri_with_mutiple_failures(
         self,
-        charge_method
+        debit_method
     ):
         # make it fail immediately
         self.model_factory.settings['billy.transaction.maximum_retry'] = 0
-        charge_method.side_effect = RuntimeError('Ouch!')
+        debit_method.side_effect = RuntimeError('Ouch!')
 
         res = self.testapp.post(
             '/v1/invoices',
@@ -679,8 +691,11 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(transaction.submit_status,
                          self.transaction_model.submit_statuses.RETRYING)
 
-        charge_method.side_effect = None
-        charge_method.return_value = 'MOCK_DEBIT_URI'
+        debit_method.side_effect = None
+        debit_method.return_value = dict(
+            processor_uri='MOCK_DEBIT_URI',
+            status=self.transaction_model.statuses.SUCCEEDED,
+        )
         update_instrument_uri('2013-08-20', 'instrument5')
         self.assertEqual(invoice.status,
                          self.invoice_model.statuses.SETTLED)
@@ -697,10 +712,13 @@ class TestInvoiceViews(ViewTestCase):
                          self.transaction_model.submit_statuses.DONE)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
-    def test_update_invoice_funding_instrument_uri_with_zero_amount(self, charge_method):
+    def test_update_invoice_funding_instrument_uri_with_zero_amount(self, debit_method):
         amount = 0
         funding_instrument_uri = 'MOCK_CARD_URI'
-        charge_method.return_value = 'MOCK_DEBIT_URI'
+        debit_method.return_value = dict(
+            processor_uri='MOCK_DEBIT_URI',
+            status=self.transaction_model.statuses.SUCCEEDED,
+        )
 
         res = self.testapp.post(
             '/v1/invoices',
@@ -713,7 +731,7 @@ class TestInvoiceViews(ViewTestCase):
         )
         self.failUnless('guid' in res.json)
         self.assertEqual(res.json['funding_instrument_uri'], None)
-        self.assertFalse(charge_method.called)
+        self.assertFalse(debit_method.called)
         guid = res.json['guid']
 
         res = self.testapp.put(
@@ -728,11 +746,14 @@ class TestInvoiceViews(ViewTestCase):
 
         invoice = self.invoice_model.get(res.json['guid'])
         self.assertEqual(len(invoice.transactions), 0)
-        self.assertFalse(charge_method.called)
+        self.assertFalse(debit_method.called)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.refund')
     def test_invoice_refund(self, refund_method):
-        refund_method.return_value = 'MOCK_REFUND_URI'
+        refund_method.return_value = dict(
+            processor_uri='MOCK_REFUND_URI',
+            status=self.transaction_model.statuses.SUCCEEDED,
+        )
         res = self.testapp.post(
             '/v1/invoices',
             dict(
@@ -765,7 +786,10 @@ class TestInvoiceViews(ViewTestCase):
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.refund')
     def test_invoice_mutiple_refund(self, refund_method):
-        refund_method.return_value = 'MOCK_REFUND_URI'
+        refund_method.return_value = dict(
+            processor_uri='MOCK_REFUND_URI',
+            status=self.transaction_model.statuses.SUCCEEDED,
+        )
         res = self.testapp.post(
             '/v1/invoices',
             dict(
@@ -832,8 +856,8 @@ class TestInvoiceViews(ViewTestCase):
         self.assertEqual(len(invoice.transactions), 0)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
-    def test_invoice_cancel_while_processing(self, charge_method):
-        charge_method.side_effect = RuntimeError('Shit!')
+    def test_invoice_cancel_while_processing(self, debit_method):
+        debit_method.side_effect = RuntimeError('Shit!')
         res = self.testapp.post(
             '/v1/invoices',
             dict(

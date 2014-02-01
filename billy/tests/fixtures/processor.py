@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+from billy.models.transaction import TransactionModel
+
 
 class DummyProcessor(object):
 
@@ -30,12 +32,21 @@ class DummyProcessor(object):
 
     def debit(self, transaction):
         self._check_api_key()
-        return 'MOCK_DEBIT_TX_ID'
+        return dict(
+            processor_uri='MOCK_DEBIT_TX_URI',
+            status=TransactionModel.statuses.SUCCEEDED,
+        )
 
     def credit(self, transaction):
         self._check_api_key()
-        return 'MOCK_CREDIT_TX_ID'
+        return dict(
+            processor_uri='MOCK_CREDIT_TX_URI',
+            status=TransactionModel.statuses.SUCCEEDED,
+        )
 
     def refund(self, transaction):
         self._check_api_key()
-        return 'MOCK_REFUND_TX_ID'
+        return dict(
+            processor_uri='MOCK_REFUND_TX_URI',
+            status=TransactionModel.statuses.SUCCEEDED,
+        )

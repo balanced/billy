@@ -17,6 +17,8 @@ class TransactionModel(BaseTableModel):
 
     submit_statuses = tables.TransactionSubmitStatus
 
+    statuses = tables.TransactionStatus
+
     @property
     def maximum_retry(self):
         maximum_retry = int(self.factory.settings.get(
@@ -238,7 +240,7 @@ class TransactionModel(BaseTableModel):
                 funding_instrument_uri=transaction.funding_instrument_uri,
             )
             # do charge/payout/refund
-            transaction_id = method(transaction)
+            result = method(transaction)
         except (SystemExit, KeyboardInterrupt):
             raise
         except Exception, e:
@@ -270,10 +272,8 @@ class TransactionModel(BaseTableModel):
             self.session.flush()
             return
 
-        # TODO: ah... actually, some transactions cannot be really done
-        # oneline, in that case, we should use callback from processor
-        # to change the transaction status
-        transaction.processor_uri = transaction_id
+        transaction.processor_uri = result['processor_uri']
+        transaction.status = result['status']
         transaction.submit_status = self.submit_statuses.DONE
         transaction.updated_at = tables.now_func()
 
@@ -285,9 +285,10 @@ class TransactionModel(BaseTableModel):
             transaction.invoice.status = invoice_model.statuses.SETTLED
        
         self.session.flush()
-        self.logger.info('Processed transaction %s, submit_status=%s, external_id=%s',
+        self.logger.info('Processed transaction %s, submit_status=%s, '
+                         'result=%s',
                          transaction.guid, transaction.submit_status,
-                         transaction.processor_uri)
+                         result)
 
     def process_transactions(self, transactions=None):
         """Process all transactions

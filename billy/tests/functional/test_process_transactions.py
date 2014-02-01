@@ -12,6 +12,7 @@ import transaction as db_transaction
 from pyramid.paster import get_appsettings
 
 from billy.models import setup_database
+from billy.models.transaction import TransactionModel
 from billy.models.model_factory import ModelFactory
 from billy.scripts import initializedb
 from billy.scripts import process_transactions
@@ -72,10 +73,16 @@ class TestProcessTransactions(unittest.TestCase):
                 raise KeyboardInterrupt
             uri = 'MOCK_DEBIT_URI_FOR_{}'.format(transaction.guid)
             if transaction.guid in tx_guids:
-                return uri
+                return dict(
+                    processor_uri=uri,
+                    status=TransactionModel.statuses.SUCCEEDED,
+                )
             tx_guids.add(transaction.guid)
             debits.append(uri)
-            return uri
+            return dict(
+                processor_uri=uri,
+                status=TransactionModel.statuses.SUCCEEDED,
+            )
 
         dummy_processor.debit.side_effect = mock_charge
 

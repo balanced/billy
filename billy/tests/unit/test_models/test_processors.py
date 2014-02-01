@@ -222,7 +222,10 @@ class TestBalancedProcessorModel(ModelTestCase):
         page = mock.Mock()
         page.one.side_effect = balanced.exc.NoResultFound
         # mock resource
-        resource = mock.Mock(uri='MOCK_BALANCED_RESOURCE_URI')
+        resource = mock.Mock(
+            uri='MOCK_BALANCED_RESOURCE_URI',
+            state='succeeded',
+        )
         # mock customer instance
         balanced_customer = mock.Mock()
         api_method = getattr(balanced_customer, api_method_name)
@@ -240,8 +243,10 @@ class TestBalancedProcessorModel(ModelTestCase):
             **{cls_name: Resource}
         )
         method = getattr(processor, processor_method_name)
-        balanced_tx_id = method(transaction)
-        self.assertEqual(balanced_tx_id, 'MOCK_BALANCED_RESOURCE_URI')
+        result = method(transaction)
+        self.assertEqual(result['processor_uri'], 'MOCK_BALANCED_RESOURCE_URI')
+        self.assertEqual(result['status'],
+                         self.transaction_model.statuses.SUCCEEDED)
         # make sure the customer find method is called
         BalancedCustomer.find.assert_called_once_with(self.customer.processor_uri)
         # make sure query is made correctly
@@ -276,7 +281,10 @@ class TestBalancedProcessorModel(ModelTestCase):
             )
 
         # mock resource
-        resource = mock.Mock(uri='MOCK_BALANCED_RESOURCE_URI')
+        resource = mock.Mock(
+            uri='MOCK_BALANCED_RESOURCE_URI',
+            state='succeeded',
+        )
         # mock page
         page = mock.Mock()
         page.one.return_value = resource
@@ -297,8 +305,10 @@ class TestBalancedProcessorModel(ModelTestCase):
             **{cls_name: Resource}
         )
         method = getattr(processor, processor_method_name)
-        balanced_res_uri = method(transaction)
-        self.assertEqual(balanced_res_uri, 'MOCK_BALANCED_RESOURCE_URI')
+        result = method(transaction)
+        self.assertEqual(result['processor_uri'], 'MOCK_BALANCED_RESOURCE_URI')
+        self.assertEqual(result['status'],
+                         self.transaction_model.statuses.SUCCEEDED)
 
         # make sure the api method is not called
         self.assertFalse(Customer.find.called)
@@ -367,7 +377,10 @@ class TestBalancedProcessorModel(ModelTestCase):
         page.one.side_effect = balanced.exc.NoResultFound
         # mock debit instance
         debit = mock.Mock()
-        debit.refund.return_value = mock.Mock(uri='MOCK_REFUND_URI')
+        debit.refund.return_value = mock.Mock(
+            uri='MOCK_REFUND_URI',
+            state='succeeded',
+        )
         debit.refund.__name__ = 'refund'
         # mock customer class
         Customer = mock.Mock()
@@ -384,8 +397,10 @@ class TestBalancedProcessorModel(ModelTestCase):
             debit_cls=Debit,
             customer_cls=Customer,
         )
-        refund_uri = processor.refund(transaction)
-        self.assertEqual(refund_uri, 'MOCK_REFUND_URI')
+        result = processor.refund(transaction)
+        self.assertEqual(result['processor_uri'], 'MOCK_REFUND_URI')
+        self.assertEqual(result['status'],
+                         self.transaction_model.statuses.SUCCEEDED)
 
         Debit.find.assert_called_once_with(transaction.reference_to.processor_uri)
         description = (
@@ -404,13 +419,19 @@ class TestBalancedProcessorModel(ModelTestCase):
         transaction = self._create_refund_transaction()
 
         # mock resource
-        resource = mock.Mock(uri='MOCK_BALANCED_REFUND_URI')
+        resource = mock.Mock(
+            uri='MOCK_BALANCED_REFUND_URI',
+            state='succeeded',
+        )
         # mock page
         page = mock.Mock()
         page.one.return_value = resource
         # mock debit instance
         debit = mock.Mock()
-        debit.refund.return_value = mock.Mock(uri='MOCK_REFUND_URI')
+        debit.refund.return_value = mock.Mock(
+            uri='MOCK_REFUND_URI',
+            state='succeeded',
+        )
         debit.refund.__name__ = 'refund'
         # mock customer class
         Customer = mock.Mock()
@@ -427,8 +448,10 @@ class TestBalancedProcessorModel(ModelTestCase):
             debit_cls=Debit,
             customer_cls=Customer,
         )
-        refund_uri = processor.refund(transaction)
-        self.assertEqual(refund_uri, 'MOCK_BALANCED_REFUND_URI')
+        result = processor.refund(transaction)
+        self.assertEqual(result['processor_uri'], 'MOCK_BALANCED_REFUND_URI')
+        self.assertEqual(result['status'],
+                         self.transaction_model.statuses.SUCCEEDED)
 
         # make sure we won't duplicate refund
         self.assertFalse(debit.refund.called)

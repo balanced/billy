@@ -95,7 +95,7 @@ class TestSubscriptionViews(ViewTestCase):
         validate_funding_instrument_method.assert_called_once_with('BAD_INSTRUMENT_URI')
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
-    def test_create_subscription(self, charge_method):
+    def test_create_subscription(self, debit_method):
         amount = 5566
         funding_instrument_uri = 'MOCK_CARD_URI'
         appears_on_statement_as = 'hello baby'
@@ -104,7 +104,10 @@ class TestSubscriptionViews(ViewTestCase):
         # next week
         next_invoice_at = datetime.datetime(2013, 8, 23)
         next_iso = next_invoice_at.isoformat()
-        charge_method.return_value = 'MOCK_DEBIT_URI'
+        debit_method.return_value = dict(
+            processor_uri='MOCK_DEBIT_URI',
+            status=self.transaction_model.statuses.SUCCEEDED,
+        )
 
         res = self.testapp.post(
             '/v1/subscriptions',
@@ -149,7 +152,7 @@ class TestSubscriptionViews(ViewTestCase):
                          appears_on_statement_as)
 
         transaction = invoice.transactions[0]
-        charge_method.assert_called_once_with(transaction)
+        debit_method.assert_called_once_with(transaction)
         self.assertEqual(transaction.processor_uri,
                          'MOCK_DEBIT_URI')
         self.assertEqual(transaction.submit_status, self.transaction_model.submit_statuses.DONE)
@@ -160,9 +163,9 @@ class TestSubscriptionViews(ViewTestCase):
                          self.transaction_model.types.DEBIT)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
-    def test_create_subscription_with_charge_failure(self, charge_method):
+    def test_create_subscription_with_charge_failure(self, debit_method):
         error = RuntimeError('Oops!')
-        charge_method.side_effect = error
+        debit_method.side_effect = error
 
         res = self.testapp.post(
             '/v1/subscriptions',
@@ -204,11 +207,11 @@ class TestSubscriptionViews(ViewTestCase):
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
     def test_create_subscription_with_charge_failure_exceed_limit(
         self,
-        charge_method,
+        debit_method,
     ):
         self.model_factory.settings['billy.transaction.maximum_retry'] = 3
         error = RuntimeError('Oops!')
-        charge_method.side_effect = error
+        debit_method.side_effect = error
 
         res = self.testapp.post(
             '/v1/subscriptions',

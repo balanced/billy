@@ -31,6 +31,18 @@ class TransactionSubmitStatus(DeclEnum):
     CANCELED = 'CANCELED', 'Canceled'
 
 
+class TransactionStatus(DeclEnum):
+
+    STAGED = 'STAGED', 'Staged'
+    SUBMITTING = 'SUBMITTING', 'Submitting'
+    REVERTED = 'REVERTED', 'Reverted'
+    PENDING = 'PENDING', 'Pending'
+    SUBMITTED = 'SUBMITTED', 'Submitted'
+    SUCCEEDED = 'SUCCEEDED', 'Succeeded'
+    FAILED = 'FAILED', 'Failed'
+    CANCELED = 'CANCELED', 'Canceled'
+
+
 class Transaction(DeclarativeBase):
     """A transaction
 
@@ -67,6 +79,8 @@ class Transaction(DeclarativeBase):
     #: current submition status of this transaction
     submit_status = Column(TransactionSubmitStatus.db_type(), index=True,
                            nullable=False)
+    #: current status in underlying payment processor
+    status = Column(TransactionStatus.db_type(), index=True)
     #: the amount to do transaction (charge, payout or refund)
     amount = Column(Integer, nullable=False)
     #: the funding instrument URI
@@ -134,6 +148,7 @@ class TransactionFailure(DeclarativeBase):
 __all__ = [
     TransactionType.__name__,
     TransactionSubmitStatus.__name__,
+    TransactionStatus.__name__,
     Transaction.__name__,
     TransactionFailure.__name__,
 ]

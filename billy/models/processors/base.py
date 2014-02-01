@@ -44,7 +44,8 @@ class PaymentProcessor(object):
         raise NotImplementedError
 
     def debit(self, transaction):
-        """Charge from a bank acount or credit card
+        """Charge from a bank acount or credit card, return a dict with
+        `processor_uri` and `status` keys
 
         """
         raise NotImplementedError

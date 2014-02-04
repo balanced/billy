@@ -91,7 +91,7 @@ def get_git_rev(project_dir=None):
 
 
 def utc_now():
-    """Like datetime.datetime.utcnow(), but the datetime.tzinfo will be 
+    """Like datetime.datetime.utcnow(), but the datetime.tzinfo will be
     pytz.utc
 
     """

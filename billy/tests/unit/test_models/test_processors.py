@@ -5,7 +5,6 @@ import unittest
 import mock
 import balanced
 import transaction as db_transaction
-import pytz
 from freezegun import freeze_time
 
 from billy.models.processors.base import PaymentProcessor

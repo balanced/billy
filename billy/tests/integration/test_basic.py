@@ -292,7 +292,7 @@ class TestBasicScenarios(IntegrationTestCase):
     def _to_json(self, input_obj):
         def dt_handler(obj):
             if (
-                isinstance(obj, datetime.datetime) or 
+                isinstance(obj, datetime.datetime) or
                 isinstance(obj, datetime.date)
             ):
                 return obj.isoformat()

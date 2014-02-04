@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import datetime
 
 import transaction as db_transaction
 from freezegun import freeze_time
@@ -12,6 +11,7 @@ from billy.renderers import invoice_adapter
 from billy.renderers import transaction_adapter
 from billy.renderers import transaction_failure_adapter
 from billy.tests.functional.helper import ViewTestCase
+from billy.utils.generic import utc_now
 
 
 @freeze_time('2013-08-16')
@@ -68,7 +68,7 @@ class TestRenderer(ViewTestCase):
                     dict(amount=20, reason='A Lannister always pays his debts!'),
                     dict(amount=3),
                 ],
-                scheduled_at=datetime.datetime.utcnow(),
+                scheduled_at=utc_now(),
             )
             self.transaction = self.transaction_model.create(
                 invoice=self.customer_invoice,
@@ -97,6 +97,21 @@ class TestRenderer(ViewTestCase):
         expected = dict(
             guid=company.guid,
             api_key=company.api_key,
+            created_at=company.created_at.isoformat(),
+            updated_at=company.updated_at.isoformat(),
+        )
+        self.assertEqual(json_data, expected)
+
+    def test_company_with_callback_key(self):
+        company = self.company
+        self.dummy_request.registry.settings = {}
+        settings = self.dummy_request.registry.settings
+        settings['billy.company.display_callback_key'] = True
+        json_data = company_adapter(company, self.dummy_request)
+        expected = dict(
+            guid=company.guid,
+            api_key=company.api_key,
+            callback_key=company.callback_key,
             created_at=company.created_at.isoformat(),
             updated_at=company.updated_at.isoformat(),
         )
@@ -257,7 +272,7 @@ class TestRenderer(ViewTestCase):
             json_data = subscription_adapter(subscription, self.dummy_request)
             self.assertEqual(json_data['canceled_at'], expected_canceled_at)
 
-        now = datetime.datetime.utcnow()
+        now = utc_now()
         assert_canceled_at(None, None)
         assert_canceled_at(now, now.isoformat())
 

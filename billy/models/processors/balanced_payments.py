@@ -5,6 +5,7 @@ import functools
 import balanced
 
 from billy.models.transaction import TransactionModel
+from billy.models.transaction import OutdatedEventError
 from billy.models.processors.base import PaymentProcessor
 from billy.errors import BillyError
 
@@ -121,6 +122,10 @@ class BalancedProcessor(PaymentProcessor):
                 event.entity.status,
             )
             status = TransactionModel.statuses.PENDING
+        self.logger.info(
+            'Transaction billy_guid=%s, entity_status=%s, new_status=%s, '
+            'occurred_at=%s', guid, event.entity.status, status, occurred_at,
+        )
 
         def update_db(model_factory):
             transaction_model = model_factory.create_transaction_model()
@@ -131,7 +136,11 @@ class BalancedProcessor(PaymentProcessor):
                 raise InvalidCallbackPayload('No access to other company')
             try:
                 transaction_model.update_status(transaction, status, occurred_at)
-            except ValueError:
+            except OutdatedEventError:
+                self.logger.warn(
+                    'Updated with outdated event, status_updated_at=%s, occurred_at=%s',
+                    transaction.status_updated_at, occurred_at,
+                )
                 raise InvalidCallbackPayload('Cannot update transaction with an outdated event')
 
         return update_db

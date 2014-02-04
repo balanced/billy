@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import datetime
 
 import mock
 import transaction as db_transaction
@@ -7,6 +6,7 @@ from freezegun import freeze_time
 
 from billy.tests.functional.helper import ViewTestCase
 from billy.errors import BillyError
+from billy.utils.generic import utc_now
 
 
 @freeze_time('2013-08-16')
@@ -61,7 +61,7 @@ class TestInvoiceViews(ViewTestCase):
         title = 'foobar invoice'
         external_id = 'external ID'
         appears_on_statement_as = 'hello baby'
-        now = datetime.datetime.utcnow()
+        now = utc_now()
         now_iso = now.isoformat()
 
         res = self.testapp.post(
@@ -213,7 +213,7 @@ class TestInvoiceViews(ViewTestCase):
     def test_create_invoice_with_funding_instrument_uri(self, debit_method):
         amount = 5566
         funding_instrument_uri = 'MOCK_CARD_URI'
-        now = datetime.datetime.utcnow()
+        now = utc_now()
         now_iso = now.isoformat()
         adjustments = [
             dict(amount=-100, reason='A Lannister always pays his debts!'),

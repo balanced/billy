@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import datetime
 
 import mock
 import transaction as db_transaction
@@ -7,6 +6,7 @@ from freezegun import freeze_time
 
 from billy.tests.functional.helper import ViewTestCase
 from billy.errors import BillyError
+from billy.utils.generic import utc_now
 
 
 @freeze_time('2013-08-16')
@@ -34,7 +34,7 @@ class TestCustomerViews(ViewTestCase):
         validate_customer_method,
         configure_api_key_method,
     ):
-        now = datetime.datetime.utcnow()
+        now = utc_now()
         now_iso = now.isoformat()
         validate_customer_method.return_value = True
 

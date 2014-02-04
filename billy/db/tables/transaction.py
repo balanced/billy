@@ -4,12 +4,12 @@ from sqlalchemy import Column
 from sqlalchemy import Integer
 from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
-from sqlalchemy import DateTime
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.orm import backref
 from sqlalchemy.orm import relationship
 
 from .base import DeclarativeBase
+from .base import UTCDateTime
 from .base import now_func
 from ..enum import DeclEnum
 
@@ -81,11 +81,11 @@ class Transaction(DeclarativeBase):
     #: the funding instrument URI
     funding_instrument_uri = Column(Unicode(128), index=True)
     #: the created datetime of this transaction
-    created_at = Column(DateTime, default=now_func)
+    created_at = Column(UTCDateTime, default=now_func)
     #: the updated datetime of this transaction
-    updated_at = Column(DateTime, default=now_func)
+    updated_at = Column(UTCDateTime, default=now_func)
     #: the last updated datetime of status (for checking freshness of event from Balanced)
-    status_updated_at = Column(DateTime)
+    status_updated_at = Column(UTCDateTime)
 
     #: target transaction of refund/reverse transaction
     reference_to = relationship(
@@ -152,7 +152,7 @@ class TransactionFailure(DeclarativeBase):
     #: error code
     error_code = Column(Unicode(64))
     #: the created datetime of this failure
-    created_at = Column(DateTime, default=now_func)
+    created_at = Column(UTCDateTime, default=now_func)
 
 __all__ = [
     TransactionType.__name__,

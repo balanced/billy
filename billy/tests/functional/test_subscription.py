@@ -7,6 +7,8 @@ from freezegun import freeze_time
 
 from billy.tests.functional.helper import ViewTestCase
 from billy.errors import BillyError
+from billy.utils.generic import utc_now
+from billy.utils.generic import utc_datetime
 
 
 @freeze_time('2013-08-16')
@@ -99,10 +101,10 @@ class TestSubscriptionViews(ViewTestCase):
         amount = 5566
         funding_instrument_uri = 'MOCK_CARD_URI'
         appears_on_statement_as = 'hello baby'
-        now = datetime.datetime.utcnow()
+        now = utc_now()
         now_iso = now.isoformat()
         # next week
-        next_invoice_at = datetime.datetime(2013, 8, 23)
+        next_invoice_at = utc_datetime(2013, 8, 23)
         next_iso = next_invoice_at.isoformat()
         debit_method.return_value = dict(
             processor_uri='MOCK_DEBIT_URI',
@@ -355,10 +357,10 @@ class TestSubscriptionViews(ViewTestCase):
 
     def test_create_subscription_with_started_at(self):
         amount = 5566
-        now = datetime.datetime.utcnow()
+        now = utc_now()
         now_iso = now.isoformat()
         # next week
-        next_invoice_at = datetime.datetime(2013, 8, 17)
+        next_invoice_at = utc_datetime(2013, 8, 17)
         next_iso = next_invoice_at.isoformat()
 
         res = self.testapp.post(
@@ -384,7 +386,7 @@ class TestSubscriptionViews(ViewTestCase):
     def test_create_subscription_with_started_at_and_timezone(self):
         amount = 5566
         # next week
-        next_invoice_at = datetime.datetime(2013, 8, 17)
+        next_invoice_at = utc_datetime(2013, 8, 17)
         next_iso = next_invoice_at.isoformat()
         res = self.testapp.post(
             '/v1/subscriptions',
@@ -505,7 +507,7 @@ class TestSubscriptionViews(ViewTestCase):
             )
 
         with freeze_time('2013-08-16 07:00:00'):
-            canceled_at = datetime.datetime.utcnow()
+            canceled_at = utc_now()
             res = self.testapp.post(
                 '/v1/subscriptions/{}/cancel'.format(subscription.guid),
                 extra_environ=dict(REMOTE_USER=self.api_key),

@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+import datetime
+import json
 
 import balanced
 
@@ -286,3 +288,89 @@ class TestBasicScenarios(IntegrationTestCase):
             status=400
         )
         self.assertEqual(res.json['error_class'], 'InvalidFundingInstrument')
+
+    def _to_json(self, input_obj):
+        def dt_handler(obj):
+            if (
+                isinstance(obj, datetime.datetime) or 
+                isinstance(obj, datetime.date)
+            ):
+                return obj.isoformat()
+        return json.dumps(input_obj, default=dt_handler)
+
+    def test_callback(self):
+        balanced.configure(self.processor_key)
+        marketplace = balanced.Marketplace.find(self.marketplace_uri)
+
+        # create a card to charge
+        card = marketplace.create_card(
+            name='BILLY_INTERGRATION_TESTER',
+            card_number='5105105105105100',
+            expiration_month='12',
+            expiration_year='2020',
+            security_code='123',
+        )
+
+        # create a company
+        res = self.testapp.post(
+            '/v1/companies',
+            dict(processor_key=self.processor_key),
+            status=200
+        )
+        company = res.json
+        api_key = str(company['api_key'])
+
+        # create a customer
+        res = self.testapp.post(
+            '/v1/customers',
+            headers=[self.make_auth(api_key)],
+            status=200
+        )
+        customer = res.json
+        self.assertEqual(customer['company_guid'], company['guid'])
+
+        # create an invoice
+        res = self.testapp.post(
+            '/v1/invoices',
+            dict(
+                customer_guid=customer['guid'],
+                amount=1234,
+                title='Awesome invoice',
+                funding_instrument_uri=card.uri,
+            ),
+            headers=[self.make_auth(api_key)],
+        )
+
+        # transactions
+        res = self.testapp.get(
+            '/v1/transactions',
+            headers=[self.make_auth(api_key)],
+        )
+        transactions = res.json
+        self.assertEqual(len(transactions['items']), 1)
+        transaction = res.json['items'][0]
+
+        callback_uri = (
+            '/v1/companies/{}/callbacks/{}'
+            .format(company['guid'], company['callback_key'])
+        )
+        debit = balanced.Debit.find(transaction['processor_uri'])
+        for event in debit.events:
+            # simulate callback from Balanced API service
+            res = self.testapp.post(
+                callback_uri,
+                self._to_json(event.__dict__),
+                headers=[
+                    self.make_auth(api_key),
+                    (b'content-type', b'application/json')
+                ],
+            )
+            self.assertEqual(res.json['code'], 'ok')
+            res = self.testapp.get(
+                '/v1/transactions',
+                headers=[self.make_auth(api_key)],
+            )
+            transactions = res.json
+            self.assertEqual(len(transactions['items']), 1)
+            transaction = res.json['items'][0]
+            self.assertEqual(transaction['status'], 'succeeded')

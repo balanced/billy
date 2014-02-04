@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
-import datetime
 
 import transaction as db_transaction
 from freezegun import freeze_time
 
 from billy.tests.functional.helper import ViewTestCase
+from billy.utils.generic import utc_now
 
 
 @freeze_time('2013-08-16')
@@ -26,7 +26,7 @@ class TestPlanViews(ViewTestCase):
         amount = 5566
         frequency = 'weekly'
         interval = 123
-        now = datetime.datetime.utcnow()
+        now = utc_now()
         now_iso = now.isoformat()
 
         res = self.testapp.post(

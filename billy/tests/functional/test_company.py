@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
-import datetime
 import json
 
 import mock
 from freezegun import freeze_time
 
+from billy.utils.generic import utc_now
 from billy.tests.functional.helper import ViewTestCase
 
 
@@ -13,7 +13,7 @@ class TestCompanyViews(ViewTestCase):
 
     def test_create_company(self):
         processor_key = 'MOCK_PROCESSOR_KEY'
-        now = datetime.datetime.utcnow()
+        now = utc_now()
         now_iso = now.isoformat()
        
         res = self.testapp.post(

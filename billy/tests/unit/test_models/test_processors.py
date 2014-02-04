@@ -5,6 +5,7 @@ import unittest
 import mock
 import balanced
 import transaction as db_transaction
+import pytz
 from freezegun import freeze_time
 
 from billy.models.processors.base import PaymentProcessor
@@ -13,6 +14,7 @@ from billy.models.processors.balanced_payments import InvalidFundingInstrument
 from billy.models.processors.balanced_payments import InvalidCallbackPayload
 from billy.models.processors.balanced_payments import BalancedProcessor
 from billy.tests.unit.helper import ModelTestCase
+from billy.utils.generic import utc_now
 
 
 class TestPaymentProcessorModel(unittest.TestCase):
@@ -90,7 +92,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         if transaction_guid is None:
             transaction_guid = self.transaction.guid
         if occurred_at is None:
-            occurred_at = datetime.datetime.utcnow()
+            occurred_at = utc_now()
         event = mock.Mock(
             occurred_at=occurred_at,
             entity=mock.Mock(
@@ -133,12 +135,11 @@ class TestBalancedProcessorModel(ModelTestCase):
         self.assertEqual(update_db, None)
 
     def test_callback_with_outdated_event(self):
-        now = datetime.datetime.utcnow()
-
         with db_transaction.manager:
             self.transaction.status = self.transaction_model.statuses.SUCCEEDED
-            self.transaction.status_updated_at = now
+            self.transaction.status_updated_at = utc_now()
 
+        now = utc_now()
         past_time = now - datetime.timedelta(seconds=10)
         event = self.make_event(occurred_at=past_time)
         Event = mock.Mock()

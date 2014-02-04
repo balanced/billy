@@ -3,11 +3,11 @@ from __future__ import unicode_literals
 from sqlalchemy import Column
 from sqlalchemy import Unicode
 from sqlalchemy import Boolean
-from sqlalchemy import DateTime
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.orm import relationship
 
 from .base import DeclarativeBase
+from .base import UTCDateTime
 from .base import now_func
 
 
@@ -33,9 +33,9 @@ class Customer(DeclarativeBase):
     #: is this company deleted?
     deleted = Column(Boolean, default=False, nullable=False)
     #: the created datetime of this company
-    created_at = Column(DateTime, default=now_func)
+    created_at = Column(UTCDateTime, default=now_func)
     #: the updated datetime of this company
-    updated_at = Column(DateTime, default=now_func)
+    updated_at = Column(UTCDateTime, default=now_func)
 
     #: subscriptions of this customer
     subscriptions = relationship('Subscription', cascade='all, delete-orphan',

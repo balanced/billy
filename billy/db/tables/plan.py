@@ -5,11 +5,11 @@ from sqlalchemy import Integer
 from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
 from sqlalchemy import Boolean
-from sqlalchemy import DateTime
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.orm import relationship
 
 from .base import DeclarativeBase
+from .base import UTCDateTime
 from .base import now_func
 from ..enum import DeclEnum
 
@@ -65,9 +65,9 @@ class Plan(DeclarativeBase):
     #: is this plan deleted?
     deleted = Column(Boolean, default=False, nullable=False)
     #: the created datetime of this plan
-    created_at = Column(DateTime, default=now_func)
+    created_at = Column(UTCDateTime, default=now_func)
     #: the updated datetime of this plan
-    updated_at = Column(DateTime, default=now_func)
+    updated_at = Column(UTCDateTime, default=now_func)
 
     #: subscriptions of this plan
     subscriptions = relationship('Subscription', cascade='all, delete-orphan',

@@ -92,6 +92,10 @@ class CallbackView(BaseView):
 
     @view_config(request_method='POST')
     def post(self):
+        company = self.context.company
         processor = self.request.model_factory.create_processor()
-        processor.callback(self.context.company, self.request.json)
+        processor.configure_api_key(company.processor_key)
+        update_db = processor.callback(company, self.request.json)
+        with db_transaction.manager:
+            update_db(self.request.model_factory)
         return dict(code='ok')

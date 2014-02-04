@@ -1,17 +1,28 @@
 from __future__ import unicode_literals
 
 from pyramid.renderers import JSON
+from pyramid.settings import asbool
 
 from billy.db import tables
 from billy.models.invoice import InvoiceModel
 
 
 def company_adapter(company, request):
+    extra_args = {}
+    settings = request.registry.settings
+    if settings is None:
+        settings = {}
+    display_callback_key = asbool(
+        settings.get('billy.company.display_callback_key', False)
+    )
+    if display_callback_key:
+        extra_args['callback_key'] = company.callback_key
     return dict(
         guid=company.guid,
         api_key=company.api_key,
         created_at=company.created_at.isoformat(),
         updated_at=company.updated_at.isoformat(),
+        **extra_args
     )
 
 

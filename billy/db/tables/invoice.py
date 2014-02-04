@@ -3,13 +3,13 @@ from __future__ import unicode_literals
 from sqlalchemy import Column
 from sqlalchemy import Integer
 from sqlalchemy import Unicode
-from sqlalchemy import DateTime
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import object_session
 
 from .base import DeclarativeBase
+from .base import UTCDateTime
 from .base import now_func
 from ..enum import DeclEnum
 
@@ -65,9 +65,9 @@ class Invoice(DeclarativeBase):
     #: a short optional title of this invoice
     title = Column(Unicode(128))
     #: the created datetime of this invoice
-    created_at = Column(DateTime, default=now_func)
+    created_at = Column(UTCDateTime, default=now_func)
     #: the updated datetime of this invoice
-    updated_at = Column(DateTime, default=now_func)
+    updated_at = Column(UTCDateTime, default=now_func)
     #: the statement to appear on customer's transaction record (either
     #  bank account or credit card)
     appears_on_statement_as = Column(Unicode(32))
@@ -146,7 +146,7 @@ class SubscriptionInvoice(Invoice):
         nullable=False,
     )
     #: the scheduled datetime of this invoice should be processed
-    scheduled_at = Column(DateTime, default=now_func)
+    scheduled_at = Column(UTCDateTime, default=now_func)
 
     @property
     def customer(self):

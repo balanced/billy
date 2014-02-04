@@ -31,7 +31,6 @@ class ISO8601Field(Field):
             raise ValueError(self.gettext('Invalid ISO8601 datetime {}')
                              .format(valuelist[0]))
         self.data = self.data.astimezone(pytz.utc)
-        self.data = self.data.replace(tzinfo=None)
 
 
 class NoPastValidator(object):

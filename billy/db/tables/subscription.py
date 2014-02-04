@@ -4,11 +4,11 @@ from sqlalchemy import Column
 from sqlalchemy import Integer
 from sqlalchemy import Unicode
 from sqlalchemy import Boolean
-from sqlalchemy import DateTime
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.orm import relationship
 
 from .base import DeclarativeBase
+from .base import UTCDateTime
 from .base import now_func
 
 
@@ -52,15 +52,15 @@ class Subscription(DeclarativeBase):
     #: is this subscription canceled?
     canceled = Column(Boolean, default=False, nullable=False)
     #: the next datetime to charge or pay out
-    next_invoice_at = Column(DateTime, nullable=False)
+    next_invoice_at = Column(UTCDateTime, nullable=False)
     #: the started datetime of this subscription
-    started_at = Column(DateTime, nullable=False)
+    started_at = Column(UTCDateTime, nullable=False)
     #: the canceled datetime of this subscription
-    canceled_at = Column(DateTime, default=None)
+    canceled_at = Column(UTCDateTime, default=None)
     #: the created datetime of this subscription
-    created_at = Column(DateTime, default=now_func)
+    created_at = Column(UTCDateTime, default=now_func)
     #: the updated datetime of this subscription
-    updated_at = Column(DateTime, default=now_func)
+    updated_at = Column(UTCDateTime, default=now_func)
 
     #: invoices of this subscription
     invoices = relationship(

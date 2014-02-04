@@ -1,5 +1,8 @@
 from __future__ import unicode_literals
+import datetime
 
+import pytz
+from sqlalchemy import types
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import func
 
@@ -31,11 +34,29 @@ def now_func():
    
     """
     func = get_now_func()
-    return func()
+    dt = func()
+    if isinstance(dt, datetime.datetime):
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=pytz.utc)
+    return dt
+
+
+class UTCDateTime(types.TypeDecorator):
+
+    impl = types.DateTime
+
+    def process_bind_param(self, value, engine):
+        if value is not None:
+            return value.astimezone(pytz.utc)
+
+    def process_result_value(self, value, engine):
+        if value is not None:
+            return value.replace(tzinfo=pytz.utc)
 
 __all__ = [
     'DeclarativeBase',
     set_now_func.__name__,
     get_now_func.__name__,
     now_func.__name__,
+    UTCDateTime.__name__,
 ]

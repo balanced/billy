@@ -1,9 +1,18 @@
 from __future__ import unicode_literals
+import pytz
 
 from billy.db import tables
 from billy.models.base import BaseTableModel
 from billy.models.base import decorate_offset_limit
+from billy.errors import BillyError
 from billy.utils.generic import make_guid
+
+
+class OutdatedEventError(BillyError):
+    """This error indicates an outdated event (occured_at datetime) was given
+    to update_status method
+
+    """
 
 
 class TransactionModel(BaseTableModel):
@@ -206,11 +215,13 @@ class TransactionModel(BaseTableModel):
         # could pass previous `succeeded` event to us again. If we don't check
         # the freshness of given event, we will be fooled to change status back
         # to `succeeded` event it's actually failed
-        if (
-            transaction.status_updated_at is not None and
-            occured_at < transaction.status_updated_at
-        ):
-            raise ValueError('Cannot update transaction status with an old event')
+        occured_at = occured_at.astimezone(pytz.utc)
+        status_updated_at = transaction.status_updated_at
+        if status_updated_at is not None:
+            if (occured_at < status_updated_at):
+                raise OutdatedEventError(
+                    'Cannot update transaction status with an old event',
+                )
 
         now = tables.now_func()
         old_status = transaction.status

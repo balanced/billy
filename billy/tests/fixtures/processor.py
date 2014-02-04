@@ -15,6 +15,13 @@ class DummyProcessor(object):
     def configure_api_key(self, api_key):
         self.api_key = api_key
 
+    def callback(self, company, payload):
+
+        def update_db(model_factory):
+            pass
+
+        return update_db
+
     def create_customer(self, customer):
         self._check_api_key()
         return self.processor_uri

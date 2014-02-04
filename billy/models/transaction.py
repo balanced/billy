@@ -190,6 +190,41 @@ class TransactionModel(BaseTableModel):
             raise TypeError('Unknown attributes {} to update'.format(tuple(kwargs.keys())))
         self.session.flush()
 
+    def update_status(self, transaction, status, occured_at):
+        """Update status of transaction from callback
+
+        """
+        # Notice: this is mainly for avoiding attacks like passing
+        # old events to fool us. For example, if we have events which
+        # changes status of our transaction like this
+        #
+        #     pending, 2014-01-01
+        #     succeeded, 2014-01-02
+        #     failed, 2014-01-03
+        #
+        # The status of transaction went `failed` eventually. However, an attacker
+        # could pass previous `succeeded` event to us again. If we don't check
+        # the freshness of given event, we will be fooled to change status back
+        # to `succeeded` event it's actually failed
+        if (transaction.status_updated_at is not None and
+            occured_at < transaction.status_updated_at
+        ):
+            raise ValueError('Cannot update transaction status with an old event')
+
+        now = tables.now_func()
+        old_status = transaction.status
+        transaction.updated_at = now
+        transaction.status_updated_at = occured_at
+        transaction.status = status
+        # update invoice status
+        invoice_model = self.factory.create_invoice_model()
+        invoice_model.transaction_status_update(
+            invoice=transaction.invoice,
+            transaction=transaction,
+            original_status=old_status,
+        )
+        self.session.flush()
+
     def process_one(self, transaction):
         """Process one transaction
 
@@ -272,7 +307,7 @@ class TransactionModel(BaseTableModel):
             self.session.flush()
             return
 
-        old_status = transaction.invoice.status
+        old_status = transaction.status
         transaction.processor_uri = result['processor_uri']
         transaction.status = result['status']
         transaction.submit_status = self.submit_statuses.DONE

@@ -11,6 +11,16 @@ class PaymentProcessor(object):
         """
         raise NotImplementedError
 
+    def callback(self, company, payload):
+        """Callback from payment processor to update translation status
+
+        :param company: company to callback to
+        :param payload: the callback payload
+        :return: a function accepts `model_factory` argument, it performs
+            updating against database
+        """
+        raise NotImplementedError
+
     def create_customer(self, customer):
         """Create the customer record in payment processor
 

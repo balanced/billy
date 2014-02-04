@@ -29,6 +29,12 @@ class InvalidFundingInstrument(BillyError):
     """
 
 
+class InvalidCallbackPayload(BillyError):
+    """This error indicates the given callback payload is invalid
+
+    """
+
+
 def ensure_api_key_configured(func):
     """This decorator ensure the Balanced API key was configured before calling
     into the decorated function
@@ -62,6 +68,7 @@ class BalancedProcessor(PaymentProcessor):
         refund_cls=balanced.Refund,
         bank_account_cls=balanced.BankAccount,
         card_cls=balanced.Card,
+        event_cls=balanced.Event,
         logger=None,
     ):
         self.logger = logger or logging.getLogger(__name__)
@@ -71,6 +78,7 @@ class BalancedProcessor(PaymentProcessor):
         self.refund_cls = refund_cls
         self.bank_account_cls = bank_account_cls
         self.card_cls = card_cls
+        self.event_cls = event_cls
         self._configured_api_key = False
 
     def _to_cent(self, amount):
@@ -79,6 +87,51 @@ class BalancedProcessor(PaymentProcessor):
     def configure_api_key(self, api_key):
         balanced.configure(api_key)
         self._configured_api_key = True
+
+    @ensure_api_key_configured
+    def callback(self, company, payload):
+        self.logger.info(
+            'Handling callback company=%s, event_id=%s, event_type=%s',
+            company.guid, payload['id'], payload['type'],
+        )
+        self.logger.debug('Payload: %r', payload)
+        # Notice: get the event from Balanced API service to ensure the event
+        # in callback payload is real. If we don't do this here, it is
+        # possible attacker who knows callback_key of this company can forge
+        # a callback and make any invoice settled
+        try:
+            # TODO: what about ../../ or http:// https:// cases? fool us with URI tricks?
+            event = self.event_cls.find(payload['uri'])
+        except balanced.exc.BalancedError, e:
+            raise InvalidCallbackPayload(
+                'Invalid callback payload '
+                'BalancedError: {}'.format(e)
+            )
+
+        guid = event.entity.meta['billy.transaction_guid']
+        occurred_at = event.occurred_at
+        try:
+            status = self.STATUS_MAP[event.entity.status]
+        except KeyError:
+            self.logger.warn(
+                'Unknown status %s, default to pending',
+                event.entity.status,
+            )
+            status = TransactionModel.statuses.PENDING
+
+        def update_db(model_factory):
+            transaction_model = model_factory.create_transaction_model()
+            transaction = transaction_model.get(guid)
+            if transaction is None:
+                raise InvalidCallbackPayload('Transaction {} does not exist'.format(guid))
+            if transaction.company != company:
+                raise InvalidCallbackPayload('No access to other company')
+            try:
+                transaction_model.update_status(transaction, status, occurred_at)
+            except ValueError:
+                raise InvalidCallbackPayload('Cannot update transaction with an outdated event')
+
+        return update_db
 
     @ensure_api_key_configured
     def create_customer(self, customer):

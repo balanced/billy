@@ -21,6 +21,8 @@ class Company(DeclarativeBase):
     api_key = Column(Unicode(64), unique=True, index=True, nullable=False)
     #: the processor key (it would be balanced API key if we are using balanced)
     processor_key = Column(Unicode(64), index=True, nullable=False)
+    #: the name of callback in URI like /v1/callback/<KEY GOES HERE>
+    callback_key = Column(Unicode(64), index=True, unique=True, nullable=False)
     #: a short optional name of this company
     name = Column(Unicode(128))
     #: is this company deleted?

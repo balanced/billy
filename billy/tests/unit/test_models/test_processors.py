@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import datetime
 import unittest
 
 import mock
@@ -9,6 +10,7 @@ from freezegun import freeze_time
 from billy.models.processors.base import PaymentProcessor
 from billy.models.processors.balanced_payments import InvalidURIFormat
 from billy.models.processors.balanced_payments import InvalidFundingInstrument
+from billy.models.processors.balanced_payments import InvalidCallbackPayload
 from billy.models.processors.balanced_payments import BalancedProcessor
 from billy.tests.unit.helper import ModelTestCase
 
@@ -19,6 +21,7 @@ class TestPaymentProcessorModel(unittest.TestCase):
         processor = PaymentProcessor()
         for method_name in [
             'configure_api_key',
+            'callback',
             'validate_customer',
             'validate_funding_instrument',
             'create_customer',
@@ -29,7 +32,10 @@ class TestPaymentProcessorModel(unittest.TestCase):
         ]:
             with self.assertRaises(NotImplementedError):
                 method = getattr(processor, method_name)
-                method(None)
+                if method_name != 'callback':
+                    method(None)
+                else:
+                    method(None, None)
 
 
 @freeze_time('2013-08-16')
@@ -59,12 +65,100 @@ class TestBalancedProcessorModel(ModelTestCase):
                 customer=self.customer,
                 amount=100,
             )
+            self.transaction = self.transaction_model.create(
+                invoice=self.invoice,
+                transaction_type=self.transaction_model.types.DEBIT,
+                amount=10,
+                funding_instrument_uri='/v1/cards/tester',
+            )
 
     def make_one(self, configure_api_key=True, *args, **kwargs):
         processor = BalancedProcessor(*args, **kwargs)
         if configure_api_key:
             processor.configure_api_key('MOCK_API_KEY')
         return processor
+
+    def make_event(
+        self, 
+        transaction_guid=None,
+        occurred_at=None, 
+        status='succeeded',
+    ):
+        """Make a mock Balanced.Event instance and return
+
+        """
+        if transaction_guid is None:
+            transaction_guid = self.transaction.guid
+        if occurred_at is None:
+            occurred_at = datetime.datetime.utcnow()
+        event = mock.Mock(
+            occurred_at=occurred_at,
+            entity=mock.Mock(
+                meta={'billy.transaction_guid': transaction_guid},
+                status=status,
+            )
+        )
+        return event
+
+    def make_callback_payload(self):
+        return dict(
+            id='EVd3854a828d6711e3a2f7080027f9091f',
+            uri='MOCK_EVENT_URI',
+            type='debit.updated',
+        )
+
+    def test_callback(self):
+        event = self.make_event()
+        Event = mock.Mock()
+        Event.find.return_value = event
+
+        payload = self.make_callback_payload()
+        processor = self.make_one(event_cls=Event)
+        update_db = processor.callback(self.company, payload)
+        update_db(self.model_factory)
+
+        Event.find.assert_called_once('MOCK_EVENT_URI')
+        self.assertEqual(self.transaction.status, self.transaction_model.statuses.SUCCEEDED)
+        self.assertEqual(self.transaction.status_updated_at, event.occurred_at)
+
+    def test_callback_with_outdated_event(self):
+        now = datetime.datetime.utcnow()
+
+        with db_transaction.manager:
+            self.transaction.status = self.transaction_model.statuses.SUCCEEDED
+            self.transaction.status_updated_at = now
+
+        past_time = now - datetime.timedelta(seconds=10)
+        event = self.make_event(occurred_at=past_time)
+        Event = mock.Mock()
+        Event.find.return_value = event
+        payload = self.make_callback_payload()
+        processor = self.make_one(event_cls=Event)
+        with self.assertRaises(InvalidCallbackPayload):
+            update_db = processor.callback(self.company, payload)
+            update_db(self.model_factory)
+
+    def test_callback_with_other_company(self):
+        with db_transaction.manager:
+            other_company = self.company_model.create('MOCK_PROCESSOR_KEY')
+        event = self.make_event()
+        Event = mock.Mock()
+        Event.find.return_value = event
+        payload = self.make_callback_payload()
+        processor = self.make_one(event_cls=Event)
+        with self.assertRaises(InvalidCallbackPayload):
+            update_db = processor.callback(other_company, payload)
+            update_db(self.model_factory)
+
+    def test_callback_with_not_exist_transaction(self):
+        event = self.make_event('NOT_EXIST_GUID')
+        Event = mock.Mock()
+        Event.find.return_value = event
+        payload = self.make_callback_payload()
+        processor = self.make_one(event_cls=Event)
+        with self.assertRaises(InvalidCallbackPayload):
+            update_db = processor.callback(self.company, payload)
+            update_db(self.model_factory)
 
     def test_validate_customer(self):
         # mock class
@@ -113,6 +207,8 @@ class TestBalancedProcessorModel(ModelTestCase):
         processor = self.make_one(card_cls=Card)
         with self.assertRaises(InvalidFundingInstrument):
             processor.validate_funding_instrument('/v1/cards/invalid_card')
+        with self.assertRaises(InvalidFundingInstrument):
+            processor.validate_funding_instrument('/v1/foobar/invalid_card')
 
     def test_validate_funding_instrument_with_invalid_uri(self):
         processor = self.make_one()
@@ -462,6 +558,7 @@ class TestBalancedProcessorModel(ModelTestCase):
     def test_api_key_is_ensured(self):
         processor = self.make_one(configure_api_key=False)
         for method_name in [
+            'callback',
             'validate_customer',
             'create_customer',
             'prepare_customer',
@@ -472,7 +569,10 @@ class TestBalancedProcessorModel(ModelTestCase):
         ]:
             with self.assertRaises(AssertionError):
                 method = getattr(processor, method_name)
-                method(None)
+                if method_name != 'callback':
+                    method(None)
+                else:
+                    method(None, None)
 
     def test_status_mapping(self):
         processor = self.make_one(configure_api_key=False)

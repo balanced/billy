@@ -8,7 +8,14 @@ from pyramid.security import ALL_PERMISSIONS
 from pyramid.httpexceptions import HTTPNotFound
 
 
-class IndexResource(object):
+class BaseResource(object):
+    def __init__(self, request, parent=None, name=None):
+        self.__name__ = name
+        self.__parent__ = parent
+        self.request = request
+
+
+class IndexResource(BaseResource):
     __acl__ = [
         #       principal      action
         (Allow, Authenticated, 'view'),
@@ -25,9 +32,7 @@ class IndexResource(object):
     ENTITY_RESOURCE = None
 
     def __init__(self, request, parent=None, name=None):
-        self.__name__ = name
-        self.__parent__ = parent
-        self.request = request
+        super(IndexResource, self).__init__(request, parent, name)
         assert self.MODEL_CLS is not None
         assert self.ENTITY_NAME is not None
         assert self.ENTITY_RESOURCE is not None
@@ -40,12 +45,10 @@ class IndexResource(object):
         return self.ENTITY_RESOURCE(self.request, entity, parent=self, name=key)
 
 
-class EntityResource(object):
+class EntityResource(BaseResource):
 
     def __init__(self, request, entity, parent=None, name=None):
-        self.__name__ = name
-        self.__parent__ = parent
-        self.request = request
+        super(EntityResource, self).__init__(request, parent, name)
         self.entity = entity
         # make sure only the owner company can access the entity
         company_principal = 'company:{}'.format(self.company.guid)
@@ -61,3 +64,13 @@ class EntityResource(object):
     @property
     def company(self):
         raise NotImplemented()
+
+
+class URLMapResource(BaseResource):
+
+    def __init__(self, request, url_map, parent=None, name=None):
+        super(URLMapResource, self).__init__(request, parent, name)
+        self.url_map = url_map
+
+    def __getitem__(self, item):
+        return self.url_map.get(item)

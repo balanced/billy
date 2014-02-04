@@ -24,6 +24,13 @@ class CompanyModel(BaseTableModel):
             raise KeyError('No such company with API key {}'.format(api_key))
         return query
 
+    def get_by_callback_key(self, callback_key):
+        query = (
+            self.session.query(tables.Company)
+            .filter_by(callback_key=callback_key)
+        )
+        return query
+
     def create(self, processor_key, name=None):
         """Create a company and return
 
@@ -33,6 +40,7 @@ class CompanyModel(BaseTableModel):
             guid='CP' + make_guid(),
             processor_key=processor_key,
             api_key=make_api_key(),
+            callback_key=make_api_key(),
             name=name,
             created_at=now,
             updated_at=now,

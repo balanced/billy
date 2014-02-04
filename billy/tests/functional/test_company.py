@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 import datetime
+import json
 
+import mock
 from freezegun import freeze_time
 
 from billy.tests.functional.helper import ViewTestCase
@@ -24,6 +26,37 @@ class TestCompanyViews(ViewTestCase):
         self.failUnless('api_key' in res.json)
         self.assertEqual(res.json['created_at'], now_iso)
         self.assertEqual(res.json['updated_at'], now_iso)
+
+    def test_create_company_with_random_callback_keys(self):
+        times = 100
+        callback_keys = set()
+        for _ in range(times):
+            res = self.testapp.post(
+                '/v1/companies',
+                dict(processor_key='MOCK_PROCESSOR_KEY'),
+                status=200
+            )
+            company = self.company_model.get(res.json['guid'])
+            callback_keys.add(company.callback_key)
+        # ensure callback keys won't repeat
+        self.assertEqual(len(callback_keys), times)
+
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.callback')
+    def test_callback(self, callback_method):
+        res = self.testapp.post(
+            '/v1/companies',
+            dict(processor_key='MOCK_PROCESSOR_KEY'),
+        )
+        guid = res.json['guid']
+        payload = dict(foo='bar')
+        company = self.company_model.get(guid)
+        res = self.testapp.post(
+            '/v1/companies/{}/callbacks/{}'.format(guid, company.callback_key),
+            json.dumps(payload),
+            headers=[(b'content-type', b'application/json')],
+        )
+        self.assertEqual(res.json['code'], 'ok')
+        callback_method.assert_called_once(company, payload)
 
     def test_create_company_with_bad_parameters(self):
         self.testapp.post(

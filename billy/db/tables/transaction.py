@@ -80,10 +80,12 @@ class Transaction(DeclarativeBase):
     amount = Column(Integer, nullable=False)
     #: the funding instrument URI
     funding_instrument_uri = Column(Unicode(128), index=True)
-    #: the created datetime of this subscription
+    #: the created datetime of this transaction
     created_at = Column(DateTime, default=now_func)
-    #: the updated datetime of this subscription
+    #: the updated datetime of this transaction
     updated_at = Column(DateTime, default=now_func)
+    #: the last updated datetime of status (for checking freshness of event from Balanced)
+    status_updated_at = Column(DateTime)
 
     #: target transaction of refund/reverse transaction
     reference_to = relationship(
@@ -110,6 +112,18 @@ class Transaction(DeclarativeBase):
 
         """
         return self.failures.count()
+
+    @property
+    def company(self):
+        """Owner company of this transaction
+
+        """
+        from .invoice import InvoiceType
+        if self.invoice.invoice_type == InvoiceType.SUBSCRIPTION:
+            company = self.invoice.subscription.plan.company
+        else:
+            company = self.invoice.customer.company
+        return company
 
 
 class TransactionFailure(DeclarativeBase):

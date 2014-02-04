@@ -95,4 +95,3 @@ class CallbackView(BaseView):
         processor = self.request.model_factory.create_processor()
         processor.callback(self.context.company, self.request.json)
         return dict(code='ok')
-

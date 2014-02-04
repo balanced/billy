@@ -79,9 +79,9 @@ class TestBalancedProcessorModel(ModelTestCase):
         return processor
 
     def make_event(
-        self, 
+        self,
         transaction_guid=None,
-        occurred_at=None, 
+        occurred_at=None,
         status='succeeded',
     ):
         """Make a mock Balanced.Event instance and return

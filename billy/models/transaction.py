@@ -206,7 +206,8 @@ class TransactionModel(BaseTableModel):
         # could pass previous `succeeded` event to us again. If we don't check
         # the freshness of given event, we will be fooled to change status back
         # to `succeeded` event it's actually failed
-        if (transaction.status_updated_at is not None and
+        if (
+            transaction.status_updated_at is not None and
             occured_at < transaction.status_updated_at
         ):
             raise ValueError('Cannot update transaction status with an old event')

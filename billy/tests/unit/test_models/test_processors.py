@@ -121,6 +121,17 @@ class TestBalancedProcessorModel(ModelTestCase):
         self.assertEqual(self.transaction.status, self.transaction_model.statuses.SUCCEEDED)
         self.assertEqual(self.transaction.status_updated_at, event.occurred_at)
 
+    def test_callback_without_meta_guid(self):
+        event = self.make_event()
+        event.entity.meta = {}
+        Event = mock.Mock()
+        Event.find.return_value = event
+
+        payload = self.make_callback_payload()
+        processor = self.make_one(event_cls=Event)
+        update_db = processor.callback(self.company, payload)
+        self.assertEqual(update_db, None)
+
     def test_callback_with_outdated_event(self):
         now = datetime.datetime.utcnow()
 

@@ -108,7 +108,10 @@ class BalancedProcessor(PaymentProcessor):
                 'BalancedError: {}'.format(e)
             )
 
-        guid = event.entity.meta['billy.transaction_guid']
+        guid = event.entity.meta.get('billy.transaction_guid')
+        if guid is None:
+            self.logger.info('Not a transaction created by billy, ignore')
+            return
         occurred_at = event.occurred_at
         try:
             status = self.STATUS_MAP[event.entity.status]

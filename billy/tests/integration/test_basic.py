@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
+import re
 import datetime
 import json
+import urlparse
 
 import balanced
 
@@ -8,6 +10,39 @@ from billy.tests.integration.helper import IntegrationTestCase
 
 
 class TestBasicScenarios(IntegrationTestCase):
+
+    def setUp(self):
+        super(TestBasicScenarios, self).setUp()
+        # guids of company to clean up
+        self._company_guids = []
+
+    def tearDown(self):
+        super(TestBasicScenarios, self).tearDown()
+        # clean up callbacks of companies
+        callbacks = balanced.Callback.query.all()
+        # map company guid to callback resource
+        callback_map = {}
+        pattern = re.compile(r'(.*)/v1/companies/([^/]*)/callbacks/([^/]*)/$')
+        for callback in callbacks:
+            match = pattern.match(callback.url)
+            if match is None:
+                continue
+            company_guid = match.group(2)
+            callback_map[company_guid] = callback
+        for guid in self._company_guids:
+            if guid in callback_map:
+                callback_map[guid].delete()
+
+    def create_company(self, processor_key=None):
+        if processor_key is None:
+            processor_key = self.processor_key
+        res = self.testapp.post(
+            '/v1/companies',
+            dict(processor_key=self.processor_key),
+        )
+        company = res.json
+        self._company_guids.append(company['guid'])
+        return company
 
     def test_simple_subscription_and_cancel(self):
         balanced.configure(self.processor_key)
@@ -23,12 +58,7 @@ class TestBasicScenarios(IntegrationTestCase):
         )
 
         # create a company
-        res = self.testapp.post(
-            '/v1/companies',
-            dict(processor_key=self.processor_key),
-            status=200
-        )
-        company = res.json
+        company = self.create_company()
         api_key = str(company['api_key'])
 
         # create a customer
@@ -181,12 +211,7 @@ class TestBasicScenarios(IntegrationTestCase):
         )
 
         # create a company
-        res = self.testapp.post(
-            '/v1/companies',
-            dict(processor_key=self.processor_key),
-            status=200
-        )
-        company = res.json
+        company = self.create_company()
         api_key = str(company['api_key'])
 
         # create a customer
@@ -259,12 +284,7 @@ class TestBasicScenarios(IntegrationTestCase):
         card.save()
 
         # create a company
-        res = self.testapp.post(
-            '/v1/companies',
-            dict(processor_key=self.processor_key),
-            status=200
-        )
-        company = res.json
+        company = self.create_company()
         api_key = str(company['api_key'])
 
         # create a customer
@@ -299,6 +319,22 @@ class TestBasicScenarios(IntegrationTestCase):
 
         return json.dumps(input_obj, default=dt_handler)
 
+    def test_register_callback(self):
+        balanced.configure(self.processor_key)
+        # create a company
+        company = self.create_company()
+        guid = company['guid']
+        callback_key = str(company['callback_key'])
+        callbacks = balanced.Callback.query.all()
+        callback_urls = set()
+        for callback in callbacks:
+            callback_urls.add(callback.url)
+        expected_url = urlparse.urljoin(
+            self.target_url,
+            '/v1/companies/{}/callbacks/{}/'.format(guid, callback_key)
+        )
+        self.assertIn(expected_url, callback_urls)
+
     def test_callback(self):
         balanced.configure(self.processor_key)
         marketplace = balanced.Marketplace.find(self.marketplace_uri)
@@ -313,12 +349,7 @@ class TestBasicScenarios(IntegrationTestCase):
         )
 
         # create a company
-        res = self.testapp.post(
-            '/v1/companies',
-            dict(processor_key=self.processor_key),
-            status=200
-        )
-        company = res.json
+        company = self.create_company()
         api_key = str(company['api_key'])
 
         # create a customer

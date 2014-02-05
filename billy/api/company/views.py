@@ -71,11 +71,19 @@ class CompanyIndexView(IndexView):
         request = self.request
         form = validate_form(CompanyCreateForm, request)
         processor_key = form.data['processor_key']
-        # TODO: validate API key in processor?
+
+        def make_url(company):
+            company_res = CompanyResource(request, company, self.context, company.guid)
+            callback_index = CallbackIndex(company, request, company_res)
+            callback = Callback(company, request, callback_index)
+            return request.resource_url(callback, external=True)
 
         model = request.model_factory.create_company_model()
         with db_transaction.manager:
-            company = model.create(processor_key=processor_key)
+            company = model.create(
+                processor_key=processor_key,
+                make_callback_url=make_url,
+            )
         return company
 
 

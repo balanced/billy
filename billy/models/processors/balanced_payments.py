@@ -70,6 +70,7 @@ class BalancedProcessor(PaymentProcessor):
         bank_account_cls=balanced.BankAccount,
         card_cls=balanced.Card,
         event_cls=balanced.Event,
+        callback_cls=balanced.Callback,
         logger=None,
     ):
         self.logger = logger or logging.getLogger(__name__)
@@ -80,6 +81,7 @@ class BalancedProcessor(PaymentProcessor):
         self.bank_account_cls = bank_account_cls
         self.card_cls = card_cls
         self.event_cls = event_cls
+        self.callback_cls = callback_cls
         self._configured_api_key = False
 
     def _to_cent(self, amount):
@@ -146,10 +148,24 @@ class BalancedProcessor(PaymentProcessor):
         return update_db
 
     @ensure_api_key_configured
+    def register_callback(self, company, url):
+        self.logger.info(
+            'Registering company %s callback to URL %s',
+            company.guid, url,
+        )
+        # TODO: remove other callbacks? I mean, what if we added a callback
+        # but failed to commit the database transaction in Billy?
+        callback = self.callback_cls(**{
+            'meta.billy.company_guid': company.guid,
+            'url': url,
+        })
+        callback.save()
+
+    @ensure_api_key_configured
     def create_customer(self, customer):
         self.logger.debug('Creating Balanced customer for %s', customer.guid)
         record = self.customer_cls(**{
-            'meta.billy_customer_guid': customer.guid,
+            'meta.billy.customer_guid': customer.guid,
         }).save()
         self.logger.info('Created Balanced customer for %s', customer.guid)
         return record.uri

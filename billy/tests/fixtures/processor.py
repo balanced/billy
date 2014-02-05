@@ -22,6 +22,9 @@ class DummyProcessor(object):
 
         return update_db
 
+    def register_callback(self, company, url):
+        pass
+
     def create_customer(self, customer):
         self._check_api_key()
         return self.processor_uri

@@ -31,7 +31,7 @@ class CompanyModel(BaseTableModel):
         )
         return query
 
-    def create(self, processor_key, name=None):
+    def create(self, processor_key, name=None, make_callback_url=None):
         """Create a company and return
 
         """
@@ -47,6 +47,13 @@ class CompanyModel(BaseTableModel):
         )
         self.session.add(company)
         self.session.flush()
+
+        if make_callback_url is not None:
+            url = make_callback_url(company)
+            processor = self.factory.create_processor()
+            processor.configure_api_key(company.processor_key)
+            processor.register_callback(company, url)
+
         return company
 
     def update(self, company, **kwargs):

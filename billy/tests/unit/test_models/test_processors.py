@@ -23,6 +23,7 @@ class TestPaymentProcessorModel(unittest.TestCase):
         for method_name in [
             'configure_api_key',
             'callback',
+            'register_callback',
             'validate_customer',
             'validate_funding_instrument',
             'create_customer',
@@ -33,10 +34,10 @@ class TestPaymentProcessorModel(unittest.TestCase):
         ]:
             with self.assertRaises(NotImplementedError):
                 method = getattr(processor, method_name)
-                if method_name != 'callback':
-                    method(None)
-                else:
+                if method_name in ['callback', 'register_callback']:
                     method(None, None)
+                else:
+                    method(None)
 
 
 @freeze_time('2013-08-16')
@@ -118,7 +119,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         update_db = processor.callback(self.company, payload)
         update_db(self.model_factory)
 
-        Event.find.assert_called_once('MOCK_EVENT_URI')
+        Event.find.assert_called_once_with('MOCK_EVENT_URI')
         self.assertEqual(self.transaction.status, self.transaction_model.statuses.SUCCEEDED)
         self.assertEqual(self.transaction.status_updated_at, event.occurred_at)
 
@@ -170,6 +171,16 @@ class TestBalancedProcessorModel(ModelTestCase):
         with self.assertRaises(InvalidCallbackPayload):
             update_db = processor.callback(self.company, payload)
             update_db(self.model_factory)
+
+    def test_register_callback(self):
+        url = 'http://foobar.com/callback'
+        Callback = mock.Mock()
+        processor = self.make_one(callback_cls=Callback)
+        processor.register_callback(self.company, url)
+        Callback.assert_called_once_with(**{
+            'meta.billy.company_guid': self.company.guid,
+            'url': url,
+        })
 
     def test_validate_customer(self):
         # mock class
@@ -242,7 +253,7 @@ class TestBalancedProcessorModel(ModelTestCase):
 
         # make sure the customer is created correctly
         BalancedCustomer.assert_called_once_with(**{
-            'meta.billy_customer_guid': self.customer.guid,
+            'meta.billy.customer_guid': self.customer.guid,
         })
         balanced_customer.save.assert_called_once_with()
 
@@ -570,6 +581,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         processor = self.make_one(configure_api_key=False)
         for method_name in [
             'callback',
+            'register_callback',
             'validate_customer',
             'create_customer',
             'prepare_customer',
@@ -580,10 +592,10 @@ class TestBalancedProcessorModel(ModelTestCase):
         ]:
             with self.assertRaises(AssertionError):
                 method = getattr(processor, method_name)
-                if method_name != 'callback':
-                    method(None)
-                else:
+                if method_name in ['callback', 'register_callback']:
                     method(None, None)
+                else:
+                    method(None)
 
     def test_status_mapping(self):
         processor = self.make_one(configure_api_key=False)

@@ -11,7 +11,8 @@ from billy.tests.functional.helper import ViewTestCase
 @freeze_time('2013-08-16')
 class TestCompanyViews(ViewTestCase):
 
-    def test_create_company(self):
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.register_callback')
+    def test_create_company(self, register_callback_method):
         processor_key = 'MOCK_PROCESSOR_KEY'
         now = utc_now()
         now_iso = now.isoformat()
@@ -26,6 +27,12 @@ class TestCompanyViews(ViewTestCase):
         self.failUnless('api_key' in res.json)
         self.assertEqual(res.json['created_at'], now_iso)
         self.assertEqual(res.json['updated_at'], now_iso)
+
+        company = self.company_model.get(res.json['guid'])
+        expected_url = 'http://localhost/v1/companies/{}/callbacks/{}/'.format(
+            company.guid, company.callback_key,
+        )
+        register_callback_method.assert_called_once_with(company, expected_url)
 
     def test_create_company_with_random_callback_keys(self):
         times = 100
@@ -42,7 +49,7 @@ class TestCompanyViews(ViewTestCase):
         self.assertEqual(len(callback_keys), times)
 
     @mock.patch('billy.tests.fixtures.processor.DummyProcessor.callback')
-    def test_callback(self, callback_method):
+    def test_callback(self, callback_method, slash=False):
         res = self.testapp.post(
             '/v1/companies',
             dict(processor_key='MOCK_PROCESSOR_KEY'),
@@ -50,13 +57,20 @@ class TestCompanyViews(ViewTestCase):
         guid = res.json['guid']
         payload = dict(foo='bar')
         company = self.company_model.get(guid)
+        url = '/v1/companies/{}/callbacks/{}'.format(guid, company.callback_key)
+        if slash:
+            url = url + '/'
         res = self.testapp.post(
-            '/v1/companies/{}/callbacks/{}'.format(guid, company.callback_key),
+            url,
             json.dumps(payload),
             headers=[(b'content-type', b'application/json')],
         )
         self.assertEqual(res.json['code'], 'ok')
-        callback_method.assert_called_once(company, payload)
+        callback_method.assert_called_once_with(company, payload)
+
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.callback')
+    def test_callback_with_slash_ending(self, callback_method):
+        self.test_callback(slash=True)
 
     def test_create_company_with_bad_parameters(self):
         self.testapp.post(

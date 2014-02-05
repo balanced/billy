@@ -398,7 +398,7 @@ class TestBasicScenarios(IntegrationTestCase):
                 ],
             )
             if (
-                hasattr(event, 'entity') and 
+                hasattr(event, 'entity') and
                 'billy.transaction_guid' in event.entity.meta
             ):
                 self.assertEqual(res.json['code'], 'ok')

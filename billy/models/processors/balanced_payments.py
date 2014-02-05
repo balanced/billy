@@ -113,7 +113,7 @@ class BalancedProcessor(PaymentProcessor):
             )
 
         if (
-            not hasattr(event, 'entity') or 
+            not hasattr(event, 'entity') or
             'billy.transaction_guid' not in event.entity.meta
         ):
             self.logger.info('Not a transaction created by billy, ignore')
@@ -130,7 +130,7 @@ class BalancedProcessor(PaymentProcessor):
             status = TransactionModel.statuses.PENDING
         self.logger.info(
             'Transaction billy_guid=%s, entity_status=%s, new_status=%s, '
-            'occurred_at=%s', 
+            'occurred_at=%s',
             guid, event.entity.status, status, occurred_at,
         )
 

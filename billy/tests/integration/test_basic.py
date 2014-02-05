@@ -291,11 +291,12 @@ class TestBasicScenarios(IntegrationTestCase):
 
     def _to_json(self, input_obj):
         def dt_handler(obj):
-            if (
-                isinstance(obj, datetime.datetime) or
-                isinstance(obj, datetime.date)
-            ):
+            if isinstance(obj, (datetime.datetime, datetime.date)):
                 return obj.isoformat()
+            # TODO: maybe we should just get the raw JSON from response directly
+            if isinstance(obj, balanced.Resource):
+                return obj.__dict__
+
         return json.dumps(input_obj, default=dt_handler)
 
     def test_callback(self):
@@ -365,7 +366,13 @@ class TestBasicScenarios(IntegrationTestCase):
                     (b'content-type', b'application/json')
                 ],
             )
-            self.assertEqual(res.json['code'], 'ok')
+            if (
+                hasattr(event, 'entity') and 
+                'billy.transaction_guid' in event.entity.meta
+            ):
+                self.assertEqual(res.json['code'], 'ok')
+            else:
+                self.assertEqual(res.json['code'], 'ignore')
             res = self.testapp.get(
                 '/v1/transactions',
                 headers=[self.make_auth(api_key)],

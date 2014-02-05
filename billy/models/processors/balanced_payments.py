@@ -7,6 +7,7 @@ import balanced
 from billy.models.transaction import TransactionModel
 from billy.models.transaction import OutdatedEventError
 from billy.models.processors.base import PaymentProcessor
+from billy.utils.generic import dumps_pretty_json
 from billy.errors import BillyError
 
 
@@ -97,24 +98,27 @@ class BalancedProcessor(PaymentProcessor):
             'Handling callback company=%s, event_id=%s, event_type=%s',
             company.guid, payload['id'], payload['type'],
         )
-        self.logger.debug('Payload: %r', payload)
+        self.logger.debug('Payload: \n%s', dumps_pretty_json(payload))
         # Notice: get the event from Balanced API service to ensure the event
         # in callback payload is real. If we don't do this here, it is
         # possible attacker who knows callback_key of this company can forge
         # a callback and make any invoice settled
         try:
-            # TODO: what about ../../ or http:// https:// cases? fool us with URI tricks?
-            event = self.event_cls.find(payload['uri'])
+            uri = '/v1/events/{}'.format(payload['id'])
+            event = self.event_cls.find(uri)
         except balanced.exc.BalancedError, e:
             raise InvalidCallbackPayload(
                 'Invalid callback payload '
                 'BalancedError: {}'.format(e)
             )
 
-        guid = event.entity.meta.get('billy.transaction_guid')
-        if guid is None:
+        if (
+            not hasattr(event, 'entity') or 
+            'billy.transaction_guid' not in event.entity.meta
+        ):
             self.logger.info('Not a transaction created by billy, ignore')
             return
+        guid = event.entity.meta['billy.transaction_guid']
         occurred_at = event.occurred_at
         try:
             status = self.STATUS_MAP[event.entity.status]
@@ -126,7 +130,8 @@ class BalancedProcessor(PaymentProcessor):
             status = TransactionModel.statuses.PENDING
         self.logger.info(
             'Transaction billy_guid=%s, entity_status=%s, new_status=%s, '
-            'occurred_at=%s', guid, event.entity.status, status, occurred_at,
+            'occurred_at=%s', 
+            guid, event.entity.status, status, occurred_at,
         )
 
         def update_db(model_factory):

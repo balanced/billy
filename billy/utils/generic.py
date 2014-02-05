@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import os
 import uuid
+import json
 import datetime
 
 import pytz
@@ -103,3 +104,10 @@ def utc_datetime(*args, **kwargs):
 
     """
     return datetime.datetime(*args, tzinfo=pytz.utc, **kwargs)
+
+
+def dumps_pretty_json(obj):
+    """Dump prettified json into string
+
+    """
+    return json.dumps(obj, sort_keys=True, indent=4, separators=(',', ': '))

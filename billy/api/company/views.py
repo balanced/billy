@@ -104,6 +104,8 @@ class CallbackView(BaseView):
         processor = self.request.model_factory.create_processor()
         processor.configure_api_key(company.processor_key)
         update_db = processor.callback(company, self.request.json)
-        with db_transaction.manager:
-            update_db(self.request.model_factory)
-        return dict(code='ok')
+        if update_db is not None:
+            with db_transaction.manager:
+                update_db(self.request.model_factory)
+            return dict(code='ok')
+        return dict(code='ignore')

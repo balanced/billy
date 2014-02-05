@@ -104,8 +104,7 @@ class TestBalancedProcessorModel(ModelTestCase):
 
     def make_callback_payload(self):
         return dict(
-            id='EVd3854a828d6711e3a2f7080027f9091f',
-            uri='MOCK_EVENT_URI',
+            id='MOCK_EVENT_GUID',
             type='debit.updated',
         )
 
@@ -119,7 +118,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         update_db = processor.callback(self.company, payload)
         update_db(self.model_factory)
 
-        Event.find.assert_called_once_with('MOCK_EVENT_URI')
+        Event.find.assert_called_once_with('/v1/events/MOCK_EVENT_GUID')
         self.assertEqual(self.transaction.status, self.transaction_model.statuses.SUCCEEDED)
         self.assertEqual(self.transaction.status_updated_at, event.occurred_at)
 

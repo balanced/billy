@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
-import pytz
+
+from sqlalchemy.exc import IntegrityError
 
 from billy.db import tables
 from billy.models.base import BaseTableModel
@@ -8,9 +9,9 @@ from billy.errors import BillyError
 from billy.utils.generic import make_guid
 
 
-class OutdatedEventError(BillyError):
-    """This error indicates an outdated event (occured_at datetime) was given
-    to update_status method
+class DuplicateEventError(BillyError):
+    """This error indicates the given event already exists in Billy system for
+    the transaction
 
     """
 
@@ -199,34 +200,59 @@ class TransactionModel(BaseTableModel):
             raise TypeError('Unknown attributes {} to update'.format(tuple(kwargs.keys())))
         self.session.flush()
 
-    def update_status(self, transaction, status, occured_at):
-        """Update status of transaction from callback
+    def add_event(self, transaction, status, processor_id, occurred_at):
+        """Add a status updating event of transaction from callback
 
         """
-        # Notice: this is mainly for avoiding attacks like passing
-        # old events to fool us. For example, if we have events which
-        # changes status of our transaction like this
-        #
-        #     pending, 2014-01-01
-        #     succeeded, 2014-01-02
-        #     failed, 2014-01-03
-        #
-        # The status of transaction went `failed` eventually. However, an attacker
-        # could pass previous `succeeded` event to us again. If we don't check
-        # the freshness of given event, we will be fooled to change status back
-        # to `succeeded` event it's actually failed
-        occured_at = occured_at.astimezone(pytz.utc)
-        status_updated_at = transaction.status_updated_at
-        if status_updated_at is not None:
-            if (occured_at < status_updated_at):
-                raise OutdatedEventError(
-                    'Cannot update transaction status with an old event',
-                )
-
         now = tables.now_func()
+        # the latest event of this transaction
+        last_event = transaction.events.first()
+
+        event = tables.TransactionEvent(
+            guid='TE' + make_guid(),
+            transaction=transaction,
+            processor_id=processor_id,
+            occurred_at=occurred_at,
+            status=status,
+            created_at=now,
+        )
+        self.session.add(event)
+        
+        # ensure won't duplicate
+        try:
+            self.session.flush()
+        except IntegrityError:
+            self.session.rollback()
+            raise DuplicateEventError(
+                'Event {} already exists for {}'.format(
+                    processor_id, transaction.guid,
+                ),
+            )
+
+        # Notice: we only want to update transaction status if this event
+        # is the latest one we had seen in Billy system. Why we are doing
+        # here is because I think of some scenarios like
+        #
+        #  1. Balanced cannot reach Billy for a short while, and retry later
+        #  2. Attacker want to fool us with old events
+        #
+        # These will lead the status of invoice to be updated incorrectly.
+        # For case 1, events send to Billy like this:
+        #
+        #     succeeded (failed to send to Billy, retry 1 minute later)
+        #     failed
+        #     succeeded (retry)
+        #
+        # See? The final status should be `failed`, but as the `succeeded`
+        # was resent later, so it became `succeded` eventually. Similarly,
+        # attackers can send us an old `succeeded` event to make the invoice
+        # settled.  This is why we need to ensure only the latest event can
+        # affect status of invoice.
+        if last_event is not None and occurred_at <= last_event.occurred_at:
+            return
+
         old_status = transaction.status
         transaction.updated_at = now
-        transaction.status_updated_at = occured_at
         transaction.status = status
         # update invoice status
         invoice_model = self.factory.create_invoice_model()

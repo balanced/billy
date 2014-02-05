@@ -7,6 +7,7 @@ import balanced
 import transaction as db_transaction
 from freezegun import freeze_time
 
+from billy.models.transaction import DuplicateEventError
 from billy.models.processors.base import PaymentProcessor
 from billy.models.processors.balanced_payments import InvalidURIFormat
 from billy.models.processors.balanced_payments import InvalidFundingInstrument
@@ -82,6 +83,7 @@ class TestBalancedProcessorModel(ModelTestCase):
 
     def make_event(
         self,
+        event_id='EV_MOCK_EVENT_ID',
         transaction_guid=None,
         occurred_at=None,
         status='succeeded',
@@ -94,6 +96,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         if occurred_at is None:
             occurred_at = utc_now()
         event = mock.Mock(
+            id=event_id,
             occurred_at=occurred_at,
             entity=mock.Mock(
                 meta={'billy.transaction_guid': transaction_guid},
@@ -120,7 +123,10 @@ class TestBalancedProcessorModel(ModelTestCase):
 
         Event.find.assert_called_once_with('/v1/events/MOCK_EVENT_GUID')
         self.assertEqual(self.transaction.status, self.transaction_model.statuses.SUCCEEDED)
-        self.assertEqual(self.transaction.status_updated_at, event.occurred_at)
+        events = list(self.transaction.events)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0].status, self.transaction_model.statuses.SUCCEEDED)
+        self.assertEqual(events[0].occurred_at, event.occurred_at)
 
     def test_callback_without_meta_guid(self):
         event = self.make_event()
@@ -133,36 +139,70 @@ class TestBalancedProcessorModel(ModelTestCase):
         update_db = processor.callback(self.company, payload)
         self.assertEqual(update_db, None)
 
-    def test_callback_with_outdated_event(self):
-        with db_transaction.manager:
-            self.transaction.status = self.transaction_model.statuses.SUCCEEDED
-            self.transaction.status_updated_at = utc_now()
-
-        now = utc_now()
-        past_time = now - datetime.timedelta(seconds=10)
-        event = self.make_event(occurred_at=past_time)
+    def _do_callback(self, event_id, status, occurred_at, company=None):
+        if company is None:
+            company = self.company
+        event = self.make_event(
+            event_id=event_id,
+            status=status,
+            occurred_at=occurred_at,
+        )
         Event = mock.Mock()
         Event.find.return_value = event
+
         payload = self.make_callback_payload()
         processor = self.make_one(event_cls=Event)
-        with self.assertRaises(InvalidCallbackPayload):
-            update_db = processor.callback(self.company, payload)
+        update_db = processor.callback(company, payload)
+        with db_transaction.manager:
             update_db(self.model_factory)
+
+    def test_callback_with_duplicate_event(self):
+        now = utc_now()
+        self._do_callback('EV_ID_1', 'succeeded', now)
+        with self.assertRaises(DuplicateEventError):
+            self._do_callback('EV_ID_1', 'succeeded', now)
+
+    def test_callback_only_latest_event_affects_status(self):
+        time1 = utc_now()
+        time2 = time1 + datetime.timedelta(seconds=10)
+        time3 = time1 + datetime.timedelta(seconds=20)
+        ts = self.transaction_model.statuses
+        vs = self.invoice_model.statuses
+
+        def assert_status(
+            ev_id, status, time, expected_iv_status, expected_tx_status
+        ):
+            self._do_callback(ev_id, status, time)
+            self.assertEqual(self.transaction.status, expected_tx_status)
+            self.assertEqual(self.invoice.status, expected_iv_status)
+
+        assert_status('EV_ID_1', 'pending', time1, vs.PROCESSING, ts.PENDING)
+        assert_status('EV_ID_3', 'failed', time3, vs.FAILED, ts.FAILED)
+        # this is the point, EV_ID_2 arrived later than EV_ID_3, but its
+        # occurred_at time is earlier than EV_ID3, so it should never affect
+        # the status of transaction and invoice
+        assert_status('EV_ID_2', 'succeeded', time2, vs.FAILED, ts.FAILED)
+
+        # ensure events are generated correctly and in right order
+        for event, (expected_ev_id, expected_status, expected_time) in zip(
+            self.transaction.events, [
+                ('EV_ID_3', ts.FAILED, time3),
+                ('EV_ID_2', ts.SUCCEEDED, time2),
+                ('EV_ID_1', ts.PENDING, time1),
+            ]
+        ):
+            self.assertEqual(event.processor_id, expected_ev_id)
+            self.assertEqual(event.status, expected_status)
+            self.assertEqual(event.occurred_at, expected_time)
 
     def test_callback_with_other_company(self):
         with db_transaction.manager:
             other_company = self.company_model.create('MOCK_PROCESSOR_KEY')
-        event = self.make_event()
-        Event = mock.Mock()
-        Event.find.return_value = event
-        payload = self.make_callback_payload()
-        processor = self.make_one(event_cls=Event)
         with self.assertRaises(InvalidCallbackPayload):
-            update_db = processor.callback(other_company, payload)
-            update_db(self.model_factory)
+            self._do_callback('EVID', 'succeeded', utc_now(), other_company)
 
     def test_callback_with_not_exist_transaction(self):
-        event = self.make_event('NOT_EXIST_GUID')
+        event = self.make_event(transaction_guid='NOT_EXIST_GUID')
         Event = mock.Mock()
         Event.find.return_value = event
         payload = self.make_callback_payload()

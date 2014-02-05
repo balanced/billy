@@ -5,6 +5,7 @@ from sqlalchemy import Integer
 from sqlalchemy import Unicode
 from sqlalchemy import UnicodeText
 from sqlalchemy.schema import ForeignKey
+from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import backref
 from sqlalchemy.orm import relationship
 
@@ -39,7 +40,8 @@ class TransactionStatus(DeclEnum):
 
 
 class Transaction(DeclarativeBase):
-    """A transaction
+    """A transaction reflects a debit/credit/refund/reversal in payment
+    processing system
 
     """
     __tablename__ = 'transaction'
@@ -84,8 +86,6 @@ class Transaction(DeclarativeBase):
     created_at = Column(UTCDateTime, default=now_func)
     #: the updated datetime of this transaction
     updated_at = Column(UTCDateTime, default=now_func)
-    #: the last updated datetime of status (for checking freshness of event from Balanced)
-    status_updated_at = Column(UTCDateTime)
 
     #: target transaction of refund/reverse transaction
     reference_to = relationship(
@@ -95,6 +95,16 @@ class Transaction(DeclarativeBase):
         remote_side=[guid],
         uselist=False,
         single_parent=True,
+    )
+
+    #: transaction events
+    events = relationship(
+        'TransactionEvent',
+        cascade='all, delete-orphan',
+        backref='transaction',
+        # new events first
+        order_by='TransactionEvent.occurred_at.desc(),TransactionEvent.processor_id.desc()',
+        lazy='dynamic',  # so that we can query on it
     )
 
     #: transaction failures
@@ -124,6 +134,41 @@ class Transaction(DeclarativeBase):
         else:
             company = self.invoice.customer.company
         return company
+
+
+class TransactionEvent(DeclarativeBase):
+    """A transaction event is a record which indicates status change of
+    transaction
+
+    """
+    __tablename__ = 'transaction_event'
+    # ensure one event will only appear once in this transaction
+    __table_args__ = (UniqueConstraint('transaction_guid', 'processor_id'), )
+
+    guid = Column(Unicode(64), primary_key=True)
+    #: the guid of transaction which owns this event
+    transaction_guid = Column(
+        Unicode(64),
+        ForeignKey(
+            'transaction.guid',
+            ondelete='CASCADE', onupdate='CASCADE'
+        ),
+        index=True,
+        nullable=False,
+    )
+    #: the id of event record in payment processing system
+    # Notice: why not use URI, because there are many variants of URI
+    # to the same event resource, we want to ensure the same event
+    # will only appear once. Otherwise, attacker could fool Billy system
+    # by the same event with different URI
+    processor_id = Column(Unicode(128), index=True, nullable=False)
+    #: current status in underlying payment processor
+    status = Column(TransactionStatus.db_type(), index=True, nullable=False)
+    #: occurred datetime of this event
+    # (this dt is from Balanced API service, not generated in Billy)
+    occurred_at = Column(UTCDateTime, index=True, nullable=False)
+    #: created datetime of this event
+    created_at = Column(UTCDateTime, default=now_func)
 
 
 class TransactionFailure(DeclarativeBase):
@@ -159,5 +204,6 @@ __all__ = [
     TransactionSubmitStatus.__name__,
     TransactionStatus.__name__,
     Transaction.__name__,
+    TransactionEvent.__name__,
     TransactionFailure.__name__,
 ]

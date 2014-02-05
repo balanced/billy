@@ -5,7 +5,6 @@ import functools
 import balanced
 
 from billy.models.transaction import TransactionModel
-from billy.models.transaction import OutdatedEventError
 from billy.models.processors.base import PaymentProcessor
 from billy.utils.generic import dumps_pretty_json
 from billy.errors import BillyError
@@ -119,6 +118,7 @@ class BalancedProcessor(PaymentProcessor):
             self.logger.info('Not a transaction created by billy, ignore')
             return
         guid = event.entity.meta['billy.transaction_guid']
+        processor_id = event.id
         occurred_at = event.occurred_at
         try:
             status = self.STATUS_MAP[event.entity.status]
@@ -129,9 +129,9 @@ class BalancedProcessor(PaymentProcessor):
             )
             status = TransactionModel.statuses.PENDING
         self.logger.info(
-            'Transaction billy_guid=%s, entity_status=%s, new_status=%s, '
-            'occurred_at=%s',
-            guid, event.entity.status, status, occurred_at,
+            'Callback for transaction billy_guid=%s, entity_status=%s, '
+            'new_status=%s, event_id=%s, occurred_at=%s',
+            guid, event.entity.status, status, processor_id, occurred_at,
         )
 
         def update_db(model_factory):
@@ -141,14 +141,12 @@ class BalancedProcessor(PaymentProcessor):
                 raise InvalidCallbackPayload('Transaction {} does not exist'.format(guid))
             if transaction.company != company:
                 raise InvalidCallbackPayload('No access to other company')
-            try:
-                transaction_model.update_status(transaction, status, occurred_at)
-            except OutdatedEventError:
-                self.logger.warn(
-                    'Updated with outdated event, status_updated_at=%s, occurred_at=%s',
-                    transaction.status_updated_at, occurred_at,
-                )
-                raise InvalidCallbackPayload('Cannot update transaction with an outdated event')
+            transaction_model.add_event(
+                transaction=transaction,
+                processor_id=processor_id,
+                status=status,
+                occurred_at=occurred_at,
+            )
 
         return update_db
 

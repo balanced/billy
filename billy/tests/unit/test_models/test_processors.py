@@ -216,10 +216,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         Callback = mock.Mock()
         processor = self.make_one(callback_cls=Callback)
         processor.register_callback(self.company, url)
-        Callback.assert_called_once_with(**{
-            'meta.billy.company_guid': self.company.guid,
-            'url': url,
-        })
+        Callback.assert_called_once_with(url=url)
 
     def test_validate_customer(self):
         # mock class

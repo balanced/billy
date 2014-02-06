@@ -158,10 +158,7 @@ class BalancedProcessor(PaymentProcessor):
         )
         # TODO: remove other callbacks? I mean, what if we added a callback
         # but failed to commit the database transaction in Billy?
-        callback = self.callback_cls(**{
-            'meta.billy.company_guid': company.guid,
-            'url': url,
-        })
+        callback = self.callback_cls(url=url)
         callback.save()
 
     @ensure_api_key_configured

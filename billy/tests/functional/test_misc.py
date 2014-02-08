@@ -38,8 +38,8 @@ class TestDBSession(ViewTestCase):
                 extra_environ=dict(REMOTE_USER=self.api_key),
             )
         # if the session is not closed and remove correctly after a request is
-        # processed, the previous SQL error will leave in session, and once 
-        # we touch db session below again, it will failed and complain we 
+        # processed, the previous SQL error will leave in session, and once
+        # we touch db session below again, it will failed and complain we
         # didn't rollback to session
         self.testapp.get(
             '/v1/customers',

@@ -63,11 +63,12 @@ Response:
 ::
 
     {
-        "guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
-        "api_key": "6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb", 
-        "created_at": "2013-10-02T05:29:43.953987", 
-        "updated_at": "2013-10-02T05:29:43.953987"
+        "api_key": "5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC",
+        "created_at": "2014-02-08T08:22:10.629000+00:00",
+        "guid": "CP4MXZG4ThUdbLpiX8e9Yx3j",
+        "updated_at": "2014-02-08T08:22:10.629000+00:00"
     }
+
 
 Retrieve
 ~~~~~~~~
@@ -83,19 +84,20 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/companies/CPMM8C8Uhkt4pDeJ8oqJu8Nj \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+    curl https://billing.balancedpayments.com/v1/companies/CP4MXZG4ThUdbLpiX8e9Yx3j \
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
 
 ::
 
     {
-        "guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
-        "api_key": "6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb", 
-        "created_at": "2013-10-02T05:29:43.953987", 
-        "updated_at": "2013-10-02T05:29:43.953987"
+        "api_key": "5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC",
+        "created_at": "2014-02-08T08:22:10.629000+00:00",
+        "guid": "CP4MXZG4ThUdbLpiX8e9Yx3j",
+        "updated_at": "2014-02-08T08:22:10.629000+00:00"
     }
+
 
 Plan
 ----
@@ -113,8 +115,8 @@ Method
 Endpoint
     /v1/plans
 Parameters
-    - **plan_type** - The type of this plan can be either **charge** for 
-      charging customer or **payout** for paying out.
+    - **plan_type** - The type of this plan can be either **debit** for 
+      charging customer or **credit** for paying out.
     - **frequency** - The frequency to schedule charging or paying out to 
       customer. Can be one of
 
@@ -128,9 +130,9 @@ Parameters
       invoices. For example, the started date time is 2013-01-30, then 
       following invoices will occur at 2013-02-28, 2013-03-30 and so on.
 
-    - **amount** - The amount in USD cents to charge or payout to customer
+    - **amount** - The amount in USD cents to debit or credit to customer
     - **interval** - (optional) The interval of frequency period to multiply, 
-      the default value is 1. For example, to charge or payout a customer
+      the default value is 1. For example, to debit or credit a customer
       by two weeks frequency, you can set the frequency to **weekly**, and set
       the **interval** to 2, then the schedule will be in a biweekly manner.
 
@@ -141,8 +143,8 @@ Example:
 
     curl https://billing.balancedpayments.com/v1/plans \
         -X POST \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
-        -d "plan_type=charge" \
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
+        -d "plan_type=debit" \
         -d "amount=500" \
         -d "frequency=monthly"
 
@@ -151,16 +153,17 @@ Response:
 ::
 
     {
-        "guid": "PL97ZvyeA4wzM3WUyEG8xwps",
-        "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
-        "plan_type": "charge", 
-        "interval": 1, 
-        "amount": 500, 
-        "frequency": "monthly", 
-        "deleted": false, 
-        "created_at": "2013-10-02T05:48:26.210843", 
-        "updated_at": "2013-10-02T05:48:26.210843"
+        "amount": 500,
+        "company_guid": "CP4MXZG4ThUdbLpiX8e9Yx3j",
+        "created_at": "2014-02-08T08:22:11.508000+00:00",
+        "deleted": false,
+        "frequency": "monthly",
+        "guid": "PL4RHCKW7GsGMjpcozHveQuw",
+        "interval": 1,
+        "plan_type": "debit",
+        "updated_at": "2014-02-08T08:22:11.508000+00:00"
     }
+
 
 Retrieve
 ~~~~~~~~
@@ -176,23 +179,23 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/plans/PL97ZvyeA4wzM3WUyEG8xwps \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+    curl https://billing.balancedpayments.com/v1/plans/PL4RHCKW7GsGMjpcozHveQuw \
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
 
 ::
 
     {
-        "guid": "PL97ZvyeA4wzM3WUyEG8xwps",
-        "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
-        "plan_type": "charge", 
-        "interval": 1, 
-        "amount": 500, 
-        "frequency": "monthly", 
-        "deleted": false, 
-        "created_at": "2013-10-02T05:48:26.210843", 
-        "updated_at": "2013-10-02T05:48:26.210843"
+        "amount": 500,
+        "company_guid": "CP4MXZG4ThUdbLpiX8e9Yx3j",
+        "created_at": "2014-02-08T08:22:11.508000+00:00",
+        "deleted": false,
+        "frequency": "monthly",
+        "guid": "PL4RHCKW7GsGMjpcozHveQuw",
+        "interval": 1,
+        "plan_type": "debit",
+        "updated_at": "2014-02-08T08:22:11.508000+00:00"
     }
 
 Delete
@@ -209,24 +212,24 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/plans/PL97ZvyeA4wzM3WUyEG8xwps \
+    curl https://billing.balancedpayments.com/v1/plans/PL4RHCKW7GsGMjpcozHveQuw \
         -X DELETE \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
 
 ::
 
     {
-        "guid": "PL97ZvyeA4wzM3WUyEG8xwps",
-        "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
-        "plan_type": "charge", 
-        "interval": 1, 
-        "amount": 500, 
-        "frequency": "monthly", 
-        "deleted": true, 
-        "created_at": "2013-10-02T05:48:26.210843", 
-        "updated_at": "2013-10-02T05:48:26.210843"
+        "amount": 500,
+        "company_guid": "CP4MXZG4ThUdbLpiX8e9Yx3j",
+        "created_at": "2014-02-08T08:22:11.508000+00:00",
+        "deleted": true,
+        "frequency": "monthly",
+        "guid": "PL4RHCKW7GsGMjpcozHveQuw",
+        "interval": 1,
+        "plan_type": "debit",
+        "updated_at": "2014-02-08T08:22:11.508000+00:00"
     }
 
 List
@@ -247,7 +250,7 @@ Example:
 ::
 
     curl https://billing.balancedpayments.com/v1/plans \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
 
@@ -256,15 +259,15 @@ Response:
     {
         "items": [
             {
-                "guid": "PL97ZvyeA4wzM3WUyEG8xwps",
-                "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
-                "plan_type": "charge", 
-                "interval": 1, 
-                "amount": 500, 
-                "frequency": "monthly", 
-                "deleted": false, 
-                "created_at": "2013-10-02T05:48:26.210843", 
-                "updated_at": "2013-10-02T05:48:26.210843"
+                "amount": 500,
+                "company_guid": "CP4MXZG4ThUdbLpiX8e9Yx3j",
+                "created_at": "2014-02-08T08:22:11.508000+00:00",
+                "deleted": true,
+                "frequency": "monthly",
+                "guid": "PL4RHCKW7GsGMjpcozHveQuw",
+                "interval": 1,
+                "plan_type": "debit",
+                "updated_at": "2014-02-08T08:22:11.508000+00:00"
             }
         ], 
         "limit": 20, 
@@ -328,8 +331,8 @@ Parameters
 Customer
 --------
 
-An entity for customer to your service. Before the first time of charging or 
-paying out, a corresponding `customer record in Balanced`_ system will be 
+An entity for customer to your service. Before the first time of debiting or 
+crediting, a corresponding `customer record in Balanced`_ system will be 
 created. If you want to map an existing customer in Balanced, you can set the 
 `processor_uri` to the URI of customer in balanced.
 
@@ -355,19 +358,19 @@ Example:
 
    curl https://billing.balancedpayments.com/v1/customers \
        -X POST \
-       -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: 
+       -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: 
 
 Response:
 
 ::
 
     {
-        "guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
-        "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
-        "processor_uri": null, 
-        "deleted": false, 
-        "created_at": "2013-10-02T06:06:21.239505", 
-        "updated_at": "2013-10-02T06:06:21.239505"
+        "company_guid": "CP4MXZG4ThUdbLpiX8e9Yx3j",
+        "created_at": "2014-02-08T08:22:10.904000+00:00",
+        "deleted": false,
+        "guid": "CU4NheTMcQqXgmAtg1aGTJPK",
+        "processor_uri": "/v1/customers/CUCChwFzuMRlBGgoBwjRgqr",
+        "updated_at": "2014-02-08T08:22:10.904000+00:00"
     }
 
 Retrieve
@@ -384,20 +387,20 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/customers/CUR1omRKGYYhqNaK1SyZqSbZ \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+    curl https://billing.balancedpayments.com/v1/customers/CU4NheTMcQqXgmAtg1aGTJPK \
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
 
 ::
 
     {
-        "guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
-        "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
-        "processor_uri": null, 
-        "deleted": false, 
-        "created_at": "2013-10-02T06:06:21.239505", 
-        "updated_at": "2013-10-02T06:06:21.239505"
+        "company_guid": "CP4MXZG4ThUdbLpiX8e9Yx3j",
+        "created_at": "2014-02-08T08:22:10.904000+00:00",
+        "deleted": false,
+        "guid": "CU4NheTMcQqXgmAtg1aGTJPK",
+        "processor_uri": "/v1/customers/CUCChwFzuMRlBGgoBwjRgqr",
+        "updated_at": "2014-02-08T08:22:10.904000+00:00"
     }
 
 Delete
@@ -414,21 +417,21 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/customers/CUR1omRKGYYhqNaK1SyZqSbZ \
+    curl https://billing.balancedpayments.com/v1/customers/CU4NheTMcQqXgmAtg1aGTJPK \
         -X DELETE \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
 
 ::
 
     {
-        "guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
-        "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
-        "processor_uri": null, 
-        "deleted": true, 
-        "created_at": "2013-10-02T06:06:21.239505", 
-        "updated_at": "2013-10-02T06:06:21.239505"
+        "company_guid": "CP4MXZG4ThUdbLpiX8e9Yx3j",
+        "created_at": "2014-02-08T08:22:10.904000+00:00",
+        "deleted": true,
+        "guid": "CU4NheTMcQqXgmAtg1aGTJPK",
+        "processor_uri": "/v1/customers/CUCChwFzuMRlBGgoBwjRgqr",
+        "updated_at": "2014-02-08T08:22:10.904000+00:00"
     }
 
 List
@@ -449,7 +452,7 @@ Example:
 ::
 
     curl https://billing.balancedpayments.com/v1/customers \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
 
@@ -458,12 +461,12 @@ Response:
     {
         "items": [
             {
-                "guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
-                "company_guid": "CPMM8C8Uhkt4pDeJ8oqJu8Nj", 
-                "processor_uri": null, 
-                "deleted": false, 
-                "created_at": "2013-10-02T06:06:21.239505", 
-                "updated_at": "2013-10-02T06:06:21.239505"
+                "company_guid": "CP4MXZG4ThUdbLpiX8e9Yx3j",
+                "created_at": "2014-02-08T08:22:10.904000+00:00",
+                "deleted": false,
+                "guid": "CU4NheTMcQqXgmAtg1aGTJPK",
+                "processor_uri": "/v1/customers/CUCChwFzuMRlBGgoBwjRgqr",
+                "updated_at": "2014-02-08T08:22:10.904000+00:00"
             }
         ], 
         "limit": 20, 
@@ -551,29 +554,30 @@ Example:
 
     curl https://billing.balancedpayments.com/v1/subscriptions \
         -X POST \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
-        -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
-        -d "plan_guid=PL97ZvyeA4wzM3WUyEG8xwps" \
-        -d "funding_instrument_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
+        -d "customer_guid=CU4NheTMcQqXgmAtg1aGTJPK" \
+        -d "plan_guid=PL4RHCKW7GsGMjpcozHveQuw" \
+        -d "funding_instrument_uri=/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA/cards/CCBXYdbpYDwX68hv69UH1eS"
 
 Response:
 
 ::
 
     {
-        "guid": "SUR6jKqqSyaFfGeeAsGaXFqZ",
-        "plan_guid": "PL97ZvyeA4wzM3WUyEG8xwps", 
-        "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
-        "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
-        "invoice_count": 1, 
-        "amount": null, 
+        "amount": null,
         "appears_on_statement_as": null,
-        "canceled": false, 
-        "canceled_at": null, 
-        "started_at": "2013-10-02T06:35:00.380234", 
-        "next_invoice_at": "2013-11-02T06:35:00.380234", 
-        "created_at": "2013-10-02T06:35:00.380234", 
-        "updated_at": "2013-10-02T06:35:00.380234", 
+        "canceled": false,
+        "canceled_at": null,
+        "created_at": "2014-02-08T08:22:11.782000+00:00",
+        "customer_guid": "CU4NheTMcQqXgmAtg1aGTJPK",
+        "effective_amount": 500,
+        "funding_instrument_uri": "/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA/cards/CCBXYdbpYDwX68hv69UH1eS",
+        "guid": "SU4ST39srWVLGbiTg174QyfF",
+        "invoice_count": 1,
+        "next_invoice_at": "2014-03-08T08:22:11.782000+00:00",
+        "plan_guid": "PL4RHCKW7GsGMjpcozHveQuw",
+        "started_at": "2014-02-08T08:22:11.782000+00:00",
+        "updated_at": "2014-02-08T08:22:11.782000+00:00"
     }
 
 Retrieve
@@ -590,27 +594,28 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/subscriptions/SUR6jKqqSyaFfGeeAsGaXFqZ \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+    curl https://billing.balancedpayments.com/v1/subscriptions/SU4ST39srWVLGbiTg174QyfF \
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
 
 ::
 
     {
-        "guid": "SUR6jKqqSyaFfGeeAsGaXFqZ",
-        "plan_guid": "PL97ZvyeA4wzM3WUyEG8xwps", 
-        "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
-        "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
-        "invoice_count": 1, 
-        "amount": null, 
+        "amount": null,
         "appears_on_statement_as": null,
-        "canceled": false, 
-        "canceled_at": null, 
-        "started_at": "2013-10-02T06:35:00.380234", 
-        "next_invoice_at": "2013-11-02T06:35:00.380234", 
-        "created_at": "2013-10-02T06:35:00.380234", 
-        "updated_at": "2013-10-02T06:35:00.380234", 
+        "canceled": false,
+        "canceled_at": null,
+        "created_at": "2014-02-08T08:22:11.782000+00:00",
+        "customer_guid": "CU4NheTMcQqXgmAtg1aGTJPK",
+        "effective_amount": 500,
+        "funding_instrument_uri": "/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA/cards/CCBXYdbpYDwX68hv69UH1eS",
+        "guid": "SU4ST39srWVLGbiTg174QyfF",
+        "invoice_count": 1,
+        "next_invoice_at": "2014-03-08T08:22:11.782000+00:00",
+        "plan_guid": "PL4RHCKW7GsGMjpcozHveQuw",
+        "started_at": "2014-02-08T08:22:11.782000+00:00",
+        "updated_at": "2014-02-08T08:22:11.782000+00:00"
     }
 
 Cancel
@@ -627,28 +632,29 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/subscriptions/SUR6jKqqSyaFfGeeAsGaXFqZ/cancel \
+    curl https://billing.balancedpayments.com/v1/subscriptions/SU4ST39srWVLGbiTg174QyfF/cancel \
         -X POST
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
 
 ::
 
     {
-        "guid": "SUR6jKqqSyaFfGeeAsGaXFqZ",
-        "plan_guid": "PL97ZvyeA4wzM3WUyEG8xwps", 
-        "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
-        "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
-        "invoice_count": 1, 
-        "amount": null, 
+        "amount": null,
         "appears_on_statement_as": null,
-        "canceled": true, 
-        "canceled_at": "2013-10-03T12:16:00.532295", 
-        "started_at": "2013-10-02T06:35:00.380234", 
-        "next_invoice_at": "2013-11-02T06:35:00.380234", 
-        "created_at": "2013-10-02T06:35:00.380234", 
-        "updated_at": "2013-10-02T06:35:00.380234", 
+        "canceled": true,
+        "canceled_at": null,
+        "created_at": "2014-02-08T08:22:11.782000+00:00",
+        "customer_guid": "CU4NheTMcQqXgmAtg1aGTJPK",
+        "effective_amount": 500,
+        "funding_instrument_uri": "/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA/cards/CCBXYdbpYDwX68hv69UH1eS",
+        "guid": "SU4ST39srWVLGbiTg174QyfF",
+        "invoice_count": 1,
+        "next_invoice_at": "2014-03-08T08:22:11.782000+00:00",
+        "plan_guid": "PL4RHCKW7GsGMjpcozHveQuw",
+        "started_at": "2014-02-08T08:22:11.782000+00:00",
+        "updated_at": "2014-02-08T08:22:11.782000+00:00"
     }
 
 List
@@ -669,7 +675,7 @@ Example:
 ::
 
     curl https://billing.balancedpayments.com/v1/subscriptions \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
 
@@ -678,19 +684,20 @@ Response:
     {
         "items": [
             {
-                "guid": "SUR6jKqqSyaFfGeeAsGaXFqZ",
-                "plan_guid": "PL97ZvyeA4wzM3WUyEG8xwps", 
-                "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ", 
-                "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno", 
-                "invoice_count": 1, 
-                "amount": null, 
+                "amount": null,
                 "appears_on_statement_as": null,
-                "canceled": false, 
-                "canceled_at": null, 
-                "started_at": "2013-10-02T06:35:00.380234", 
-                "next_invoice_at": "2013-11-02T06:35:00.380234", 
-                "created_at": "2013-10-02T06:35:00.380234", 
-                "updated_at": "2013-10-02T06:35:00.380234", 
+                "canceled": false,
+                "canceled_at": null,
+                "created_at": "2014-02-08T08:22:11.782000+00:00",
+                "customer_guid": "CU4NheTMcQqXgmAtg1aGTJPK",
+                "effective_amount": 500,
+                "funding_instrument_uri": "/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA/cards/CCBXYdbpYDwX68hv69UH1eS",
+                "guid": "SU4ST39srWVLGbiTg174QyfF",
+                "invoice_count": 1,
+                "next_invoice_at": "2014-03-08T08:22:11.782000+00:00",
+                "plan_guid": "PL4RHCKW7GsGMjpcozHveQuw",
+                "started_at": "2014-02-08T08:22:11.782000+00:00",
+                "updated_at": "2014-02-08T08:22:11.782000+00:00"
             }
         ], 
         "limit": 20, 
@@ -793,8 +800,8 @@ Example:
 
     curl https://billing.balancedpayments.com/v1/invoices \
         -X POST \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
-        -d "customer_guid=CUR1omRKGYYhqNaK1SyZqSbZ" \
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
+        -d "customer_guid=CU4NheTMcQqXgmAtg1aGTJPK" \
         -d "amount=1000" \
         -d "appears_on_statement_as=FooBar Hosting" \
         -d "item_name1=Hosting Service A" \
@@ -815,12 +822,12 @@ Response:
         ],
         "amount": 1000,
         "appears_on_statement_as": "FooBar Hosting",
-        "created_at": "2013-08-16T00:00:00",
-        "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ",
+        "created_at": "2014-02-08T08:22:15.073000+00:00",
+        "customer_guid": "CU4NheTMcQqXgmAtg1aGTJPK",
         "effective_amount": 900,
         "external_id": null,
         "funding_instrument_uri": null,
-        "guid": "IVS6Mo3mKLkUJKsJhtqkV7T7",
+        "guid": "IV4gVtDyP3CD9zQyv8AtPwx5",
         "invoice_type": "customer",
         "items": [
             {
@@ -832,11 +839,11 @@ Response:
                 "volume": null
             }
         ],
-        "status": "init",
+        "status": "staged",
         "title": null,
         "total_adjustment_amount": -100,
-        "transaction_type": "charge",
-        "updated_at": "2013-08-16T00:00:00"
+        "transaction_type": "debit",
+        "updated_at": "2014-02-08T08:22:15.073000+00:00"
     }
 
 Retrieve
@@ -853,8 +860,8 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/invoices/IVS6Mo3mKLkUJKsJhtqkV7T7 \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+    curl https://billing.balancedpayments.com/v1/invoices/IV4gVtDyP3CD9zQyv8AtPwx5 \
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
 
@@ -869,12 +876,12 @@ Response:
         ],
         "amount": 1000,
         "appears_on_statement_as": "FooBar Hosting",
-        "created_at": "2013-08-16T00:00:00",
-        "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ",
+        "created_at": "2014-02-08T08:22:15.073000+00:00",
+        "customer_guid": "CU4NheTMcQqXgmAtg1aGTJPK",
         "effective_amount": 900,
         "external_id": null,
         "funding_instrument_uri": null,
-        "guid": "IVS6Mo3mKLkUJKsJhtqkV7T7",
+        "guid": "IV4gVtDyP3CD9zQyv8AtPwx5",
         "invoice_type": "customer",
         "items": [
             {
@@ -886,11 +893,11 @@ Response:
                 "volume": null
             }
         ],
-        "status": "init",
+        "status": "staged",
         "title": null,
         "total_adjustment_amount": -100,
-        "transaction_type": "charge",
-        "updated_at": "2013-08-16T00:00:00"
+        "transaction_type": "debit",
+        "updated_at": "2014-02-08T08:22:15.073000+00:00"
     }
 
 Update
@@ -921,8 +928,8 @@ Example:
 
     curl https://billing.balancedpayments.com/v1/invoices/IVS6Mo3mKLkUJKsJhtqkV7T7 \
         -X PUT \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
-        -d "funding_instrument_uri=/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno"
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
+        -d "funding_instrument_uri=/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA/cards/CCBXYdbpYDwX68hv69UH1eS"
 
 Response:
 
@@ -937,12 +944,12 @@ Response:
         ],
         "amount": 1000,
         "appears_on_statement_as": "FooBar Hosting",
-        "created_at": "2013-08-16T00:00:00",
-        "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ",
+        "created_at": "2014-02-08T08:22:15.073000+00:00",
+        "customer_guid": "CU4NheTMcQqXgmAtg1aGTJPK",
         "effective_amount": 900,
         "external_id": null,
-        "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC1dEUPMmL1ljk4hWqeJxGno",
-        "guid": "IVS6Mo3mKLkUJKsJhtqkV7T7",
+        "funding_instrument_uri": "/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA/cards/CCBXYdbpYDwX68hv69UH1eS",
+        "guid": "IV4gVtDyP3CD9zQyv8AtPwx5",
         "invoice_type": "customer",
         "items": [
             {
@@ -954,11 +961,11 @@ Response:
                 "volume": null
             }
         ],
-        "status": "init",
+        "status": "staged",
         "title": null,
         "total_adjustment_amount": -100,
-        "transaction_type": "charge",
-        "updated_at": "2013-08-16T00:00:00"
+        "transaction_type": "debit",
+        "updated_at": "2014-02-08T08:22:15.073000+00:00"
     }
 
 Refund
@@ -979,7 +986,7 @@ Example:
 
     curl https://billing.balancedpayments.com/v1/invoices/IVS6Mo3mKLkUJKsJhtqkV7T7/refund \
         -X POST \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb: \
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
         -d "amount=1000"
 
 Response:
@@ -995,12 +1002,12 @@ Response:
         ],
         "amount": 1000,
         "appears_on_statement_as": "FooBar Hosting",
-        "created_at": "2013-08-16T00:00:00",
-        "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ",
+        "created_at": "2014-02-08T08:22:15.073000+00:00",
+        "customer_guid": "CU4NheTMcQqXgmAtg1aGTJPK",
         "effective_amount": 900,
         "external_id": null,
-        "funding_instrument_uri": null,
-        "guid": "IVS6Mo3mKLkUJKsJhtqkV7T7",
+        "funding_instrument_uri": "/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA/cards/CCBXYdbpYDwX68hv69UH1eS",
+        "guid": "IV4gVtDyP3CD9zQyv8AtPwx5",
         "invoice_type": "customer",
         "items": [
             {
@@ -1012,12 +1019,13 @@ Response:
                 "volume": null
             }
         ],
-        "status": "init",
+        "status": "staged",
         "title": null,
         "total_adjustment_amount": -100,
-        "transaction_type": "charge",
-        "updated_at": "2013-08-16T00:00:00"
+        "transaction_type": "debit",
+        "updated_at": "2014-02-08T08:22:15.073000+00:00"
     }
+
 
 List
 ~~~~
@@ -1037,7 +1045,7 @@ Example:
 ::
 
     curl https://billing.balancedpayments.com/v1/invoices \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
 
@@ -1054,12 +1062,12 @@ Response:
                 ],
                 "amount": 1000,
                 "appears_on_statement_as": "FooBar Hosting",
-                "created_at": "2013-08-16T00:00:00",
-                "customer_guid": "CUR1omRKGYYhqNaK1SyZqSbZ",
+                "created_at": "2014-02-08T08:22:15.073000+00:00",
+                "customer_guid": "CU4NheTMcQqXgmAtg1aGTJPK",
                 "effective_amount": 900,
                 "external_id": null,
-                "funding_instrument_uri": null,
-                "guid": "IVS6Mo3mKLkUJKsJhtqkV7T7",
+                "funding_instrument_uri": "/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA/cards/CCBXYdbpYDwX68hv69UH1eS",
+                "guid": "IV4gVtDyP3CD9zQyv8AtPwx5",
                 "invoice_type": "customer",
                 "items": [
                     {
@@ -1071,11 +1079,11 @@ Response:
                         "volume": null
                     }
                 ],
-                "status": "init",
+                "status": "staged",
                 "title": null,
                 "total_adjustment_amount": -100,
-                "transaction_type": "charge",
-                "updated_at": "2013-08-16T00:00:00"
+                "transaction_type": "debit",
+                "updated_at": "2014-02-08T08:22:15.073000+00:00"
             }
         ], 
         "limit": 20, 
@@ -1100,18 +1108,17 @@ Transaction
 -----------
 
 Transactions are entities generated from an invoice. It represents transactions
-we submit to underlying payment processor. You should notice that Billy 
-currently only submits transactions to processor and doesn't care what happened
-afterward. A transaction contains the current status, type of transaction, 
-amount, funding instrument URI and failures. The state transition of a 
-transaction is shown in following diagram. 
+we submited to underlying payment processor. A transaction has attributes like 
+the current submit status, status of transaction in processor, type of 
+transaction, amount, funding instrument URI and failures. The submit state 
+transition of a transaction is shown in following diagram. 
 
 .. image:: _static/transaction_state_diagram.png
    :width: 100%
 
 For all status:
 
- - **INIT** - just created transaction
+ - **STAGED** - just created transaction
  - **RETRYING** - attempt to submit but failed, retrying
  - **CANCELED** - the invoice is canceled before the transaction is done 
    or failed
@@ -1132,28 +1139,29 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/transactions/TXWRvbzADhsBHFhgkVMWB3Lb \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+    curl https://billing.balancedpayments.com/v1/transactions/TX4SVWm156bBTSY17KJKW88y \
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
 
 ::
 
     {
-        "guid": "TXWRvbzADhsBHFhgkVMWB3Lb", 
-        "subscription_guid": "SUWRtr1b8s5tejhEPejybvwR", 
-        "status": "done", 
-        "transaction_type": "charge", 
-        "amount": 500, 
+        "amount": 500,
         "appears_on_statement_as": null,
-        "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC5ildoSnySGnXRfrYvH49eo", 
-        "external_id": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/debits/WD5P9jvc7fLSoA6gYXxHkPd4", 
-        "failure_count": 0, 
-        "error_message": null, 
-        "scheduled_at": "2013-10-03T05:09:07.702489",
-        "created_at": "2013-10-03T05:09:07.709617", 
-        "updated_at": "2013-10-03T05:09:10.837832"
+        "created_at": "2014-02-08T08:22:11.792000+00:00",
+        "failure_count": 0,
+        "failures": [],
+        "funding_instrument_uri": "/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA/cards/CCBXYdbpYDwX68hv69UH1eS",
+        "guid": "TX4SVWm156bBTSY17KJKW88y",
+        "invoice_guid": "IV4SUGxQ3hu2ZB6FU5NXNj4u",
+        "processor_uri": "/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA/debits/WDFd93gSV8Sb27bUP5GREjt",
+        "status": "succeeded",
+        "submit_status": "done",
+        "transaction_type": "debit",
+        "updated_at": "2014-02-08T08:22:15.047000+00:00"
     }
+
 
 List
 ~~~~
@@ -1173,7 +1181,7 @@ Example:
 ::
 
     curl https://billing.balancedpayments.com/v1/transactions \
-        -u 6w9KwCPCmCQJpEYgCCtjaPmbLNQSavv5sX4mCZ9Sf6pb:
+        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
 
@@ -1182,19 +1190,19 @@ Response:
     {
         "items": [
             {
-                "guid": "TXWRvbzADhsBHFhgkVMWB3Lb", 
-                "subscription_guid": "SUWRtr1b8s5tejhEPejybvwR", 
-                "status": "done", 
-                "transaction_type": "charge", 
-                "amount": 500, 
+                "amount": 500,
                 "appears_on_statement_as": null,
-                "funding_instrument_uri": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/cards/CC5ildoSnySGnXRfrYvH49eo", 
-                "external_id": "/v1/marketplaces/TEST-MP7hkE8rvpbtYu2dlO1jU2wg/debits/WD5P9jvc7fLSoA6gYXxHkPd4", 
-                "failure_count": 0, 
-                "error_message": null, 
-                "scheduled_at": "2013-10-03T05:09:07.702489",
-                "created_at": "2013-10-03T05:09:07.709617", 
-                "updated_at": "2013-10-03T05:09:10.837832"
+                "created_at": "2014-02-08T08:22:11.792000+00:00",
+                "failure_count": 0,
+                "failures": [],
+                "funding_instrument_uri": "/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA/cards/CCBXYdbpYDwX68hv69UH1eS",
+                "guid": "TX4SVWm156bBTSY17KJKW88y",
+                "invoice_guid": "IV4SUGxQ3hu2ZB6FU5NXNj4u",
+                "processor_uri": "/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA/debits/WDFd93gSV8Sb27bUP5GREjt",
+                "status": "succeeded",
+                "submit_status": "done",
+                "transaction_type": "debit",
+                "updated_at": "2014-02-08T08:22:15.047000+00:00"
             }
         ], 
         "limit": 20, 

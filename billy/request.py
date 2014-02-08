@@ -1,8 +1,10 @@
 from __future__ import unicode_literals
 
+from pyramid.settings import asbool
 from pyramid.request import Request
 from pyramid.decorator import reify
 from pyramid.events import NewResponse
+from pyramid.events import NewRequest
 from pyramid.events import subscriber
 
 from billy.models.model_factory import ModelFactory
@@ -45,3 +47,17 @@ def clean_balanced_processor_key(event):
     """
     import balanced
     balanced.configure(None)
+
+
+@subscriber(NewRequest)
+def clean_db_session(event):
+    """Clean up DB session when the request processing is finished
+        
+    """
+    def clean_up(request):
+        request.session.remove()
+
+    settings = event.request.registry.settings
+    db_session_cleanup = asbool(settings.get('db_session_cleanup', True))
+    if db_session_cleanup:
+        event.request.add_finished_callback(clean_up)

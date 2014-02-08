@@ -24,6 +24,9 @@ class ViewTestCase(unittest.TestCase):
             self.settings = {
                 'billy.processor_factory': lambda: self.dummy_processor,
                 'model_factory_func': model_factory_func,
+                # do not remove when a request is processed, so that we don't
+                # have to use session.add every time
+                'db_session_cleanup': False,
             }
 
         # init database

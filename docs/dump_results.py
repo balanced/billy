@@ -15,7 +15,7 @@ def dump_resource(output, title, resource):
     """Dump resource to output file
 
     """
-    print >>output, '#'*10, title
+    print >>output, '#' * 10, title
     print >>output
     print >>output, dumps_pretty_json(resource.json_data)
     print >>output
@@ -73,7 +73,7 @@ def main():
 
     # TODO: we should integrate this response getting process into something
     # like document template generating tool. Ohterwise it's really hateful
-    # and time consuming, also error prone to do this copy paste and modify 
+    # and time consuming, also error prone to do this copy paste and modify
     # manually
 
 

@@ -1,9 +1,19 @@
 from __future__ import unicode_literals
 
-from billy.models import tables
+from sqlalchemy.exc import IntegrityError
+
+from billy.db import tables
 from billy.models.base import BaseTableModel
 from billy.models.base import decorate_offset_limit
+from billy.errors import BillyError
 from billy.utils.generic import make_guid
+
+
+class DuplicateEventError(BillyError):
+    """This error indicates the given event already exists in Billy system for
+    the transaction
+
+    """
 
 
 class TransactionModel(BaseTableModel):
@@ -13,40 +23,11 @@ class TransactionModel(BaseTableModel):
     #: the default maximum retry count
     DEFAULT_MAXIMUM_RETRY = 10
 
-    #: charge type transaction
-    TYPE_CHARGE = 0
-    #: refund type transaction
-    TYPE_REFUND = 1
-    #: Paying out type transaction
-    TYPE_PAYOUT = 2
-    #: Reverse type transaction
-    TYPE_REVERSE = 2
+    types = tables.TransactionType
 
-    TYPE_ALL = [
-        TYPE_CHARGE,
-        TYPE_REFUND,
-        TYPE_PAYOUT,
-        TYPE_REVERSE,
-    ]
+    submit_statuses = tables.TransactionSubmitStatus
 
-    #: initialized status
-    STATUS_INIT = 0
-    #: we are retrying this transaction
-    STATUS_RETRYING = 1
-    #: this transaction is done
-    STATUS_DONE = 2
-    #: this transaction is failed
-    STATUS_FAILED = 3
-    #: this transaction is canceled
-    STATUS_CANCELED = 4
-
-    STATUS_ALL = [
-        STATUS_INIT,
-        STATUS_RETRYING,
-        STATUS_DONE,
-        STATUS_FAILED,
-        STATUS_CANCELED,
-    ]
+    statuses = tables.TransactionStatus
 
     @property
     def maximum_retry(self):
@@ -175,11 +156,8 @@ class TransactionModel(BaseTableModel):
         if transaction_type is None:
             transaction_type = invoice.transaction_type
 
-        if transaction_type not in self.TYPE_ALL:
-            raise ValueError('Invalid transaction_type {}'
-                             .format(transaction_type))
         if reference_to is not None:
-            if transaction_type not in [self.TYPE_REFUND, self.TYPE_REVERSE]:
+            if transaction_type not in [self.types.REFUND, self.types.REVERSE]:
                 raise ValueError('reference_to can only be set to a refund '
                                  'transaction')
             if funding_instrument_uri is not None:
@@ -189,7 +167,7 @@ class TransactionModel(BaseTableModel):
                 )
             if (
                 reference_to.transaction_type not in
-                [self.TYPE_CHARGE, self.TYPE_PAYOUT]
+                [self.types.DEBIT, self.types.CREDIT]
             ):
                 raise ValueError(
                     'Only charge/payout transaction can be refunded/reversed'
@@ -202,7 +180,7 @@ class TransactionModel(BaseTableModel):
             amount=amount,
             funding_instrument_uri=funding_instrument_uri,
             appears_on_statement_as=appears_on_statement_as,
-            status=self.STATUS_INIT,
+            submit_status=self.submit_statuses.STAGED,
             reference_to=reference_to,
             created_at=now,
             updated_at=now,
@@ -218,13 +196,71 @@ class TransactionModel(BaseTableModel):
         """
         now = tables.now_func()
         transaction.updated_at = now
-        if 'status' in kwargs:
-            status = kwargs.pop('status')
-            if status not in self.STATUS_ALL:
-                raise ValueError('Invalid status {}'.format(status))
-            transaction.status = status
         if kwargs:
             raise TypeError('Unknown attributes {} to update'.format(tuple(kwargs.keys())))
+        self.session.flush()
+
+    def add_event(self, transaction, status, processor_id, occurred_at):
+        """Add a status updating event of transaction from callback
+
+        """
+        now = tables.now_func()
+        # the latest event of this transaction
+        last_event = transaction.events.first()
+
+        event = tables.TransactionEvent(
+            guid='TE' + make_guid(),
+            transaction=transaction,
+            processor_id=processor_id,
+            occurred_at=occurred_at,
+            status=status,
+            created_at=now,
+        )
+        self.session.add(event)
+        
+        # ensure won't duplicate
+        try:
+            self.session.flush()
+        except IntegrityError:
+            self.session.rollback()
+            raise DuplicateEventError(
+                'Event {} already exists for {}'.format(
+                    processor_id, transaction.guid,
+                ),
+            )
+
+        # Notice: we only want to update transaction status if this event
+        # is the latest one we had seen in Billy system. Why we are doing
+        # here is because I think of some scenarios like
+        #
+        #  1. Balanced cannot reach Billy for a short while, and retry later
+        #  2. Attacker want to fool us with old events
+        #
+        # These will lead the status of invoice to be updated incorrectly.
+        # For case 1, events send to Billy like this:
+        #
+        #     succeeded (failed to send to Billy, retry 1 minute later)
+        #     failed
+        #     succeeded (retry)
+        #
+        # See? The final status should be `failed`, but as the `succeeded`
+        # was resent later, so it became `succeded` eventually. Similarly,
+        # attackers can send us an old `succeeded` event to make the invoice
+        # settled.  This is why we need to ensure only the latest event can
+        # affect status of invoice.
+        if last_event is not None and occurred_at <= last_event.occurred_at:
+            return
+
+        old_status = transaction.status
+        transaction.updated_at = now
+        transaction.status = status
+        # update invoice status
+        invoice_model = self.factory.create_invoice_model()
+        invoice_model.transaction_status_update(
+            invoice=transaction.invoice,
+            transaction=transaction,
+            original_status=old_status,
+        )
         self.session.flush()
 
     def process_one(self, transaction):
@@ -245,13 +281,13 @@ class TransactionModel(BaseTableModel):
         # situations like that
         self.get(transaction.guid, with_lockmode='update')
 
-        if transaction.status == self.STATUS_DONE:
+        if transaction.submit_status == self.submit_statuses.DONE:
             raise ValueError('Cannot process a finished transaction {}'
                              .format(transaction.guid))
         self.logger.debug('Processing transaction %s', transaction.guid)
         now = tables.now_func()
 
-        if transaction.invoice.invoice_type == invoice_model.TYPE_SUBSCRIPTION:
+        if transaction.invoice.invoice_type == invoice_model.types.SUBSCRIPTION:
             customer = transaction.invoice.subscription.customer
         else:
             customer = transaction.invoice.customer
@@ -259,9 +295,9 @@ class TransactionModel(BaseTableModel):
         processor = self.factory.create_processor()
 
         method = {
-            self.TYPE_CHARGE: processor.charge,
-            self.TYPE_PAYOUT: processor.payout,
-            self.TYPE_REFUND: processor.refund,
+            self.types.DEBIT: processor.debit,
+            self.types.CREDIT: processor.credit,
+            self.types.REFUND: processor.refund,
         }[transaction.transaction_type]
 
         try:
@@ -277,11 +313,11 @@ class TransactionModel(BaseTableModel):
                 funding_instrument_uri=transaction.funding_instrument_uri,
             )
             # do charge/payout/refund
-            transaction_id = method(transaction)
+            result = method(transaction)
         except (SystemExit, KeyboardInterrupt):
             raise
         except Exception, e:
-            transaction.status = self.STATUS_RETRYING
+            transaction.submit_status = self.submit_statuses.RETRYING
             failure_model = self.factory.create_transaction_failure_model()
             failure_model.create(
                 transaction=transaction,
@@ -297,36 +333,34 @@ class TransactionModel(BaseTableModel):
                 self.logger.error('Exceed maximum retry limitation %s, '
                                   'transaction %s failed', self.maximum_retry,
                                   transaction.guid)
-                transaction.status = self.STATUS_FAILED
+                transaction.submit_status = self.submit_statuses.FAILED
 
                 # the transaction is failed, update invoice status
                 if transaction.transaction_type in [
-                    self.TYPE_CHARGE,
-                    self.TYPE_PAYOUT,
+                    self.types.DEBIT,
+                    self.types.CREDIT,
                 ]:
-                    transaction.invoice.status = invoice_model.STATUS_PROCESS_FAILED
+                    transaction.invoice.status = invoice_model.statuses.FAILED
             transaction.updated_at = now
             self.session.flush()
             return
 
-        # TODO: ah... actually, some transactions cannot be really done
-        # oneline, in that case, we should use callback from processor
-        # to change the transaction status
-        transaction.processor_uri = transaction_id
-        transaction.status = self.STATUS_DONE
+        old_status = transaction.status
+        transaction.processor_uri = result['processor_uri']
+        transaction.status = result['status']
+        transaction.submit_status = self.submit_statuses.DONE
         transaction.updated_at = tables.now_func()
-
-        # the transaction is done, update invoice status
-        if transaction.transaction_type in [
-            self.TYPE_CHARGE,
-            self.TYPE_PAYOUT,
-        ]:
-            transaction.invoice.status = invoice_model.STATUS_SETTLED
+        invoice_model.transaction_status_update(
+            invoice=transaction.invoice,
+            transaction=transaction,
+            original_status=old_status,
+        )
        
         self.session.flush()
-        self.logger.info('Processed transaction %s, status=%s, external_id=%s',
-                         transaction.guid, transaction.status,
-                         transaction.processor_uri)
+        self.logger.info('Processed transaction %s, submit_status=%s, '
+                         'result=%s',
+                         transaction.guid, transaction.submit_status,
+                         result)
 
     def process_transactions(self, transactions=None):
         """Process all transactions
@@ -335,9 +369,9 @@ class TransactionModel(BaseTableModel):
         Transaction = tables.Transaction
         query = (
             self.session.query(Transaction)
-            .filter(Transaction.status.in_([
-                self.STATUS_INIT,
-                self.STATUS_RETRYING]
+            .filter(Transaction.submit_status.in_([
+                self.submit_statuses.STAGED,
+                self.submit_statuses.RETRYING]
             ))
         )
         if transactions is not None:

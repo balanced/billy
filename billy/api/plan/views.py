@@ -57,19 +57,6 @@ class PlanIndexView(IndexView):
         # TODO: make sure user cannot create a post to a deleted company
 
         model = request.model_factory.create_plan_model()
-        type_map = dict(
-            charge=model.TYPE_CHARGE,
-            payout=model.TYPE_PAYOUT,
-        )
-        plan_type = type_map[plan_type]
-        freq_map = dict(
-            daily=model.FREQ_DAILY,
-            weekly=model.FREQ_WEEKLY,
-            monthly=model.FREQ_MONTHLY,
-            yearly=model.FREQ_YEARLY,
-        )
-        frequency = freq_map[frequency]
-
         with db_transaction.manager:
             plan = model.create(
                 company=company,

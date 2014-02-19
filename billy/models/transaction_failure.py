@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from billy.models import tables
+from billy.db import tables
 from billy.models.base import BaseTableModel
 from billy.utils.generic import make_guid
 

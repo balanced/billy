@@ -1,7 +1,10 @@
 from __future__ import unicode_literals
-
 import os
 import uuid
+import json
+import datetime
+
+import pytz
 
 B58_CHARS = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 B58_BASE = len(B58_CHARS)
@@ -86,3 +89,25 @@ def get_git_rev(project_dir=None):
     except IOError:
         return None
     return content
+
+
+def utc_now():
+    """Like datetime.datetime.utcnow(), but the datetime.tzinfo will be
+    pytz.utc
+
+    """
+    return datetime.datetime.now(pytz.utc)
+
+
+def utc_datetime(*args, **kwargs):
+    """Create a datetime with pytz.utc tzinfo
+
+    """
+    return datetime.datetime(*args, tzinfo=pytz.utc, **kwargs)
+
+
+def dumps_pretty_json(obj):
+    """Dump prettified json into string
+
+    """
+    return json.dumps(obj, sort_keys=True, indent=4, separators=(',', ': '))

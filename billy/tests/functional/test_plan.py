@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
-import datetime
 
 import transaction as db_transaction
 from freezegun import freeze_time
 
 from billy.tests.functional.helper import ViewTestCase
+from billy.utils.generic import utc_now
 
 
 @freeze_time('2013-08-16')
@@ -22,11 +22,11 @@ class TestPlanViews(ViewTestCase):
         self.api_key = str(self.company.api_key)
 
     def test_create_plan(self):
-        plan_type = 'charge'
+        plan_type = 'debit'
         amount = 5566
         frequency = 'weekly'
         interval = 123
-        now = datetime.datetime.utcnow()
+        now = utc_now()
         now_iso = now.isoformat()
 
         res = self.testapp.post(
@@ -64,11 +64,11 @@ class TestPlanViews(ViewTestCase):
             amount=5566,
         ))
         assert_bad_parameters(dict(
-            plan_type='charge',
+            plan_type='debit',
             amount=5566,
         ))
         assert_bad_parameters(dict(
-            plan_type='charge',
+            plan_type='debit',
             frequency='weekly',
         ))
         assert_bad_parameters(dict(
@@ -82,45 +82,45 @@ class TestPlanViews(ViewTestCase):
             amount=5566,
         ))
         assert_bad_parameters(dict(
-            plan_type='charge',
+            plan_type='debit',
             frequency='',
             amount=5566,
         ))
         assert_bad_parameters(dict(
-            plan_type='charge',
+            plan_type='debit',
             frequency='decade',
             amount=5566,
         ))
         assert_bad_parameters(dict(
-            plan_type='charge',
+            plan_type='debit',
             frequency='weekly',
             amount='',
         ))
         assert_bad_parameters(dict(
-            plan_type='charge',
+            plan_type='debit',
             frequency='weekly',
             amount='-123',
         ))
         assert_bad_parameters(dict(
-            plan_type='charge',
+            plan_type='debit',
             frequency='weekly',
             amount=5566,
             interval='0',
         ))
         assert_bad_parameters(dict(
-            plan_type='charge',
+            plan_type='debit',
             frequency='weekly',
             amount=5566,
             interval='0.5',
         ))
         assert_bad_parameters(dict(
-            plan_type='charge',
+            plan_type='debit',
             frequency='weekly',
             amount=5566,
             interval='-123',
         ))
         assert_bad_parameters(dict(
-            plan_type='charge',
+            plan_type='debit',
             frequency='weekly',
             amount=49,
         ))
@@ -133,7 +133,7 @@ class TestPlanViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/plans',
             dict(
-                plan_type='charge',
+                plan_type='debit',
                 amount=5566,
                 frequency='weekly',
                 interval='',
@@ -157,15 +157,15 @@ class TestPlanViews(ViewTestCase):
             )
             self.assertEqual(res.json['plan_type'], plan_type)
 
-        assert_plan_type('charge')
-        assert_plan_type('payout')
+        assert_plan_type('debit')
+        assert_plan_type('credit')
 
     def test_create_plan_with_different_frequency(self):
         def assert_frequency(frequency):
             res = self.testapp.post(
                 '/v1/plans',
                 dict(
-                    plan_type='charge',
+                    plan_type='debit',
                     amount=5566,
                     frequency=frequency,
                 ),
@@ -183,7 +183,7 @@ class TestPlanViews(ViewTestCase):
         self.testapp.post(
             '/v1/plans',
             dict(
-                plan_type='charge',
+                plan_type='debit',
                 amount=5566,
                 frequency='weekly',
             ),
@@ -195,7 +195,7 @@ class TestPlanViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/plans',
             dict(
-                plan_type='charge',
+                plan_type='debit',
                 amount=5566,
                 frequency='weekly',
             ),
@@ -223,7 +223,7 @@ class TestPlanViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/plans',
             dict(
-                plan_type='charge',
+                plan_type='debit',
                 amount=5566,
                 frequency='weekly',
             ),
@@ -247,7 +247,7 @@ class TestPlanViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/plans',
             dict(
-                plan_type='charge',
+                plan_type='debit',
                 amount=5566,
                 frequency='weekly',
             ),
@@ -269,9 +269,9 @@ class TestPlanViews(ViewTestCase):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
                     self.plan_model.create(
                         company=self.company2,
-                        plan_type=self.plan_model.TYPE_CHARGE,
+                        plan_type=self.plan_model.types.DEBIT,
                         amount=7788,
-                        frequency=self.plan_model.FREQ_DAILY,
+                        frequency=self.plan_model.frequencies.DAILY,
                     )
 
             guids = []
@@ -279,9 +279,9 @@ class TestPlanViews(ViewTestCase):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
                     plan = self.plan_model.create(
                         company=self.company,
-                        plan_type=self.plan_model.TYPE_CHARGE,
+                        plan_type=self.plan_model.types.DEBIT,
                         amount=5566,
-                        frequency=self.plan_model.FREQ_DAILY,
+                        frequency=self.plan_model.frequencies.DAILY,
                     )
                     guids.append(plan.guid)
         guids = list(reversed(guids))
@@ -301,9 +301,9 @@ class TestPlanViews(ViewTestCase):
         with db_transaction.manager:
             other_plan = self.plan_model.create(
                 company=self.company2,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=5566,
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
             )
         with db_transaction.manager:
             for i in range(4):
@@ -317,9 +317,9 @@ class TestPlanViews(ViewTestCase):
         with db_transaction.manager:
             plan = self.plan_model.create(
                 company=self.company,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=5566,
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
             )
         with db_transaction.manager:
             customer_guids = []
@@ -361,9 +361,9 @@ class TestPlanViews(ViewTestCase):
             other_customer = self.customer_model.create(self.company2)
             other_plan = self.plan_model.create(
                 company=self.company2,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=7788,
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
             )
             self.subscription_model.create(
                 customer=other_customer,
@@ -378,15 +378,15 @@ class TestPlanViews(ViewTestCase):
             customer = self.customer_model.create(self.company)
             plan = self.plan_model.create(
                 company=self.company,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=5566,
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
             )
             plan2 = self.plan_model.create(
                 company=self.company,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=5566,
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
             )
             subscription = self.subscription_model.create(
                 customer=customer,
@@ -418,9 +418,9 @@ class TestPlanViews(ViewTestCase):
             other_customer = self.customer_model.create(self.company2)
             other_plan = self.plan_model.create(
                 company=self.company2,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=7788,
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
             )
             other_subscription = self.subscription_model.create(
                 customer=other_customer,
@@ -433,14 +433,14 @@ class TestPlanViews(ViewTestCase):
             for i in range(4):
                 self.transaction_model.create(
                     invoice=other_invoice,
-                    transaction_type=self.transaction_model.TYPE_CHARGE,
+                    transaction_type=self.transaction_model.types.DEBIT,
                     amount=100,
                     funding_instrument_uri='/v1/cards/tester',
                 )
             for i in range(4):
                 self.transaction_model.create(
                     invoice=other_subscription.invoices[0],
-                    transaction_type=self.transaction_model.TYPE_CHARGE,
+                    transaction_type=self.transaction_model.types.DEBIT,
                     amount=100,
                     funding_instrument_uri='/v1/cards/tester',
                 )
@@ -449,15 +449,15 @@ class TestPlanViews(ViewTestCase):
             customer = self.customer_model.create(self.company)
             plan = self.plan_model.create(
                 company=self.company,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=5566,
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
             )
             plan2 = self.plan_model.create(
                 company=self.company,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=5566,
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
             )
             subscription = self.subscription_model.create(
                 customer=customer,
@@ -474,14 +474,14 @@ class TestPlanViews(ViewTestCase):
             # make sure invoice transaction will not be included
             self.transaction_model.create(
                 invoice=invoice,
-                transaction_type=self.transaction_model.TYPE_CHARGE,
+                transaction_type=self.transaction_model.types.DEBIT,
                 amount=100,
                 funding_instrument_uri='/v1/cards/tester',
             )
             # make sure transaction of other plan will not be included
             self.transaction_model.create(
                 invoice=subscription2.invoices[0],
-                transaction_type=self.transaction_model.TYPE_CHARGE,
+                transaction_type=self.transaction_model.types.DEBIT,
                 amount=100,
                 funding_instrument_uri='/v1/cards/tester',
             )
@@ -491,7 +491,7 @@ class TestPlanViews(ViewTestCase):
                 with freeze_time('2013-08-16 02:00:{:02}'.format(i + 1)):
                     transaction = self.transaction_model.create(
                         invoice=subscription.invoices[0],
-                        transaction_type=self.transaction_model.TYPE_CHARGE,
+                        transaction_type=self.transaction_model.types.DEBIT,
                         amount=100,
                         funding_instrument_uri='/v1/cards/tester',
                     )
@@ -511,9 +511,9 @@ class TestPlanViews(ViewTestCase):
         with db_transaction.manager:
             plan = self.plan_model.create(
                 company=self.company,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=5566,
-                frequency=self.plan_model.FREQ_DAILY,
+                frequency=self.plan_model.frequencies.DAILY,
             )
         self.testapp.get(
             '/v1/plans',
@@ -535,7 +535,7 @@ class TestPlanViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/plans',
             dict(
-                plan_type='charge',
+                plan_type='debit',
                 amount=5566,
                 frequency='weekly',
             ),
@@ -555,7 +555,7 @@ class TestPlanViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/plans',
             dict(
-                plan_type='charge',
+                plan_type='debit',
                 amount=5566,
                 frequency='weekly',
             ),
@@ -580,7 +580,7 @@ class TestPlanViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/plans',
             dict(
-                plan_type='charge',
+                plan_type='debit',
                 amount=5566,
                 frequency='weekly',
             ),
@@ -603,7 +603,7 @@ class TestPlanViews(ViewTestCase):
         res = self.testapp.post(
             '/v1/plans',
             dict(
-                plan_type='charge',
+                plan_type='debit',
                 amount=5566,
                 frequency='weekly',
             ),

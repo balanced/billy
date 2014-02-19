@@ -7,6 +7,8 @@ from freezegun import freeze_time
 
 from billy.tests.functional.helper import ViewTestCase
 from billy.errors import BillyError
+from billy.utils.generic import utc_now
+from billy.utils.generic import utc_datetime
 
 
 @freeze_time('2013-08-16')
@@ -23,8 +25,8 @@ class TestSubscriptionViews(ViewTestCase):
             )
             self.plan = self.plan_model.create(
                 company=self.company,
-                frequency=self.plan_model.FREQ_WEEKLY,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                frequency=self.plan_model.frequencies.WEEKLY,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=1000,
             )
 
@@ -36,8 +38,8 @@ class TestSubscriptionViews(ViewTestCase):
             )
             self.plan2 = self.plan_model.create(
                 company=self.company2,
-                frequency=self.plan_model.FREQ_WEEKLY,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                frequency=self.plan_model.frequencies.WEEKLY,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=10,
             )
         self.api_key = str(self.company.api_key)
@@ -94,17 +96,20 @@ class TestSubscriptionViews(ViewTestCase):
         )
         validate_funding_instrument_method.assert_called_once_with('BAD_INSTRUMENT_URI')
 
-    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
-    def test_create_subscription(self, charge_method):
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
+    def test_create_subscription(self, debit_method):
         amount = 5566
         funding_instrument_uri = 'MOCK_CARD_URI'
         appears_on_statement_as = 'hello baby'
-        now = datetime.datetime.utcnow()
+        now = utc_now()
         now_iso = now.isoformat()
         # next week
-        next_invoice_at = datetime.datetime(2013, 8, 23)
+        next_invoice_at = utc_datetime(2013, 8, 23)
         next_iso = next_invoice_at.isoformat()
-        charge_method.return_value = 'MOCK_DEBIT_URI'
+        debit_method.return_value = dict(
+            processor_uri='MOCK_DEBIT_URI',
+            status=self.transaction_model.statuses.SUCCEEDED,
+        )
 
         res = self.testapp.post(
             '/v1/subscriptions',
@@ -142,27 +147,27 @@ class TestSubscriptionViews(ViewTestCase):
         self.assertEqual(invoice.amount, amount)
         self.assertEqual(invoice.scheduled_at, now)
         self.assertEqual(invoice.transaction_type,
-                         self.transaction_model.TYPE_CHARGE)
+                         self.invoice_model.transaction_types.DEBIT)
         self.assertEqual(invoice.invoice_type,
-                         self.invoice_model.TYPE_SUBSCRIPTION)
+                         self.invoice_model.types.SUBSCRIPTION)
         self.assertEqual(invoice.appears_on_statement_as,
                          appears_on_statement_as)
 
         transaction = invoice.transactions[0]
-        charge_method.assert_called_once_with(transaction)
+        debit_method.assert_called_once_with(transaction)
         self.assertEqual(transaction.processor_uri,
                          'MOCK_DEBIT_URI')
-        self.assertEqual(transaction.status, self.transaction_model.STATUS_DONE)
+        self.assertEqual(transaction.submit_status, self.transaction_model.submit_statuses.DONE)
         self.assertEqual(transaction.appears_on_statement_as,
                          subscription.appears_on_statement_as)
         self.assertEqual(transaction.amount, amount)
         self.assertEqual(transaction.transaction_type,
-                         self.transaction_model.TYPE_CHARGE)
+                         self.transaction_model.types.DEBIT)
 
-    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
-    def test_create_subscription_with_charge_failure(self, charge_method):
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
+    def test_create_subscription_with_charge_failure(self, debit_method):
         error = RuntimeError('Oops!')
-        charge_method.side_effect = error
+        debit_method.side_effect = error
 
         res = self.testapp.post(
             '/v1/subscriptions',
@@ -183,8 +188,8 @@ class TestSubscriptionViews(ViewTestCase):
         transaction = invoice.transactions[0]
         self.assertEqual(transaction.failure_count, 1)
         self.assertEqual(transaction.failures[0].error_message, unicode(error))
-        self.assertEqual(transaction.status,
-                         self.transaction_model.STATUS_RETRYING)
+        self.assertEqual(transaction.submit_status,
+                         self.transaction_model.submit_statuses.RETRYING)
 
     def test_create_subscription_without_funding_instrument(self):
         res = self.testapp.post(
@@ -201,14 +206,14 @@ class TestSubscriptionViews(ViewTestCase):
         invoice = subscription.invoices[0]
         self.assertEqual(len(invoice.transactions), 0)
 
-    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.charge')
+    @mock.patch('billy.tests.fixtures.processor.DummyProcessor.debit')
     def test_create_subscription_with_charge_failure_exceed_limit(
         self,
-        charge_method,
+        debit_method,
     ):
         self.model_factory.settings['billy.transaction.maximum_retry'] = 3
         error = RuntimeError('Oops!')
-        charge_method.side_effect = error
+        debit_method.side_effect = error
 
         res = self.testapp.post(
             '/v1/subscriptions',
@@ -229,13 +234,13 @@ class TestSubscriptionViews(ViewTestCase):
         for i in range(2):
             self.transaction_model.process_one(transaction)
             self.assertEqual(transaction.failure_count, 2 + i)
-            self.assertEqual(transaction.status,
-                             self.transaction_model.STATUS_RETRYING)
+            self.assertEqual(transaction.submit_status,
+                             self.transaction_model.submit_statuses.RETRYING)
 
         self.transaction_model.process_one(transaction)
         self.assertEqual(transaction.failure_count, 4)
-        self.assertEqual(transaction.status,
-                         self.transaction_model.STATUS_FAILED)
+        self.assertEqual(transaction.submit_status,
+                         self.transaction_model.submit_statuses.FAILED)
 
     def test_create_subscription_to_a_deleted_plan(self):
         with db_transaction.manager:
@@ -352,10 +357,10 @@ class TestSubscriptionViews(ViewTestCase):
 
     def test_create_subscription_with_started_at(self):
         amount = 5566
-        now = datetime.datetime.utcnow()
+        now = utc_now()
         now_iso = now.isoformat()
         # next week
-        next_invoice_at = datetime.datetime(2013, 8, 17)
+        next_invoice_at = utc_datetime(2013, 8, 17)
         next_iso = next_invoice_at.isoformat()
 
         res = self.testapp.post(
@@ -381,7 +386,7 @@ class TestSubscriptionViews(ViewTestCase):
     def test_create_subscription_with_started_at_and_timezone(self):
         amount = 5566
         # next week
-        next_invoice_at = datetime.datetime(2013, 8, 17)
+        next_invoice_at = utc_datetime(2013, 8, 17)
         next_iso = next_invoice_at.isoformat()
         res = self.testapp.post(
             '/v1/subscriptions',
@@ -502,7 +507,7 @@ class TestSubscriptionViews(ViewTestCase):
             )
 
         with freeze_time('2013-08-16 07:00:00'):
-            canceled_at = datetime.datetime.utcnow()
+            canceled_at = utc_now()
             res = self.testapp.post(
                 '/v1/subscriptions/{}/cancel'.format(subscription.guid),
                 extra_environ=dict(REMOTE_USER=self.api_key),
@@ -577,8 +582,8 @@ class TestSubscriptionViews(ViewTestCase):
         with db_transaction.manager:
             plan = self.plan_model.create(
                 company=self.company,
-                frequency=self.plan_model.FREQ_DAILY,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                frequency=self.plan_model.frequencies.DAILY,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=1000,
             )
             subscription = self.subscription_model.create(
@@ -637,7 +642,7 @@ class TestSubscriptionViews(ViewTestCase):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
                     transaction = self.transaction_model.create(
                         invoice=subscription1.invoices[0],
-                        transaction_type=self.transaction_model.TYPE_CHARGE,
+                        transaction_type=self.transaction_model.types.DEBIT,
                         amount=10 * i,
                         funding_instrument_uri='/v1/cards/tester',
                     )
@@ -646,7 +651,7 @@ class TestSubscriptionViews(ViewTestCase):
                 with freeze_time('2013-08-16 00:00:{:02}'.format(i + 1)):
                     transaction = self.transaction_model.create(
                         invoice=subscription2.invoices[0],
-                        transaction_type=self.transaction_model.TYPE_CHARGE,
+                        transaction_type=self.transaction_model.types.DEBIT,
                         amount=10 * i,
                         funding_instrument_uri='/v1/cards/tester',
                     )

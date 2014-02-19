@@ -1,19 +1,28 @@
 from __future__ import unicode_literals
 
 from pyramid.renderers import JSON
+from pyramid.settings import asbool
 
-from billy.models import tables
+from billy.db import tables
 from billy.models.invoice import InvoiceModel
-from billy.models.plan import PlanModel
-from billy.models.transaction import TransactionModel
 
 
 def company_adapter(company, request):
+    extra_args = {}
+    settings = request.registry.settings
+    if settings is None:
+        settings = {}
+    display_callback_key = asbool(
+        settings.get('billy.company.display_callback_key', False)
+    )
+    if display_callback_key:
+        extra_args['callback_key'] = company.callback_key
     return dict(
         guid=company.guid,
         api_key=company.api_key,
         created_at=company.created_at.isoformat(),
         updated_at=company.updated_at.isoformat(),
+        **extra_args
     )
 
 
@@ -45,33 +54,13 @@ def invoice_adapter(invoice, request):
             amount=adjustment.amount,
             reason=adjustment.reason,
         ))
-    status_map = {
-        InvoiceModel.STATUS_INIT: 'init',
-        InvoiceModel.STATUS_PROCESSING: 'processing',
-        InvoiceModel.STATUS_SETTLED: 'settled',
-        InvoiceModel.STATUS_CANCELED: 'canceled',
-        InvoiceModel.STATUS_PROCESS_FAILED: 'process_failed',
-    }
-    status = status_map[invoice.status]
 
-    type_map = {
-        InvoiceModel.TYPE_SUBSCRIPTION: 'subscription',
-        InvoiceModel.TYPE_CUSTOMER: 'customer',
-    }
-    invoice_type = type_map[invoice.invoice_type]
-
-    tx_type_map = {
-        TransactionModel.TYPE_CHARGE: 'charge',
-        TransactionModel.TYPE_PAYOUT: 'payout',
-    }
-    transaction_type = tx_type_map[invoice.transaction_type]
-
-    if invoice.invoice_type == InvoiceModel.TYPE_SUBSCRIPTION:
+    if invoice.invoice_type == InvoiceModel.types.SUBSCRIPTION:
         extra_args = dict(
             subscription_guid=invoice.subscription_guid,
             scheduled_at=invoice.scheduled_at.isoformat(),
         )
-    elif invoice.invoice_type == InvoiceModel.TYPE_CUSTOMER:
+    elif invoice.invoice_type == InvoiceModel.types.CUSTOMER:
         extra_args = dict(
             customer_guid=invoice.customer_guid,
             external_id=invoice.external_id,
@@ -79,9 +68,9 @@ def invoice_adapter(invoice, request):
 
     return dict(
         guid=invoice.guid,
-        invoice_type=invoice_type,
-        transaction_type=transaction_type,
-        status=status,
+        invoice_type=enum_symbol(invoice.invoice_type),
+        transaction_type=enum_symbol(invoice.transaction_type),
+        status=enum_symbol(invoice.status),
         created_at=invoice.created_at.isoformat(),
         updated_at=invoice.updated_at.isoformat(),
         amount=invoice.amount,
@@ -97,23 +86,10 @@ def invoice_adapter(invoice, request):
 
 
 def plan_adapter(plan, request):
-    type_map = {
-        PlanModel.TYPE_CHARGE: 'charge',
-        PlanModel.TYPE_PAYOUT: 'payout',
-    }
-    plan_type = type_map[plan.plan_type]
-
-    freq_map = {
-        PlanModel.FREQ_DAILY: 'daily',
-        PlanModel.FREQ_WEEKLY: 'weekly',
-        PlanModel.FREQ_MONTHLY: 'monthly',
-        PlanModel.FREQ_YEARLY: 'yearly',
-    }
-    frequency = freq_map[plan.frequency]
     return dict(
         guid=plan.guid,
-        plan_type=plan_type,
-        frequency=frequency,
+        plan_type=enum_symbol(plan.plan_type),
+        frequency=enum_symbol(plan.frequency),
         amount=plan.amount,
         interval=plan.interval,
         created_at=plan.created_at.isoformat(),
@@ -146,22 +122,6 @@ def subscription_adapter(subscription, request):
 
 
 def transaction_adapter(transaction, request):
-    type_map = {
-        TransactionModel.TYPE_CHARGE: 'charge',
-        TransactionModel.TYPE_PAYOUT: 'payout',
-        TransactionModel.TYPE_REFUND: 'refund',
-    }
-    transaction_type = type_map[transaction.transaction_type]
-
-    status_map = {
-        TransactionModel.STATUS_INIT: 'init',
-        TransactionModel.STATUS_RETRYING: 'retrying',
-        TransactionModel.STATUS_FAILED: 'failed',
-        TransactionModel.STATUS_DONE: 'done',
-        TransactionModel.STATUS_CANCELED: 'canceled',
-    }
-    status = status_map[transaction.status]
-
     serialized_failures = [
         transaction_failure_adapter(f, request)
         for f in transaction.failures
@@ -169,8 +129,9 @@ def transaction_adapter(transaction, request):
     return dict(
         guid=transaction.guid,
         invoice_guid=transaction.invoice_guid,
-        transaction_type=transaction_type,
-        status=status,
+        transaction_type=enum_symbol(transaction.transaction_type),
+        submit_status=enum_symbol(transaction.submit_status),
+        status=enum_symbol(transaction.status),
         amount=transaction.amount,
         funding_instrument_uri=transaction.funding_instrument_uri,
         processor_uri=transaction.processor_uri,
@@ -190,6 +151,12 @@ def transaction_failure_adapter(transaction_failure, request):
         error_code=transaction_failure.error_code,
         created_at=transaction_failure.created_at.isoformat(),
     )
+
+
+def enum_symbol(enum_value):
+    if enum_value is None:
+        return enum_value
+    return str(enum_value).lower()
 
 
 def includeme(config):

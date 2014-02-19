@@ -7,8 +7,8 @@ from pyramid.paster import (
     setup_logging,
 )
 
+from billy.db.tables import DeclarativeBase
 from billy.models import setup_database
-from billy.models.tables import DeclarativeBase
 
 
 def usage(argv):

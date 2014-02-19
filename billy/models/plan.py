@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from billy.models import tables
+from billy.db import tables
 from billy.models.base import BaseTableModel
 from billy.models.base import decorate_offset_limit
 from billy.utils.generic import make_guid
@@ -10,31 +10,9 @@ class PlanModel(BaseTableModel):
 
     TABLE = tables.Plan
 
-    #: Daily frequency
-    FREQ_DAILY = 0
-    #: Weekly frequency
-    FREQ_WEEKLY = 1
-    #: Monthly frequency
-    FREQ_MONTHLY = 2
-    #: Annually frequency
-    FREQ_YEARLY = 3
+    types = tables.PlanType
 
-    FREQ_ALL = [
-        FREQ_DAILY,
-        FREQ_WEEKLY,
-        FREQ_MONTHLY,
-        FREQ_YEARLY,
-    ]
-
-    #: Charging type plan
-    TYPE_CHARGE = 0
-    #: Paying out type plan
-    TYPE_PAYOUT = 1
-
-    TYPE_ALL = [
-        TYPE_CHARGE,
-        TYPE_PAYOUT,
-    ]
+    frequencies = tables.PlanFrequency
 
     @decorate_offset_limit
     def list_by_context(self, context):
@@ -67,10 +45,6 @@ class PlanModel(BaseTableModel):
         """Create a plan and return its ID
 
         """
-        if plan_type not in self.TYPE_ALL:
-            raise ValueError('Invalid plan_type {}'.format(plan_type))
-        if frequency not in self.FREQ_ALL:
-            raise ValueError('Invalid frequency {}'.format(frequency))
         if interval < 1:
             raise ValueError('Interval can only be >= 1')
         now = tables.now_func()

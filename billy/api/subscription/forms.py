@@ -8,7 +8,7 @@ from wtforms import IntegerField
 from wtforms import Field
 from wtforms import validators
 
-from billy.models import tables
+from billy.db import tables
 from billy.models.customer import CustomerModel
 from billy.models.plan import PlanModel
 from billy.api.utils import RecordExistValidator
@@ -31,7 +31,6 @@ class ISO8601Field(Field):
             raise ValueError(self.gettext('Invalid ISO8601 datetime {}')
                              .format(valuelist[0]))
         self.data = self.data.astimezone(pytz.utc)
-        self.data = self.data.replace(tzinfo=None)
 
 
 class NoPastValidator(object):

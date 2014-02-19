@@ -1,16 +1,16 @@
 from __future__ import unicode_literals
 import os
 import unittest
-import datetime
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from zope.sqlalchemy import ZopeTransactionExtension
 
-from billy.models import tables
+from billy.db import tables
 from billy.models.model_factory import ModelFactory
 from billy.tests.fixtures.processor import DummyProcessor
+from billy.utils.generic import utc_now
 
 
 def create_session(echo=False):
@@ -42,7 +42,7 @@ class ModelTestCase(unittest.TestCase):
     def setUp(self):
        
         self.session = create_session()
-        self._old_now_func = tables.set_now_func(datetime.datetime.utcnow)
+        self._old_now_func = tables.set_now_func(utc_now)
 
         self.dummy_processor = DummyProcessor()
 

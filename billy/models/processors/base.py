@@ -11,6 +11,24 @@ class PaymentProcessor(object):
         """
         raise NotImplementedError
 
+    def callback(self, company, payload):
+        """Handle callback from payment processor to update translation status
+
+        :param company: company to callback to
+        :param payload: the callback payload
+        :return: a function accepts `model_factory` argument, call it
+            to perform updating against database
+        """
+        raise NotImplementedError
+
+    def register_callback(self, company, url):
+        """Register callback in the payment processor
+
+        :param company: to company to be registered
+        :param url: url to corresponding callback
+        """
+        raise NotImplementedError
+
     def create_customer(self, customer):
         """Create the customer record in payment processor
 
@@ -43,13 +61,14 @@ class PaymentProcessor(object):
         """
         raise NotImplementedError
 
-    def charge(self, transaction):
-        """Charge from a bank acount or credit card
+    def debit(self, transaction):
+        """Charge from a bank acount or credit card, return a dict with
+        `processor_uri` and `status` keys
 
         """
         raise NotImplementedError
 
-    def payout(self, transaction):
+    def credit(self, transaction):
         """Payout to a account
 
         """

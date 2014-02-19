@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+from billy.models.transaction import TransactionModel
+
 
 class DummyProcessor(object):
 
@@ -12,6 +14,16 @@ class DummyProcessor(object):
 
     def configure_api_key(self, api_key):
         self.api_key = api_key
+
+    def callback(self, company, payload):
+
+        def update_db(model_factory):
+            pass
+
+        return update_db
+
+    def register_callback(self, company, url):
+        pass
 
     def create_customer(self, customer):
         self._check_api_key()
@@ -28,14 +40,23 @@ class DummyProcessor(object):
     def prepare_customer(self, customer, funding_instrument_uri=None):
         self._check_api_key()
 
-    def charge(self, transaction):
+    def debit(self, transaction):
         self._check_api_key()
-        return 'MOCK_CHARGE_TX_ID'
+        return dict(
+            processor_uri='MOCK_DEBIT_TX_URI',
+            status=TransactionModel.statuses.SUCCEEDED,
+        )
 
-    def payout(self, transaction):
+    def credit(self, transaction):
         self._check_api_key()
-        return 'MOCK_PAYOUT_TX_ID'
+        return dict(
+            processor_uri='MOCK_CREDIT_TX_URI',
+            status=TransactionModel.statuses.SUCCEEDED,
+        )
 
     def refund(self, transaction):
         self._check_api_key()
-        return 'MOCK_REFUND_TX_ID'
+        return dict(
+            processor_uri='MOCK_REFUND_TX_URI',
+            status=TransactionModel.statuses.SUCCEEDED,
+        )

@@ -6,8 +6,8 @@ from webtest import TestApp
 from pyramid.testing import DummyRequest
 
 from billy import main
+from billy.db.tables import DeclarativeBase
 from billy.models import setup_database
-from billy.models.tables import DeclarativeBase
 from billy.models.model_factory import ModelFactory
 from billy.tests.fixtures.processor import DummyProcessor
 
@@ -24,6 +24,9 @@ class ViewTestCase(unittest.TestCase):
             self.settings = {
                 'billy.processor_factory': lambda: self.dummy_processor,
                 'model_factory_func': model_factory_func,
+                # do not remove when a request is processed, so that we don't
+                # have to use session.add every time
+                'db_session_cleanup': False,
             }
 
         # init database

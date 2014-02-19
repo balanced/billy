@@ -25,8 +25,8 @@ class TestServerInfo(ViewTestCase):
             )
             plan = self.plan_model.create(
                 company=company,
-                frequency=self.plan_model.FREQ_WEEKLY,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                frequency=self.plan_model.frequencies.WEEKLY,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=10,
             )
             subscription = self.subscription_model.create(
@@ -35,7 +35,7 @@ class TestServerInfo(ViewTestCase):
             )
             transaction = self.transaction_model.create(
                 invoice=subscription.invoices[0],
-                transaction_type=self.transaction_model.TYPE_CHARGE,
+                transaction_type=self.transaction_model.types.DEBIT,
                 amount=10,
                 funding_instrument_uri='/v1/cards/tester',
             )

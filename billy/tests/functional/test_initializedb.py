@@ -85,6 +85,7 @@ class TestInitializedb(unittest.TestCase):
             'plan',
             'subscription',
             'transaction',
+            'transaction_event',
             'transaction_failure',
             'customer_invoice',
             'subscription_invoice',

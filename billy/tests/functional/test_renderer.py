@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import datetime
 
 import transaction as db_transaction
 from freezegun import freeze_time
@@ -12,6 +11,7 @@ from billy.renderers import invoice_adapter
 from billy.renderers import transaction_adapter
 from billy.renderers import transaction_failure_adapter
 from billy.tests.functional.helper import ViewTestCase
+from billy.utils.generic import utc_now
 
 
 @freeze_time('2013-08-16')
@@ -28,8 +28,8 @@ class TestRenderer(ViewTestCase):
             )
             self.plan = self.plan_model.create(
                 company=self.company,
-                frequency=self.plan_model.FREQ_WEEKLY,
-                plan_type=self.plan_model.TYPE_CHARGE,
+                frequency=self.plan_model.frequencies.WEEKLY,
+                plan_type=self.plan_model.types.DEBIT,
                 amount=1234,
             )
             self.subscription = self.subscription_model.create(
@@ -68,11 +68,11 @@ class TestRenderer(ViewTestCase):
                     dict(amount=20, reason='A Lannister always pays his debts!'),
                     dict(amount=3),
                 ],
-                scheduled_at=datetime.datetime.utcnow(),
+                scheduled_at=utc_now(),
             )
             self.transaction = self.transaction_model.create(
                 invoice=self.customer_invoice,
-                transaction_type=self.transaction_model.TYPE_CHARGE,
+                transaction_type=self.transaction_model.types.DEBIT,
                 amount=5678,
                 funding_instrument_uri='/v1/cards/tester',
                 appears_on_statement_as='hello baby',
@@ -102,6 +102,21 @@ class TestRenderer(ViewTestCase):
         )
         self.assertEqual(json_data, expected)
 
+    def test_company_with_callback_key(self):
+        company = self.company
+        self.dummy_request.registry.settings = {}
+        settings = self.dummy_request.registry.settings
+        settings['billy.company.display_callback_key'] = True
+        json_data = company_adapter(company, self.dummy_request)
+        expected = dict(
+            guid=company.guid,
+            api_key=company.api_key,
+            callback_key=company.callback_key,
+            created_at=company.created_at.isoformat(),
+            updated_at=company.updated_at.isoformat(),
+        )
+        self.assertEqual(json_data, expected)
+
     def test_customer(self):
         customer = self.customer
         json_data = customer_adapter(customer, self.dummy_request)
@@ -121,8 +136,8 @@ class TestRenderer(ViewTestCase):
         expected = dict(
             guid=invoice.guid,
             invoice_type='customer',
-            transaction_type='charge',
-            status='init',
+            transaction_type='debit',
+            status='staged',
             created_at=invoice.created_at.isoformat(),
             updated_at=invoice.updated_at.isoformat(),
             customer_guid=invoice.customer_guid,
@@ -151,19 +166,19 @@ class TestRenderer(ViewTestCase):
             json_data = invoice_adapter(invoice, self.dummy_request)
             self.assertEqual(json_data['status'], expected_status)
 
-        assert_status(self.invoice_model.STATUS_INIT, 'init')
-        assert_status(self.invoice_model.STATUS_PROCESSING, 'processing')
-        assert_status(self.invoice_model.STATUS_SETTLED, 'settled')
-        assert_status(self.invoice_model.STATUS_CANCELED, 'canceled')
-        assert_status(self.invoice_model.STATUS_PROCESS_FAILED, 'process_failed')
+        assert_status(self.invoice_model.statuses.STAGED, 'staged')
+        assert_status(self.invoice_model.statuses.PROCESSING, 'processing')
+        assert_status(self.invoice_model.statuses.SETTLED, 'settled')
+        assert_status(self.invoice_model.statuses.CANCELED, 'canceled')
+        assert_status(self.invoice_model.statuses.FAILED, 'failed')
 
         invoice = self.subscription_invoice
         json_data = invoice_adapter(invoice, self.dummy_request)
         expected = dict(
             guid=invoice.guid,
             invoice_type='subscription',
-            transaction_type='charge',
-            status='init',
+            transaction_type='debit',
+            status='staged',
             created_at=invoice.created_at.isoformat(),
             updated_at=invoice.updated_at.isoformat(),
             scheduled_at=invoice.scheduled_at.isoformat(),
@@ -192,7 +207,7 @@ class TestRenderer(ViewTestCase):
         json_data = plan_adapter(plan, self.dummy_request)
         expected = dict(
             guid=plan.guid,
-            plan_type='charge',
+            plan_type='debit',
             frequency='weekly',
             amount=plan.amount,
             interval=plan.interval,
@@ -208,18 +223,18 @@ class TestRenderer(ViewTestCase):
             json_data = plan_adapter(plan, self.dummy_request)
             self.assertEqual(json_data['plan_type'], expected_type)
 
-        assert_type(self.plan_model.TYPE_CHARGE, 'charge')
-        assert_type(self.plan_model.TYPE_PAYOUT, 'payout')
+        assert_type(self.plan_model.types.DEBIT, 'debit')
+        assert_type(self.plan_model.types.CREDIT, 'credit')
 
         def assert_frequency(frequency, expected_frequency):
             plan.frequency = frequency
             json_data = plan_adapter(plan, self.dummy_request)
             self.assertEqual(json_data['frequency'], expected_frequency)
 
-        assert_frequency(self.plan_model.FREQ_DAILY, 'daily')
-        assert_frequency(self.plan_model.FREQ_WEEKLY, 'weekly')
-        assert_frequency(self.plan_model.FREQ_MONTHLY, 'monthly')
-        assert_frequency(self.plan_model.FREQ_YEARLY, 'yearly')
+        assert_frequency(self.plan_model.frequencies.DAILY, 'daily')
+        assert_frequency(self.plan_model.frequencies.WEEKLY, 'weekly')
+        assert_frequency(self.plan_model.frequencies.MONTHLY, 'monthly')
+        assert_frequency(self.plan_model.frequencies.YEARLY, 'yearly')
 
     def test_subscription(self):
         subscription = self.subscription
@@ -257,7 +272,7 @@ class TestRenderer(ViewTestCase):
             json_data = subscription_adapter(subscription, self.dummy_request)
             self.assertEqual(json_data['canceled_at'], expected_canceled_at)
 
-        now = datetime.datetime.utcnow()
+        now = utc_now()
         assert_canceled_at(None, None)
         assert_canceled_at(now, now.isoformat())
 
@@ -272,8 +287,9 @@ class TestRenderer(ViewTestCase):
         self.maxDiff = None
         expected = dict(
             guid=transaction.guid,
-            transaction_type='charge',
-            status='init',
+            transaction_type='debit',
+            submit_status='staged',
+            status=None,
             amount=transaction.amount,
             funding_instrument_uri=transaction.funding_instrument_uri,
             processor_uri=transaction.processor_uri,
@@ -291,20 +307,29 @@ class TestRenderer(ViewTestCase):
             json_data = transaction_adapter(transaction, self.dummy_request)
             self.assertEqual(json_data['transaction_type'], expected_type)
 
-        assert_type(self.transaction_model.TYPE_CHARGE, 'charge')
-        assert_type(self.transaction_model.TYPE_PAYOUT, 'payout')
-        assert_type(self.transaction_model.TYPE_REFUND, 'refund')
+        assert_type(self.transaction_model.types.DEBIT, 'debit')
+        assert_type(self.transaction_model.types.CREDIT, 'credit')
+        assert_type(self.transaction_model.types.REFUND, 'refund')
 
-        def assert_status(transaction_status, expected_status):
-            transaction.status = transaction_status
+        def assert_submit_status(status, expected_status):
+            transaction.submit_status = status
+            json_data = transaction_adapter(transaction, self.dummy_request)
+            self.assertEqual(json_data['submit_status'], expected_status)
+
+        assert_submit_status(self.transaction_model.submit_statuses.STAGED, 'staged')
+        assert_submit_status(self.transaction_model.submit_statuses.RETRYING, 'retrying')
+        assert_submit_status(self.transaction_model.submit_statuses.FAILED, 'failed')
+        assert_submit_status(self.transaction_model.submit_statuses.DONE, 'done')
+        assert_submit_status(self.transaction_model.submit_statuses.CANCELED, 'canceled')
+
+        def assert_status(status, expected_status):
+            transaction.status = status
             json_data = transaction_adapter(transaction, self.dummy_request)
             self.assertEqual(json_data['status'], expected_status)
 
-        assert_status(self.transaction_model.STATUS_INIT, 'init')
-        assert_status(self.transaction_model.STATUS_RETRYING, 'retrying')
-        assert_status(self.transaction_model.STATUS_FAILED, 'failed')
-        assert_status(self.transaction_model.STATUS_DONE, 'done')
-        assert_status(self.transaction_model.STATUS_CANCELED, 'canceled')
+        assert_status(self.transaction_model.statuses.PENDING, 'pending')
+        assert_status(self.transaction_model.statuses.SUCCEEDED, 'succeeded')
+        assert_status(self.transaction_model.statuses.FAILED, 'failed')
 
     def test_transaction_failure(self):
         transaction_failure = self.transaction_failure1

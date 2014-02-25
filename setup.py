@@ -14,7 +14,7 @@ test_requires = map(lambda r: r.strip(), test_requires.splitlines())
 
 setup(
     name='billy',
-    version='0.0.1',
+    version='1.0.4',
     description='Recurring payment system',
     long_description=readme,
     classifiers=[

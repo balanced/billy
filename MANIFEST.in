@@ -1,3 +1,2 @@
 include ez_setup.py
-recursive-include billy
 prune env

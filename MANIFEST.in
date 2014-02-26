@@ -1,2 +1,2 @@
-include ez_setup.py
+include ez_setup.py README.md requirements.txt test-requirements.txt
 prune env

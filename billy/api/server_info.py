@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from pyramid.view import view_config
 from pyramid.security import NO_PERMISSION_REQUIRED
 
-from billy.utils.generic import get_git_rev
+from billy import version
 
 
 @view_config(
@@ -24,6 +24,7 @@ def server_info(request):
     return dict(
         server='Billy - The recurring payment server',
         powered_by='BalancedPayments.com',
-        revision=get_git_rev(),
+        version=version.VERSION,
+        revision=version.REVISION,
         last_transaction_created_at=last_transaction_dt,
     )

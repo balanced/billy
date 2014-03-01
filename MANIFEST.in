@@ -1,2 +1,3 @@
 include ez_setup.py README.md requirements.txt test-requirements.txt
+recursive-include billy *.txt
 prune env

@@ -12,9 +12,14 @@ requires = map(lambda r: r.strip(), requires.splitlines())
 test_requires = open(os.path.join(here, 'test-requirements.txt')).read()
 test_requires = map(lambda r: r.strip(), test_requires.splitlines())
 
+version = '0.0.0'
+version_path = os.path.join(here, 'billy', 'version.txt')
+if os.path.exists(version_path):
+    version = open(version_path, 'rt').read().strip()
+
 setup(
     name='billy',
-    version='1.1.0',
+    version=version,
     description='Recurring payment system',
     long_description=readme,
     classifiers=[

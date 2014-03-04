@@ -5,7 +5,7 @@ The official endpoint of Billy API is
 
 ::
 
-    https://billing.balancedpayments.com
+    https://billy.balancedpayments.com
 
 When you found a bug, or you have any suggestion to this project, please create 
 an issue in our `GitHub repo`_.
@@ -54,7 +54,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/companies \
+    curl https://billy.balancedpayments.com/v1/companies \
         -X POST \
         -d "processor_key=ef13dce2093b11e388de026ba7d31e6f"
 
@@ -84,7 +84,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/companies/CP4MXZG4ThUdbLpiX8e9Yx3j \
+    curl https://billy.balancedpayments.com/v1/companies/CP4MXZG4ThUdbLpiX8e9Yx3j \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
@@ -141,7 +141,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/plans \
+    curl https://billy.balancedpayments.com/v1/plans \
         -X POST \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
         -d "plan_type=debit" \
@@ -179,7 +179,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/plans/PL4RHCKW7GsGMjpcozHveQuw \
+    curl https://billy.balancedpayments.com/v1/plans/PL4RHCKW7GsGMjpcozHveQuw \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
@@ -212,7 +212,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/plans/PL4RHCKW7GsGMjpcozHveQuw \
+    curl https://billy.balancedpayments.com/v1/plans/PL4RHCKW7GsGMjpcozHveQuw \
         -X DELETE \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
@@ -249,7 +249,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/plans \
+    curl https://billy.balancedpayments.com/v1/plans \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
@@ -356,7 +356,7 @@ Example:
 
 ::
 
-   curl https://billing.balancedpayments.com/v1/customers \
+   curl https://billy.balancedpayments.com/v1/customers \
        -X POST \
        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: 
 
@@ -387,7 +387,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/customers/CU4NheTMcQqXgmAtg1aGTJPK \
+    curl https://billy.balancedpayments.com/v1/customers/CU4NheTMcQqXgmAtg1aGTJPK \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
@@ -417,7 +417,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/customers/CU4NheTMcQqXgmAtg1aGTJPK \
+    curl https://billy.balancedpayments.com/v1/customers/CU4NheTMcQqXgmAtg1aGTJPK \
         -X DELETE \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
@@ -451,7 +451,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/customers \
+    curl https://billy.balancedpayments.com/v1/customers \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
@@ -552,7 +552,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/subscriptions \
+    curl https://billy.balancedpayments.com/v1/subscriptions \
         -X POST \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
         -d "customer_guid=CU4NheTMcQqXgmAtg1aGTJPK" \
@@ -594,7 +594,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/subscriptions/SU4ST39srWVLGbiTg174QyfF \
+    curl https://billy.balancedpayments.com/v1/subscriptions/SU4ST39srWVLGbiTg174QyfF \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
@@ -632,7 +632,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/subscriptions/SU4ST39srWVLGbiTg174QyfF/cancel \
+    curl https://billy.balancedpayments.com/v1/subscriptions/SU4ST39srWVLGbiTg174QyfF/cancel \
         -X POST
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
@@ -674,7 +674,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/subscriptions \
+    curl https://billy.balancedpayments.com/v1/subscriptions \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
@@ -798,7 +798,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/invoices \
+    curl https://billy.balancedpayments.com/v1/invoices \
         -X POST \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
         -d "customer_guid=CU4NheTMcQqXgmAtg1aGTJPK" \
@@ -860,7 +860,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/invoices/IV4gVtDyP3CD9zQyv8AtPwx5 \
+    curl https://billy.balancedpayments.com/v1/invoices/IV4gVtDyP3CD9zQyv8AtPwx5 \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
@@ -926,7 +926,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/invoices/IVS6Mo3mKLkUJKsJhtqkV7T7 \
+    curl https://billy.balancedpayments.com/v1/invoices/IVS6Mo3mKLkUJKsJhtqkV7T7 \
         -X PUT \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
         -d "funding_instrument_uri=/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA/cards/CCBXYdbpYDwX68hv69UH1eS"
@@ -984,7 +984,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/invoices/IVS6Mo3mKLkUJKsJhtqkV7T7/refund \
+    curl https://billy.balancedpayments.com/v1/invoices/IVS6Mo3mKLkUJKsJhtqkV7T7/refund \
         -X POST \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
         -d "amount=1000"
@@ -1044,7 +1044,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/invoices \
+    curl https://billy.balancedpayments.com/v1/invoices \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
@@ -1139,7 +1139,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/transactions/TX4SVWm156bBTSY17KJKW88y \
+    curl https://billy.balancedpayments.com/v1/transactions/TX4SVWm156bBTSY17KJKW88y \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:
@@ -1180,7 +1180,7 @@ Example:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/transactions \
+    curl https://billy.balancedpayments.com/v1/transactions \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 Response:

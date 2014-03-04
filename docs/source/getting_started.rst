@@ -29,7 +29,7 @@ To register a company, here you call
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/companies \
+    curl https://billy.balancedpayments.com/v1/companies \
         -X POST \
         -d "processor_key=ef13dce2093b11e388de026ba7d31e6f"
 
@@ -67,7 +67,7 @@ how to create a Billy plan for your first hosting type:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/plans \
+    curl https://billy.balancedpayments.com/v1/plans \
         -X POST \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
         -d "plan_type=debit" \
@@ -108,7 +108,7 @@ a customer, you can call the API like this:
 
 ::
 
-   curl https://billing.balancedpayments.com/v1/customers \
+   curl https://billy.balancedpayments.com/v1/customers \
        -X POST \
        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: 
 
@@ -132,7 +132,7 @@ can set the `processor_uri` parameter as the URI of customer in Balanced.
 
 ::
 
-   curl https://billing.balancedpayments.com/v1/customers \
+   curl https://billy.balancedpayments.com/v1/customers \
        -X POST \
        -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
        -d "processor_uri=/v1/customers/CU1jqOF9TocQXGIXjuMVrpMu"
@@ -166,7 +166,7 @@ With that funding source, to subscribe the customer to our plan, here we call
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/subscriptions \
+    curl https://billy.balancedpayments.com/v1/subscriptions \
         -X POST \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
         -d "customer_guid=CU4NheTMcQqXgmAtg1aGTJPK" \
@@ -206,7 +206,7 @@ with your API key like this
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/subscriptions/SU4ST39srWVLGbiTg174QyfF/invoices \
+    curl https://billy.balancedpayments.com/v1/subscriptions/SU4ST39srWVLGbiTg174QyfF/invoices \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
 and here is the response
@@ -252,7 +252,7 @@ the old customer, the original price is $5 USD, then discounted amount would be
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/subscriptions \
+    curl https://billy.balancedpayments.com/v1/subscriptions \
         -X POST \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
         -d "customer_guid=CU4NheTMcQqXgmAtg1aGTJPK" \
@@ -299,7 +299,7 @@ In this case, to subscribe a new student to your course plan, you can give it a
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/subscriptions \
+    curl https://billy.balancedpayments.com/v1/subscriptions \
         -X POST \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
         -d "customer_guid=CU4NheTMcQqXgmAtg1aGTJPK" \
@@ -316,7 +316,7 @@ subscription `SU4ST39srWVLGbiTg174QyfF`, then just call
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/subscriptions/SU4ST39srWVLGbiTg174QyfF/cancel \
+    curl https://billy.balancedpayments.com/v1/subscriptions/SU4ST39srWVLGbiTg174QyfF/cancel \
         -X POST \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC:
 
@@ -330,7 +330,7 @@ you can invoice them like this
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/invoices \
+    curl https://billy.balancedpayments.com/v1/invoices \
         -X POST \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
         -d "customer_guid=CU4NheTMcQqXgmAtg1aGTJPK" \
@@ -405,7 +405,7 @@ the invoice's `funding_instrument_uri` like this:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/invoices/IVS6Mo3mKLkUJKsJhtqkV7T7 \
+    curl https://billy.balancedpayments.com/v1/invoices/IVS6Mo3mKLkUJKsJhtqkV7T7 \
         -X PUT \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
         -d "funding_instrument_uri=/v1/marketplaces/TEST-MP6lD3dBpta7OAXJsN766qA/cards/CCBXYdbpYDwX68hv69UH1eS"
@@ -417,7 +417,7 @@ Sometimes, you may want to issue a refund to customer, here you can call:
 
 ::
 
-    curl https://billing.balancedpayments.com/v1/invoices/IVFRvtNxGvoWMehPG63Uyz1X/refund \
+    curl https://billy.balancedpayments.com/v1/invoices/IVFRvtNxGvoWMehPG63Uyz1X/refund \
         -X POST \
         -u 5MyxREWaEymNWunpGseySVGBZkTWDW57FUXsyTo2WtGC: \
         -d "amount=100"

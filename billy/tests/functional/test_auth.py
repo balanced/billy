@@ -13,6 +13,9 @@ class TestAuth(ViewTestCase):
     def make_one(self):
         return get_remote_user
 
+    def test_always_fail(self):
+        assert 0
+
     def test_get_remote(self):
         get_remote_user = self.make_one()
 

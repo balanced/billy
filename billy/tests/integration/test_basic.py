@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import re
 import datetime
 import json
 import urlparse
@@ -13,25 +12,9 @@ class TestBasicScenarios(IntegrationTestCase):
 
     def setUp(self):
         super(TestBasicScenarios, self).setUp()
-        # guids of company to clean up
-        self._company_guids = []
 
     def tearDown(self):
         super(TestBasicScenarios, self).tearDown()
-        # clean up callbacks of companies
-        callbacks = balanced.Callback.query.all()
-        # map company guid to callback resource
-        callback_map = {}
-        pattern = re.compile(r'(.*)/v1/companies/([^/]*)/callbacks/([^/]*)/$')
-        for callback in callbacks:
-            match = pattern.match(callback.url)
-            if match is None:
-                continue
-            company_guid = match.group(2)
-            callback_map[company_guid] = callback
-        for guid in self._company_guids:
-            if guid in callback_map:
-                callback_map[guid].delete()
 
     def create_company(self, processor_key=None):
         if processor_key is None:
@@ -41,21 +24,20 @@ class TestBasicScenarios(IntegrationTestCase):
             dict(processor_key=self.processor_key),
         )
         company = res.json
-        self._company_guids.append(company['guid'])
         return company
 
     def test_simple_subscription_and_cancel(self):
         balanced.configure(self.processor_key)
-        marketplace = balanced.Marketplace.find(self.marketplace_uri)
+        #marketplace = balanced.Marketplace.fetch(self.marketplace_uri)
 
         # create a card to charge
-        card = marketplace.create_card(
+        card = balanced.Card(
             name='BILLY_INTERGRATION_TESTER',
-            card_number='5105105105105100',
+            number='5105105105105100',
             expiration_month='12',
             expiration_year='2020',
             security_code='123',
-        )
+        ).save()
 
         # create a company
         company = self.create_company()
@@ -93,7 +75,7 @@ class TestBasicScenarios(IntegrationTestCase):
             dict(
                 customer_guid=customer['guid'],
                 plan_guid=plan['guid'],
-                funding_instrument_uri=card.uri,
+                funding_instrument_uri=card.href,
                 appears_on_statement_as='hello baby',
             ),
             headers=[self.make_auth(api_key)],
@@ -131,11 +113,11 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(transaction['transaction_type'], 'debit')
         self.assertEqual(transaction['appears_on_statement_as'], 'hello baby')
 
-        debit = balanced.Debit.find(transaction['processor_uri'])
+        debit = balanced.Debit.fetch(transaction['processor_uri'])
         self.assertEqual(debit.meta['billy.transaction_guid'], transaction['guid'])
         self.assertEqual(debit.amount, 1234)
         self.assertEqual(debit.status, 'succeeded')
-        self.assertEqual(debit.appears_on_statement_as, 'hello baby')
+        self.assertEqual(debit.appears_on_statement_as, 'BAL*hello baby')
 
         # cancel the subscription
         res = self.testapp.post(
@@ -173,7 +155,7 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(transaction['status'], 'succeeded')
         self.assertEqual(transaction['transaction_type'], 'refund')
 
-        refund = balanced.Refund.find(transaction['processor_uri'])
+        refund = balanced.Refund.fetch(transaction['processor_uri'])
         self.assertEqual(refund.meta['billy.transaction_guid'],
                          transaction['guid'])
         self.assertEqual(refund.amount, 1234)
@@ -199,16 +181,15 @@ class TestBasicScenarios(IntegrationTestCase):
 
     def test_invoicing(self):
         balanced.configure(self.processor_key)
-        marketplace = balanced.Marketplace.find(self.marketplace_uri)
 
         # create a card to charge
-        card = marketplace.create_card(
+        card = balanced.Card(
             name='BILLY_INTERGRATION_TESTER',
-            card_number='5105105105105100',
+            number='5105105105105100',
             expiration_month='12',
             expiration_year='2020',
             security_code='123',
-        )
+        ).save()
 
         # create a company
         company = self.create_company()
@@ -234,7 +215,7 @@ class TestBasicScenarios(IntegrationTestCase):
                 item_amount1=200,
                 adjustment_amount1='123',
                 adjustment_reason1='tips',
-                funding_instrument_uri=card.uri,
+                funding_instrument_uri=card.href,
                 appears_on_statement_as='hello baby',
             ),
             headers=[self.make_auth(api_key)],
@@ -262,24 +243,23 @@ class TestBasicScenarios(IntegrationTestCase):
         self.assertEqual(transaction['transaction_type'], 'debit')
         self.assertEqual(transaction['appears_on_statement_as'], 'hello baby')
 
-        debit = balanced.Debit.find(transaction['processor_uri'])
+        debit = balanced.Debit.fetch(transaction['processor_uri'])
         self.assertEqual(debit.meta['billy.transaction_guid'], transaction['guid'])
         self.assertEqual(debit.amount, 5566 + 123)
         self.assertEqual(debit.status, 'succeeded')
-        self.assertEqual(debit.appears_on_statement_as, 'hello baby')
+        self.assertEqual(debit.appears_on_statement_as, 'BAL*hello baby')
 
     def test_invalid_funding_instrument(self):
         balanced.configure(self.processor_key)
-        marketplace = balanced.Marketplace.find(self.marketplace_uri)
         # create a card
-        card = marketplace.create_card(
+        card = balanced.Card(
             name='BILLY_INTERGRATION_TESTER',
-            card_number='5105105105105100',
+            number='5105105105105100',
             expiration_month='12',
             expiration_year='2020',
             security_code='123',
-        )
-        card_uri = card.uri
+        ).save()
+        card_uri = card.href
         card.is_valid = False
         card.save()
 
@@ -337,16 +317,15 @@ class TestBasicScenarios(IntegrationTestCase):
 
     def test_callback(self):
         balanced.configure(self.processor_key)
-        marketplace = balanced.Marketplace.find(self.marketplace_uri)
 
         # create a card to charge
-        card = marketplace.create_card(
+        card = balanced.Card(
             name='BILLY_INTERGRATION_TESTER',
-            card_number='5105105105105100',
+            number='5105105105105100',
             expiration_month='12',
             expiration_year='2020',
             security_code='123',
-        )
+        ).save()
 
         # create a company
         company = self.create_company()
@@ -368,7 +347,7 @@ class TestBasicScenarios(IntegrationTestCase):
                 customer_guid=customer['guid'],
                 amount=1234,
                 title='Awesome invoice',
-                funding_instrument_uri=card.uri,
+                funding_instrument_uri=card.href,
             ),
             headers=[self.make_auth(api_key)],
         )
@@ -386,7 +365,7 @@ class TestBasicScenarios(IntegrationTestCase):
             '/v1/companies/{}/callbacks/{}'
             .format(company['guid'], company['callback_key'])
         )
-        debit = balanced.Debit.find(transaction['processor_uri'])
+        debit = balanced.Debit.fetch(transaction['processor_uri'])
         for event in debit.events:
             # simulate callback from Balanced API service
             res = self.testapp.post(
@@ -397,9 +376,14 @@ class TestBasicScenarios(IntegrationTestCase):
                     (b'content-type', b'application/json')
                 ],
             )
+            entity = getattr(event, 'entity', None)
+            if entity is not None:
+                entity = entity.copy()
+                del entity['links']
+                entity = entity.popitem()[1][0]
             if (
-                hasattr(event, 'entity') and
-                'billy.transaction_guid' in event.entity.meta
+                entity is None or
+                'billy.transaction_guid' in entity['meta']
             ):
                 self.assertEqual(res.json['code'], 'ok')
             else:

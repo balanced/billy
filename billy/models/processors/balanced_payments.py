@@ -2,7 +2,9 @@ from __future__ import unicode_literals
 import logging
 import functools
 
+import iso8601
 import balanced
+from wac import NoResultFound
 
 from billy.models.transaction import TransactionModel
 from billy.models.processors.base import PaymentProcessor
@@ -104,34 +106,38 @@ class BalancedProcessor(PaymentProcessor):
         # a callback and make any invoice settled
         try:
             uri = '/v1/events/{}'.format(payload['id'])
-            event = self.event_cls.find(uri)
+            event = self.event_cls.fetch(uri)
         except balanced.exc.BalancedError, e:
             raise InvalidCallbackPayload(
                 'Invalid callback payload '
                 'BalancedError: {}'.format(e)
             )
 
-        if (
-            not hasattr(event, 'entity') or
-            'billy.transaction_guid' not in event.entity.meta
-        ):
+        entity = getattr(event, 'entity', None)
+        if entity is not None:
+            entity = entity.copy()
+            del entity['links']
+            entity = entity.popitem()[1][0]
+        if entity is None or ('billy.transaction_guid' not in entity['meta']):
             self.logger.info('Not a transaction created by billy, ignore')
             return
-        guid = event.entity.meta['billy.transaction_guid']
+        guid = entity['meta']['billy.transaction_guid']
         processor_id = event.id
         occurred_at = event.occurred_at
+        if isinstance(occurred_at, str):
+            occurred_at = iso8601.parse_date(occurred_at)
         try:
-            status = self.STATUS_MAP[event.entity.status]
+            status = self.STATUS_MAP[entity['status']]
         except KeyError:
             self.logger.warn(
                 'Unknown status %s, default to pending',
-                event.entity.status,
+                entity['status'],
             )
             status = TransactionModel.statuses.PENDING
         self.logger.info(
             'Callback for transaction billy_guid=%s, entity_status=%s, '
             'new_status=%s, event_id=%s, occurred_at=%s',
-            guid, event.entity.status, status, processor_id, occurred_at,
+            guid, entity['status'], status, processor_id, occurred_at,
         )
 
         def update_db(model_factory):
@@ -168,7 +174,7 @@ class BalancedProcessor(PaymentProcessor):
             'meta.billy.customer_guid': customer.guid,
         }).save()
         self.logger.info('Created Balanced customer for %s', customer.guid)
-        return record.uri
+        return record.href
 
     @ensure_api_key_configured
     def prepare_customer(self, customer, funding_instrument_uri=None):
@@ -179,17 +185,19 @@ class BalancedProcessor(PaymentProcessor):
         if funding_instrument_uri is None:
             return
         # get balanced customer record
-        balanced_customer = self.customer_cls.find(customer.processor_uri)
+        balanced_customer = self.customer_cls.fetch(customer.processor_uri)
         if '/bank_accounts/' in funding_instrument_uri:
             self.logger.debug('Adding bank account %s to %s',
                               funding_instrument_uri, customer.guid)
-            balanced_customer.add_bank_account(funding_instrument_uri)
+            bank_account = self.bank_account_cls.fetch(funding_instrument_uri)
+            bank_account.associate_to_customer(balanced_customer)
             self.logger.info('Added bank account %s to %s',
                              funding_instrument_uri, customer.guid)
         elif '/cards/' in funding_instrument_uri:
             self.logger.debug('Adding credit card %s to %s',
                               funding_instrument_uri, customer.guid)
-            balanced_customer.add_card(funding_instrument_uri)
+            card = self.card_cls.fetch(funding_instrument_uri)
+            card.associate_to_customer(balanced_customer)
             self.logger.info('Added credit card %s to %s',
                              funding_instrument_uri, customer.guid)
         else:
@@ -205,7 +213,7 @@ class BalancedProcessor(PaymentProcessor):
                 .format(repr(processor_uri))
             )
         try:
-            self.customer_cls.find(processor_uri)
+            self.customer_cls.fetch(processor_uri)
         except balanced.exc.BalancedError, e:
             raise InvalidCustomer(
                 'Failed to validate customer {}. '
@@ -233,7 +241,7 @@ class BalancedProcessor(PaymentProcessor):
                 'account or credit card'.format(funding_instrument_uri)
             )
         try:
-            resource_cls.find(funding_instrument_uri)
+            resource_cls.fetch(funding_instrument_uri)
         except balanced.exc.BalancedError, e:
             raise InvalidFundingInstrument(
                 'Failed to validate funding instrument {}. '
@@ -252,7 +260,7 @@ class BalancedProcessor(PaymentProcessor):
                 .filter(**{'meta.billy.transaction_guid': guid})
                 .one()
             )
-        except balanced.exc.NoResultFound:
+        except (NoResultFound, balanced.exc.NoResultFound):
             resource = None
         return resource
 
@@ -266,7 +274,7 @@ class BalancedProcessor(PaymentProcessor):
             )
             status = TransactionModel.statuses.PENDING
         return dict(
-            processor_uri=res.uri,
+            processor_uri=res.href,
             status=status,
         )
 
@@ -292,7 +300,7 @@ class BalancedProcessor(PaymentProcessor):
 
         # TODO: handle error here
         # get balanced customer record
-        balanced_customer = self.customer_cls.find(customer.processor_uri)
+        balanced_customer = self.customer_cls.fetch(customer.processor_uri)
 
         # prepare arguments
         kwargs = dict(
@@ -309,10 +317,17 @@ class BalancedProcessor(PaymentProcessor):
 
         if transaction.transaction_type == TransactionModel.types.REFUND:
             debit_transaction = transaction.reference_to
-            debit = self.debit_cls.find(debit_transaction.processor_uri)
+            debit = self.debit_cls.fetch(debit_transaction.processor_uri)
             method = getattr(debit, method_name)
         else:
-            method = getattr(balanced_customer, method_name)
+            href = transaction.funding_instrument_uri
+            # TODO: maybe we should find a better way to replace this URL
+            # determining thing?
+            if '/bank_accounts/' in href:
+                funding_instrument = self.bank_account_cls.fetch(href)
+            elif '/cards/' in href:
+                funding_instrument = self.card_cls.fetch(href)
+            method = getattr(funding_instrument, method_name)
 
         self.logger.debug('Calling %s with args %s', method.__name__, kwargs)
         record = method(**kwargs)
@@ -322,8 +337,15 @@ class BalancedProcessor(PaymentProcessor):
     @ensure_api_key_configured
     def debit(self, transaction):
         extra_kwargs = {}
-        if transaction.funding_instrument_uri is not None:
-            extra_kwargs['source_uri'] = transaction.funding_instrument_uri
+        if transaction.funding_instrument_uri is None:
+            raise InvalidFundingInstrument(
+                'Because debiting/crediting to a customer with the default '
+                'funding instrument is removed from rev1.1 API. At this moment, '
+                'leaving funding_instrument_uri as None is an error. But we '
+                'should revisit this issue later to see if it is a good idea '
+                'to provide operations against default funding instrument for '
+                'customer again'
+            )
         return self._do_transaction(
             transaction=transaction,
             resource_cls=self.debit_cls,
@@ -334,8 +356,15 @@ class BalancedProcessor(PaymentProcessor):
     @ensure_api_key_configured
     def credit(self, transaction):
         extra_kwargs = {}
-        if transaction.funding_instrument_uri is not None:
-            extra_kwargs['destination_uri'] = transaction.funding_instrument_uri
+        if transaction.funding_instrument_uri is None:
+            raise InvalidFundingInstrument(
+                'Because debiting/crediting to a customer with the default '
+                'funding instrument is removed from rev1.1 API. At this moment, '
+                'leaving funding_instrument_uri as None is an error. But we '
+                'should revisit this issue later to see if it is a good idea '
+                'to provide operations against default funding instrument for '
+                'customer again'
+            )
         return self._do_transaction(
             transaction=transaction,
             resource_cls=self.credit_cls,

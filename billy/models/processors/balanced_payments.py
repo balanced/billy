@@ -43,7 +43,7 @@ def ensure_api_key_configured(func):
     """
     @functools.wraps(func)
     def callee(self, *args, **kwargs):
-        assert self._configured_api_key and balanced.is_configured(), (
+        assert self._configured_api_key and balanced.config.Client.config.auth, (
             'API key need to be configured before calling any other methods'
         )
         return func(self, *args, **kwargs)

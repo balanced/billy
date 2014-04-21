@@ -62,7 +62,7 @@ class TestBalancedProcessorModel(ModelTestCase):
             self.subscription = self.subscription_model.create(
                 customer=self.customer,
                 plan=self.plan,
-                funding_instrument_uri='/v1/credit_card/tester',
+                funding_instrument_uri='/v1/cards/tester',
             )
             self.invoice = self.invoice_model.create(
                 customer=self.customer,
@@ -98,9 +98,12 @@ class TestBalancedProcessorModel(ModelTestCase):
         event = mock.Mock(
             id=event_id,
             occurred_at=occurred_at,
-            entity=mock.Mock(
-                meta={'billy.transaction_guid': transaction_guid},
-                status=status,
+            entity=dict(
+                entity_type=[dict(
+                    meta={'billy.transaction_guid': transaction_guid},
+                    status=status,
+                )],
+                links=[],
             )
         )
         return event
@@ -114,14 +117,14 @@ class TestBalancedProcessorModel(ModelTestCase):
     def test_callback(self):
         event = self.make_event()
         Event = mock.Mock()
-        Event.find.return_value = event
+        Event.fetch.return_value = event
 
         payload = self.make_callback_payload()
         processor = self.make_one(event_cls=Event)
         update_db = processor.callback(self.company, payload)
         update_db(self.model_factory)
 
-        Event.find.assert_called_once_with('/v1/events/MOCK_EVENT_GUID')
+        Event.fetch.assert_called_once_with('/v1/events/MOCK_EVENT_GUID')
         self.assertEqual(self.transaction.status, self.transaction_model.statuses.SUCCEEDED)
         events = list(self.transaction.events)
         self.assertEqual(len(events), 1)
@@ -130,9 +133,9 @@ class TestBalancedProcessorModel(ModelTestCase):
 
     def test_callback_without_meta_guid(self):
         event = self.make_event()
-        event.entity.meta = {}
+        event.entity['entity_type'][0]['meta'] = {}
         Event = mock.Mock()
-        Event.find.return_value = event
+        Event.fetch.return_value = event
 
         payload = self.make_callback_payload()
         processor = self.make_one(event_cls=Event)
@@ -148,7 +151,7 @@ class TestBalancedProcessorModel(ModelTestCase):
             occurred_at=occurred_at,
         )
         Event = mock.Mock()
-        Event.find.return_value = event
+        Event.fetch.return_value = event
 
         payload = self.make_callback_payload()
         processor = self.make_one(event_cls=Event)
@@ -204,7 +207,7 @@ class TestBalancedProcessorModel(ModelTestCase):
     def test_callback_with_not_exist_transaction(self):
         event = self.make_event(transaction_guid='NOT_EXIST_GUID')
         Event = mock.Mock()
-        Event.find.return_value = event
+        Event.fetch.return_value = event
         payload = self.make_callback_payload()
         processor = self.make_one(event_cls=Event)
         with self.assertRaises(InvalidCallbackPayload):
@@ -221,13 +224,13 @@ class TestBalancedProcessorModel(ModelTestCase):
     def test_validate_customer(self):
         # mock class
         BalancedCustomer = mock.Mock()
-        BalancedCustomer.find.return_value = mock.Mock(uri='MOCK_CUSTOMER_URI')
+        BalancedCustomer.fetch.return_value = mock.Mock(uri='MOCK_CUSTOMER_URI')
 
         processor = self.make_one(customer_cls=BalancedCustomer)
         result = processor.validate_customer('/v1/customers/xxx')
         self.assertTrue(result)
 
-        BalancedCustomer.find.assert_called_once_with('/v1/customers/xxx')
+        BalancedCustomer.fetch.assert_called_once_with('/v1/customers/xxx')
 
     def test_validate_customer_with_invalid_uri(self):
         processor = self.make_one()
@@ -237,31 +240,31 @@ class TestBalancedProcessorModel(ModelTestCase):
     def test_validate_funding_instrument(self):
         # mock class
         Card = mock.Mock()
-        Card.find.return_value = mock.Mock(
-            uri='MOCK_FUNDING_INSTRUMENT_URI',
+        Card.fetch.return_value = mock.Mock(
+            href='MOCK_FUNDING_INSTRUMENT_URI',
         )
 
         processor = self.make_one(card_cls=Card)
         result = processor.validate_funding_instrument('/v1/cards/xxx')
         self.assertTrue(result)
 
-        Card.find.assert_called_once_with('/v1/cards/xxx')
+        Card.fetch.assert_called_once_with('/v1/cards/xxx')
 
         BankAccount = mock.Mock()
-        BankAccount.find.return_value = mock.Mock(
-            uri='MOCK_FUNDING_INSTRUMENT_URI',
+        BankAccount.fetch.return_value = mock.Mock(
+            href='MOCK_FUNDING_INSTRUMENT_URI',
         )
 
         processor = self.make_one(bank_account_cls=BankAccount)
         result = processor.validate_funding_instrument('/v1/bank_accounts/xxx')
         self.assertTrue(result)
 
-        BankAccount.find.assert_called_once_with('/v1/bank_accounts/xxx')
+        BankAccount.fetch.assert_called_once_with('/v1/bank_accounts/xxx')
 
     def test_validate_funding_instrument_with_invalid_card(self):
         # mock class
         Card = mock.Mock()
-        Card.find.side_effect = balanced.exc.BalancedError('Boom')
+        Card.fetch.side_effect = balanced.exc.BalancedError('Boom')
         processor = self.make_one(card_cls=Card)
         with self.assertRaises(InvalidFundingInstrument):
             processor.validate_funding_instrument('/v1/cards/invalid_card')
@@ -278,7 +281,7 @@ class TestBalancedProcessorModel(ModelTestCase):
 
         # mock instance
         balanced_customer = mock.Mock()
-        balanced_customer.save.return_value = mock.Mock(uri='MOCK_CUSTOMER_URI')
+        balanced_customer.save.return_value = mock.Mock(href='MOCK_CUSTOMER_URI')
         # mock class
         BalancedCustomer = mock.Mock()
         BalancedCustomer.return_value = balanced_customer
@@ -295,43 +298,49 @@ class TestBalancedProcessorModel(ModelTestCase):
 
     def test_prepare_customer_with_card(self):
         # mock instance
-        balanced_customer = mock.Mock()
+        customer = mock.Mock()
+        card = mock.Mock()
         # mock class
-        BalancedCustomer = mock.Mock()
-        BalancedCustomer.find.return_value = balanced_customer
+        Customer = mock.Mock()
+        Customer.fetch.return_value = customer
+        Card = mock.Mock()
+        Card.fetch.return_value = card
 
-        processor = self.make_one(customer_cls=BalancedCustomer)
-        processor.prepare_customer(self.customer, '/v1/cards/my_card')
-        # make sure the customer find method is called
-        BalancedCustomer.find.assert_called_once_with(self.customer.processor_uri)
-        # make sure card is added correctly
-        balanced_customer.add_card.assert_called_once_with('/v1/cards/my_card')
+        href = '/v1/cards/my_card'
+        processor = self.make_one(customer_cls=Customer, card_cls=Card)
+        processor.prepare_customer(self.customer, href)
+        # make sure the customer fetch method is called
+        Customer.fetch.assert_called_once_with(self.customer.processor_uri)
+        # make sure the card fetch method is called
+        Card.fetch.assert_called_once_with(href)
+        # make sure card is assoicated correctly
+        card.associate_to_customer.assert_called_once_with(customer)
 
     def test_prepare_customer_with_bank_account(self):
         # mock instance
-        balanced_customer = mock.Mock()
+        customer = mock.Mock()
+        bank_account = mock.Mock()
         # mock class
-        BalancedCustomer = mock.Mock()
-        BalancedCustomer.find.return_value = balanced_customer
+        Customer = mock.Mock()
+        Customer.fetch.return_value = customer
+        BankAccount = mock.Mock()
+        BankAccount.fetch.return_value = bank_account
 
-        processor = self.make_one(customer_cls=BalancedCustomer)
-        processor.prepare_customer(
-            self.customer,
-            '/v1/bank_accounts/my_account'
-        )
-        # make sure the customer find method is called
-        BalancedCustomer.find.assert_called_once_with(self.customer.processor_uri)
-        # make sure card is added correctly
-        balanced_customer.add_bank_account.assert_called_once_with(
-            '/v1/bank_accounts/my_account',
-        )
+        href = '/v1/bank_accounts/my_account'
+        processor = self.make_one(customer_cls=Customer, bank_account_cls=BankAccount)
+        processor.prepare_customer(self.customer, href)
+        # make sure the customer fetch method is called
+        Customer.fetch.assert_called_once_with(self.customer.processor_uri)
+        BankAccount.fetch.assert_called_once_with(href)
+        # make sure card is associated correctly
+        bank_account.associate_to_customer.assert_called_once_with(customer)
 
     def test_prepare_customer_with_none_funding_instrument_uri(self):
         # mock instance
         balanced_customer = mock.Mock()
         # mock class
         BalancedCustomer = mock.Mock()
-        BalancedCustomer.find.return_value = balanced_customer
+        BalancedCustomer.fetch.return_value = balanced_customer
 
         processor = self.make_one(customer_cls=BalancedCustomer)
         processor.prepare_customer(self.customer, None)
@@ -345,7 +354,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         balanced_customer = mock.Mock()
         # mock class
         BalancedCustomer = mock.Mock()
-        BalancedCustomer.find.return_value = balanced_customer
+        BalancedCustomer.fetch.return_value = balanced_customer
 
         processor = self.make_one(customer_cls=BalancedCustomer)
         with self.assertRaises(ValueError):
@@ -353,8 +362,8 @@ class TestBalancedProcessorModel(ModelTestCase):
 
     def _test_operation(
         self,
-        cls_name,
-        processor_method_name,
+        op_cls_name,
+        fi_cls_name,
         api_method_name,
         extra_api_kwargs,
     ):
@@ -364,7 +373,7 @@ class TestBalancedProcessorModel(ModelTestCase):
                 invoice=self.invoice,
                 transaction_type=tx_model.types.DEBIT,
                 amount=10,
-                funding_instrument_uri='/v1/credit_card/tester',
+                funding_instrument_uri='/v1/cards/tester',
                 appears_on_statement_as='hello baby',
             )
             self.customer_model.update(
@@ -377,32 +386,31 @@ class TestBalancedProcessorModel(ModelTestCase):
         page.one.side_effect = balanced.exc.NoResultFound
         # mock resource
         resource = mock.Mock(
-            uri='MOCK_BALANCED_RESOURCE_URI',
+            href='MOCK_BALANCED_RESOURCE_URI',
             status='succeeded',
         )
-        # mock customer instance
-        balanced_customer = mock.Mock()
-        api_method = getattr(balanced_customer, api_method_name)
+        # mock funding instrument instance
+        funding_instrument = mock.Mock()
+        api_method = getattr(funding_instrument, api_method_name)
         api_method.return_value = resource
         api_method.__name__ = api_method_name
-        # mock customer class
-        BalancedCustomer = mock.Mock()
-        BalancedCustomer.find.return_value = balanced_customer
+        # mock funding instrumnet
+        FundingInstrument = mock.Mock()
+        FundingInstrument.fetch.return_value = funding_instrument
         # mock resource class
         Resource = mock.Mock()
         Resource.query.filter.return_value = page
 
-        processor = self.make_one(
-            customer_cls=BalancedCustomer,
-            **{cls_name: Resource}
-        )
-        method = getattr(processor, processor_method_name)
+        processor = self.make_one(**{
+            op_cls_name: Resource,
+            fi_cls_name: FundingInstrument,
+
+        })
+        method = getattr(processor, api_method_name)
         result = method(transaction)
         self.assertEqual(result['processor_uri'], 'MOCK_BALANCED_RESOURCE_URI')
         self.assertEqual(result['status'],
                          self.transaction_model.statuses.SUCCEEDED)
-        # make sure the customer find method is called
-        BalancedCustomer.find.assert_called_once_with(self.customer.processor_uri)
         # make sure query is made correctly
         expected_kwargs = {'meta.billy.transaction_guid': transaction.guid}
         Resource.query.filter.assert_called_once_with(**expected_kwargs)
@@ -416,13 +424,13 @@ class TestBalancedProcessorModel(ModelTestCase):
             appears_on_statement_as='hello baby',
         )
         expected_kwargs.update(extra_api_kwargs)
-        api_method = getattr(balanced_customer, api_method_name)
+
+        api_method = getattr(funding_instrument, api_method_name)
         api_method.assert_called_once_with(**expected_kwargs)
 
     def _test_operation_with_created_record(
         self,
         cls_name,
-        processor_method_name,
         api_method_name,
     ):
         tx_model = self.transaction_model
@@ -431,12 +439,12 @@ class TestBalancedProcessorModel(ModelTestCase):
                 invoice=self.invoice,
                 transaction_type=tx_model.types.DEBIT,
                 amount=10,
-                funding_instrument_uri='/v1/credit_card/tester',
+                funding_instrument_uri='/v1/cards/tester',
             )
 
         # mock resource
         resource = mock.Mock(
-            uri='MOCK_BALANCED_RESOURCE_URI',
+            href='MOCK_BALANCED_RESOURCE_URI',
             status='succeeded',
         )
         # mock page
@@ -449,7 +457,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         api_method.__name__ = api_method_name
         # mock customer class
         Customer = mock.Mock()
-        Customer.find.return_value = customer
+        Customer.fetch.return_value = customer
         # mock resource class
         Resource = mock.Mock()
         Resource.query.filter.return_value = page
@@ -458,14 +466,14 @@ class TestBalancedProcessorModel(ModelTestCase):
             customer_cls=Customer,
             **{cls_name: Resource}
         )
-        method = getattr(processor, processor_method_name)
+        method = getattr(processor, api_method_name)
         result = method(transaction)
         self.assertEqual(result['processor_uri'], 'MOCK_BALANCED_RESOURCE_URI')
         self.assertEqual(result['status'],
                          self.transaction_model.statuses.SUCCEEDED)
 
         # make sure the api method is not called
-        self.assertFalse(Customer.find.called)
+        self.assertFalse(Customer.fetch.called)
         self.assertFalse(api_method.called)
         # make sure query is made correctly
         expected_kwargs = {'meta.billy.transaction_guid': transaction.guid}
@@ -473,31 +481,29 @@ class TestBalancedProcessorModel(ModelTestCase):
 
     def test_debit(self):
         self._test_operation(
-            cls_name='debit_cls',
-            processor_method_name='debit',
+            op_cls_name='debit_cls',
+            fi_cls_name='card_cls',
             api_method_name='debit',
-            extra_api_kwargs=dict(source_uri='/v1/credit_card/tester'),
+            extra_api_kwargs=dict(source='/v1/cards/tester'),
         )
 
     def test_debit_with_created_record(self):
         self._test_operation_with_created_record(
             cls_name='debit_cls',
-            processor_method_name='debit',
             api_method_name='debit',
         )
 
     def test_credit(self):
         self._test_operation(
-            cls_name='credit_cls',
-            processor_method_name='credit',
+            op_cls_name='credit_cls',
+            fi_cls_name='card_cls',
             api_method_name='credit',
-            extra_api_kwargs=dict(destination_uri='/v1/credit_card/tester'),
+            extra_api_kwargs=dict(destination='/v1/cards/tester'),
         )
 
     def test_credit_with_created_record(self):
         self._test_operation_with_created_record(
             cls_name='credit_cls',
-            processor_method_name='credit',
             api_method_name='credit',
         )
 
@@ -508,7 +514,7 @@ class TestBalancedProcessorModel(ModelTestCase):
                 invoice=self.invoice,
                 transaction_type=tx_model.types.DEBIT,
                 amount=100,
-                funding_instrument_uri='/v1/credit_card/tester',
+                funding_instrument_uri='/v1/cards/tester',
             )
             charge_transaction.submit_status = tx_model.submit_statuses.DONE
             charge_transaction.processor_uri = 'MOCK_BALANCED_DEBIT_URI'
@@ -532,19 +538,19 @@ class TestBalancedProcessorModel(ModelTestCase):
         # mock debit instance
         debit = mock.Mock()
         debit.refund.return_value = mock.Mock(
-            uri='MOCK_REFUND_URI',
+            href='MOCK_REFUND_URI',
             status='succeeded',
         )
         debit.refund.__name__ = 'refund'
         # mock customer class
         Customer = mock.Mock()
-        Customer.find.return_value = mock.Mock()
+        Customer.fetch.return_value = mock.Mock()
         # mock refund class
         Refund = mock.Mock()
         Refund.query.filter.return_value = page
         # mock debit class
         Debit = mock.Mock()
-        Debit.find.return_value = debit
+        Debit.fetch.return_value = debit
 
         processor = self.make_one(
             refund_cls=Refund,
@@ -556,7 +562,7 @@ class TestBalancedProcessorModel(ModelTestCase):
         self.assertEqual(result['status'],
                          self.transaction_model.statuses.SUCCEEDED)
 
-        Debit.find.assert_called_once_with(transaction.reference_to.processor_uri)
+        Debit.fetch.assert_called_once_with(transaction.reference_to.processor_uri)
         description = (
             'Generated by Billy from invoice {}'
             .format(self.invoice.guid)
@@ -574,7 +580,7 @@ class TestBalancedProcessorModel(ModelTestCase):
 
         # mock resource
         resource = mock.Mock(
-            uri='MOCK_BALANCED_REFUND_URI',
+            href='MOCK_BALANCED_REFUND_URI',
             status='succeeded',
         )
         # mock page
@@ -583,19 +589,19 @@ class TestBalancedProcessorModel(ModelTestCase):
         # mock debit instance
         debit = mock.Mock()
         debit.refund.return_value = mock.Mock(
-            uri='MOCK_REFUND_URI',
+            href='MOCK_REFUND_URI',
             status='succeeded',
         )
         debit.refund.__name__ = 'refund'
         # mock customer class
         Customer = mock.Mock()
-        Customer.find.return_value = mock.Mock()
+        Customer.fetch.return_value = mock.Mock()
         # mock refund class
         Refund = mock.Mock()
         Refund.query.filter.return_value = page
         # mock debit class
         Debit = mock.Mock()
-        Debit.find.return_value = debit
+        Debit.fetch.return_value = debit
 
         processor = self.make_one(
             refund_cls=Refund,

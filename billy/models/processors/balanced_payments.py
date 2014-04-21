@@ -285,8 +285,6 @@ class BalancedProcessor(PaymentProcessor):
         method_name,
         extra_kwargs
     ):
-        customer = transaction.invoice.customer
-
         # do existing check before creation to make sure we won't duplicate
         # transaction in Balanced service
         record = self._get_resource_by_tx_guid(resource_cls, transaction.guid)
@@ -297,10 +295,6 @@ class BalancedProcessor(PaymentProcessor):
             self.logger.warn('Balanced transaction record for %s already '
                              'exist', transaction.guid)
             return self._resource_to_result(record)
-
-        # TODO: handle error here
-        # get balanced customer record
-        balanced_customer = self.customer_cls.fetch(customer.processor_uri)
 
         # prepare arguments
         kwargs = dict(
@@ -327,6 +321,8 @@ class BalancedProcessor(PaymentProcessor):
                 funding_instrument = self.bank_account_cls.fetch(href)
             elif '/cards/' in href:
                 funding_instrument = self.card_cls.fetch(href)
+            else:
+                raise ValueError('Unknown funding instrument {}'.format(href))
             method = getattr(funding_instrument, method_name)
 
         self.logger.debug('Calling %s with args %s', method.__name__, kwargs)
@@ -346,6 +342,7 @@ class BalancedProcessor(PaymentProcessor):
                 'to provide operations against default funding instrument for '
                 'customer again'
             )
+        extra_kwargs['source'] = transaction.funding_instrument_uri
         return self._do_transaction(
             transaction=transaction,
             resource_cls=self.debit_cls,
@@ -365,6 +362,7 @@ class BalancedProcessor(PaymentProcessor):
                 'to provide operations against default funding instrument for '
                 'customer again'
             )
+        extra_kwargs['destination'] = transaction.funding_instrument_uri
         return self._do_transaction(
             transaction=transaction,
             resource_cls=self.credit_cls,

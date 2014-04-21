@@ -259,9 +259,7 @@ class TestBasicScenarios(IntegrationTestCase):
             expiration_year='2020',
             security_code='123',
         ).save()
-        card_uri = card.href
-        card.is_valid = False
-        card.save()
+        card_uri = card.href + 'NOTEXIST'
 
         # create a company
         company = self.create_company()

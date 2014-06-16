@@ -28,7 +28,7 @@ class TestBasicScenarios(IntegrationTestCase):
 
     def test_simple_subscription_and_cancel(self):
         balanced.configure(self.processor_key)
-        #marketplace = balanced.Marketplace.fetch(self.marketplace_uri)
+        # marketplace = balanced.Marketplace.fetch(self.marketplace_uri)
 
         # create a card to charge
         card = balanced.Card(

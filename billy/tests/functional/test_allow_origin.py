@@ -40,10 +40,17 @@ class TestAllowOrigin(ViewTestCase):
         )
 
     def assert_not_allowed(self, origin):
-        resp = self.testapp.head(
-            '/v1/companies',
-            headers=dict(),
+        origin = str(origin)
+        resp = self.testapp.options(
+            '/v1/customers',
+            headers={
+                'Origin': origin,
+            },
+            extra_environ=dict(REMOTE_USER=self.api_key),
+            status=404,
         )
+        resp_allow_origin = resp.headers.get('Access-Control-Allow-Origin', [])
+        self.assertNotIn(origin, resp_allow_origin)
 
     def test_allow_origin(self):
         self.testapp.app.registry.settings['api.allowed_origins'] = [
@@ -65,10 +72,10 @@ class TestAllowOrigin(ViewTestCase):
             'http://127.0.0.1',
             'http://localhost',
         ]
-        self.assert_allowed('http://127.0.0.2')
-        self.assert_allowed('http://127.0.0.2/')
-        self.assert_allowed('http://127.0.0.2/foo')
-        self.assert_allowed('http://127.0.0.2/foo/bar')
-        self.assert_allowed('http://my-localhost/')
-        self.assert_allowed('http://my-localhost/foo')
-        self.assert_allowed('http://my-localhost/foo/bar')
+        self.assert_not_allowed('http://127.0.0.2')
+        self.assert_not_allowed('http://127.0.0.2/')
+        self.assert_not_allowed('http://127.0.0.2/foo')
+        self.assert_not_allowed('http://127.0.0.2/foo/bar')
+        self.assert_not_allowed('http://my-localhost/')
+        self.assert_not_allowed('http://my-localhost/foo')
+        self.assert_not_allowed('http://my-localhost/foo/bar')

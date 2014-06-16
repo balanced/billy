@@ -14,8 +14,8 @@ def allow_origin_tween_factory(handler, registry):
             )
             if not origin:
                 return False
-            for allow_origin in allowed_origins:
-                if origin.lower().startswith(origin):
+            for allowed_origin in allowed_origins:
+                if origin.lower().startswith(allowed_origin):
                     return True
             return False
 
@@ -23,13 +23,13 @@ def allow_origin_tween_factory(handler, registry):
             """Set access-control-allow-origin et. al headers
 
             """
-            response.headers['Access-Control-Allow-Origin'] = request_origin
-            response.headers['Access-Control-Allow-Credentials'] = 'true'
-            response.headers['Access-Control-Allow-Methods'] = (
-                'GET, POST, PUT, DELETE, PATCH, OPTIONS'
+            response.headers[b'Access-Control-Allow-Origin'] = request_origin
+            response.headers[b'Access-Control-Allow-Credentials'] = b'true'
+            response.headers[b'Access-Control-Allow-Methods'] = (
+                b'GET, POST, PUT, DELETE, PATCH, OPTIONS'
             )
-            response.headers['Access-Control-Allow-Headers'] = (
-                'Content-Type,Authorization'
+            response.headers[b'Access-Control-Allow-Headers'] = (
+                b'Content-Type,Authorization'
             )
 
         if not is_origin_allowed(request_origin):

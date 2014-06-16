@@ -22,7 +22,9 @@ def main(global_config, **settings):
         default_permission='view',
     )
     # add basic authentication parsing
-    config.add_tween('billy.api.auth.basic_auth_tween_factory')
+    config.add_tween('.api.auth.basic_auth_tween_factory')
+    # add access-control-allow-origin header setting
+    config.add_tween('.api.allow_origin.allow_origin_tween_factory')
     # provides table entity to json renderers
     config.include('.renderers')
     # provides api views

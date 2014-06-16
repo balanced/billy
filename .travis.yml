@@ -5,13 +5,15 @@ env:
   - BILLY_UNIT_TEST_DB=sqlite:// BILLY_FUNC_TEST_DB=sqlite://
   - BILLY_TEST_ALEMBIC=1 BILLY_UNIT_TEST_DB=postgresql://postgres:@127.0.0.1/billy BILLY_FUNC_TEST_DB=postgresql://postgres:@127.0.0.1/billy
   - BILLY_TEST_INTEGRATION=1
-before_install :
+# stop using wheels speed up for now, looks like it causes some issue with
+# travis building environment
+#before_install :
   # yo! Let's download and unpack the pip wheels package and speed up the slow
   # pip installaction process.
-  - "wget https://s3-us-west-1.amazonaws.com/billy.pip.cache/pip_wheels.tar.gz"
-  - "tar -xvf pip_wheels.tar.gz"
-  - "pip install wheel"
-  - "find .pip_wheels/ -exec pip install {} \\;"
+  #- "wget https://s3-us-west-1.amazonaws.com/billy.pip.cache/pip_wheels.tar.gz"
+  #- "tar -xvf pip_wheels.tar.gz"
+  #- "pip install wheel"
+  #- "find .pip_wheels/ -exec pip install {} \\;"
 # command to install dependencies
 install: 
   - "pip install psycopg2 --use-mirrors"

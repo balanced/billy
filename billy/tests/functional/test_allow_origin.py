@@ -25,17 +25,20 @@ class TestAllowOrigin(ViewTestCase):
             extra_environ=dict(REMOTE_USER=self.api_key),
             status=404,
         )
-        self.assertEqual(resp.headers['Access-Control-Allow-Origin'], origin)
         self.assertEqual(
-            resp.headers['Access-Control-Allow-Credentials'],
+            resp.headers.get('Access-Control-Allow-Origin'),
+            origin,
+        )
+        self.assertEqual(
+            resp.headers.get('Access-Control-Allow-Credentials'),
             'true',
         )
         self.assertEqual(
-            resp.headers['Access-Control-Allow-Methods'],
+            resp.headers.get('Access-Control-Allow-Methods'),
             'GET, POST, PUT, DELETE, PATCH, OPTIONS',
         )
         self.assertEqual(
-            resp.headers['Access-Control-Allow-Headers'],
+            resp.headers.get('Access-Control-Allow-Headers'),
             'Content-Type,Authorization',
         )
 
@@ -66,6 +69,14 @@ class TestAllowOrigin(ViewTestCase):
         self.assert_allowed('http://localhost:5050/')
         self.assert_allowed('http://localhost/foo')
         self.assert_allowed('http://localhost/foo/bar')
+
+    def test_allow_origin_with_multiiple_line_cfg(self):
+        self.testapp.app.registry.settings['api.allowed_origins'] = '\n'.join([
+            'http://127.0.0.1',
+            'http://localhost',
+        ])
+        self.assert_allowed('http://127.0.0.1')
+        self.assert_allowed('http://localhost/')
 
     def test_not_allow_origin(self):
         self.testapp.app.registry.settings['api.allowed_origins'] = [

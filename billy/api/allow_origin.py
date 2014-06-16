@@ -12,6 +12,8 @@ def allow_origin_tween_factory(handler, registry):
             allowed_origins = (
                 request.registry.settings.get('api.allowed_origins', [])
             )
+            if isinstance(allowed_origins, (str, unicode)):
+                allowed_origins = allowed_origins.splitlines()
             if not origin:
                 return False
             for allowed_origin in allowed_origins:

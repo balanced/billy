@@ -102,8 +102,8 @@ Response:
 Plan
 ----
 
-A plan is a setup for recurring charing or paying out, it contains the amount to 
-charge or payout and the frequency of generating invoices.
+A plan is setup to create recurring charges or for payouts. A plan contains the amount to
+charge or payout and the frequency which invoices are generated. 
 
 Create
 ~~~~~~
